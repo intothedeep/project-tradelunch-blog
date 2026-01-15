@@ -3,6 +3,7 @@
 
 html {
     color-scheme: light dark; /* ThemeProvider와 연동 */
+    scroll-behavior: smooth;
 }
 
 /* :root {

@@ -2,19 +2,16 @@ import { getPostBySlug } from '@/apis/getPost.api';
 import { PostContentHeader } from '@/app/blog/_components/PostContentHeader.server';
 
 import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer.server';
+import { TableOfContents } from '@/components/blog/TableOfContents.server';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { extractToc } from '@repo/markdown-parsing';
 
 export const PostContent = async ({ slug }: { slug: string }) => {
     const post = await getPostBySlug({ slug });
 
-    // const res = await axios.get(`/v1/api/posts/slug/java-spring-jdbc`);
-    // const res: any = await new Promise((resolve) => {
-    //     setTimeout(() => {
-    //         resolve({ data: { content: 'hello' } });
-    //     }, 1000);
-    // });
-    // throw Error('error');
+    // Extract TOC from markdown content
+    const tocItems = extractToc(post.content || '');
 
     return (
         <>
@@ -34,6 +31,9 @@ export const PostContent = async ({ slug }: { slug: string }) => {
                 </CardHeader>
 
                 <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
+                    {tocItems.length > 0 && (
+                        <TableOfContents items={tocItems} />
+                    )}
                     <MarkdownRenderer content={post.content || ''} />
                 </CardContent>
             </Card>
@@ -42,3 +42,4 @@ export const PostContent = async ({ slug }: { slug: string }) => {
 };
 
 export default PostContent;
+

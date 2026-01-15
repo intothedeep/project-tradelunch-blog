@@ -31,7 +31,6 @@ export default async function BlogDetailPage({ params }: Props) {
                 // 'border border-primary rounded-xl'
             )}
         >
-            
             <PostContent slug={slug} />
         </section>
     );
