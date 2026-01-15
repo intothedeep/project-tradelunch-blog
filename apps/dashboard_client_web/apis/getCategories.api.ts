@@ -1,63 +1,36 @@
 // apis/getCategories.api.ts
-// import { TTreeNode } from '@/apis/blog.types';
 
 import axios_instance from '@/apis/axios_instance';
 import {
-    ETreeNodeType,
     TCategoryTreeResponse,
+    TTreeNodeWithChildren,
 } from '@repo/markdown-parsing/types';
 
-export type TCategory = {
-    id: number;
-    title: string;
-    slug: string;
-    parent_id: number;
-    root_id: number;
-    level: number;
-    post_count: number;
-    type: ETreeNodeType;
-};
-
-// export async function getCategoriesByUsername(
-//     username: string
-// ): Promise<TCategoriesResponse> {
-//     try {
-//         const response = await axios_instance.get<TCategoriesResponse>(
-//             `/v1/api/posts/users/${username}/categories`
-//         );
-
-//         console.log(
-//             '>> api categories: ',
-//             { status: response.status },
-//             { data: response.data }
-//         );
-
-//         if (!response.success) {
-//             throw new Error(`HTTP ${response.status}`);
-//         }
-
-//         return await response.data;
-//     } catch (error) {
-//         console.error('Failed to fetch categories:', error);
-//         throw error; // Re-throw original error
-//     }
-// }
+// export type TCategory = {
+//     id: number;
+//     title: string;
+//     slug: string;
+//     parent_id: number;
+//     root_id: number;
+//     level: number;
+//     post_count: number;
+//     type: ETreeNodeType;
+// };
 
 export async function getCategoriesByUsername(
     username: string
-): Promise<TCategoryTreeResponse> {
+): Promise<{ categories: TTreeNodeWithChildren[] }> {
     try {
-        const response = await axios_instance.get<TCategoryTreeResponse>(
-            `/v1/api/posts/users/${username}/categories`
-        );
+        const response = await axios_instance.get<
+            any,
+            TCategoryTreeResponse,
+            { username: string }
+        >(`/v1/api/posts/users/${username}/categories`);
 
-        // console.log('>> getCategoriesByUsername: ', {
-        //     status: response.status,
-        //     data: response.data,
-        // });
+        console.log('>> getCategoriesByUsername: ', { response });
 
-        // 올바르게 success 체크
-        if (!response.success) {
+        // response.data is TCategoryTreeResponse, check success on data
+        if (response.status !== 200) {
             throw new Error(`HTTP ${response.status}`);
         }
 

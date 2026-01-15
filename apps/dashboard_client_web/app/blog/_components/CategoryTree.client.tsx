@@ -12,11 +12,7 @@ import {
     FolderOpen,
 } from 'lucide-react';
 
-import {
-    ETreeNodeType,
-    TTreeNode,
-    TTreeNodeWithChildren,
-} from '@/apis/blog.types';
+import { ETreeNodeType, TTreeNode, TTreeNodeWithChildren } from '@repo/markdown-parsing/types';
 
 // ============================================================================
 // Utils - Build Tree from Flat Data
