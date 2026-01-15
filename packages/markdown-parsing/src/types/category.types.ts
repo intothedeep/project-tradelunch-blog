@@ -40,7 +40,7 @@ export interface TPostTreeNode {
 }
 
 export interface TCategoryTreeResponse {
-    success: boolean;
+    status: number;
     data: {
         categories: TTreeNode[];
     };
