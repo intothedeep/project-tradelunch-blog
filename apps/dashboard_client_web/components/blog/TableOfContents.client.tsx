@@ -74,7 +74,7 @@ export const TableOfContents = ({ items, className }: TableOfContentsProps) => {
                                         'hover:underline underline-offset-2',
                                         isActive
                                             ? 'text-primary font-semibold'
-                                            : 'text-foreground/90 hover:text-primary'
+                                            : 'text-foreground hover:text-primary'
                                     )}
                                 >
                                     {item.text}
