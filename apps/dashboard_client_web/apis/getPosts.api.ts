@@ -24,7 +24,7 @@ export async function getBlogPostsByUsername(
             },
         });
 
-        console.log(response);
+        // console.log(response);
 
         return response.data;
     } catch (error) {

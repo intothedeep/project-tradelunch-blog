@@ -51,10 +51,10 @@ export async function getCategoriesByUsername(
             `/v1/api/posts/users/${username}/categories`
         );
 
-        console.log('>> api categories: ', {
-            status: response.status,
-            data: response.data,
-        });
+        // console.log('>> getCategoriesByUsername: ', {
+        //     status: response.status,
+        //     data: response.data,
+        // });
 
         // 올바르게 success 체크
         if (!response.success) {

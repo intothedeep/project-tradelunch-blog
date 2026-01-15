@@ -4,15 +4,13 @@ import dotenv from 'dotenv';
 import { API_BASE } from '@/env.schema';
 
 dotenv.config();
-console.log('>> ', `axios instance: .env`);
-console.log('>> axios: ', { NODE_ENV: process.env.NODE_ENV });
+console.log('>>', `axios env: ${process.env.NODE_ENV}`);
 
 if (process.env.NODE_ENV == 'production') {
     // Load .env.production to override any variables from .env
     dotenv.config({ path: path.resolve(process.cwd(), '.env.production') });
-    console.log('>> ', `axios instance: loaded .env.production`);
+    // console.log('>> ', `axios instance: loaded .env.production`);
 }
-// console.log('>>>>>>> ', { env: process.env });
 
 export const axios_instance = axios.create({
     baseURL: API_BASE,

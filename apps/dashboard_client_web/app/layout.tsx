@@ -32,9 +32,9 @@ const ibmPlexMono = IBM_Plex_Mono({
 // });
 
 export const metadata: Metadata = {
-    title: 'Total Dashboard',
+    title: 'Taek Lim | Software Engineer & Fintech Developer',
     description:
-        'computer science, cs, software, trading, investment, inflation',
+        'Portfolio of Taek Lim — Software engineer specializing in fintech, databases, and full-stack development. Explore projects in trading systems, web apps, and data engineering.',
 };
 
 export default async function RootLayout({

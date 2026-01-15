@@ -8,7 +8,7 @@ export const getPostBySlug = async ({ slug }: { slug: string }) => {
         //     setTimeout(() => resolve({ data: {} }), 3000);
         // });
 
-        console.log(response);
+        // console.log("\n\n>> getPostBySlug: \n\n", response);
 
         return response.data;
     } catch (error) {
