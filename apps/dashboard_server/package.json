@@ -8,7 +8,7 @@
         "dev:nodemon": "cross-env NODE_ENV=development nodemon",
         "build": "tsc && tsc-alias",
         "start": "node dist/index.js",
-        "start:pm2": "cross-env NODE_ENV=production yarn build && pm2 start dist/src/index.js --name tradelunch",
+        "start:pm2": "cross-env NODE_ENV=production yarn build && pm2 start dist/src/index.js --name dashboard_server",
         "status": "pm2 status",
         "logs": "pm2 logs",
         "stop": "pm2 stop",

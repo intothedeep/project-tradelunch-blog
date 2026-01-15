@@ -13,7 +13,7 @@ export { parseMarkdownContent, MarkdownProcessor } from './markdown.parse';
 
 export { loadMarkdownFile } from './load.file';
 
-export { tocPlugin, buildNestedToc } from './markdown.toc';
+export { tocPlugin, buildNestedToc, extractToc } from './markdown.toc';
 
 // export enum ETreeNodeType {
 //     CATEGORY = 'category',

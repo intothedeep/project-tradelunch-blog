@@ -81,7 +81,7 @@ export const upload_file_s3 = async (meta: TPostFileMeta) => {
     const s3SignedUrl = await get_signed_uri_s3(key);
     console.log('S3 Signed URL:', s3SignedUrl);
 
-    meta.storedName = `${meta.id}.${meta.ext}`;
+    meta.storedName = `${meta.slug}.${meta.ext}`;
     meta.storedUri = key;
     // meta.storedUri = `s3://${AWS_S3_BUCKET}/${key}`;
 

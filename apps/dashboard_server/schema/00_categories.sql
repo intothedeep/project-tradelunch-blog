@@ -14,7 +14,7 @@ CREATE TABLE categories (
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at      TIMESTAMP DEFAULT NULL,
     FOREIGN KEY (parent_id) REFERENCES categories(id),
-    unique(title)
+    unique(user_id, title)
 );
 
 -- 동일 부모 내 우선순위 + 조회 최적화용 인덱스

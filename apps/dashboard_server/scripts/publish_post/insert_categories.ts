@@ -35,19 +35,24 @@ export const insertCategories = async (
     // We can't know the id for parent_id and root_id before insertion, so we insert with a placeholder (0) and then update it.
     // If a category that was a child is now a root, its level will be updated to 0.
 
-    const rootId = CustomSnowflake.generate();
-    await db.query(
+    const generatedRootId = CustomSnowflake.generate();
+    const [rootResult] = (await db.query(
         `
         INSERT INTO categories (id, group_id, title, user_id) 
         VALUES (:id, :id, :title, :userId) 
-        ON CONFLICT (title) DO UPDATE SET
+        ON CONFLICT (user_id, title) DO UPDATE SET
             level = EXCLUDED.level,
-            updated_at = CURRENT_TIMESTAMP`,
+            updated_at = CURRENT_TIMESTAMP
+        RETURNING id`,
         {
-            replacements: { id: rootId, title: root, userId: meta.userId },
+            replacements: { id: generatedRootId, title: root, userId: meta.userId },
             transaction: tx,
+            type: QueryTypes.SELECT,
         }
-    );
+    )) as { id: string }[];
+
+    const rootId = rootResult.id;
+
 
     let parentId = rootId;
 
@@ -56,20 +61,21 @@ export const insertCategories = async (
         const level = index + 1;
         // Insert child, or update it if it exists.
         // This handles cases where a category might be moved under a different parent.
-        const id = CustomSnowflake.generate();
-        await db.query(
+        const generatedChildId = CustomSnowflake.generate();
+        const [childResult] = (await db.query(
             `
             INSERT INTO categories (id, group_id, parent_id, level, title, user_id) 
                 VALUES (:id, :groupId, :parentId, :level, :title, :userId) 
-                ON CONFLICT (title) DO UPDATE SET
+                ON CONFLICT (user_id, title) DO UPDATE SET
                     level = EXCLUDED.level,
                     parent_id = EXCLUDED.parent_id,
                     group_id = EXCLUDED.group_id,
                     user_id = EXCLUDED.user_id,
-                    updated_at = CURRENT_TIMESTAMP`,
+                    updated_at = CURRENT_TIMESTAMP
+            RETURNING id`,
             {
                 replacements: {
-                    id,
+                    id: generatedChildId,
                     groupId: rootId,
                     level,
                     parentId,
@@ -77,10 +83,11 @@ export const insertCategories = async (
                     userId: meta.userId,
                 },
                 transaction: tx,
+                type: QueryTypes.SELECT,
             }
-        );
+        )) as { id: string }[];
 
-        parentId = id;
+        parentId = childResult.id;
     }
 
     return parentId;

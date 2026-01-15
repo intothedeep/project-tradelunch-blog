@@ -21,7 +21,8 @@ CREATE TABLE posts (
     -- --
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    deleted_at      TIMESTAMP DEFAULT NULL
+    deleted_at      TIMESTAMP DEFAULT NULL,
+    UNIQUE(user_id, slug)
 );
 
 -- group_id 기준 조회 최적화

@@ -11,6 +11,13 @@ export const insertImage = async (
         INSERT INTO 
             files (id, user_id, post_id, content_type, ext, original_filename, stored_name, stored_uri, file_size, is_thumbnail, created_at, updated_at, deleted_at)
             VALUES (:id, :user_id, :post_id, :content_type, :ext, :original_filename, :stored_name, :stored_uri, :file_size, :is_thumbnail, NOW(), NOW(), NULL)
+            ON CONFLICT (user_id, stored_name) DO UPDATE SET
+                post_id = EXCLUDED.post_id,
+                -- stored_uri might change if we re-upload? Assuming yes.
+                stored_uri = EXCLUDED.stored_uri,
+                file_size = EXCLUDED.file_size,
+                is_thumbnail = EXCLUDED.is_thumbnail,
+                updated_at = NOW()
         `,
 		{
 			replacements: {

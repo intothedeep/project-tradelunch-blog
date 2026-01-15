@@ -15,12 +15,24 @@ import { Sequelize, Transaction } from 'sequelize';
 import { TPostFileMeta } from '@repo/markdown-parsing';
 import { CustomSnowflake, extractMarkdownFile } from '@repo/markdown-parsing';
 
-const run = async () => {
-    const base = 'data';
-    const folderPath = 'java/spring/jdbc';
-    const slug = 'java-spring-jdbc';
-    const fileExt = 'png';
+const default_args: any = {
+    base: 'data',
+    folderPath: 'DSA',
+    slug: 'when-to-mark-visited',
+    fileExt: 'png',
+};
 
+const run = async ({
+    base = 'data',
+    folderPath = 'java/spring/jdbc',
+    slug = 'java-spring-jdbc',
+    fileExt = 'png',
+}: {
+    base?: string;
+    folderPath?: string;
+    slug?: string;
+    fileExt?: string;
+} = {}) => {
     const extractedMDFile = extractMarkdownFile(base, folderPath, slug);
 
     let db: Sequelize | undefined = undefined;
@@ -88,7 +100,11 @@ const run = async () => {
         meta.categoryId = await insertCategories(db, meta, tx);
 
         // 2. insert post
-        await insertPost(db, meta, tx);
+        const postId = await insertPost(db, meta, tx);
+        
+        // Update meta with the actual persistent ID
+        // meta.id = String(postId);
+        meta.postId = String(postId);
 
         // 4. insert image meta (same transaction)
         await insertImage(db, meta, tx);
@@ -106,4 +122,4 @@ const run = async () => {
     }
 };
 
-run();
+run(default_args);
