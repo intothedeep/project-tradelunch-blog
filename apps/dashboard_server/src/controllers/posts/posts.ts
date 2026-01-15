@@ -480,7 +480,7 @@ router.get('/users/:username/categories', async (req, res) => {
         });
 
         const response: TCategoryTreeResponse = {
-            success: true,
+            status: 200,
             data: { categories },
         };
 
@@ -488,7 +488,7 @@ router.get('/users/:username/categories', async (req, res) => {
     } catch (error) {
         console.error('API Error fetching categories:', error);
         res.status(500).json({
-            success: false,
+            status: 500,
             message: 'Failed to fetch categories',
         });
     }
