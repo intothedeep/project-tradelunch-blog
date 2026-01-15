@@ -15,9 +15,5 @@ export { loadMarkdownFile } from './load.file';
 
 export { tocPlugin, buildNestedToc, extractToc } from './markdown.toc';
 
-// export enum ETreeNodeType {
-//     CATEGORY = 'category',
-//     POST = 'post',
-// }
-
-export { ETreeNodeType } from '@/src/types/category.types';
+// Re-export from types (single source of truth for ETreeNodeType)
+export { ETreeNodeType } from '../types/category.types';
