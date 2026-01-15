@@ -41,6 +41,7 @@ router.get(
                     SELECT
                         p.id,
                         p.user_id,
+                        u.username,
                         p.slug,
                         p.title,
                         p.description,
@@ -67,6 +68,7 @@ router.get(
                 SELECT 
                     id,
                     user_id,
+                    username,
                     slug,
                     title,
                     description,
