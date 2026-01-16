@@ -59,6 +59,16 @@ const TerminalProfile = () => {
 
     const experiences = [
         {
+            title: 'Graduate Research Assistant',
+            company: 'University of Central Missouri',
+            location: 'Warrensburg, Missouri, USA',
+            period: '01/2026–Current',
+            achievements: [
+                'Researching on Performance Optimization and Data Integrity for Distributed Ledger System with Adaptive Sharding and Merkle Tree',
+                'Proactive Anomaly Detection in Sharded Blockchains using AI',
+            ],
+        },
+        {
             title: 'Senior Software Engineer (Frontend)',
             company: 'Adriel',
             location: 'Seoul, South Korea',
@@ -116,9 +126,18 @@ const TerminalProfile = () => {
             'gRPC/Protobuf',
             'C/C++',
             'Python',
+            'Rust',
         ],
         Database: ['PostgreSQL', 'MySQL', 'Redis', 'Elasticsearch', 'Redshift'],
-        Cloud: ['AWS', 'Oracle Cloud', 'Azure', 'Kafka', 'Docker'],
+        Monitoring: ['Prometheus', 'Grafana', 'ELK Stack'],
+        'DevOps / Infrastructure': [
+            'Jenkins',
+            'Docker',
+            'K8s',
+            'Kafka',
+            'Github',
+        ],
+        Cloud: ['AWS', 'Oracle Cloud', 'Azure'],
         Other: ['OAuth2', 'Functional Programming', 'Reactive Programming'],
     };
 
@@ -260,7 +279,7 @@ const TerminalProfile = () => {
 
                 {/* Navigation */}
                 {!loading && (
-                    <div className="sticky top-0 z-10 bg-background/95 backdrop-blur mb-6 pb-4">
+                    <div className="sticky top-0 z-10 bg-background/95 backdrop-blur mb-10 pb-0">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                             {navItems.map((item) => (
                                 <button

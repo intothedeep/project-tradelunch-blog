@@ -217,7 +217,7 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
 
                     {/* Description */}
                     {post.description && (
-                        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mb-3">
+                        <p className="text-xs sm:text-sm text-foreground line-clamp-2 mb-3">
                             {post.description}
                         </p>
                     )}
