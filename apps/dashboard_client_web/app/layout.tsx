@@ -35,6 +35,35 @@ export const metadata: Metadata = {
     title: 'Taek Lim | Software Engineer & Fintech Developer',
     description:
         'Portfolio of Taek Lim — Software engineer specializing in fintech, databases, and full-stack development. Explore projects in trading systems, web apps, and data engineering.',
+    other: {
+        'google-site-verification':
+            'vgnCaEjx8h0VBVFvMM43zWpoo2uc1gKlhBzFKLAkKkA',
+    },
+    // TODO: add more metadata
+    openGraph: {
+        title: 'Taek Lim | Software Engineer & Fintech Developer',
+        description:
+            'Portfolio of Taek Lim — Software engineer specializing in fintech, databases, and full-stack development. Explore projects in trading systems, web apps, and data engineering.',
+        url: 'https://my.prettylog.com',
+        siteName: 'Taek Lim',
+        images: [
+            {
+                url: 'https://my.prettylog.com/og-image.png',
+                width: 1200,
+                height: 630,
+                alt: 'Taek Lim | Software Engineer & Fintech Developer',
+            },
+        ],
+        locale: 'en_US',
+        type: 'website',
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'Taek Lim | Software Engineer & Fintech Developer',
+        description:
+            'Portfolio of Taek Lim — Software engineer specializing in fintech, databases, and full-stack development. Explore projects in trading systems, web apps, and data engineering.',
+        images: ['https://my.prettylog.com/og-image.png'],
+    },
 };
 
 export default async function RootLayout({
