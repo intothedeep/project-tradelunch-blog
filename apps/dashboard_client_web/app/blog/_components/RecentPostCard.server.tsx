@@ -141,6 +141,7 @@ export const SaveBlock: React.FC<SaveBlockProps> = ({ onSave }) => {
 
 import Link from 'next/link';
 import { PostContentHeader } from '@/app/blog/_components/PostContentHeader.server';
+import clsx from 'clsx';
 
 // ============================================================================
 // RecentPostCard Component
@@ -217,10 +218,32 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
 
                     {/* Description */}
                     {post.description && (
-                        <p className="text-xs sm:text-sm text-foreground line-clamp-2 mb-3">
+                        <p className="text-xs font-semibold sm:text-sm text-foreground line-clamp-3 mb-3">
                             {post.description}
                         </p>
                     )}
+
+                    {/* Tag Badges */}
+                    <div
+                        className={clsx(
+                            'flex items-center gap-1 flex-wrap border-t border-primary/30',
+                            'pt-3 mb-3',
+                            post.tags?.length ? '' : 'hidden'
+                        )}
+                    >
+                        {post.tags?.map((tag, idx) => (
+                            <Badge
+                                key={idx}
+                                variant="outline"
+                                className={clsx(
+                                    'text-xs',
+                                    'hover:text-muted-foreground transition-colors'
+                                )}
+                            >
+                                {tag}
+                            </Badge>
+                        ))}
+                    </div>
 
                     {/* Footer - Vote + Actions */}
                     <div className="flex items-center gap-3 flex-wrap border-t border-primary/30 pt-3">

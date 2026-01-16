@@ -79,7 +79,12 @@ router.get(
                     category_id,
                     stored_uri,
                     category,
-                    date
+                    date,
+                    (SELECT ARRAY_AGG(pt.tag_title) 
+                     FROM post_tags pt 
+                     WHERE pt.post_id = ranked_posts.id 
+                       AND pt.deleted_at IS NULL
+                    ) AS tags
                 FROM ranked_posts
                 WHERE rn = 1
                 ORDER BY id DESC
@@ -197,7 +202,12 @@ router.get(
                     category_id,
                     stored_uri,
                     category,
-                    date
+                    date,
+                    (SELECT ARRAY_AGG(pt.tag_title) 
+                     FROM post_tags pt 
+                     WHERE pt.post_id = ranked_posts.id 
+                       AND pt.deleted_at IS NULL
+                    ) AS tags
                 FROM ranked_posts
                 WHERE rn = 1
                 ORDER BY id DESC
@@ -298,13 +308,16 @@ router.get('/slug/:slug', async (req, res) => {
                 p.*,
                 u.username,
                 f.stored_uri,
-                p.created_at as date
+                p.created_at as date,
+                ARRAY_AGG(pt.tag_title) FILTER (WHERE pt.tag_title IS NOT NULL) AS tags
 			FROM 
                 posts p 
                 INNER JOIN users u ON p.user_id = u.id
-                INNER JOIN files f ON p.id = f.post_id
+                LEFT JOIN files f ON p.id = f.post_id AND f.is_thumbnail = true
+                LEFT JOIN post_tags pt ON p.id = pt.post_id AND pt.deleted_at IS NULL
 			WHERE p.slug = :slug
 			${username ? 'AND u.username = :username' : ''}
+            GROUP BY p.id, u.username, f.stored_uri
 			ORDER BY p.created_at DESC
 			LIMIT 1
 		`;

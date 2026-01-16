@@ -70,6 +70,7 @@ export type TPost = {
     author?: string;
     views?: number;
     username?: string;
+    tags?: string[];
 };
 
 export interface FeaturedPost extends TPost {
