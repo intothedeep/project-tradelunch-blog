@@ -38,6 +38,7 @@ export const metadata: Metadata = {
     other: {
         'google-site-verification':
             'vgnCaEjx8h0VBVFvMM43zWpoo2uc1gKlhBzFKLAkKkA',
+        'google-adsense-account': 'ca-pub-7476929778409534',
     },
     // TODO: add more metadata
     openGraph: {
