@@ -37,8 +37,8 @@ export const metadata: Metadata = {
         'Portfolio of Taek Lim — Software engineer specializing in fintech, databases, and full-stack development. Explore projects in trading systems, web apps, and data engineering.',
     other: {
         'google-site-verification':
-            'vgnCaEjx8h0VBVFvMM43zWpoo2uc1gKlhBzFKLAkKkA',
-        'google-adsense-account': 'ca-pub-7476929778409534',
+            process.env.NEXT_PUBLIC_GOOGLE_SEARCH_ENGINE ?? '',
+        'google-adsense-account': process.env.NEXT_PUBLIC_GOOGLE_ADSENSE ?? '',
     },
     // TODO: add more metadata
     openGraph: {
