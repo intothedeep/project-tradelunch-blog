@@ -183,12 +183,21 @@ drop table if exists post_tags;
 CREATE TABLE if not exists post_tags (
     seq int8 GENERATED ALWAYS AS IDENTITY( INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START 1 CACHE 1 NO CYCLE) NOT NULL, 
     post_id         BIGINT NOT NULL,
-    tag_title       VARCHAR(50) UNIQUE NOT NULL,
+    tag_id          BIGINT NOT NULL,
+    tag_title       VARCHAR(50) NOT NULL,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at      TIMESTAMP DEFAULT NULL,    
     PRIMARY KEY (post_id, tag_title)
 );
+
+-- 1. Drop the UNIQUE constraint on tag_title
+ALTER TABLE post_tags DROP CONSTRAINT IF EXISTS post_tags_tag_title_key;
+-- 2. Add tag_id column
+ALTER TABLE post_tags ADD COLUMN tag_id BIGINT;
+-- Optional: If you want to make tag_id NOT NULL after populating existing rows
+UPDATE post_tags pt SET tag_id = t.id FROM tags t WHERE pt.tag_title = t.title;
+ALTER TABLE post_tags ALTER COLUMN tag_id SET NOT NULL;
 
 -- ===========================
 -- INDEXES
