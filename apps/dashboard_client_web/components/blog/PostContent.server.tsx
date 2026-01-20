@@ -5,13 +5,13 @@ import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer.server';
 import { TableOfContents } from '@/components/blog/TableOfContents.client';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { extractToc } from '@repo/markdown-parsing';
+import { extractToc, extractTocParsed } from '@repo/markdown-parsing';
 
 export const PostContent = async ({ slug }: { slug: string }) => {
     const post = await getPostBySlug({ slug });
 
     // Extract TOC from markdown content
-    const tocItems = extractToc(post.content || '');
+    const tocItems = await extractTocParsed(post.content || '');
 
     return (
         <div className="flex gap-6">

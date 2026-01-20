@@ -1,3 +1,5 @@
+import { unified } from 'unified';
+import remarkParse from 'remark-parse';
 import { visit } from 'unist-util-visit';
 import GithubSlugger from 'github-slugger';
 
@@ -64,6 +66,22 @@ export function buildNestedToc(items: TTocItem[]): TNestedTocItem[] {
 }
 
 /**
+ * Extracts TOC items from raw markdown using AST parsing.
+ * This method correctly ignores headings inside code blocks.
+ *
+ * @param markdown - Raw markdown string
+ * @returns Promise resolving to flat array of TOC items
+ */
+export async function extractTocParsed(markdown: string): Promise<TTocItem[]> {
+    const processor = unified().use(remarkParse).use(tocPlugin);
+    const tree = processor.parse(markdown);
+    const file: VFile = { data: {} } as VFile;
+    await processor.run(tree, file);
+
+    return (file.data?.toc as TTocItem[]) ?? [];
+}
+
+/**
  * Extracts TOC items from raw markdown content.
  * Uses github-slugger for consistent ID generation with rehype-slug.
  *
@@ -74,11 +92,17 @@ export function extractToc(markdown: string): TTocItem[] {
     const slugger = new GithubSlugger();
     const toc: TTocItem[] = [];
 
+    // Remove fenced code blocks (``` or ~~~) before extracting headings
+    const withoutCodeBlocks = markdown.replace(
+        /^(`{3,}|~{3,})[^\n]*\n[\s\S]*?\n\1/gm,
+        ''
+    );
+
     // Regex to match markdown headings (# to ######)
     const headingRegex = /^(#{1,6})\s+(.+)$/gm;
     let match;
 
-    while ((match = headingRegex.exec(markdown)) !== null) {
+    while ((match = headingRegex.exec(withoutCodeBlocks)) !== null) {
         const depth = match[1].length as 1 | 2 | 3 | 4 | 5 | 6;
         if (depth > 3) continue;
 

@@ -13,7 +13,7 @@ export { parseMarkdownContent, MarkdownProcessor } from './markdown.parse';
 
 export { loadMarkdownFile } from './load.file';
 
-export { tocPlugin, buildNestedToc, extractToc } from './markdown.toc';
+export { tocPlugin, buildNestedToc, extractToc, extractTocParsed } from './markdown.toc';
 
 // Re-export from types (single source of truth for ETreeNodeType)
 export { ETreeNodeType } from '../types/category.types';
