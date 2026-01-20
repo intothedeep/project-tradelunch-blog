@@ -508,8 +508,10 @@ const TerminalProfile = () => {
                             READY FOR OPPORTUNITIES
                         </div>
                         <div className="text-foreground">
-                            Available: 12/2025 | Last Updated:{' '}
-                            {new Date().toLocaleDateString()}
+                            Available: 05/2026 | Last Updated:{' '}
+                            <span suppressHydrationWarning>
+                                {new Date().toLocaleDateString()}
+                            </span>
                         </div>
                     </CardContent>
                 </Card>

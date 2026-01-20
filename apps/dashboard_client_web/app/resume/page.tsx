@@ -97,7 +97,10 @@ export const ResumePage = () => {
                             STATUS: READY
                         </div>
                         <div className="text-foreground">
-                            Last Updated: {new Date().toLocaleDateString()}
+                            Last Updated:{' '}
+                            <span suppressHydrationWarning>
+                                {new Date().toLocaleDateString()}
+                            </span>
                         </div>
                     </CardContent>
                 </Card>
