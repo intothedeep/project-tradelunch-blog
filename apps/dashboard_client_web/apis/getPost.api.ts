@@ -1,6 +1,7 @@
+import { cache } from 'react';
 import axios_instance from '@/apis/axios_instance';
 
-export const getPostBySlug = async ({ slug }: { slug: string }) => {
+export const getPostBySlug = cache(async ({ slug }: { slug: string }) => {
     try {
         const response = await axios_instance.get(`/v1/api/posts/slug/${slug}`);
 
@@ -15,4 +16,4 @@ export const getPostBySlug = async ({ slug }: { slug: string }) => {
         console.error('Failed to fetch posts:', error);
         throw new Error(`Failed to fetch a post: ${slug}`);
     }
-};
+});
