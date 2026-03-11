@@ -11,7 +11,6 @@ import { getLocale, getMessages } from 'next-intl/server';
 
 import '@repo/ui/styles.css';
 import '@/styles/globals.css';
-
 import CustomNavigation from '@/components/navigation-desktop';
 
 const geist = Geist({
@@ -91,6 +90,7 @@ export default async function RootLayout({
     return (
         <html
             lang={locale}
+            suppressHydrationWarning
             className={clsx(
                 // geist.variable,
                 // ibmPlexSans.variable,

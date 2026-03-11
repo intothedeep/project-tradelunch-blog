@@ -4,7 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { CircleCheckIcon, CircleHelpIcon, CircleIcon } from 'lucide-react';
 
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/useIsMobile.hook';
 import {
     NavigationMenu,
     NavigationMenuContent,
