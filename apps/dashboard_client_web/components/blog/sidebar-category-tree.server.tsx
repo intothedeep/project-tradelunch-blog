@@ -37,7 +37,7 @@ export function CategoryTree({ node, username }: CategoryTreeProps) {
                         className="data-[active=true]:bg-transparent"
                     >
                         <File />
-                        <span>{node.name}</span>
+                        <span>{node.title}</span>
                     </SidebarMenuButton>
                 </Link>
 
@@ -60,7 +60,7 @@ export function CategoryTree({ node, username }: CategoryTreeProps) {
                     <SidebarMenuButton>
                         <ChevronRight className="transition-transform" />
                         <Folder />
-                        <span>{node.name}</span>
+                        <span>{node.title}</span>
                     </SidebarMenuButton>
                 </CollapsibleTrigger>
 

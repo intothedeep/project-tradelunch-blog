@@ -74,5 +74,16 @@ body {
     }
 }
 
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 @import './shadcn.css';
 @import './shadcn.green.css';

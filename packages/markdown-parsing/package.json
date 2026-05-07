@@ -28,17 +28,17 @@
     },
     "scripts": {
         "clean": "rm -rf dist",
-        "build": "yarn run clean && rollup -c",
-        "deprecated:dev": "yarn run clean && rollup -c -w",
+        "build": "pnpm run clean && rollup -c",
+        "deprecated:dev": "pnpm run clean && rollup -c -w",
         "lint": "eslint . --ext .ts",
-        "prepublishOnly": "yarn run build",
+        "prepublishOnly": "pnpm run build",
         "test": "jest",
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage"
     },
     "peerDependencies": {},
     "devDependencies": {
-        "@repo/typescript-config": "*",
+        "@repo/typescript-config": "workspace:*",
         "@rollup/plugin-commonjs": "^29.0.0",
         "@rollup/plugin-json": "^6.1.0",
         "@rollup/plugin-node-resolve": "^16.0.3",

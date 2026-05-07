@@ -35,5 +35,5 @@
         "lib/**/*"
     ],
 
-    "exclude": ["node_modules", "__backup__", "dist", "coverage", ""]
+    "exclude": ["node_modules", "__backup__", "dist", "coverage", "**/x_*"]
 }

@@ -77,11 +77,11 @@ export const MobileNavigation = () => {
 
     // Handle swipe down to close
     const handleTouchStart = (e: React.TouchEvent) => {
-        setTouchStart(e.targetTouches[0].clientY);
+        setTouchStart(e.targetTouches[0]?.clientY ?? 0);
     };
 
     const handleTouchMove = (e: React.TouchEvent) => {
-        setTouchEnd(e.targetTouches[0].clientY);
+        setTouchEnd(e.targetTouches[0]?.clientY ?? 0);
     };
 
     const handleTouchEnd = () => {
@@ -248,19 +248,6 @@ export const MobileNavigation = () => {
                     </div>
                 </nav>
             </div>
-
-            <style jsx>{`
-                @keyframes slideInUp {
-                    from {
-                        opacity: 0;
-                        transform: translateY(20px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-            `}</style>
         </>
     );
 };

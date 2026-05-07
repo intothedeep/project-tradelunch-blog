@@ -1,34 +1,30 @@
 {
-	"name": "with-tailwind",
-	"private": true,
-	"scripts": {
-		"build": "turbo run build",
-		"dev": "turbo run dev",
-		"dev:web": "yarn workspace web dev",
-		"dev:server": "yarn workspace article_server dev",
-		"lint": "turbo run lint",
-		"check-types": "turbo run check-types",
-		"format": "prettier --write \"**/*.{ts,tsx,md}\""
-	},
-	"devDependencies": {
-		"@jest/globals": "^30.2.0",
-		"prettier": "^3.6.0",
-		"prettier-plugin-tailwindcss": "^0.6.11",
-		"turbo": "^2.5.8",
-		"ts-node": "^10.9.2",
-		"tsconfig-paths": "^4.2.0",
-		"typescript": "^5.9.3",
-		"@types/jest": "^30.0.0",
-		"eslint": "^9.39.0",
-		"jest": "^30.2.0",
-		"ts-jest": "^29.4.5"
-	},
-	"engines": {
-		"node": ">=18"
-	},
-	"packageManager": "yarn@1.22.22",
-	"workspaces": [
-		"apps/*",
-		"packages/*"
-	]
+    "name": "with-tailwind",
+    "private": true,
+    "packageManager": "pnpm@9.5.0",
+    "scripts": {
+        "build": "turbo run build",
+        "dev": "turbo run dev",
+        "dev:web": "pnpm --filter dashboard_client_web dev",
+        "dev:server": "pnpm --filter dashboard_server dev",
+        "lint": "turbo run lint",
+        "check-types": "turbo run check-types",
+        "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    },
+    "devDependencies": {
+        "@jest/globals": "^30.2.0",
+        "prettier": "^3.6.0",
+        "prettier-plugin-tailwindcss": "^0.6.11",
+        "turbo": "^2.5.8",
+        "ts-node": "^10.9.2",
+        "tsconfig-paths": "^4.2.0",
+        "typescript": "^5.9.3",
+        "@types/jest": "^30.0.0",
+        "eslint": "^9.39.0",
+        "jest": "^30.2.0",
+        "ts-jest": "^29.4.5"
+    },
+    "engines": {
+        "node": ">=18"
+    }
 }

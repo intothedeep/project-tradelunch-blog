@@ -2,11 +2,11 @@
 
 ## **1. Monorepo Architecture**
 
-### **1.1 Turborepo + Yarn Workspaces**
+### **1.1 Turborepo + pnpm Workspaces**
 
 - Use **Turborepo** to manage a monorepo with multiple apps and shared packages.
   Turborepo enables cross‑workspace caching, parallel execution, and consistent scripts.
-- Use **Yarn Workspaces** for dependency management across workspaces.
+- Use **pnpm Workspaces** for dependency management across workspaces.
 
 Root package.json snippet:
 
@@ -24,7 +24,7 @@ Root package.json snippet:
 ```
 
 - Each workspace (app or package) has its own package.json.
-- Root yarn.lock ensures consistent dependency versions across workspaces.
+- Root pnpm-lock.yaml ensures consistent dependency versions across workspaces.
 
 ---
 
@@ -44,7 +44,7 @@ root/
 ├── .husky/
 ├── turbo.json
 ├── package.json
-├── yarn.lock
+├── pnpm-lock.yaml
 ├── README.md
 └── GUIDE.SPEC.md
 ```
@@ -212,7 +212,7 @@ npx husky add .husky/pre-commit "npx lint-staged"
 
 - Avoid circular dependencies in monorepo.
 - Use shared configs (ESLint, Tailwind, Jest).
-- Use lockfiles (uv.lock, yarn.lock) for reproducible installs.
+- Use lockfiles (uv.lock, pnpm-lock.yaml) for reproducible installs.
 
 ---
 
@@ -229,10 +229,10 @@ npx husky add .husky/pre-commit "npx lint-staged"
 Centralize scripts in root package.json and specific workspace scripts. Provide consistent commands:
 
 ```
-yarn dev:web
-yarn dev:api
-yarn build
-yarn test
+pnpm dev:web
+pnpm dev:api
+pnpm build
+pnpm test
 ```
 
 ---
@@ -301,7 +301,7 @@ Node.js/Next.js에서 Protobuf 타입을 생성할 때는 다음 도구를 활�
 설치:
 
 ```
-yarn add -D ts-proto @bufbuild/protobuf
+pnpm add -D ts-proto @bufbuild/protobuf
 ```
 
 Codegen 예시:
@@ -334,7 +334,7 @@ const decoded = User.decode(bytes);
 설치:
 
 ```
-yarn add protobufjs
+pnpm add protobufjs
 ```
 
 사용 예시:
@@ -382,7 +382,7 @@ Python에서 직렬화한 바이트를 TS 쪽 User.decode로 읽을 수 있고, 
 "scripts": {
   "proto:gen:ts": "protoc -I packages/proto --ts_proto_out=generated/ packages/proto/**/*.proto",
   "proto:gen:py": "protoc -I packages/proto --python_out=./api-server/src/generated/ packages/proto/**/*.proto",
-  "proto:gen": "yarn proto:gen:ts && yarn proto:gen:py"
+  "proto:gen": "pnpm proto:gen:ts && pnpm proto:gen:py"
 }
 ```
 
