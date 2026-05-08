@@ -1,28 +1,72 @@
-## Getting Started
+# dashboard_client_web
 
-First, run the development server:
+Next.js 16 App Router app serving two surfaces: blog and financial dashboard.
 
-```bash
-pnpm dev
+Part of the [tradelunch](../../README.md) monorepo. See repo root [`CLAUDE.md`](../../CLAUDE.md) for architecture and conventions.
+
+---
+
+## Run
+
+From repo root (preferred):
+
+```sh
+pnpm dev:web                                    # http://localhost:3001
+pnpm --filter dashboard_client_web build
+pnpm --filter dashboard_client_web start:pm2    # production via PM2
+pnpm --filter dashboard_client_web lint         # next lint --max-warnings 0
+pnpm --filter dashboard_client_web check-types  # tsc --noEmit
 ```
 
-Open [http://localhost:3001](http://localhost:3001) with your browser to see the result.
+From this directory:
 
-You can start editing the page by modifying `src/app/page.tsx`. The page auto-updates as you edit the file.
+```sh
+pnpm dev      # next dev --turbopack -p 3001
+pnpm build    # next build
+pnpm start    # next start -p 3000
+```
 
-To create [API routes](https://nextjs.org/docs/app/building-your-application/routing/router-handlers) add an `api/` directory to the `app/` directory with a `route.ts` file. For individual endpoints, create a subfolder in the `api` directory, like `api/hello/route.ts` would map to [http://localhost:3001/api/hello](http://localhost:3001/api/hello).
+---
 
-## Learn More
+## Ports
 
-To learn more about Next.js, take a look at the following resources:
+- Dev: `3001`
+- Production: `3000`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn/foundations/about-nextjs) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+## Environment
 
-## Deploy on Vercel
+`.env`, `.env.local`, `.env.production`, `.env.example` — see `.env.example` for required keys. No `env.schema.ts` validator yet (planned in Phase 3).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_source=github.com&utm_medium=referral&utm_campaign=turborepo-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+## Routes
+
+- `/` — landing
+- `/blog/@taeklim` — blog list (server-rendered, infinite scroll)
+- `/blog/[id]` — post detail (Markdown + KaTeX + prism)
+- `/dashboard` — financial markets snapshot (Phase 2-simple, in progress)
+- `/dashboard/preview/cards`, `/dashboard/preview/table` — display variant previews (Cycle 2)
+
+---
+
+## Directory layout
+
+Strict layout — see [`.claude/rules/nexjts.md`](../../.claude/rules/nexjts.md):
+
+```
+app/         App Router (pages, layouts, actions/, api/)
+apis/        Fetch wrappers (.api.ts, .mock.api.ts)
+hooks/       Custom hooks (.hook.ts, .query.client.ts)
+components/  Domain UI; atoms in components/ui/ (shadcn pattern)
+lib/         Third-party init + cn util
+utils/       Pure business helpers
+types/       Global TS types
+i18n/        next-intl config
+messages/    Locale dictionaries (en, ko)
+styles/      globals.css
+public/      Static assets
+```
+
+Path alias `@/*` resolves from this directory. Cross-workspace imports use `@repo/*`.

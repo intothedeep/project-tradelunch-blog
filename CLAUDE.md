@@ -11,6 +11,10 @@ Read these before making changes — they override anything inferred from existi
 - `.claude/rules/typescript.md` — TS imports must be extensionless
 - `.claude/rules/python.md`, `.claude/rules/rust.md` — language-specific (only relevant if those stacks appear)
 
+## Active Work
+
+See [`00.plan.md`](./00.plan.md) and [`00.tasks.md`](./00.tasks.md) at repo root. Currently active: **Phase 2-simple — Financial Dashboard MVP** (branch `feature/finance`). Two display-variant preview routes exist for evaluation: `/dashboard/preview/cards` and `/dashboard/preview/table`. The winner is rolled into `/dashboard` in Cycle 3.
+
 ## Repo Topology
 
 pnpm + Turborepo monorepo (`workspaces: ["apps/*", "packages/*"]`). Node 24 (`.nvmrc`), `auto-install-peers=true`.
