@@ -304,23 +304,29 @@ export function useTradingViewChart({
       to: candles.length - 1,
     })
 
+    let disposed = false
     const measurePanes = () => {
-      const containerRect = container.getBoundingClientRect()
-      let paneIdx = 1
-      const rects: IndicatorPaneRects = { rsi: null, macd: null }
-      const readPane = (i: number): PaneRect | null => {
-        const el = chart.panes()[i]?.getHTMLElement()
-        if (!el) return null
-        const r = el.getBoundingClientRect()
-        return { top: r.top - containerRect.top, height: r.height }
+      if (disposed) return
+      try {
+        const containerRect = container.getBoundingClientRect()
+        let paneIdx = 1
+        const rects: IndicatorPaneRects = { rsi: null, macd: null }
+        const readPane = (i: number): PaneRect | null => {
+          const el = chart.panes()[i]?.getHTMLElement()
+          if (!el) return null
+          const r = el.getBoundingClientRect()
+          return { top: r.top - containerRect.top, height: r.height }
+        }
+        if (rsiVisible) {
+          rects.rsi = readPane(paneIdx++)
+        }
+        if (macdVisible) {
+          rects.macd = readPane(paneIdx++)
+        }
+        setPaneRects(rects)
+      } catch {
+        // chart disposed mid-frame; ignore
       }
-      if (rsiVisible) {
-        rects.rsi = readPane(paneIdx++)
-      }
-      if (macdVisible) {
-        rects.macd = readPane(paneIdx++)
-      }
-      setPaneRects(rects)
     }
     requestAnimationFrame(measurePanes)
 
@@ -334,14 +340,20 @@ export function useTradingViewChart({
     })
 
     const observer = new ResizeObserver(() => {
-      chart.applyOptions({ width: container.clientWidth, height: container.clientHeight })
-      requestAnimationFrame(measurePanes)
+      if (disposed) return
+      try {
+        chart.applyOptions({ width: container.clientWidth, height: container.clientHeight })
+        requestAnimationFrame(measurePanes)
+      } catch {
+        // chart disposed between resize fire and apply; ignore
+      }
     })
     observer.observe(container)
 
     return () => {
+      disposed = true
       observer.disconnect()
-      chart.remove()
+      try { chart.remove() } catch { /* already disposed */ }
       chartRef.current = null
       candleSeriesRef.current = null
       setHoverIndex(null)

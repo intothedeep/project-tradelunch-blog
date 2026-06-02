@@ -131,8 +131,8 @@ export function useChartDrawings({
     chart.subscribeCrosshairMove(onMove)
     chart.subscribeClick(onClick)
     return () => {
-      chart.unsubscribeCrosshairMove(onMove)
-      chart.unsubscribeClick(onClick)
+      try { chart.unsubscribeCrosshairMove(onMove) } catch { /* chart disposed */ }
+      try { chart.unsubscribeClick(onClick) } catch { /* chart disposed */ }
     }
   }, [
     enabled, chartReady, chartRef, candleSeriesRef, activeTool, inProgress,
