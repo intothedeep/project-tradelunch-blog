@@ -4,7 +4,7 @@ import axios_instance from '@/apis/axios_instance';
 import {
     TCategoryTreeResponse,
     TTreeNodeWithChildren,
-} from '@repo/markdown-parsing/types';
+} from '@repo/types';
 
 // export type TCategory = {
 //     id: number;

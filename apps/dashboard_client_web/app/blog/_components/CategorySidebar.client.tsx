@@ -18,7 +18,7 @@ import {
     ETreeNodeType,
     TTreeNode,
     TTreeNodeWithChildren,
-} from '@repo/markdown-parsing/types';
+} from '@repo/types';
 
 // // ============================================================================
 // // CategorySidebar Component

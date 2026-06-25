@@ -1,4 +1,4 @@
-import { type TPostFileMeta } from '@repo/markdown-parsing/src/types';
+import { type TPostFileMeta } from '@repo/markdown-parsing/types';
 import { Sequelize, Transaction } from "sequelize";
 
 export const insertImage = async (
@@ -8,7 +8,7 @@ export const insertImage = async (
 ) => {
 	await db.query(
 		`
-        INSERT INTO 
+        INSERT INTO
             files (id, user_id, post_id, content_type, ext, original_filename, stored_name, stored_uri, file_size, is_thumbnail, created_at, updated_at, deleted_at)
             VALUES (:id, :user_id, :post_id, :content_type, :ext, :original_filename, :stored_name, :stored_uri, :file_size, :is_thumbnail, NOW(), NOW(), NULL)
             ON CONFLICT (user_id, stored_name) DO UPDATE SET

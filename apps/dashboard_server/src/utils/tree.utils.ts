@@ -4,7 +4,7 @@ import {
     TPostTreeNode,
     TTreeNode,
     TTreeNodeWithChildren,
-} from '@repo/markdown-parsing';
+} from '@repo/types';
 
 // utils/tree.utils.ts
 export const buildTree = (flatData: TTreeNode[]): TTreeNodeWithChildren[] => {

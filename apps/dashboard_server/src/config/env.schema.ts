@@ -24,7 +24,6 @@ const envSchema = z.object({
         .default('development'),
     PORT: z.coerce.number().default(4000),
     HOST_NAME: z.string().default('localhost'),
-    SESSION_SECRET: z.string(),
 
     // domain
     SITE_DOMAIN: z.string().default('http://localhost:3000'),
@@ -35,7 +34,6 @@ const envSchema = z.object({
     AWS_ACCESS_KEY_ID: z.string().default('localhost'),
     AWS_SECRET_ACCESS_KEY: z.string().default('localhost'),
     AWS_S3_BUCKET: z.string().default('localhost'),
-    AWS_RDS_CA: z.string(),
 
     // ec2
     EC2_HOST: z.string().default('13.57.82.45'),
@@ -75,7 +73,6 @@ export const AWS_REGION = env.AWS_REGION;
 export const AWS_ACCESS_KEY_ID = env.AWS_ACCESS_KEY_ID;
 export const AWS_SECRET_ACCESS_KEY = env.AWS_SECRET_ACCESS_KEY;
 export const AWS_S3_BUCKET = env.AWS_S3_BUCKET;
-export const AWS_RDS_CA = env.AWS_RDS_CA;
 
 export const CDN_ASSET_POSTS = env.CDN_ASSET_POSTS;
 

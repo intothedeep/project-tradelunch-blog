@@ -40,9 +40,9 @@ app.get('/', (req, res) => {
     console.log(req.query, req.body);
 });
 
-app.listen(4000, () => {
-    console.log('Server running on port 4000');
-});
+// NOTE: this module must NOT call app.listen(). The single listener (with
+// graceful-shutdown wiring) lives in src/index.ts. A second app.listen(4000)
+// here bound a stray port outside the SIGTERM/SIGINT shutdown flow.
 
 app.use('/ping', (_, res) => {
     res.json({

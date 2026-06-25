@@ -1,4 +1,4 @@
-import { TTreeNodeWithChildren } from '@repo/markdown-parsing/types';
+import { TTreeNodeWithChildren } from '@repo/types';
 
 export type TreeNode = Omit<TTreeNodeWithChildren, 'children' | 'postCount'> & {
     children: TreeNode[];

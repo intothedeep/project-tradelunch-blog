@@ -1,7 +1,7 @@
 // app/blog/CategorySidebarWrapper.server.tsx
 import { getCategoriesByUsername } from '@/apis/getCategories.api';
 import { CategorySidebar } from '@/app/blog/_components/CategorySidebar.client';
-import { TTreeNodeWithChildren } from '@repo/markdown-parsing/types';
+import { TTreeNodeWithChildren } from '@repo/types';
 
 export const CategorySidebarWrapper = async () => {
     const data: { categories: TTreeNodeWithChildren[] } =

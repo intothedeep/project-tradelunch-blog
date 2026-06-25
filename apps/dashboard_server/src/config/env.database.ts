@@ -1,5 +1,4 @@
 import {
-    AWS_RDS_CA,
     DB_PG_DATABASE,
     DB_PG_HOST,
     DB_PG_PASSWORD,

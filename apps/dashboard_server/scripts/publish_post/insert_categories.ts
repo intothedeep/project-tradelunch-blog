@@ -1,10 +1,10 @@
 import { QueryTypes, Sequelize, Transaction } from 'sequelize';
-import { type TPostFileMeta } from '@repo/markdown-parsing/src/types';
+import { type TPostFileMeta } from '@repo/markdown-parsing/types';
 import { CustomSnowflake } from '@repo/markdown-parsing';
 
 /**
- * 
- * 1. 
+ *
+ * 1.
  * table
 CREATE TABLE if not exists categories (
     id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -38,8 +38,8 @@ export const insertCategories = async (
     const generatedRootId = CustomSnowflake.generate();
     const [rootResult] = (await db.query(
         `
-        INSERT INTO categories (id, group_id, title, user_id) 
-        VALUES (:id, :id, :title, :userId) 
+        INSERT INTO categories (id, group_id, title, user_id)
+        VALUES (:id, :id, :title, :userId)
         ON CONFLICT (user_id, title) DO UPDATE SET
             level = EXCLUDED.level,
             updated_at = CURRENT_TIMESTAMP
@@ -64,8 +64,8 @@ export const insertCategories = async (
         const generatedChildId = CustomSnowflake.generate();
         const [childResult] = (await db.query(
             `
-            INSERT INTO categories (id, group_id, parent_id, level, title, user_id) 
-                VALUES (:id, :groupId, :parentId, :level, :title, :userId) 
+            INSERT INTO categories (id, group_id, parent_id, level, title, user_id)
+                VALUES (:id, :groupId, :parentId, :level, :title, :userId)
                 ON CONFLICT (user_id, title) DO UPDATE SET
                     level = EXCLUDED.level,
                     parent_id = EXCLUDED.parent_id,

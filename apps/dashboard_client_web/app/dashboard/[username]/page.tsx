@@ -1,4 +1,6 @@
-import { FinancialGridLayout } from "@/components/dashboard/FinancialGridLayout.client";
+import { MOCK_DASHBOARD_SNAPSHOT } from '@/apis/getDashboardSnapshot.mock.api';
+import { MOCK_DASHBOARD_HISTORY } from '@/apis/getDashboardHistory.mock.api';
+import ChartVariantLayout from '@/components/dashboard/ChartVariantLayout.client';
 
 interface DashboardPageProps {
     params: Promise<{ username: string }>;
@@ -6,33 +8,21 @@ interface DashboardPageProps {
 
 export async function generateMetadata({ params }: DashboardPageProps) {
     const { username } = await params;
-    const displayName = username.replace(/^@/, "");
+    const displayName = username.replace(/^@/, '');
     return {
-        title: `${displayName}'s Dashboard | Financial Overview`,
-        description: `Financial market overview for ${displayName} — FX, commodities, rates and institutional holdings.`,
+        title: `${displayName}'s Dashboard | Taek Lim`,
+        description: `Financial markets dashboard for ${displayName} — candlestick charts across FX, crypto, indices, rates and stocks.`,
     };
 }
 
-export default async function DashboardPage({ params }: DashboardPageProps) {
-    const { username } = await params;
-    const displayName = username.replace(/^@/, "");
-
+// Cycle 3 (page conversion): per-username route renders the same adopted
+// Variant C dashboard. Mock data for now — swap for backend-backed server
+// actions in Group B.
+export default function DashboardPage() {
     return (
-        <main className="flex flex-col min-h-screen bg-background p-4 md:p-8">
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">
-                        Markets Overview
-                    </h1>
-                    <p className="text-muted-foreground mt-1 text-sm">
-                        Dashboard for <span className="font-semibold">@{displayName}</span>
-                    </p>
-                </div>
-            </div>
-
-            <div className="w-full">
-                <FinancialGridLayout />
-            </div>
-        </main>
+        <ChartVariantLayout
+            snapshot={MOCK_DASHBOARD_SNAPSHOT}
+            history={MOCK_DASHBOARD_HISTORY}
+        />
     );
 }

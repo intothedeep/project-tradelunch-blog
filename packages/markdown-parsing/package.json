@@ -49,6 +49,7 @@
         "tslib": "^2.8.1"
     },
     "dependencies": {
+        "@repo/types": "workspace:*",
         "github-slugger": "^2.0.0"
     }
 }

@@ -1,4 +1,4 @@
-import { ETreeNodeType, TTreeNode } from '@repo/markdown-parsing/types';
+import { ETreeNodeType, TTreeNode } from '@repo/types';
 
 // Example flat data structure
 export const flatCategoryData: TTreeNode[] = [

@@ -1,5 +1,5 @@
 import { CustomSnowflake } from '@repo/markdown-parsing';
-import { type TPostFileMeta } from '@repo/markdown-parsing/src/types';
+import { type TPostFileMeta } from '@repo/markdown-parsing/types';
 import { QueryTypes, Sequelize, Transaction } from 'sequelize';
 
 export const insertPost = async (
@@ -12,9 +12,9 @@ export const insertPost = async (
 
     const results = (await db.query(
         `
-        INSERT INTO 
+        INSERT INTO
             posts (id, user_id, title, content, status, created_at, updated_at, slug, category_id, group_id)
-        VALUES 
+        VALUES
             (:id, :userId, :title, :content, :status, NOW(), NOW(), :slug, :categoryId, :groupId)
         ON CONFLICT (user_id, slug) DO UPDATE SET
             title = EXCLUDED.title,

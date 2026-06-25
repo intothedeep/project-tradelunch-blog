@@ -3,7 +3,7 @@ import {
     ETreeNodeType,
     TCategoryTreeResponse,
     TTreeNode,
-} from '@repo/markdown-parsing';
+} from '@repo/types';
 
 import { Router, Request } from 'express';
 import { QueryTypes } from 'sequelize';
@@ -59,13 +59,13 @@ router.get(
                     LEFT JOIN files f ON p.id = f.post_id AND f.is_thumbnail = true
                     LEFT JOIN categories c ON c.id = p.category_id
 
-                    WHERE 
+                    WHERE
                         p.deleted_at IS NULL
                         AND u.deleted_at IS NULL
                         -- AND (f.deleted_at IS NULL OR f.deleted_at IS NOT NULL
                         ${cursor > 0 ? 'AND p.id < :cursor' : ''}
                 )
-                SELECT 
+                SELECT
                     id,
                     user_id,
                     username,
@@ -80,9 +80,9 @@ router.get(
                     stored_uri,
                     category,
                     date,
-                    (SELECT ARRAY_AGG(pt.tag_title) 
-                     FROM post_tags pt 
-                     WHERE pt.post_id = ranked_posts.id 
+                    (SELECT ARRAY_AGG(pt.tag_title)
+                     FROM post_tags pt
+                     WHERE pt.post_id = ranked_posts.id
                        AND pt.deleted_at IS NULL
                     ) AS tags
                 FROM ranked_posts
@@ -176,19 +176,19 @@ router.get(
                         c.title as category,
                         u.username,
                         ROW_NUMBER() OVER(PARTITION BY p.slug ORDER BY p.created_at DESC) as rn
-                    FROM 
+                    FROM
                         posts p
                         INNER JOIN users u ON p.user_id = u.id
                         LEFT JOIN files f ON p.id = f.post_id AND f.is_thumbnail = true
                         LEFT JOIN categories c ON p.category_id = c.id
-                    WHERE 
+                    WHERE
                         p.deleted_at IS NULL
                         AND u.username = :username
                         AND u.deleted_at IS NULL
                         -- AND (f.deleted_at IS NULL OR f.deleted_at IS NOT NULL
                         ${cursor > 0 ? 'AND p.id < :cursor' : ''}
                 )
-                SELECT 
+                SELECT
                     id,
                     user_id,
                     username,
@@ -203,9 +203,9 @@ router.get(
                     stored_uri,
                     category,
                     date,
-                    (SELECT ARRAY_AGG(pt.tag_title) 
-                     FROM post_tags pt 
-                     WHERE pt.post_id = ranked_posts.id 
+                    (SELECT ARRAY_AGG(pt.tag_title)
+                     FROM post_tags pt
+                     WHERE pt.post_id = ranked_posts.id
                        AND pt.deleted_at IS NULL
                     ) AS tags
                 FROM ranked_posts
@@ -304,14 +304,14 @@ router.get('/slug/:slug', async (req, res) => {
         const { username } = req.query;
 
         const query = `
-			SELECT 
+			SELECT
                 p.*,
                 u.username,
                 f.stored_uri,
                 p.created_at as date,
                 ARRAY_AGG(pt.tag_title) FILTER (WHERE pt.tag_title IS NOT NULL) AS tags
-			FROM 
-                posts p 
+			FROM
+                posts p
                 INNER JOIN users u ON p.user_id = u.id
                 LEFT JOIN files f ON p.id = f.post_id AND f.is_thumbnail = true
                 LEFT JOIN post_tags pt ON p.id = pt.post_id AND pt.deleted_at IS NULL
@@ -367,7 +367,7 @@ router.get('/users/:username/categories', async (req, res) => {
         const treeQuery = `
                 WITH RECURSIVE category_tree AS (
                     -- 루트 카테고리
-                    SELECT 
+                    SELECT
                         c.id,
                         c.parent_id,
                         c.group_id,
@@ -385,7 +385,7 @@ router.get('/users/:username/categories', async (req, res) => {
                     UNION ALL
 
                     -- 자식 카테고리
-                    SELECT 
+                    SELECT
                         c.id,
                         c.parent_id,
                         c.group_id,
@@ -403,7 +403,7 @@ router.get('/users/:username/categories', async (req, res) => {
 
                     user_posts AS (
                     -- 지정된 사용자의 게시글만 선택
-                    SELECT 
+                    SELECT
                         p.id,
                         p.seq,
                         p.slug,
@@ -425,7 +425,7 @@ router.get('/users/:username/categories', async (req, res) => {
 
                     combined_tree_post AS (
                     -- 카테고리 노드
-                    SELECT 
+                    SELECT
                         '${ETreeNodeType.CATEGORY}' AS type,
                         ct.id,
                         ct.parent_id,
@@ -446,7 +446,7 @@ router.get('/users/:username/categories', async (req, res) => {
                     UNION ALL
 
                     -- 게시글 노드 (카테고리 group_id 상속)
-                    SELECT 
+                    SELECT
                         '${ETreeNodeType.POST}' AS type,
                         p.id,
                         p.category_id AS parent_id,
@@ -466,7 +466,7 @@ router.get('/users/:username/categories', async (req, res) => {
                     JOIN category_tree ct ON p.category_id = ct.id
                     )
 
-                    SELECT 
+                    SELECT
                         type,
                         id,
                         parent_id,
@@ -531,7 +531,7 @@ router.get(
             const fetchLimit = limit + 1;
 
             const postsQuery = `
-                SELECT 
+                SELECT
                     p.id,
                     p.user_id,
                     p.slug,
@@ -545,8 +545,8 @@ router.get(
                     f.stored_uri
                 FROM posts p
                 INNER JOIN users u ON p.user_id = u.id
-                LEFT JOIN files f ON p.id = f.post_id 
-                    AND f.is_thumbnail = true 
+                LEFT JOIN files f ON p.id = f.post_id
+                    AND f.is_thumbnail = true
                     AND f.deleted_at IS NULL
                 WHERE u.username = :username
                     AND p.category_id = :categoryId
