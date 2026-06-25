@@ -1,4 +1,4 @@
-// apps/article_server/src/env.schema.ts
+// apps/dashboard_server/src/config/env.schema.ts
 import { z } from 'zod';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -52,6 +52,35 @@ const envSchema = z.object({
 
     // user id
     DEFAULT_USER_ID: z.coerce.number().default(2),
+
+    // supabase
+    DATABASE_URL: z.string().optional(),
+    DATABASE_URL_DIRECT: z.string().optional(),
+    SUPABASE_PROJECT_ID: z.string().optional(),
+    SUPABASE_DB_PASSWORD: z.string().optional(),
+    SUPABASE_URL: z.string().optional(),
+    SUPABASE_SECRET_KEY: z.string().optional(),
+
+    // auth
+    CLERK_SECRET_KEY: z.string().optional(),
+
+    // cors / app
+    ALLOWED_ORIGINS: z.string().default(''),
+    APP_URL: z.string().default('http://localhost:3000'),
+    GIT_SHA: z.string().default('local'),
+
+    // file upload limits
+    MAX_FILE_SIZE: z.coerce.number().default(10485760),
+    ALLOWED_FILE_TYPES: z.string().default('image/jpeg,image/png,image/webp'),
+
+    // cloudfront / image
+    CLOUDFRONT_DOMAIN: z.string().optional(),
+    THUMBNAIL_WIDTH: z.coerce.number().default(400),
+    THUMBNAIL_HEIGHT: z.coerce.number().default(300),
+    THUMBNAIL_QUALITY: z.coerce.number().default(80),
+    IMAGE_OPTIMIZATION_QUALITY: z.coerce.number().default(85),
+    MAX_IMAGE_WIDTH: z.coerce.number().default(1920),
+    MAX_IMAGE_HEIGHT: z.coerce.number().default(1080),
 });
 
 export const env = envSchema.parse(process.env);
@@ -80,3 +109,32 @@ export const EC2_HOST = env.EC2_HOST;
 export const EC2_PORT = env.EC2_PORT;
 export const EC2_USERNAME = env.EC2_USERNAME;
 export const DEFAULT_USER_ID = env.DEFAULT_USER_ID;
+
+// supabase / database url
+export const DATABASE_URL = env.DATABASE_URL;
+export const DATABASE_URL_DIRECT = env.DATABASE_URL_DIRECT;
+export const SUPABASE_PROJECT_ID = env.SUPABASE_PROJECT_ID;
+export const SUPABASE_DB_PASSWORD = env.SUPABASE_DB_PASSWORD;
+export const SUPABASE_URL = env.SUPABASE_URL;
+export const SUPABASE_SECRET_KEY = env.SUPABASE_SECRET_KEY;
+
+// auth
+export const CLERK_SECRET_KEY = env.CLERK_SECRET_KEY;
+
+// cors / app
+export const ALLOWED_ORIGINS = env.ALLOWED_ORIGINS;
+export const APP_URL = env.APP_URL;
+export const GIT_SHA = env.GIT_SHA;
+
+// file upload
+export const MAX_FILE_SIZE = env.MAX_FILE_SIZE;
+export const ALLOWED_FILE_TYPES = env.ALLOWED_FILE_TYPES;
+
+// cloudfront / image optimization
+export const CLOUDFRONT_DOMAIN = env.CLOUDFRONT_DOMAIN;
+export const THUMBNAIL_WIDTH = env.THUMBNAIL_WIDTH;
+export const THUMBNAIL_HEIGHT = env.THUMBNAIL_HEIGHT;
+export const THUMBNAIL_QUALITY = env.THUMBNAIL_QUALITY;
+export const IMAGE_OPTIMIZATION_QUALITY = env.IMAGE_OPTIMIZATION_QUALITY;
+export const MAX_IMAGE_WIDTH = env.MAX_IMAGE_WIDTH;
+export const MAX_IMAGE_HEIGHT = env.MAX_IMAGE_HEIGHT;

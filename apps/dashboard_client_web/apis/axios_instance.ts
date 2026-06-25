@@ -1,17 +1,7 @@
 import axios from 'axios';
-import path from 'path';
-import dotenv from 'dotenv';
 import { API_BASE } from '@/env.schema';
 
-dotenv.config();
-console.log('>>', `axios env: ${process.env.NODE_ENV}`);
-
-if (process.env.NODE_ENV == 'production') {
-    // Load .env.production to override any variables from .env
-    dotenv.config({ path: path.resolve(process.cwd(), '.env.production') });
-    // console.log('>> ', `axios instance: loaded .env.production`);
-}
-
+// Env is loaded by Next.js automatically; API_BASE is validated in @/env.schema.
 export const axios_instance = axios.create({
     baseURL: API_BASE,
     timeout: 5000,
