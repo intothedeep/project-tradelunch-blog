@@ -1,4 +1,4 @@
-import { type TPostFileMeta } from '@repo/markdown-parsing/types';
+import { type TPostFileMeta } from '@repo/markdown-parsing';
 import { Sequelize, Transaction } from "sequelize";
 
 export const insertImage = async (

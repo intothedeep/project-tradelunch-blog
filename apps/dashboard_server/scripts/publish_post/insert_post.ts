@@ -1,5 +1,5 @@
 import { CustomSnowflake } from '@repo/markdown-parsing';
-import { type TPostFileMeta } from '@repo/markdown-parsing/types';
+import { type TPostFileMeta } from '@repo/markdown-parsing';
 import { QueryTypes, Sequelize, Transaction } from 'sequelize';
 
 export const insertPost = async (

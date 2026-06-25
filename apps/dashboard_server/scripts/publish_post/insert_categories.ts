@@ -1,5 +1,5 @@
 import { QueryTypes, Sequelize, Transaction } from 'sequelize';
-import { type TPostFileMeta } from '@repo/markdown-parsing/types';
+import { type TPostFileMeta } from '@repo/markdown-parsing';
 import { CustomSnowflake } from '@repo/markdown-parsing';
 
 /**

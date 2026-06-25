@@ -58,7 +58,7 @@ export const sshConfig: SSHTunnelConfig | undefined = (() => {
 })();
 
 export const databaseEnv: EnvironmentConfig = {
-    nodeEnv: NODE_ENV || 'developement',
+    nodeEnv: NODE_ENV || 'development',
     port: parseInt(String(SERVER_PORT) || '3000', 10),
     database: {
         host: IS_DEVELOPMENT ? 'localhost' : DB_PG_HOST!,

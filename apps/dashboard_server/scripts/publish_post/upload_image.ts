@@ -8,7 +8,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import mime from 'mime-types';
 
-import { type TPostFileMeta } from '@repo/markdown-parsing/types';
+import { type TPostFileMeta } from '@repo/markdown-parsing';
 
 export const load_local_file = async (
     base: string,
