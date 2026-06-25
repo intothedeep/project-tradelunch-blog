@@ -1,4 +1,4 @@
-import { sequalizeP } from '@/src/database';
+import { pool } from '@/src/database';
 import {
     ETreeNodeType,
     TCategoryTreeResponse,
@@ -6,7 +6,6 @@ import {
 } from '@repo/types';
 
 import { Router, Request } from 'express';
-import { QueryTypes } from 'sequelize';
 
 export const router = Router();
 
@@ -20,7 +19,7 @@ export const router = Router();
  *
  * @apiSuccess {Boolean} success Indicates if the request was successful.
  * @apiSuccess {Object[]} posts List of the user's most recent posts for each slug.
- * @apiSuccess {Number} nextCursor Next cursor value (null if no more posts).
+ * @apiSuccess {String|null} nextCursor Next cursor value (null if no more posts).
  * @apiSuccess {Boolean} hasMore Indicates if more posts are available.
  */
 router.get(
@@ -63,7 +62,7 @@ router.get(
                         p.deleted_at IS NULL
                         AND u.deleted_at IS NULL
                         -- AND (f.deleted_at IS NULL OR f.deleted_at IS NOT NULL
-                        ${cursor > 0 ? 'AND p.id < :cursor' : ''}
+                        AND p.id < $1
                 )
                 SELECT
                     id,
@@ -88,16 +87,13 @@ router.get(
                 FROM ranked_posts
                 WHERE rn = 1
                 ORDER BY id DESC
-                LIMIT :fetchLimit
+                LIMIT $2
             `;
 
-            const rows: any[] = await sequalizeP.query(postsQuery, {
-                replacements: {
-                    cursor: cursor || Number.MAX_SAFE_INTEGER,
-                    fetchLimit,
-                },
-                type: QueryTypes.SELECT,
-            });
+            const { rows } = await pool.query(postsQuery, [
+                cursor || Number.MAX_SAFE_INTEGER,
+                fetchLimit,
+            ]);
 
             // Check if there are more posts
             const hasMore = rows.length > limit;
@@ -136,7 +132,7 @@ router.get(
  *
  * @apiSuccess {Boolean} success Indicates if the request was successful.
  * @apiSuccess {Object[]} posts List of the user's most recent posts for each slug.
- * @apiSuccess {Number} nextCursor Next cursor value (null if no more posts).
+ * @apiSuccess {String|null} nextCursor Next cursor value (null if no more posts).
  * @apiSuccess {Boolean} hasMore Indicates if more posts are available.
  */
 router.get(
@@ -183,10 +179,10 @@ router.get(
                         LEFT JOIN categories c ON p.category_id = c.id
                     WHERE
                         p.deleted_at IS NULL
-                        AND u.username = :username
+                        AND u.username = $1
                         AND u.deleted_at IS NULL
                         -- AND (f.deleted_at IS NULL OR f.deleted_at IS NOT NULL
-                        ${cursor > 0 ? 'AND p.id < :cursor' : ''}
+                        AND p.id < $2
                 )
                 SELECT
                     id,
@@ -211,17 +207,14 @@ router.get(
                 FROM ranked_posts
                 WHERE rn = 1
                 ORDER BY id DESC
-                LIMIT :fetchLimit
+                LIMIT $3
             `;
 
-            const rows: any[] = await sequalizeP.query(postsQuery, {
-                replacements: {
-                    username,
-                    cursor: cursor || Number.MAX_SAFE_INTEGER,
-                    fetchLimit,
-                },
-                type: QueryTypes.SELECT,
-            });
+            const { rows } = await pool.query(postsQuery, [
+                username,
+                cursor || Number.MAX_SAFE_INTEGER,
+                fetchLimit,
+            ]);
 
             // Check if there are more posts
             const hasMore = rows.length > limit;
@@ -262,12 +255,9 @@ router.get(
 router.get('/:postid', async (req, res) => {
     try {
         const { postid } = req.params;
-        const results = await sequalizeP.query(
-            'SELECT * FROM posts WHERE id = :postid',
-            {
-                replacements: { postid },
-                type: QueryTypes.SELECT,
-            }
+        const { rows: results } = await pool.query(
+            'SELECT * FROM posts WHERE id = $1',
+            [postid]
         );
         const post = results[0];
 
@@ -315,19 +305,15 @@ router.get('/slug/:slug', async (req, res) => {
                 INNER JOIN users u ON p.user_id = u.id
                 LEFT JOIN files f ON p.id = f.post_id AND f.is_thumbnail = true
                 LEFT JOIN post_tags pt ON p.id = pt.post_id AND pt.deleted_at IS NULL
-			WHERE p.slug = :slug
-			${username ? 'AND u.username = :username' : ''}
+			WHERE p.slug = $1
+			${username ? 'AND u.username = $2' : ''}
             GROUP BY p.id, u.username, f.stored_uri
 			ORDER BY p.created_at DESC
 			LIMIT 1
 		`;
 
-        const replacements = username ? { slug, username } : { slug };
-        const results = await sequalizeP.query(query, {
-            replacements,
-            type: QueryTypes.SELECT,
-        });
-
+        const params = username ? [slug, username] : [slug];
+        const { rows: results } = await pool.query(query, params);
         const post = results[0];
 
         if (!post) {
@@ -379,7 +365,7 @@ router.get('/users/:username/categories', async (req, res) => {
                     JOIN users u ON c.user_id = u.id
                     WHERE c.parent_id IS NULL
                         AND c.deleted_at IS NULL
-                        AND u.username = :username
+                        AND u.username = $1
                         AND u.deleted_at IS NULL
 
                     UNION ALL
@@ -397,7 +383,7 @@ router.get('/users/:username/categories', async (req, res) => {
                     JOIN category_tree ct ON c.parent_id = ct.id
                     JOIN users u ON c.user_id = u.id
                     WHERE c.deleted_at IS NULL
-                        AND u.username = :username
+                        AND u.username = $1
                         AND u.deleted_at IS NULL
                     ),
 
@@ -417,7 +403,7 @@ router.get('/users/:username/categories', async (req, res) => {
                         u.username
                     FROM posts p
                     JOIN users u ON u.id = p.user_id
-                    WHERE u.username = :username
+                    WHERE u.username = $1
                         AND u.deleted_at IS NULL
                         AND p.deleted_at IS NULL
                         AND p.status = 'public'
@@ -487,10 +473,7 @@ router.get('/users/:username/categories', async (req, res) => {
                     ORDER BY path;
             `;
 
-        const categories = await sequalizeP.query<TTreeNode>(treeQuery, {
-            replacements: { username },
-            type: QueryTypes.SELECT,
-        });
+        const { rows: categories } = await pool.query<TTreeNode>(treeQuery, [username]);
 
         const response: TCategoryTreeResponse = {
             status: 200,
@@ -548,25 +531,22 @@ router.get(
                 LEFT JOIN files f ON p.id = f.post_id
                     AND f.is_thumbnail = true
                     AND f.deleted_at IS NULL
-                WHERE u.username = :username
-                    AND p.category_id = :categoryId
+                WHERE u.username = $1
+                    AND p.category_id = $2
                     AND p.deleted_at IS NULL
                     AND u.deleted_at IS NULL
                     AND p.status = 'public'
-                    ${cursor > 0 ? 'AND p.id < :cursor' : ''}
+                    AND p.id < $3
                 ORDER BY p.id DESC
-                LIMIT :fetchLimit
+                LIMIT $4
             `;
 
-            const rows: any[] = await sequalizeP.query(postsQuery, {
-                replacements: {
-                    username,
-                    categoryId: parseInt(categoryId, 10),
-                    cursor: cursor || Number.MAX_SAFE_INTEGER,
-                    fetchLimit,
-                },
-                type: QueryTypes.SELECT,
-            });
+            const { rows } = await pool.query(postsQuery, [
+                username,
+                parseInt(categoryId, 10),
+                cursor || Number.MAX_SAFE_INTEGER,
+                fetchLimit,
+            ]);
 
             const hasMore = rows.length > limit;
             const posts = hasMore ? rows.slice(0, limit) : rows;

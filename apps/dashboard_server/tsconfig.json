@@ -18,10 +18,10 @@
         "types/global.d.ts",
         "**/*.d.ts",
         "**/lib/*",
-        "scripts",
         "config"
     ],
-    "exclude": ["node_modules", "dist", "coverage"]
+    "// note": "scripts/ excluded from the deployable build — offline publish tooling (Sequelize+S3) pending rework for pg Pool + Supabase Storage",
+    "exclude": ["node_modules", "dist", "coverage", "scripts", "**/x_*"]
 }
 
 // {

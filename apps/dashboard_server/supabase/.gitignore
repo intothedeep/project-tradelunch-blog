@@ -7,3 +7,12 @@
 # Supabase CLI local artifacts
 .branches
 .temp
+
+# Supabase
+.branches
+.temp
+
+# dotenvx
+.env.keys
+.env.local
+.env.*.local
