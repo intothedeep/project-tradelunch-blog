@@ -25,5 +25,5 @@
         "src/types/**/*.ts"
         // "types"
     ],
-    "exclude": ["node_modules", "__backup__", "dist", "**/*.spec.ts"]
+    "exclude": ["node_modules", "__backup__", "dist", "**/*.spec.ts", "**/x_*"]
 }

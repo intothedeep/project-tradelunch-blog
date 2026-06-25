@@ -1,7 +1,3 @@
-import axios from '@repo/axios';
-
-import { getTranslations } from 'next-intl/server';
-
 import clsx from 'clsx';
 import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer.server';
 import PostContent from '@/components/blog/PostContent.server';
