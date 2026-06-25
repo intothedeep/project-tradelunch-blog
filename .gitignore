@@ -39,3 +39,8 @@ dist/
 *.env
 
 packages/assets/posts
+_*
+
+# agent/claude runtime artifacts (config like .claude/CLAUDE.md, rules, agents stays tracked)
+.agent/
+.claude/scheduled_tasks.lock
