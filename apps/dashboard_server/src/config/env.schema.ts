@@ -13,7 +13,7 @@ export const IS_PRODUCTION = process.env.NODE_ENV == 'production';
 const dotEnvConfigPath =
     process.env.NODE_ENV == 'production'
         ? '.env.production'
-        : '.env.developement';
+        : '.env.development';
 
 // Load .env.production to override any variables from .env
 dotenv.config({ path: path.resolve(process.cwd(), dotEnvConfigPath) });

@@ -1,0 +1,9 @@
+# Supabase CLI local env — holds SUPABASE_SERVICE_ROLE_KEY + db password.
+# NEVER commit. Only .env.example (placeholders) is tracked.
+.env
+.env.*
+!.env.example
+
+# Supabase CLI local artifacts
+.branches
+.temp
