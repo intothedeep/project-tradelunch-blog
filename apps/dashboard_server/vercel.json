@@ -1,16 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "tsc && tsc-alias",
+  "version": 2,
   "installCommand": "pnpm install --frozen-lockfile",
-  "functions": {
-    "dist/api/index.js": {
-      "runtime": "@vercel/node@5"
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/dist/api/index.js"
-    }
+  "builds": [
+    { "src": "api/index.ts", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "api/index.ts" }
   ]
 }
