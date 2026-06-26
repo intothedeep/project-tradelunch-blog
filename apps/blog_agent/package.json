@@ -1,0 +1,11 @@
+{
+  "name": "blog_agent",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "uv run python cli_multi_agent.py",
+    "test": "uv run pytest",
+    "lint": "uv run ruff check .",
+    "check-types": "uv run mypy agents configs db utils"
+  }
+}

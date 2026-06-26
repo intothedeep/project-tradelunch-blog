@@ -7,9 +7,12 @@
         "dev": "turbo run dev",
         "dev:web": "pnpm --filter dashboard_client_web dev",
         "dev:server": "pnpm --filter dashboard_server dev",
+        "dev:agent": "pnpm --filter blog_agent start",
+        "test:agent": "pnpm --filter blog_agent test",
         "lint": "turbo run lint",
         "check-types": "turbo run check-types",
-        "format": "prettier --write \"**/*.{ts,tsx,md}\""
+        "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+        "check:schema": "diff apps/dashboard_server/schema/tradelunch.schema.sql apps/blog_agent/schema/tradelunch.schema.sql && echo 'schema in sync' || (echo 'SCHEMA DRIFT' && exit 1)"
     },
     "devDependencies": {
         "@jest/globals": "^30.2.0",
