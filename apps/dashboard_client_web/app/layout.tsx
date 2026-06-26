@@ -9,7 +9,6 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 
-import '@repo/ui/styles.css';
 import '@/styles/globals.css';
 import CustomNavigation from '@/components/navigation-desktop';
 
