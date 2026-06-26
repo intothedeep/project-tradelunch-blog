@@ -5,9 +5,9 @@ Configuration Module
 Exports all configuration settings for the application.
 """
 
-from configs.env import *
-from configs.database import *
 from configs.aws import *
+from configs.database import *
+from configs.env import *
 from configs.paths import *
 
 __all__ = [
@@ -17,16 +17,13 @@ __all__ = [
     "IS_PRODUCTION",
     "IS_LOCAL",
     # Database
-    "DB_PG_HOST",
-    "DB_PG_PORT",
-    "DB_PG_DATABASE",
-    "DB_PG_USER",
-    "DB_PG_PASSWORD",
-    "DB_CONFIG",
-    # AWS
-    "AWS_REGION",
-    "AWS_ACCESS_KEY_ID",
-    "AWS_SECRET_ACCESS_KEY",
+    "DATABASE_URL",
+    "get_database_url",
+    # Storage (Supabase, S3-compatible)
+    "SUPABASE_S3_ENDPOINT",
+    "SUPABASE_S3_REGION",
+    "SUPABASE_S3_ACCESS_KEY_ID",
+    "SUPABASE_S3_SECRET_ACCESS_KEY",
     "S3_BUCKET",
     "S3_REGION",
     "CDN_ASSET_POSTS",

@@ -2,63 +2,74 @@
 """
 Database Configuration
 
-PostgreSQL connection settings matching TypeScript env.schema.ts.
+Single-source PostgreSQL connection via DATABASE_URL (Supabase pooler).
+
+The TS server connects to Supabase with `rejectUnauthorized: false`; this module
+mirrors that by stripping any `sslmode` query param from DATABASE_URL and letting
+the connection layer (db/connection.py) attach a non-verifying SSL context.
+
+Invariants:
+- DATABASE_URL is the only source of connection parameters.
+- No DB_PG_* / EC2_* / RDS-CA logic.
+Side effects: none (pure env read + string transforms).
 """
 
 import os
-from pathlib import Path
-
+from urllib.parse import urlparse, urlunparse
 
 # ==================== PostgreSQL Database ====================
-# Uses DB_PG_* naming convention to match TypeScript
-
-DB_PG_HOST = os.getenv("DB_PG_HOST", "localhost")
-DB_PG_PORT = int(os.getenv("DB_PG_PORT", "5432"))
-DB_PG_DATABASE = os.getenv("DB_PG_DATABASE", "db20250627")
-DB_PG_USER = os.getenv("DB_PG_USER", "super")
-DB_PG_PASSWORD = os.getenv("DB_PG_PASSWORD", "")
+# Single connection string (Supabase pooler).
+# Example: postgresql://postgres.<ref>:<pw>@aws-0-<region>.pooler.supabase.com:6543/postgres
+DATABASE_URL = os.getenv("DATABASE_URL", "")
 
 
-# ==================== SSL Configuration ====================
-# Matches TypeScript dialectOptions.ssl
+def _strip_sslmode(url: str) -> str:
+    """Remove any `sslmode` query param so the asyncpg SSL context wins.
 
-DB_SSL_ENABLED = os.getenv("DB_SSL_ENABLED", "true").lower() == "true"
-DB_SSL_REJECT_UNAUTHORIZED = os.getenv("DB_SSL_REJECT_UNAUTHORIZED", "false").lower() == "true"
+    Args:
+        url: Raw connection URL.
 
-# Path to RDS CA certificate (for production with strict SSL)
-# Default: configs/certs/rds-combined-ca-bundle.pem
-DB_SSL_CA_PATH = os.getenv(
-    "DB_SSL_CA_PATH",
-    str(Path(__file__).parent / "certs" / "rds-combined-ca-bundle.pem")
-)
-
-# DB_CONFIG dict for legacy compatibility
-DB_CONFIG = {
-    "host": DB_PG_HOST,
-    "port": DB_PG_PORT,
-    "database": DB_PG_DATABASE,
-    "user": DB_PG_USER,
-    "password": DB_PG_PASSWORD,
-}
+    Returns:
+        URL with the `sslmode` query parameter removed (other params kept).
+    """
+    if "sslmode" not in url:
+        return url
+    parts = urlparse(url)
+    kept = [
+        kv
+        for kv in parts.query.split("&")
+        if kv and not kv.lower().startswith("sslmode=")
+    ]
+    return urlunparse(parts._replace(query="&".join(kept)))
 
 
-# ==================== EC2 / SSH Tunnel ====================
-# Only needed for development with SSH tunnel to RDS
+def _with_driver(url: str, driver: str) -> str:
+    """Force a SQLAlchemy driver scheme on a postgres URL.
 
-EC2_HOST = os.getenv("EC2_HOST", "")
-EC2_PORT = int(os.getenv("EC2_PORT", "22"))
-EC2_USERNAME = os.getenv("EC2_USERNAME", "ec2-user")
+    Args:
+        url: Connection URL (any `postgresql*`/`postgres` scheme).
+        driver: Target scheme (e.g. ``postgresql+asyncpg``).
+
+    Returns:
+        URL whose scheme is replaced with ``driver``.
+    """
+    parts = urlparse(url)
+    return urlunparse(parts._replace(scheme=driver))
 
 
 def get_database_url(async_driver: bool = True) -> str:
-    """
-    Build PostgreSQL connection URL.
-    
+    """Build the SQLAlchemy connection URL from DATABASE_URL.
+
     Args:
-        async_driver: Use asyncpg (True) or psycopg2 (False)
-    
+        async_driver: Use asyncpg (True) or psycopg2 (False).
+
     Returns:
-        PostgreSQL connection URL
+        Driver-qualified PostgreSQL connection URL with `sslmode` stripped.
+
+    Raises:
+        ValueError: If DATABASE_URL is not set.
     """
+    if not DATABASE_URL:
+        raise ValueError("DATABASE_URL environment variable is required")
     driver = "postgresql+asyncpg" if async_driver else "postgresql+psycopg2"
-    return f"{driver}://{DB_PG_USER}:{DB_PG_PASSWORD}@{DB_PG_HOST}:{DB_PG_PORT}/{DB_PG_DATABASE}"
+    return _with_driver(_strip_sslmode(DATABASE_URL), driver)
