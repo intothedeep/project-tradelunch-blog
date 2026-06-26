@@ -32,40 +32,40 @@ export const DesktopNavigation = () => {
 
     return (
         <nav className="hidden md:flex h-16 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-6">
-            {/* Left - Theme + Auth controls, then Logo */}
+            {/* Left - Logo */}
+            <Link
+                href="/"
+                className="flex items-center gap-3 group"
+            >
+                {/* Profile Icon */}
+                <div className="w-10 h-10 border-2 border-primary bg-secondary flex items-center justify-center transition-all group-hover:scale-110">
+                    <span className="text-2xl">👨‍💻</span>
+                </div>
+                {/* Name */}
+                <span className="text-2xl font-mono text-primary terminal-glow">
+                    Taek Lim
+                </span>
+            </Link>
+
+            {/* Right - Navigation Links, then Theme + Auth controls */}
             <div className="flex items-center gap-4">
+                <ul className="flex flex-row gap-1 items-center">
+                    {links.map((link) => (
+                        <li key={link.title}>
+                            <Link
+                                href={link.href}
+                                className="px-4 py-2 font-mono text-sm hover:bg-primary hover:text-primary-foreground transition-colors border border-transparent hover:border-primary"
+                            >
+                                {link.title.toUpperCase()}
+                            </Link>
+                        </li>
+                    ))}
+                </ul>
                 <div className="flex items-center gap-2">
                     <ModeToggle />
                     <AuthButton signInClassName="px-4 py-2 font-mono text-sm hover:bg-primary hover:text-primary-foreground transition-colors border border-transparent hover:border-primary" />
                 </div>
-                <Link
-                    href="/"
-                    className="flex items-center gap-3 group"
-                >
-                    {/* Profile Icon */}
-                    <div className="w-10 h-10 border-2 border-primary bg-secondary flex items-center justify-center transition-all group-hover:scale-110">
-                        <span className="text-2xl">👨‍💻</span>
-                    </div>
-                    {/* Name */}
-                    <span className="text-2xl font-mono text-primary terminal-glow">
-                        Taek Lim
-                    </span>
-                </Link>
             </div>
-
-            {/* Right - Navigation Links */}
-            <ul className="flex flex-row gap-1 items-center">
-                {links.map((link) => (
-                    <li key={link.title}>
-                        <Link
-                            href={link.href}
-                            className="px-4 py-2 font-mono text-sm hover:bg-primary hover:text-primary-foreground transition-colors border border-transparent hover:border-primary"
-                        >
-                            {link.title.toUpperCase()}
-                        </Link>
-                    </li>
-                ))}
-            </ul>
         </nav>
     );
 };
@@ -259,6 +259,11 @@ export const MobileNavigation = () => {
                             </li>
                         ))}
                     </ul>
+
+                    {/* Auth control */}
+                    <div className="mt-4">
+                        <AuthButton signInClassName="block w-full text-center px-4 py-4 font-mono text-lg border-2 border-primary/30 hover:border-primary hover:bg-secondary transition-all" />
+                    </div>
 
                     {/* Additional Info */}
                     <div className="mt-6 p-4 border-2 border-primary/30 bg-secondary/50">
