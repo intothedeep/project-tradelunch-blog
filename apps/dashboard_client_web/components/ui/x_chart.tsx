@@ -100,16 +100,44 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip
 
+// recharts v3 no longer surfaces `payload`/`label` through the Tooltip prop
+// types, so model the tooltip item shape locally (the runtime payload is
+// unchanged — an array of series entries with a nested raw `payload`).
+type TooltipPayloadItem = {
+  type?: string
+  dataKey?: string | number
+  name?: string
+  value?: number | string
+  color?: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload?: any
+}
+
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
-    React.ComponentProps<"div"> & {
-      hideLabel?: boolean
-      hideIndicator?: boolean
-      indicator?: "line" | "dot" | "dashed"
-      nameKey?: string
-      labelKey?: string
-    }
+  React.ComponentProps<"div"> & {
+    active?: boolean
+    payload?: TooltipPayloadItem[]
+    label?: unknown
+    labelClassName?: string
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    labelFormatter?: (value: any, payload: TooltipPayloadItem[]) => React.ReactNode
+    formatter?: (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      value: any,
+      name: string,
+      item: TooltipPayloadItem,
+      index: number,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      payload: any
+    ) => React.ReactNode
+    color?: string
+    hideLabel?: boolean
+    hideIndicator?: boolean
+    indicator?: "line" | "dot" | "dashed"
+    nameKey?: string
+    labelKey?: string
+  }
 >(
   (
     {
@@ -258,13 +286,23 @@ ChartTooltipContent.displayName = "ChartTooltip"
 
 const ChartLegend = RechartsPrimitive.Legend
 
+// recharts v3 dropped `payload` from the public LegendProps type; model the
+// legend entry shape locally to keep this component typed.
+type LegendPayloadItem = {
+  type?: string
+  value?: string
+  color?: string
+  dataKey?: string | number
+}
+
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<"div"> &
-    Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
-      hideIcon?: boolean
-      nameKey?: string
-    }
+  React.ComponentProps<"div"> & {
+    payload?: LegendPayloadItem[]
+    verticalAlign?: "top" | "bottom" | "middle"
+    hideIcon?: boolean
+    nameKey?: string
+  }
 >(
   (
     { className, hideIcon = false, payload, verticalAlign = "bottom", nameKey },

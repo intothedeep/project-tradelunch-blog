@@ -3,6 +3,7 @@
     "display": "Node Library",
     "compilerOptions": {
         "target": "ES2020",
+        "ignoreDeprecations": "6.0",
         "composite": false,
         "module": "CommonJS",
         "strict": true,

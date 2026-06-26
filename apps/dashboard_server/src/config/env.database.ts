@@ -11,7 +11,19 @@ import {
     NODE_ENV,
     SERVER_PORT,
 } from '@/src/config/env.schema';
-import { SSHTunnelConfig } from '@/src/utils/ssh.tunnel';
+
+// Local SSH tunnel config shape (legacy dev convenience; tunnel manager retired).
+interface SSHTunnelConfig {
+    host: string;
+    port: number;
+    username: string;
+    keyPath?: string;
+    privateKey?: string;
+    useAgent: boolean;
+    dstHost: string;
+    dstPort: number;
+    localPort: number;
+}
 
 // src/config/env.ts
 interface DatabaseConfig {

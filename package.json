@@ -15,25 +15,19 @@
         "check:schema": "diff apps/dashboard_server/schema/tradelunch.schema.sql apps/blog_agent/schema/tradelunch.schema.sql && echo 'schema in sync' || (echo 'SCHEMA DRIFT' && exit 1)"
     },
     "devDependencies": {
-        "@jest/globals": "^30.2.0",
-        "prettier": "^3.6.0",
-        "prettier-plugin-tailwindcss": "^0.6.11",
-        "turbo": "^2.5.8",
+        "@jest/globals": "^30.4.1",
+        "@types/jest": "^30.0.0",
+        "eslint": "^9.39.4",
+        "jest": "^30.4.2",
+        "prettier": "^3.8.4",
+        "prettier-plugin-tailwindcss": "^0.8.0",
+        "ts-jest": "^29.4.11",
         "ts-node": "^10.9.2",
         "tsconfig-paths": "^4.2.0",
-        "typescript": "^5.9.3",
-        "@types/jest": "^30.0.0",
-        "eslint": "^9.39.0",
-        "jest": "^30.2.0",
-        "ts-jest": "^29.4.5"
+        "turbo": "^2.10.0",
+        "typescript": "^6.0.3"
     },
     "engines": {
         "node": ">=20"
-    },
-    "pnpm": {
-        "overrides": {
-            "@types/express": "5.0.6",
-            "@types/express-serve-static-core": "5.1.1"
-        }
     }
 }
