@@ -1,14 +1,16 @@
 import express from 'express';
 import cors, { CorsOptions } from 'cors';
 import routers from './controllers';
+import { ALLOWED_ORIGINS } from '@/src/config/env.schema';
 
 export const app = express();
 
-const whitelist: string[] = [
-    'https://my.prettylog.com',
-    'https://admin.prettylog.com',
-    'http://localhost:3000',
-];
+// CORS whitelist is env-driven (ALLOWED_ORIGINS, comma-separated) so each
+// deploy target (local / Vercel preview / prod) controls its own origins
+// without a code change. Empty/blank entries are dropped.
+const whitelist: string[] = ALLOWED_ORIGINS.split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 
 const corsOptions: CorsOptions = {
     origin: (
