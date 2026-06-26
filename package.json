@@ -28,6 +28,12 @@
         "ts-jest": "^29.4.5"
     },
     "engines": {
-        "node": ">=18"
+        "node": ">=20"
+    },
+    "pnpm": {
+        "overrides": {
+            "@types/express": "5.0.6",
+            "@types/express-serve-static-core": "5.1.1"
+        }
     }
 }
