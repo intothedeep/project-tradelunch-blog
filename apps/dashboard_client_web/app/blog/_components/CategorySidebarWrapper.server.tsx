@@ -3,17 +3,13 @@ import { getCategoriesByUsername } from '@/apis/getCategories.api';
 import { CategorySidebar } from '@/app/blog/_components/CategorySidebar.client';
 import { TTreeNodeWithChildren } from '@repo/types';
 
-export const CategorySidebarWrapper = async () => {
-    const data: { categories: TTreeNodeWithChildren[] } =
-        await getCategoriesByUsername('taeklim');
+type Props = {
+    username: string;
+};
 
-    // console.log('>> CategorySidebarWrapper: ', data);
-    // try {
-    //     const data = await getCategoriesByUsername('taeklim');
-    //     categories = data.categories;
-    // } catch (error) {
-    //     console.error('Failed to load categories:', error);
-    // }
+export const CategorySidebarWrapper = async ({ username }: Props) => {
+    const data: { categories: TTreeNodeWithChildren[] } =
+        await getCategoriesByUsername(username);
 
     return <CategorySidebar categories={data.categories ?? []} />;
 };

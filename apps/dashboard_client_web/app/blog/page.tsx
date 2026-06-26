@@ -1,4 +1,6 @@
 import BlogMainPage from '@/app/blog/_components/BlogMainPage';
+import { BlogContentShell } from '@/app/blog/_components/BlogContentShell.server';
+import { DEFAULT_BLOG_AUTHOR } from '@/utils/blog-author';
 
 // Blog index reads live posts from the backend at request time, so it must be
 // server-rendered per request (not statically prerendered at build) — matching
@@ -6,10 +8,12 @@ import BlogMainPage from '@/app/blog/_components/BlogMainPage';
 // during prerender and fails when it is unreachable.
 export const dynamic = 'force-dynamic';
 
-type Props = {};
-
-export const BlogPage = (props: Props) => {
-    return <BlogMainPage />;
+export const BlogPage = () => {
+    return (
+        <BlogContentShell username={DEFAULT_BLOG_AUTHOR}>
+            <BlogMainPage username={DEFAULT_BLOG_AUTHOR} />
+        </BlogContentShell>
+    );
 };
 
 export default BlogPage;

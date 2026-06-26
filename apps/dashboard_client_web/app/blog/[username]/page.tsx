@@ -1,11 +1,15 @@
 export const dynamic = 'force-dynamic';
 
 import BlogMainPage from '@/app/blog/_components/BlogMainPage';
+import { stripUsernameAt } from '@/utils/blog-author';
 
 type PageProps = {
     params: Promise<{ username: string }>;
 };
 
 export default async function BlogPage({ params }: PageProps) {
-    return <BlogMainPage />;
+    const { username } = await params;
+    const decoded = decodeURIComponent(username);
+
+    return <BlogMainPage username={stripUsernameAt(decoded)} />;
 }

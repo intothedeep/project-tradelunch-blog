@@ -25,6 +25,10 @@ const envSchema = z.object({
 
     // Dashboard data source switch. Absent env → 'mock' (live behavior unchanged).
     DASHBOARD_DATA_SOURCE: z.enum(['mock', 'backend']).default('mock'),
+
+    // Clerk publishable key. Optional so build stays green without it;
+    // Clerk reads it at runtime (USER sets on Vercel).
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);

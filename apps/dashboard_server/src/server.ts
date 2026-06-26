@@ -34,6 +34,15 @@ app.use(cors(corsOptions));
 // https://expressjs.com/en/guide/migrating-5.html#path-syntax
 app.options('*every', cors(corsOptions)); // preflight 대응
 
+// Svix (Clerk webhook) signature verification requires the EXACT raw bytes of
+// the request body. Register express.raw() for the webhook path BEFORE the
+// global express.json() so the webhook handler receives a Buffer while every
+// other route still gets parsed JSON.
+app.use(
+    '/v1/api/webhooks',
+    express.raw({ type: 'application/json' })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

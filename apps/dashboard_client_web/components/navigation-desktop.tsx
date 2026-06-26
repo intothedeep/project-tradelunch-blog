@@ -2,22 +2,44 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useUser } from '@clerk/nextjs';
 import { ModeToggle } from '@/components/mode-toggle';
+import { AuthButton } from '@/components/auth-button';
 
-const LINKS = [
+// Site default author; used when no signed-in user / no username is available.
+const DEFAULT_AUTHOR = 'taeklim';
+
+type NavLink = { title: string; href: string };
+
+// Build the nav links for a given blog author username.
+const buildLinks = (blogUsername: string): NavLink[] => [
     { title: 'About', href: '/' },
-    { title: 'blog', href: '/blog/@taeklim' },
+    { title: 'blog', href: `/blog/@${blogUsername}` },
     { title: 'dashboard', href: '/dashboard' },
     // { title: 'projects', href: '/projects' },
     { title: 'resume', href: '/resume' },
 ];
 
+// Resolve the blog author username from the (optionally signed-in) Clerk user,
+// falling back to the site default author.
+const useBlogUsername = (): string => {
+    const { user } = useUser();
+    return user?.username ?? DEFAULT_AUTHOR;
+};
+
 // Desktop Navigation with Terminal Style
 export const DesktopNavigation = () => {
+    const blogUsername = useBlogUsername();
+    const links = buildLinks(blogUsername);
+
     return (
         <nav className="hidden md:flex h-16 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-6">
-            {/* Left - Logo with terminal style */}
+            {/* Left - Theme + Auth controls, then Logo */}
             <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                    <ModeToggle />
+                    <AuthButton signInClassName="px-4 py-2 font-mono text-sm hover:bg-primary hover:text-primary-foreground transition-colors border border-transparent hover:border-primary" />
+                </div>
                 <Link
                     href="/"
                     className="flex items-center gap-3 group"
@@ -35,7 +57,7 @@ export const DesktopNavigation = () => {
 
             {/* Right - Navigation Links */}
             <ul className="flex flex-row gap-1 items-center">
-                {LINKS.map((link) => (
+                {links.map((link) => (
                     <li key={link.title}>
                         <Link
                             href={link.href}
@@ -45,9 +67,6 @@ export const DesktopNavigation = () => {
                         </Link>
                     </li>
                 ))}
-                <li className="ml-2 mx-5">
-                    <ModeToggle />
-                </li>
             </ul>
         </nav>
     );
@@ -55,6 +74,9 @@ export const DesktopNavigation = () => {
 
 // Mobile Navigation with Bottom Drawer
 export const MobileNavigation = () => {
+    const blogUsername = useBlogUsername();
+    const links = buildLinks(blogUsername);
+
     const [isOpen, setIsOpen] = useState(false);
     const [touchStart, setTouchStart] = useState(0);
     const [touchEnd, setTouchEnd] = useState(0);
@@ -95,7 +117,11 @@ export const MobileNavigation = () => {
     return (
         <>
             {/* Mobile Header Bar */}
-            <nav className="md:hidden flex h-14 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-4">
+            <nav className="md:hidden flex h-14 items-center justify-start gap-3 border-b-2 border-primary bg-background/95 backdrop-blur px-4">
+                <div className="flex items-center gap-2">
+                    <ModeToggle />
+                    <AuthButton signInClassName="px-3 py-1 font-mono text-xs border border-primary/50 hover:border-primary transition-colors" />
+                </div>
                 <Link
                     href="/"
                     className="flex items-center gap-2"
@@ -107,7 +133,6 @@ export const MobileNavigation = () => {
                         Taek Lim
                     </span>
                 </Link>
-                <ModeToggle />
             </nav>
 
             {/* Menu Button - Bottom Left */}
@@ -217,7 +242,7 @@ export const MobileNavigation = () => {
                 {/* Navigation Links */}
                 <nav className="p-6 max-h-[70vh] overflow-y-auto">
                     <ul className="space-y-2">
-                        {LINKS.map((link, index) => (
+                        {links.map((link, index) => (
                             <li key={link.title}>
                                 <Link
                                     href={link.href}

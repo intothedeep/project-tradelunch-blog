@@ -13,16 +13,15 @@ import {
 } from 'lucide-react';
 
 import { ETreeNodeType, TTreeNode, TTreeNodeWithChildren } from '@repo/types';
+import { TreeNode } from '@/utils/tree.utils';
 
 // ============================================================================
 // Utils - Build Tree from Flat Data
 // ============================================================================
-export function buildCategoryTree(
-    flatData: TTreeNode[]
-): TTreeNodeWithChildren[] {
+export function buildCategoryTree(flatData: TTreeNode[]): TreeNode[] {
     if (!flatData.length) return [];
 
-    const nodeMap = new Map<number, TTreeNodeWithChildren>();
+    const nodeMap = new Map<number, TreeNode>();
 
     flatData.forEach((node) => {
         nodeMap.set(node.id, {
@@ -32,35 +31,31 @@ export function buildCategoryTree(
         });
     });
 
-    const roots: TTreeNodeWithChildren[] = [];
+    const roots: TreeNode[] = [];
 
-    for (const [key, treeNode] of nodeMap) {
-        // console.log({ key, treeNode });
-
+    for (const [, treeNode] of nodeMap) {
         if (!treeNode.parent_id || treeNode.parent_id === treeNode.id) {
             roots.push(treeNode);
         } else {
             const parent = nodeMap.get(treeNode.parent_id);
 
             if (parent) {
-                parent.children!.push(treeNode);
+                parent.children.push(treeNode);
             } else {
                 roots.push(treeNode);
             }
         }
     }
 
-    const calculatePostCount = (node: TTreeNodeWithChildren): number => {
+    const calculatePostCount = (node: TreeNode): number => {
         if (node.type === ETreeNodeType.POST) {
             return 1;
         }
 
         let count = 0;
-        if (node.children) {
-            node.children.forEach((child) => {
-                count += calculatePostCount(child);
-            });
-        }
+        node.children.forEach((child) => {
+            count += calculatePostCount(child);
+        });
         node.postCount = count;
         return count;
     };

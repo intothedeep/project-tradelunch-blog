@@ -6,6 +6,7 @@ import {
 } from '@repo/types';
 
 import { Router, Request } from 'express';
+import { optionalAuth } from '../../middlewares/optionalAuth';
 
 export const router = Router();
 
@@ -171,6 +172,8 @@ router.get(
                         f.stored_uri,
                         c.title as category,
                         u.username,
+                        u.display_name,
+                        u.avatar_url,
                         ROW_NUMBER() OVER(PARTITION BY p.slug ORDER BY p.created_at DESC) as rn
                     FROM
                         posts p
@@ -200,6 +203,8 @@ router.get(
                     stored_uri,
                     category,
                     date,
+                    display_name,
+                    avatar_url,
                     (SELECT ARRAY_AGG(pt.tag_title)
                      FROM post_tags pt
                      WHERE pt.post_id = ranked_posts.id
@@ -253,12 +258,15 @@ router.get(
  * @apiSuccess {Boolean} success Indicates if the request was successful.
  * @apiSuccess {Object} data The post object.
  */
-router.get('/:postid', async (req, res) => {
+router.get('/:postid', optionalAuth, async (req, res) => {
     try {
         const { postid } = req.params;
+        // D2.7: anon sees only public; owner sees own post in any status.
+        // $1 = postid, $2 = viewer user id (-1 = nobody, never matches user_id).
+        const viewerId = req.auth?.userId ?? -1;
         const { rows: results } = await pool.query(
-            'SELECT * FROM posts WHERE id = $1',
-            [postid]
+            'SELECT * FROM posts WHERE id = $1 AND (status = \'public\' OR user_id = $2)',
+            [postid, viewerId]
         );
         const post = results[0];
 
@@ -289,15 +297,23 @@ router.get('/:postid', async (req, res) => {
  * @apiSuccess {Boolean} success Indicates if the request was successful.
  * @apiSuccess {Object} data The most recent post object.
  */
-router.get('/slug/:slug', async (req, res) => {
+router.get('/slug/:slug', optionalAuth, async (req, res) => {
     try {
         const { slug } = req.params;
         const { username } = req.query;
+
+        // D2.7: anon sees only public; owner sees own post in any status.
+        // Positional params: $1 = slug; if username present $2 = username and
+        // the viewer-id binds to $3, otherwise the viewer-id binds to $2.
+        const viewerId = req.auth?.userId ?? -1;
+        const viewerParamIndex = username ? 3 : 2;
 
         const query = `
 			SELECT
                 p.*,
                 u.username,
+                u.display_name,
+                u.avatar_url,
                 f.stored_uri,
                 p.created_at as date,
                 ARRAY_AGG(pt.tag_title) FILTER (WHERE pt.tag_title IS NOT NULL) AS tags
@@ -308,12 +324,15 @@ router.get('/slug/:slug', async (req, res) => {
                 LEFT JOIN post_tags pt ON p.id = pt.post_id AND pt.deleted_at IS NULL
 			WHERE p.slug = $1
 			${username ? 'AND u.username = $2' : ''}
-            GROUP BY p.id, u.username, f.stored_uri
+                AND (p.status = 'public' OR p.user_id = $${viewerParamIndex})
+            GROUP BY p.id, u.username, u.display_name, u.avatar_url, f.stored_uri
 			ORDER BY p.created_at DESC
 			LIMIT 1
 		`;
 
-        const params = username ? [slug, username] : [slug];
+        const params = username
+            ? [slug, username, viewerId]
+            : [slug, viewerId];
         const { rows: results } = await pool.query(query, params);
         const post = results[0];
 

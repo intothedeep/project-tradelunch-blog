@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { IBM_Plex_Mono, Geist, IBM_Plex_Sans } from 'next/font/google';
 import clsx from 'clsx';
+import { ClerkProvider } from '@clerk/nextjs';
 import { ClientTrailCursorCanvas } from '../components/ClientTrailCursorCanvas';
 import { ClientTrailCursorDom } from '../components/ClientTrailCursorDom';
 
@@ -87,52 +88,54 @@ export default async function RootLayout({
     const messages = await getMessages(); // getRequestConfig 결과 자동 적용됨
 
     return (
-        <html
-            lang={locale}
-            suppressHydrationWarning
-            className={clsx(
-                // geist.variable,
-                // ibmPlexSans.variable,
-                ibmPlexMono.variable
-            )}
-        >
-            <body
+        <ClerkProvider>
+            <html
+                lang={locale}
+                suppressHydrationWarning
                 className={clsx(
-                    // geist.className,
-                    // ibmPlexSans.className,
-                    'flex min-h-screen flex-col',
-                    'bg-background text-foreground antialiased'
-                    // ibmPlexMono.className
+                    // geist.variable,
+                    // ibmPlexSans.variable,
+                    ibmPlexMono.variable
                 )}
             >
-                <NextIntlClientProvider
-                    locale={locale}
-                    messages={messages}
+                <body
+                    className={clsx(
+                        // geist.className,
+                        // ibmPlexSans.className,
+                        'flex min-h-screen flex-col',
+                        'bg-background text-foreground antialiased'
+                        // ibmPlexMono.className
+                    )}
                 >
-                    <ThemeProvider
-                        // attribute="data-theme"
-                        attribute="class"
-                        defaultTheme="system"
-                        enableSystem
-                        disableTransitionOnChange
+                    <NextIntlClientProvider
+                        locale={locale}
+                        messages={messages}
                     >
-                        <CustomNavigation />
-                        {/* <header className="sticky top-0 z-50 border-b-2 border-foreground bg-background">
-                            <div className="mx-auto max-w-[95vw] px-2"></div>
-                        </header> */}
+                        <ThemeProvider
+                            // attribute="data-theme"
+                            attribute="class"
+                            defaultTheme="system"
+                            enableSystem
+                            disableTransitionOnChange
+                        >
+                            <CustomNavigation />
+                            {/* <header className="sticky top-0 z-50 border-b-2 border-foreground bg-background">
+                                <div className="mx-auto max-w-[95vw] px-2"></div>
+                            </header> */}
 
-                        {/* <header className={clsx('flex')}>
-                            <NavigationMenuDemo />
-                        </header> */}
+                            {/* <header className={clsx('flex')}>
+                                <NavigationMenuDemo />
+                            </header> */}
 
-                        <div className="flex-1">{children}</div>
+                            <div className="flex-1">{children}</div>
 
-                        {/* <footer>Main footer</footer> */}
-                        {/* <ClientTrailCursorCanvas /> */}
-                        {/* <ClientTrailCursorDom /> */}
-                    </ThemeProvider>
-                </NextIntlClientProvider>
-            </body>
-        </html>
+                            {/* <footer>Main footer</footer> */}
+                            {/* <ClientTrailCursorCanvas /> */}
+                            {/* <ClientTrailCursorDom /> */}
+                        </ThemeProvider>
+                    </NextIntlClientProvider>
+                </body>
+            </html>
+        </ClerkProvider>
     );
 }

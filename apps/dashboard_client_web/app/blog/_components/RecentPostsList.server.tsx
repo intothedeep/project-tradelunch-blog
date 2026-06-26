@@ -6,32 +6,16 @@ import { CDN_ASSET_POSTS } from '@/env.schema';
 // RecentPostsList Component
 // ============================================================================
 interface RecentPostsListProps {
-    // posts: RecentPost[];
+    // Author username (already stripped of any leading '@'). Required.
+    username: string;
     cdnBaseUrl?: string;
-    onUpvote?: (postIndex: number) => void;
-    onDownvote?: (postIndex: number) => void;
-    onCommentClick?: (postIndex: number) => void;
-    onShare?: (postIndex: number) => void;
-    params?: Promise<{ username?: string }>;
 }
 
 export const RecentPostsList: React.FC<RecentPostsListProps> = async ({
-    params,
+    username,
     cdnBaseUrl = '',
-    onUpvote,
-    onDownvote,
-    onCommentClick,
-    onShare,
 }) => {
-    const { username = '@taeklim' } = (await params) || {};
-
-    const decodedUsername = decodeURIComponent(username).substring(1); // Assuming it starts with '@'
-
-    const { posts, nextCursor, hasMore } = await loadMorePosts(
-        0,
-        10,
-        decodedUsername
-    );
+    const { posts, nextCursor, hasMore } = await loadMorePosts(0, 10, username);
 
     if (posts.length === 0) {
         return (
@@ -45,7 +29,7 @@ export const RecentPostsList: React.FC<RecentPostsListProps> = async ({
 
     return (
         <RecentPostsListClient
-            username={decodedUsername}
+            username={username}
             initialPosts={posts}
             initialCursor={nextCursor}
             initialHasMore={hasMore}

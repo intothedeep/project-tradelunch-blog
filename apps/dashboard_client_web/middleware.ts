@@ -1,12 +1,17 @@
 import { NextResponse, NextRequest } from 'next/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
-const locales = ['en', 'ko'];
+// Routes that require an authenticated user.
+const isProtectedRoute = createRouteMatcher([
+    '/write(.*)',
+    '/settings(.*)',
+    '/admin(.*)',
+]);
 
-export default function middleware(req: NextRequest) {
-    console.log('>>> middleware:: locale');
-
+// Pure locale resolution + cookie persistence. Mutates the given response and
+// returns it. Kept identical in behavior to the previous standalone middleware.
+function applyLocale(req: NextRequest, res: NextResponse): NextResponse {
     const { cookies, headers } = req;
-    const res = NextResponse.next();
 
     // 이미 locale 쿠키가 있으면 그대로 유지
     const savedLocale = cookies.get('locale')?.value;
@@ -27,19 +32,21 @@ export default function middleware(req: NextRequest) {
     return res;
 }
 
+export default clerkMiddleware(async (auth, req) => {
+    if (isProtectedRoute(req)) {
+        await auth.protect();
+    }
+
+    const res = NextResponse.next();
+    return applyLocale(req, res);
+});
+
 export const config = {
-    matcher: ['/((?!_next|api|.*\\..*).*)'],
+    matcher: [
+        // Locale detection on page routes (skip _next, api, static files) —
+        // preserves the previous middleware's reach.
+        '/((?!_next|api|.*\\..*).*)',
+        // Clerk's recommended matcher: always run on API/trpc routes.
+        '/(api|trpc)(.*)',
+    ],
 };
-
-// middleware.ts
-// import createMiddleware from 'next-intl/middleware';
-
-// export default createMiddleware({
-//     locales: ['en', 'ko'],
-//     defaultLocale: 'en',
-//     localeDetection: true, // 브라우저 언어 감지
-// });
-
-// export const config = {
-//     matcher: ['/((?!_next|api|favicon.ico).*)'],
-// };

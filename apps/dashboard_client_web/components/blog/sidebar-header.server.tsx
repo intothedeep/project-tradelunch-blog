@@ -5,12 +5,14 @@ import { SidebarHeader } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import { ModeToggle } from '@/components/mode-toggle';
 
-type Props = {};
+type Props = {
+    username: string;
+    // Human-readable author name; falls back to the username when absent.
+    displayName?: string;
+};
 
-export const BlogSidebarheader = (props: Props) => {
-    // TODO dynamic username
-    const name = 'Taek Lim';
-    const username = 'taeklim';
+export const BlogSidebarheader = ({ username, displayName }: Props) => {
+    const name = displayName ?? username;
 
     return (
         <SidebarHeader>

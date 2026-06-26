@@ -1,4 +1,4 @@
-// components/CategorySidebar.tsx
+// components/blog/sidebar-categories.server.tsx
 import { getCategoriesByUsername } from '@/apis/getCategories.api';
 import { buildCategoryTree } from '@/app/blog/_components/CategoryTree.client';
 import { CategoryTree } from '@/components/blog/sidebar-category-tree.server';
@@ -10,12 +10,11 @@ import {
     SidebarMenu,
 } from '@/components/ui/sidebar';
 
-type CategorySidebarProps = {};
+type CategorySidebarProps = {
+    username: string;
+};
 
-export async function CategoriesGroup({}: CategorySidebarProps) {
-    // TODO: dynamic username
-    const username = 'taeklim';
-
+export async function CategoriesGroup({ username }: CategorySidebarProps) {
     const { categories } = await getCategoriesByUsername(username);
 
     if (!categories) {
@@ -30,17 +29,13 @@ export async function CategoriesGroup({}: CategorySidebarProps) {
 
             <SidebarGroupContent>
                 <SidebarMenu>
-                    {tree.map((node: any) => {
-                        console.log('node: ', node);
-
-                        return (
-                            <CategoryTree
-                                key={node.id}
-                                node={node}
-                                username={username}
-                            />
-                        );
-                    })}
+                    {tree.map((node) => (
+                        <CategoryTree
+                            key={node.id}
+                            node={node}
+                            username={username}
+                        />
+                    ))}
                 </SidebarMenu>
             </SidebarGroupContent>
         </SidebarGroup>

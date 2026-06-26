@@ -71,6 +71,10 @@ export type TPost = {
     views?: number;
     username?: string;
     tags?: string[];
+
+    // Optional author profile fields the backend may attach (graceful: absent → no byline).
+    display_name?: string;
+    avatar_url?: string;
 };
 
 export interface FeaturedPost extends TPost {
