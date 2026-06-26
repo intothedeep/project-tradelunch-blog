@@ -63,7 +63,7 @@ export const DesktopNavigation = () => {
                 </ul>
                 <div className="flex items-center gap-2">
                     <ModeToggle />
-                    <AuthButton signInClassName="px-4 py-2 font-mono text-sm hover:bg-primary hover:text-primary-foreground transition-colors border border-transparent hover:border-primary" />
+                    <AuthButton showName />
                 </div>
             </div>
         </nav>
@@ -114,7 +114,7 @@ export const MobileNavigation = () => {
 
     return (
         <>
-            {/* Mobile Header Bar — logo left, theme right; sign-in lives in drawer */}
+            {/* Mobile Header Bar — logo left, theme + auth right */}
             <nav className="md:hidden flex h-14 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-4">
                 <Link
                     href="/"
@@ -127,7 +127,10 @@ export const MobileNavigation = () => {
                         Taek Lim
                     </span>
                 </Link>
-                <ModeToggle />
+                <div className="flex items-center gap-2">
+                    <ModeToggle />
+                    <AuthButton />
+                </div>
             </nav>
 
             {/* Menu Button - Bottom Left */}
@@ -256,11 +259,6 @@ export const MobileNavigation = () => {
                             </li>
                         ))}
                     </ul>
-
-                    {/* Auth control */}
-                    <div className="mt-4">
-                        <AuthButton signInClassName="block w-full text-center px-4 py-4 font-mono text-lg border-2 border-primary/30 hover:border-primary hover:bg-secondary transition-all" />
-                    </div>
 
                     {/* Additional Info */}
                     <div className="mt-6 p-4 border-2 border-primary/30 bg-secondary/50">
