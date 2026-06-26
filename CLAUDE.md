@@ -36,6 +36,16 @@ Dependency direction is strictly `apps → packages`. No reverse imports.
 
 `turbo dev` depends on `@repo/markdown-parsing#build` — that package must build before dev can start.
 
+## Runtime Terminology
+
+The owner names three runtimes in conversation. Use these terms exactly:
+
+- **front** / **client** — client-side React running in the browser (the `"use client"` components of `apps/dashboard_client_web`).
+- **ssr server** / **next server** — the Next.js server runtime of `apps/dashboard_client_web`: React Server Components, Server Actions (`app/actions/`), and Route Handlers (`app/api/`). Runs on Vercel as the frontend project's server side.
+- **express** / **backend** — `apps/dashboard_server`, the standalone Express API served at `/v1/api/*` (its own Vercel project, pg `Pool` → Supabase).
+
+Note: `dashboard_client_web` has BOTH a browser-client and a Next-server runtime, while `dashboard_server` is purely the Express API.
+
 ## Common Commands
 
 Run from repo root unless noted:

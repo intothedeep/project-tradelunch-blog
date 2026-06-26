@@ -29,6 +29,9 @@ const envSchema = z.object({
     SITE_DOMAIN: z.string().default('http://localhost:3000'),
 
     // CDN
+    // publicUrl = ${CDN_ASSET_POSTS}/${bucket}/${path}. When serving via Cloudflare
+    // at posts.prettylog.com, the CDN must rewrite /<bucket>/<path> ->
+    // origin /storage/v1/object/public/<bucket>/<path>.
     CDN_ASSET_POSTS: z.string().default('https://posts.prettylog.com/'),
 
     // user id
