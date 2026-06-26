@@ -2,14 +2,14 @@ import { Router } from "express";
 import home from "./home";
 import posts from "./posts";
 import dashboard from "./dashboard";
-import webhooks from "./webhooks";
+import users from "./users";
 
 export const router = Router();
 
 router.use("/", home);
 router.use("/api/posts", posts);
 router.use("/api/dashboard", dashboard);
-router.use("/api/webhooks", webhooks);
+router.use("/api/users", users);
 // router.use("/accounts", require("./accounts"));
 // router.use("/admin", require("./admin"));
 // router.use("/auth", require("./auth"));

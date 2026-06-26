@@ -5,9 +5,7 @@ import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { ModeToggle } from '@/components/mode-toggle';
 import { AuthButton } from '@/components/auth-button';
-
-// Site default author; used when no signed-in user / no username is available.
-const DEFAULT_AUTHOR = 'taeklim';
+import { DEFAULT_BLOG_AUTHOR } from '@/utils/blog-author';
 
 type NavLink = { title: string; href: string };
 
@@ -24,7 +22,7 @@ const buildLinks = (blogUsername: string): NavLink[] => [
 // falling back to the site default author.
 const useBlogUsername = (): string => {
     const { user } = useUser();
-    return user?.username ?? DEFAULT_AUTHOR;
+    return user?.username ?? DEFAULT_BLOG_AUTHOR;
 };
 
 // Desktop Navigation with Terminal Style

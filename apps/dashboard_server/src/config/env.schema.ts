@@ -99,6 +99,12 @@ export const ALLOW_OPEN_SIGNUP = env.ALLOW_OPEN_SIGNUP === 'true';
 
 // cors / app
 export const ALLOWED_ORIGINS = env.ALLOWED_ORIGINS;
+// Single source of truth for allowed frontend origins, parsed once. Consumed by
+// the CORS whitelist (server.ts) and Clerk's authorizedParties (resolveAuth.ts):
+// the frontend origins ARE the authorized parties. Empty/blank entries dropped.
+export const ALLOWED_ORIGINS_LIST: string[] = ALLOWED_ORIGINS.split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 export const APP_URL = env.APP_URL;
 export const GIT_SHA = env.GIT_SHA;
 

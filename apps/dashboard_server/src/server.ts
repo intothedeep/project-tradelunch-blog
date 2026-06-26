@@ -1,16 +1,14 @@
 import express from 'express';
 import cors, { CorsOptions } from 'cors';
 import routers from './controllers';
-import { ALLOWED_ORIGINS } from './config/env.schema';
+import { ALLOWED_ORIGINS_LIST } from './config/env.schema';
 
 export const app = express();
 
 // CORS whitelist is env-driven (ALLOWED_ORIGINS, comma-separated) so each
 // deploy target (local / Vercel preview / prod) controls its own origins
-// without a code change. Empty/blank entries are dropped.
-const whitelist: string[] = ALLOWED_ORIGINS.split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+// without a code change. Parsed once in env.schema (single source of truth).
+const whitelist: string[] = ALLOWED_ORIGINS_LIST;
 
 const corsOptions: CorsOptions = {
     origin: (
@@ -33,15 +31,6 @@ app.use(cors(corsOptions));
 
 // https://expressjs.com/en/guide/migrating-5.html#path-syntax
 app.options('*every', cors(corsOptions)); // preflight 대응
-
-// Svix (Clerk webhook) signature verification requires the EXACT raw bytes of
-// the request body. Register express.raw() for the webhook path BEFORE the
-// global express.json() so the webhook handler receives a Buffer while every
-// other route still gets parsed JSON.
-app.use(
-    '/v1/api/webhooks',
-    express.raw({ type: 'application/json' })
-);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
