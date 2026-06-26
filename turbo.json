@@ -14,7 +14,6 @@
             "dependsOn": ["^check-types"]
         },
         "dev": {
-            "dependsOn": ["@repo/markdown-parsing#build"],
             "cache": false,
             "persistent": true
         }

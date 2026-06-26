@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { TTocItem } from '@repo/markdown-parsing/types';
+import type { TTocItem } from '@/utils/markdown/toc.types';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 

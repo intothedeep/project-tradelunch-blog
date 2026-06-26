@@ -1,6 +1,6 @@
 import { getPostBySlug } from '@/apis/getPost.api';
 import { TableOfContents } from '@/components/blog/TableOfContents.client';
-import { extractTocParsed } from '@repo/markdown-parsing';
+import { extractTocParsed } from '@/utils/markdown/extractTocParsed';
 
 export const PostContentToc = async ({ slug }: { slug: string }) => {
     const post = await getPostBySlug({ slug });
