@@ -181,6 +181,7 @@ router.get(
                         p.deleted_at IS NULL
                         AND u.username = $1
                         AND u.deleted_at IS NULL
+                        AND p.status = 'public'
                         -- AND (f.deleted_at IS NULL OR f.deleted_at IS NOT NULL
                         AND p.id < $2
                 )
