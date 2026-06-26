@@ -1,4 +1,4 @@
-import { CDN_ASSET_POSTS } from '@/env.schema';
+import { CDN_ASSETS } from '@/env.schema';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
 
@@ -8,8 +8,8 @@ const nextConfig: NextConfig = {
         remotePatterns: [
             {
                 protocol: 'https',
-                // CDN_ASSET_POSTS 도메인으로 변경
-                hostname: CDN_ASSET_POSTS.replace('https://', ''),
+                // CDN_ASSETS 도메인으로 변경
+                hostname: CDN_ASSETS.replace('https://', ''),
                 pathname: '/**',
             },
         ],

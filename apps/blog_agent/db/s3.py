@@ -3,7 +3,7 @@
 Supabase Storage File Upload Module (S3-compatible API)
 
 Provides async-compatible object operations for file uploads via boto3 pointed
-at the Supabase Storage S3 endpoint (`endpoint_url`). Bucket: `blog-images`.
+at the Supabase Storage S3 endpoint (`endpoint_url`). Bucket: `blog.prettylog`.
 
 Functions:
 - load_local_file: Read file from local filesystem
@@ -25,7 +25,7 @@ from botocore.config import Config as BotoConfig
 # Import config - use try/except for flexibility
 try:
     from config import (
-        CDN_ASSET_POSTS,
+        CDN_ASSETS,
         S3_BUCKET,
         S3_REGION,
         SUPABASE_S3_ACCESS_KEY_ID,
@@ -33,9 +33,9 @@ try:
         SUPABASE_S3_SECRET_ACCESS_KEY,
     )
 except ImportError:
-    S3_BUCKET = os.getenv("SUPABASE_S3_BUCKET", "blog-images")
+    S3_BUCKET = os.getenv("SUPABASE_S3_BUCKET", "blog.prettylog")
     S3_REGION = os.getenv("SUPABASE_S3_REGION", "us-east-1")
-    CDN_ASSET_POSTS = os.getenv("CDN_ASSET_POSTS", "https://posts.prettylog.com")
+    CDN_ASSETS = os.getenv("CDN_ASSETS", "https://assets.prettylog.com")
     SUPABASE_S3_ENDPOINT = os.getenv("SUPABASE_S3_ENDPOINT", "")
     SUPABASE_S3_ACCESS_KEY_ID = os.getenv("SUPABASE_S3_ACCESS_KEY_ID", "")
     SUPABASE_S3_SECRET_ACCESS_KEY = os.getenv("SUPABASE_S3_SECRET_ACCESS_KEY", "")
@@ -235,7 +235,7 @@ def upload_file_s3(meta: FileMetadata) -> FileMetadata:
     # Update metadata with storage info
     meta.s3_key = key
     meta.stored_name = f"{meta.slug}.{meta.ext}"
-    meta.stored_uri = f"{CDN_ASSET_POSTS}/{key}"
+    meta.stored_uri = f"{CDN_ASSETS}/{key}"
 
     return meta
 

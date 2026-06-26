@@ -26,7 +26,7 @@ __all__ = [
     "SUPABASE_S3_SECRET_ACCESS_KEY",
     "S3_BUCKET",
     "S3_REGION",
-    "CDN_ASSET_POSTS",
+    "CDN_ASSETS",
     # Paths
     "PROJECT_ROOT",
     "POSTS_DIR",

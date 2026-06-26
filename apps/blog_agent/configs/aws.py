@@ -6,8 +6,8 @@ Points the boto3 client at Supabase Storage's S3 endpoint. Credentials are the
 Supabase S3 access keys (Project Settings → Storage → S3 access keys), NOT AWS.
 
 Invariants:
-- Bucket is `blog-images`.
-- Public object URLs resolve as `${CDN_ASSET_POSTS}/<key>`.
+- Bucket is `blog.prettylog`.
+- Public object URLs resolve as `${CDN_ASSETS}/<key>`.
 Side effects: none (pure env read).
 """
 
@@ -23,10 +23,10 @@ SUPABASE_S3_SECRET_ACCESS_KEY = os.getenv("SUPABASE_S3_SECRET_ACCESS_KEY", "")
 
 # ==================== Bucket ====================
 # Stable names kept for call-site compatibility (db/s3.py, configs/__init__.py).
-S3_BUCKET = os.getenv("SUPABASE_S3_BUCKET", "blog-images")
+S3_BUCKET = os.getenv("SUPABASE_S3_BUCKET", "blog.prettylog")
 S3_REGION = SUPABASE_S3_REGION
 
 
 # ==================== CDN Configuration ====================
-# Public base for stored objects; stored_uri = f"{CDN_ASSET_POSTS}/{key}".
-CDN_ASSET_POSTS = os.getenv("CDN_ASSET_POSTS", "https://posts.prettylog.com")
+# Public base for stored objects; stored_uri = f"{CDN_ASSETS}/{key}".
+CDN_ASSETS = os.getenv("CDN_ASSETS", "https://assets.prettylog.com")

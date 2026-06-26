@@ -23,7 +23,7 @@ import {
     SUPABASE_URL,
     SUPABASE_SECRET_KEY,
     SUPABASE_STORAGE_BUCKET,
-    CDN_ASSET_POSTS,
+    CDN_ASSETS,
 } from '../../config/env.schema';
 import type { TImageSignResponse, TPostStatus } from '@repo/types';
 
@@ -137,7 +137,7 @@ router.post('/images/sign', requireAuth, async (req, res) => {
             .toString(36)
             .slice(2, 8)}`;
         const publicBase =
-            CDN_ASSET_POSTS?.replace(/\/+$/, '') ||
+            CDN_ASSETS?.replace(/\/+$/, '') ||
             `${SUPABASE_URL}/storage/v1/object/public`;
 
         const result = await signImageUpload(

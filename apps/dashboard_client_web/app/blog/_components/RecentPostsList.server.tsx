@@ -1,6 +1,6 @@
 import { loadMorePosts } from '@/app/actions/post.action';
 import { RecentPostsListClient } from '@/app/blog/_components/RecentPostsList.client';
-import { CDN_ASSET_POSTS } from '@/env.schema';
+import { CDN_ASSETS } from '@/env.schema';
 
 // ============================================================================
 // RecentPostsList Component
@@ -33,7 +33,7 @@ export const RecentPostsList: React.FC<RecentPostsListProps> = async ({
             initialPosts={posts}
             initialCursor={nextCursor}
             initialHasMore={hasMore}
-            cdnURL={CDN_ASSET_POSTS}
+            cdnURL={CDN_ASSETS}
         />
     );
 };

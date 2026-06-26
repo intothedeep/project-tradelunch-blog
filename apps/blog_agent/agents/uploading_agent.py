@@ -300,7 +300,7 @@ class UploadingAgent(BaseAgent):
         if not file_path.exists():
             # Return simulated URL if file doesn't exist (for testing)
             s3_key = f"{user_id}/{folder_path}/{slug}/{slug}.{ext}"
-            return f"{config.CDN_ASSET_POSTS}/{s3_key}"
+            return f"{config.CDN_ASSETS}/{s3_key}"
 
         with open(file_path, "rb") as f:
             buffer = f.read()
@@ -565,7 +565,7 @@ class UploadingAgent(BaseAgent):
         Returns:
             List of created file IDs
         """
-        from config import CDN_ASSET_POSTS
+        from config import CDN_ASSETS
         from db.repositories.file import FileRepository
 
         file_repo = FileRepository(session)
@@ -616,7 +616,7 @@ class UploadingAgent(BaseAgent):
             if s3_url:
                 stored_uri = s3_url  # Already contains the full CDN URL
             else:
-                stored_uri = f"{CDN_ASSET_POSTS}/images/{stored_name}"
+                stored_uri = f"{CDN_ASSETS}/images/{stored_name}"
 
             # Get file size (if file exists locally)
             file_size = None

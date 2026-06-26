@@ -415,7 +415,7 @@ After a successful upload, the system logs a detailed JSON payload:
 		"reading_time": 2,
 		"meta_title": "java spring jdbc",
 		"meta_description": "This article explains the roles and use cases...",
-		"og_image_url": "https://posts.prettylog.com/2/java/spring/jdbc/...",
+		"og_image_url": "https://assets.prettylog.com/2/java/spring/jdbc/...",
 		"og_image_alt": "java spring jdbc thumbnail"
 	},
 	"content": "# Java Spring JDBC\n\n![thumbnail](https://cdn.example.com/...)...",
@@ -423,7 +423,7 @@ After a successful upload, the system logs a detailed JSON payload:
 		"original_filename": "java-spring-jdbc.png",
 		"stored_name": "java-spring-jdbc.png",
 		"s3_key": "2/java/spring/jdbc/java-spring-jdbc/java-spring-jdbc.png",
-		"s3_url": "https://posts.prettylog.com/2/java/spring/jdbc/...",
+		"s3_url": "https://assets.prettylog.com/2/java/spring/jdbc/...",
 		"content_type": "image/png",
 		"file_size": 135248,
 		"is_thumbnail": true

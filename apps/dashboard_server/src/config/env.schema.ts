@@ -29,10 +29,10 @@ const envSchema = z.object({
     SITE_DOMAIN: z.string().default('http://localhost:3000'),
 
     // CDN
-    // publicUrl = ${CDN_ASSET_POSTS}/${bucket}/${path}. When serving via Cloudflare
-    // at posts.prettylog.com, the CDN must rewrite /<bucket>/<path> ->
+    // publicUrl = ${CDN_ASSETS}/${bucket}/${path}. When serving via Cloudflare
+    // at assets.prettylog.com, the CDN must rewrite /<bucket>/<path> ->
     // origin /storage/v1/object/public/<bucket>/<path>.
-    CDN_ASSET_POSTS: z.string().default('https://posts.prettylog.com/'),
+    CDN_ASSETS: z.string().default('https://assets.prettylog.com/'),
 
     // user id
     DEFAULT_USER_ID: z.coerce.number().default(2),
@@ -79,7 +79,7 @@ export const NODE_ENV = env.NODE_ENV;
 export const SERVER_PORT = env.PORT;
 export const HOST_NAME = env.HOST_NAME;
 
-export const CDN_ASSET_POSTS = env.CDN_ASSET_POSTS;
+export const CDN_ASSETS = env.CDN_ASSETS;
 
 export const DEFAULT_USER_ID = env.DEFAULT_USER_ID;
 
