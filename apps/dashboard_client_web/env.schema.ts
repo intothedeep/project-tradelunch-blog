@@ -17,11 +17,22 @@ const envSchema = z.object({
     PORT: z.coerce.number().default(3000),
     HOST_NAME: z.string().default('localhost'),
 
-    NEXT_PUBLIC_API_BASE: z.string().url().default('http://localhost:4000'),
+    // Public URLs: `.default()` covers an UNSET var, but a var SET to an invalid
+    // value (empty string, bare host, stale/renamed value on the deploy target)
+    // would make `.url()` throw inside `env.parse()` — and because next.config.ts
+    // imports from here at config-load time, that hard-fails the entire build
+    // before any page is generated. `.catch()` makes the parse total: any invalid
+    // value falls back to the safe default instead of crashing the build.
+    NEXT_PUBLIC_API_BASE: z
+        .string()
+        .url()
+        .default('http://localhost:4000')
+        .catch('http://localhost:4000'),
     NEXT_PUBLIC_CDN_ASSETS: z
         .string()
         .url()
-        .default('https://assets.prettylog.com'),
+        .default('https://assets.prettylog.com')
+        .catch('https://assets.prettylog.com'),
 
     // Dashboard data source switch. Absent env → 'mock' (live behavior unchanged).
     DASHBOARD_DATA_SOURCE: z.enum(['mock', 'backend']).default('mock'),
