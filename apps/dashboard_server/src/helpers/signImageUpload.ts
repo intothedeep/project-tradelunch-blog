@@ -16,12 +16,11 @@ const ALLOWED_IMAGE_TYPES: Record<string, string> = {
     'image/gif': 'gif',
 };
 
-const STORAGE_BUCKET = 'blog-images';
-
 export type TSignImageUploadConfig = {
     supabaseUrl: string;
     secretKey: string;
     publicBase: string;
+    bucket: string;
 };
 
 export type TSignImageUploadInput = {
@@ -75,7 +74,7 @@ export async function signImageUpload(
         ext
     );
 
-    const endpoint = `${config.supabaseUrl}/storage/v1/object/upload/sign/${STORAGE_BUCKET}/${path}`;
+    const endpoint = `${config.supabaseUrl}/storage/v1/object/upload/sign/${config.bucket}/${path}`;
     const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -95,7 +94,7 @@ export async function signImageUpload(
     }
 
     const signedUrl = `${config.supabaseUrl}/storage/v1${signedPath}`;
-    const publicUrl = `${config.publicBase}/${STORAGE_BUCKET}/${path}`;
+    const publicUrl = `${config.publicBase}/${config.bucket}/${path}`;
 
     return { ok: true, value: { signedUrl, path, publicUrl } };
 }

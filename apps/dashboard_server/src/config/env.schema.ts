@@ -46,6 +46,7 @@ const envSchema = z.object({
     SUPABASE_DB_PASSWORD: z.string().optional(),
     SUPABASE_URL: z.string().optional(),
     SUPABASE_SECRET_KEY: z.string().optional(),
+    SUPABASE_STORAGE_BUCKET: z.string().default('blog.prettylog'),
 
     // auth
     CLERK_SECRET_KEY: z.string().optional(),
@@ -88,6 +89,7 @@ export const SUPABASE_PROJECT_ID = env.SUPABASE_PROJECT_ID;
 export const SUPABASE_DB_PASSWORD = env.SUPABASE_DB_PASSWORD;
 export const SUPABASE_URL = env.SUPABASE_URL;
 export const SUPABASE_SECRET_KEY = env.SUPABASE_SECRET_KEY;
+export const SUPABASE_STORAGE_BUCKET = env.SUPABASE_STORAGE_BUCKET;
 
 // auth
 export const CLERK_SECRET_KEY = env.CLERK_SECRET_KEY;

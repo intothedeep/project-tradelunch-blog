@@ -22,6 +22,7 @@ import { signImageUpload } from '../../helpers/signImageUpload';
 import {
     SUPABASE_URL,
     SUPABASE_SECRET_KEY,
+    SUPABASE_STORAGE_BUCKET,
     CDN_ASSET_POSTS,
 } from '../../config/env.schema';
 import type { TImageSignResponse, TPostStatus } from '@repo/types';
@@ -144,6 +145,7 @@ router.post('/images/sign', requireAuth, async (req, res) => {
                 supabaseUrl: SUPABASE_URL,
                 secretKey: SUPABASE_SECRET_KEY,
                 publicBase,
+                bucket: SUPABASE_STORAGE_BUCKET,
             },
             {
                 userId: req.auth!.userId,
