@@ -292,3 +292,51 @@ WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_files_post_thumbnail
 ON files(post_id, is_thumbnail)
 WHERE deleted_at IS NULL AND is_thumbnail = true;
+
+-- ===========================
+-- MARKET DASHBOARD TABLES
+-- Backs the financial dashboard endpoints (/v1/api/dashboard/*).
+-- Contract: dashboard_client_web/types/dashboard.ts + types/history.ts
+-- ===========================
+
+-- market_snapshots: one row per dashboard item; covers IDashboardItem /
+-- IStockItem (value + change) + ICategoryMeta (as_of, revalidate_seconds) +
+-- snapshot fetched_at.
+CREATE TABLE if not exists market_snapshots (
+    seq int8 GENERATED ALWAYS AS IDENTITY( INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START 1 CACHE 1 NO CYCLE) NOT NULL,
+    category            TEXT NOT NULL,
+    label               TEXT NOT NULL,
+    ticker              TEXT NULL,
+    exchange            TEXT NULL,
+    value               NUMERIC NOT NULL,
+    change_absolute     NUMERIC NOT NULL,
+    change_percent      NUMERIC NOT NULL,
+    as_of               TIMESTAMPTZ NOT NULL,
+    revalidate_seconds  INT NOT NULL,
+    fetched_at          TIMESTAMPTZ NOT NULL,
+    created_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT market_snapshots_category_check CHECK (category IN ('fx', 'crypto', 'indices', 'rates', 'stocks')),
+    CONSTRAINT market_snapshots_pkey PRIMARY KEY (category, label)
+);
+
+CREATE INDEX IF NOT EXISTS idx_market_snapshots_category ON market_snapshots(category);
+
+-- market_history: one OHLC candle per item per interval; covers IOHLCPoint
+-- grouped by label -> IItemOHLCHistory.
+CREATE TABLE if not exists market_history (
+    seq int8 GENERATED ALWAYS AS IDENTITY( INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START 1 CACHE 1 NO CYCLE) NOT NULL,
+    label       TEXT NOT NULL,
+    interval    TEXT NOT NULL,
+    bar_time    TIMESTAMPTZ NOT NULL,
+    open        NUMERIC NOT NULL,
+    high        NUMERIC NOT NULL,
+    low         NUMERIC NOT NULL,
+    close       NUMERIC NOT NULL,
+    volume      BIGINT NOT NULL,
+    created_at  TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT market_history_pkey PRIMARY KEY (label, interval, bar_time)
+);
+
+CREATE INDEX IF NOT EXISTS idx_market_history_label_interval ON market_history(label, interval, bar_time);
