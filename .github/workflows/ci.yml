@@ -1,0 +1,26 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.5.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # NOTE: `pnpm lint` is intentionally omitted. Next.js 16 removed the
+      # `next lint` subcommand and the shared eslint flat config still imports
+      # the dropped `eslint-config-next` package, so lint cannot run yet.
+      # Re-add this step once the ESLint flat config is migrated to the
+      # @next/eslint-plugin-next setup (tracked in 00.migration.md S7.2).
+      - run: pnpm --filter dashboard_client_web check-types
+      - run: pnpm --filter dashboard_server check-types

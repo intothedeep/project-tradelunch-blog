@@ -44,3 +44,4 @@ _*
 # agent/claude runtime artifacts (config like .claude/CLAUDE.md, rules, agents stays tracked)
 .agent/
 .claude/scheduled_tasks.lock
+apps/dashboard_server/supabase/seed.prod.sql
