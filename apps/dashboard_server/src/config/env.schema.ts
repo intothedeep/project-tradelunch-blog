@@ -27,7 +27,7 @@ const envSchema = z.object({
 
     // domain
     SITE_DOMAIN: z.string().default('http://localhost:3000'),
-    API_SITE_DOMAIN: z.string('https://my-api.prettylog.com'),
+    API_SITE_DOMAIN: z.string().default('https://my-api.prettylog.com'),
 
     // aws
     AWS_REGION: z.string().default('localhost'),
