@@ -42,7 +42,6 @@
         "mime-types": "^3.0.2",
         "pg": "^8.22.0",
         "snowflake-id": "^1.1.0",
-        "svix": "^1.96.1",
         "zod": "^4.4.3"
     },
     "devDependencies": {
