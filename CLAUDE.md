@@ -104,14 +104,22 @@ Layered MVC under `src/`:
 - Build: `tsc + tsc-alias` (path aliases via `ts-aliases/register`)
 - Postgres via `sequelize` + raw SQL preferred per `.claude/CLAUDE.md` §7
 
-### Workflow Artifacts
+### Workflow Docs (rule)
 
-`.claude/CLAUDE.md` §13 requires three root-level files:
-- `00.plan.md` — architecture/product plan (owned by product-manager agent)
-- `00.tasks.md` — atomic task breakdown (owned by product-manager agent)
-- `01.status.md` — progress tracking (owned by engineer agent)
+Exactly **three** living root-level docs — do not create per-feature plan/task/ADR variants;
+fold new work into these:
 
-When starting non-trivial work, check these first; update or create as needed.
+- `00.plan.md` — product intent + roadmap + architecture decisions (owned by product-manager agent)
+- `00.tasks.md` — atomic task breakdown for every phase (owned by product-manager agent)
+- `01.status.md` — progress log: **one line per update, sequential, newest at the bottom**; append a
+  single line per change, never prose blocks (owned by engineer agent)
+
+Rules:
+- When starting non-trivial work, read all three first; update in place.
+- Do **not** spin up extra docs (`00.<feature>.plan.md`, `*.arch.md`, `00.migration.md`, etc.).
+  A large sub-effort becomes a section/phase inside `00.plan.md` + `00.tasks.md`.
+- **No `doc_history`.** Superseded or verbose source docs move to `_docs/` (gitignored, local-only
+  archive) — they are not deleted and not committed.
 
 ## Naming Conventions (Quick Reference)
 

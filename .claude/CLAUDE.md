@@ -214,11 +214,14 @@ Forbidden:
 
 ### 13.1 Planning Required
 
-All work must follow:
+Exactly three living root-level docs — do not create per-feature variants; fold work into these:
 
-- 00.plan.md → architecture design
-- 01.status.md → progress tracking
-- 02.tasks.md → execution breakdown
+- `00.plan.md` → product intent + roadmap + architecture decisions
+- `00.tasks.md` → atomic execution breakdown for every phase
+- `01.status.md` → progress log: one line per update, sequential, newest at bottom (append-only style)
+
+No `doc_history`. Superseded/verbose source docs move to `_docs/` (gitignored, local-only archive) —
+never deleted, never committed.
 
 ---
 
