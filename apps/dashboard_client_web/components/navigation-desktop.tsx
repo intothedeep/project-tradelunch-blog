@@ -62,8 +62,8 @@ export const DesktopNavigation = () => {
                     ))}
                 </ul>
                 <div className="flex items-center gap-2">
-                    <ModeToggle />
                     <AuthButton showName />
+                    <ModeToggle />
                 </div>
             </div>
         </nav>
@@ -128,8 +128,8 @@ export const MobileNavigation = () => {
                     </span>
                 </Link>
                 <div className="flex items-center gap-2">
-                    <ModeToggle />
                     <AuthButton />
+                    <ModeToggle />
                 </div>
             </nav>
 
