@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 
-import { RecentPostsList } from '@/app/blog/_components/RecentPostsList.server';
+import { RecentPostsList } from '@/app/blog/components/RecentPostsList.server';
 
 // ============================================================================
 // BlogMainPage Component

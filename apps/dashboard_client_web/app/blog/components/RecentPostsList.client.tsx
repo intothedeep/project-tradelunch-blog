@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState, useTransition } from 'react';
 import { cn } from '@/lib/utils';
 
 import { type TPost } from '@/apis/blog.types';
-import { RecentPostCard } from '@/app/blog/_components/RecentPostCard.server';
+import { RecentPostCard } from '@/app/blog/components/RecentPostCard.server';
 
 type Props = {
     username: string;

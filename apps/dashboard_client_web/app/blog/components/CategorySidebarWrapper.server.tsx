@@ -1,6 +1,6 @@
 // app/blog/CategorySidebarWrapper.server.tsx
 import { getCategoriesByUsername } from '@/apis/getCategories.api';
-import { CategorySidebar } from '@/app/blog/_components/CategorySidebar.client';
+import { CategorySidebar } from '@/app/blog/components/CategorySidebar.client';
 import { TTreeNodeWithChildren } from '@repo/types';
 
 type Props = {

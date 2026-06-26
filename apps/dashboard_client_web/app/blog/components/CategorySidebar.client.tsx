@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     buildCategoryTree,
     CategoryTree,
-} from '@/app/blog/_components/CategoryTree.client';
+} from '@/app/blog/components/CategoryTree.client';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {

@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import BlogMainPage from '@/app/blog/_components/BlogMainPage';
+import BlogMainPage from '@/app/blog/components/BlogMainPage';
 import { stripUsernameAt } from '@/utils/blog-author';
 
 type PageProps = {

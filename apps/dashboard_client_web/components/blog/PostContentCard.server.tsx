@@ -1,5 +1,5 @@
 import { getPostBySlug } from '@/apis/getPost.api';
-import { PostContentHeader } from '@/app/blog/_components/PostContentHeader.server';
+import { PostContentHeader } from '@/app/blog/components/PostContentHeader.server';
 import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer.server';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { cn } from '@/lib/utils';

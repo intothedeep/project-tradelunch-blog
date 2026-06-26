@@ -1,4 +1,4 @@
-import { BlogContentShell } from '@/app/blog/_components/BlogContentShell.server';
+import { BlogContentShell } from '@/app/blog/components/BlogContentShell.server';
 import { stripUsernameAt } from '@/utils/blog-author';
 
 // Username-DEPENDENT blog chrome. Lives at the [username] segment so it can

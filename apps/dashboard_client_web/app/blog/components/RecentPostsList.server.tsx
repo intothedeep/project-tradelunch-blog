@@ -1,5 +1,5 @@
 import { loadMorePosts } from '@/app/actions/post.action';
-import { RecentPostsListClient } from '@/app/blog/_components/RecentPostsList.client';
+import { RecentPostsListClient } from '@/app/blog/components/RecentPostsList.client';
 import { CDN_ASSETS } from '@/env.schema';
 
 // ============================================================================

@@ -1,5 +1,5 @@
-import BlogMainPage from '@/app/blog/_components/BlogMainPage';
-import { BlogContentShell } from '@/app/blog/_components/BlogContentShell.server';
+import BlogMainPage from '@/app/blog/components/BlogMainPage';
+import { BlogContentShell } from '@/app/blog/components/BlogContentShell.server';
 import { DEFAULT_BLOG_AUTHOR } from '@/utils/blog-author';
 
 // Blog index reads live posts from the backend at request time, so it must be

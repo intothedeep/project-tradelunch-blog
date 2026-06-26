@@ -140,7 +140,7 @@ export const SaveBlock: React.FC<SaveBlockProps> = ({ onSave }) => {
 };
 
 import Link from 'next/link';
-import { PostContentHeader } from '@/app/blog/_components/PostContentHeader.server';
+import { PostContentHeader } from '@/app/blog/components/PostContentHeader.server';
 import clsx from 'clsx';
 
 // ============================================================================
