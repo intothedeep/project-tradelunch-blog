@@ -1,6 +1,7 @@
 // Purpose: Server Action returning OHLC history for one item from the configured source.
 // Flag: DASHBOARD_DATA_SOURCE ('mock' default | 'backend').
 // Invariant: a missing item resolves to null (not an error); never throws raw.
+// Access: backend endpoint is public market data — no Clerk token forwarded by design.
 // Side effects: network fetch only when source==='backend'.
 
 'use server';

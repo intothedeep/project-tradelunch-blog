@@ -10,17 +10,12 @@ export const axios_instance = axios.create({
     },
 });
 
-axios_instance.interceptors.request.use(
-    (config) => {
-        // console.log(config)
-        // e.g. Add token
-        // const token = localStorage.getItem("token");
-        // if (token) config.headers.Authorization = `Bearer ${token}`;
-        // console.log('Starting Request', config);
-        return config;
-    },
-    (error) => Promise.reject(error)
-);
+// No global auth interceptor on purpose. This instance is isomorphic (imported
+// by both Server Components and client hooks), so a global token-from-storage
+// interceptor would read nothing on the server and silently send anonymous
+// requests. Clerk tokens are attached explicitly per call instead: the caller
+// obtains one via useAuth().getToken() (client) or auth().getToken() (server)
+// and passes it as a `token` argument to the .api.ts function — see getMe.api.ts.
 
 axios_instance.interceptors.response.use(
     (response) => response.data,

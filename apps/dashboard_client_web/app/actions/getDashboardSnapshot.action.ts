@@ -1,6 +1,7 @@
 // Purpose: Server Action returning a dashboard snapshot from the configured source.
 // Flag: DASHBOARD_DATA_SOURCE ('mock' default | 'backend').
 // Invariant: never throws raw — failures are returned as a typed error result.
+// Access: backend endpoint is public market data — no Clerk token forwarded by design.
 // Side effects: network fetch only when source==='backend'.
 
 'use server';

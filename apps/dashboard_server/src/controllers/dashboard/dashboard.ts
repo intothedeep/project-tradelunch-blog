@@ -2,6 +2,11 @@
 // Purpose : Read-only market dashboard endpoints backed by market_snapshots /
 //           market_history. Shapes match the client contract in
 //           dashboard_client_web/types/{dashboard,history}.ts.
+// Access  : PUBLIC BY DESIGN — generic market data, not user-scoped. These
+//           routes intentionally carry no auth middleware (no optionalAuth/
+//           requireAuth); callers forward no Clerk token. If the dashboard ever
+//           becomes per-user, add optionalAuth here and forward a token from
+//           the client Server Actions.
 // Constraints: raw SQL, deterministic row→DTO mapping, no side effects beyond
 //              pool reads. Domain shaping is done by pure helpers below.
 import { pool } from '../../database';
