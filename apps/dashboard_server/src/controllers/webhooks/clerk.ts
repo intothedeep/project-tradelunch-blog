@@ -3,7 +3,8 @@
 //   * Svix signature MUST verify against the RAW request body; a bad/absent
 //     signature => 400 and no DB write.
 //   * Only `user.created` provisions. Unhandled events => 200 (ack, no-op).
-//   * Provisioning requires a valid, unused, unexpired invite code.
+//   * Provisioning needs a valid unused invite code, OR — when ALLOW_OPEN_SIGNUP
+//     is 'true' — open self-signup without any invite.
 //   * INSERT is idempotent via ON CONFLICT (clerk_user_id) DO NOTHING.
 // Side effects: Svix verify (CPU), DB reads/writes inside a transaction.
 // Constraints: this router is mounted on a path that receives express.raw(),
@@ -11,7 +12,7 @@
 import { Router, Request, Response } from 'express';
 import { Webhook } from 'svix';
 import { pool } from '../../database';
-import { CLERK_WEBHOOK_SECRET } from '../../config/env.schema';
+import { CLERK_WEBHOOK_SECRET, ALLOW_OPEN_SIGNUP } from '../../config/env.schema';
 
 export const router = Router();
 
@@ -71,9 +72,35 @@ function readInviteCode(data: TClerkUserCreatedData): string | null {
     return typeof code === 'string' && code.trim() ? code.trim() : null;
 }
 
+function userInsertParams(data: TClerkUserCreatedData) {
+    return [
+        data.id,
+        pickPrimaryEmail(data),
+        data.username ?? null,
+        buildDisplayName(data),
+        data.image_url ?? null,
+    ];
+}
+
 async function provisionUser(data: TClerkUserCreatedData): Promise<void> {
     const inviteCode = readInviteCode(data);
-    if (!inviteCode) return; // invite-gate: no code => no provisioning
+
+    // Open self-signup: when ALLOW_OPEN_SIGNUP is on, provision without an invite.
+    if (!inviteCode) {
+        if (!ALLOW_OPEN_SIGNUP) return; // invite-only mode: no code => no provisioning
+        const openClient = await pool.connect();
+        try {
+            await openClient.query(
+                `INSERT INTO users (clerk_user_id, email, username, display_name, avatar_url)
+                 VALUES ($1, $2, $3, $4, $5)
+                 ON CONFLICT (clerk_user_id) DO NOTHING`,
+                userInsertParams(data)
+            );
+        } finally {
+            openClient.release();
+        }
+        return;
+    }
 
     const client = await pool.connect();
     try {
@@ -99,13 +126,7 @@ async function provisionUser(data: TClerkUserCreatedData): Promise<void> {
              VALUES ($1, $2, $3, $4, $5)
              ON CONFLICT (clerk_user_id) DO NOTHING
              RETURNING id`,
-            [
-                data.id,
-                pickPrimaryEmail(data),
-                data.username ?? null,
-                buildDisplayName(data),
-                data.image_url ?? null,
-            ]
+            userInsertParams(data)
         );
 
         const newUser = inserted[0];

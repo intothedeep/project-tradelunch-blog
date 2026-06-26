@@ -50,6 +50,8 @@ const envSchema = z.object({
     // auth
     CLERK_SECRET_KEY: z.string().optional(),
     CLERK_WEBHOOK_SECRET: z.string().optional(),
+    // 'true' => Clerk webhook provisions new users WITHOUT an invite (open self-signup)
+    ALLOW_OPEN_SIGNUP: z.string().default('false'),
 
     // cors / app
     ALLOWED_ORIGINS: z.string().default(''),
@@ -93,6 +95,7 @@ export const SUPABASE_SECRET_KEY = env.SUPABASE_SECRET_KEY;
 // auth
 export const CLERK_SECRET_KEY = env.CLERK_SECRET_KEY;
 export const CLERK_WEBHOOK_SECRET = env.CLERK_WEBHOOK_SECRET;
+export const ALLOW_OPEN_SIGNUP = env.ALLOW_OPEN_SIGNUP === 'true';
 
 // cors / app
 export const ALLOWED_ORIGINS = env.ALLOWED_ORIGINS;
