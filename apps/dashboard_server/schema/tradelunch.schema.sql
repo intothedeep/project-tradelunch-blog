@@ -44,7 +44,7 @@ VALUES ('taeklim', 'tio.taek.lim@gmail.com');
 -- ===========================
 -- POSTS TABLE
 -- ===========================
-CREATE TYPE if not exists post_status_enum AS ENUM ('public', 'private', 'follower');
+CREATE TYPE if not exists post_status_enum AS ENUM ('public', 'private', 'follower', 'draft');
 drop table if exists posts;
 CREATE TABLE posts (
     seq             int8 GENERATED ALWAYS AS IDENTITY( INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START 1 CACHE 1 NO CYCLE) NOT NULL,

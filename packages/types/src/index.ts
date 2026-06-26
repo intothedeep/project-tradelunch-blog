@@ -59,3 +59,44 @@ export type TTreeNodeWithChildren = TTreeNode & {
     children?: TTreeNodeWithChildren[];
     postCount?: number;
 };
+
+// ---------------------------------------------------------------------------
+// D2 write-contract types (create/update post, drafts, image upload signing).
+// Request/response DTOs use camelCase (API boundary); DB-row read shapes above
+// stay snake_case. 'draft' is added to post_status_enum in a parallel migration.
+// ---------------------------------------------------------------------------
+
+export type TPostStatus = 'public' | 'private' | 'follower' | 'draft';
+
+// Create/update request body. Title required; rest optional for PATCH semantics.
+export interface TPostInput {
+    title: string;
+    content?: string;
+    description?: string;
+    categoryId?: number | null;
+    status?: TPostStatus;
+    slug?: string;
+}
+
+// List item for GET /users/me/drafts.
+export interface TDraftSummary {
+    id: number;
+    slug: string;
+    title: string;
+    description: string | null;
+    status: TPostStatus;
+    categoryId: number | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface TImageSignRequest {
+    filename: string;
+    contentType: string;
+}
+
+export interface TImageSignResponse {
+    signedUrl: string;
+    path: string;
+    publicUrl: string;
+}

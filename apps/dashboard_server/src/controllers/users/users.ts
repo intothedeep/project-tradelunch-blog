@@ -1,5 +1,5 @@
 // Purpose: authenticated self-service profile routes (read profile + onboarding
-//          username claim) for the signed-in Clerk identity.
+//          username claim + draft listing) for the signed-in Clerk identity.
 // Invariants:
 //   * Every route is gated by requireAuth; identity comes from req.auth ONLY.
 //   * needsOnboarding is true exactly when the account has no username yet.
@@ -9,6 +9,7 @@ import { pool } from '../../database';
 import { requireAuth } from '../../middlewares/requireAuth';
 import { validateUsername } from '../../helpers/validateUsername';
 import { claimUsername } from '../../helpers/claimUsername';
+import { listDrafts } from '../../helpers/listDrafts';
 
 export const router = Router();
 
@@ -82,6 +83,25 @@ router.post('/me/username', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('POST /api/users/me/username error:', error);
         res.status(500).json({ success: false, message: 'failed to claim username' });
+    }
+});
+
+/**
+ * @api {get} /api/users/me/drafts List the signed-in user's drafts
+ * @apiName GetMyDrafts
+ * @apiGroup Users
+ */
+router.get('/me/drafts', requireAuth, async (req, res) => {
+    try {
+        const limit = Math.min(
+            parseInt(String(req.query.limit ?? '50'), 10) || 50,
+            100
+        );
+        const drafts = await listDrafts(pool, req.auth!.userId, limit);
+        res.json({ success: true, data: drafts });
+    } catch (error) {
+        console.error('GET /api/users/me/drafts error:', error);
+        res.status(500).json({ success: false, message: 'failed to load drafts' });
     }
 });
 

@@ -62,6 +62,7 @@ router.get(
                     WHERE
                         p.deleted_at IS NULL
                         AND u.deleted_at IS NULL
+                        AND p.status = 'public'
                         -- AND (f.deleted_at IS NULL OR f.deleted_at IS NOT NULL
                         AND p.id < $1
                 )
@@ -138,6 +139,7 @@ router.get(
  */
 router.get(
     '/users/:username',
+    optionalAuth,
     async (
         req: Request<
             { username: string },
@@ -184,7 +186,7 @@ router.get(
                         p.deleted_at IS NULL
                         AND u.username = $1
                         AND u.deleted_at IS NULL
-                        AND p.status = 'public'
+                        AND (p.status = 'public' OR p.user_id = $4)
                         -- AND (f.deleted_at IS NULL OR f.deleted_at IS NOT NULL
                         AND p.id < $2
                 )
@@ -216,10 +218,14 @@ router.get(
                 LIMIT $3
             `;
 
+            // D2.3b: anon (viewerId -1, never matches) sees public only;
+            // the owner sees their own drafts/private on their own profile.
+            const viewerId = req.auth?.userId ?? -1;
             const { rows } = await pool.query(postsQuery, [
                 username,
                 cursor || Number.MAX_SAFE_INTEGER,
                 fetchLimit,
+                viewerId,
             ]);
 
             // Check if there are more posts
