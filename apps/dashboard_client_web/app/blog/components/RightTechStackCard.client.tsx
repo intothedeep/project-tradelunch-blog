@@ -8,14 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 export const RightTechStackCard: React.FC = () => {
     const techStack = [
         'React 19',
-        'Next.js 15',
-        'Turborepo',
-        'Node.js',
+        'Next.js 16',
         'Express',
-        'PostgreSQL',
-        'Synology NAS',
-        'Oracle Cloud',
-        'Cloudflare',
+        'Turborepo',
+        'Supabase',
+        'Clerk',
+        'Vercel',
     ];
 
     return (

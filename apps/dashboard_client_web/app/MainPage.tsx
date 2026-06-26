@@ -97,6 +97,12 @@ const TerminalProfile = () => {
 
     const projects = [
         {
+            name: 'Time-Series Predictive Analytics Platform',
+            tech: ['Python', 'ClickHouse', 'k3s', 'Kafka'],
+            period: '04/2026–Current',
+            desc: 'Data pipelines collecting weather, crypto, and prediction-market (Kalshi) data into ClickHouse; hybrid k3s across cloud/local via Tailscale VPN; ML/DL forecasting.',
+        },
+        {
             name: 'OAuth2 Auth Server',
             tech: ['Java', 'Spring Boot', 'Spring Security'],
             period: '07/2025–Current',
@@ -111,41 +117,71 @@ const TerminalProfile = () => {
     ];
 
     const skills = {
-        Frontend: [
+        Languages: [
             'JavaScript/TypeScript',
+            'Java',
+            'Python',
+            'C/C++',
+            'Rust',
+            'SQL',
+            'HTML/CSS/Sass',
+        ],
+        Frontend: [
             'React.js',
-            'Next.js',
             'React Native',
-            'Vue',
+            'Next.js',
+            'Vue.js',
+            'TanStack',
+            'Jotai',
             'RxJS',
+            'Tailwind CSS',
+            'Storybook',
         ],
         Backend: [
-            'Java',
-            'Spring Boot',
-            'Node',
+            'FastAPI',
+            'Spring Boot & Security',
+            'Node.js',
+            'REST/GraphQL',
             'gRPC/Protobuf',
-            'C/C++',
-            'Python',
-            'Rust',
+            'JUnit',
+            'JPA',
+            'MyBatis',
         ],
-        Database: ['PostgreSQL', 'MySQL', 'Redis', 'Elasticsearch', 'Redshift'],
-        Monitoring: ['Prometheus', 'Grafana', 'ELK Stack'],
-        'DevOps / Infrastructure': [
-            'Jenkins',
+        Database: [
+            'PostgreSQL',
+            'MySQL',
+            'ClickHouse',
+            'Redis',
+            'AWS Redshift',
+            'Elasticsearch',
+            'MongoDB',
+        ],
+        'AI / ML': [
+            'PyTorch',
+            'TensorFlow',
+            'LangChain/LangGraph',
+            'Prompt Engineering',
+            'Claude',
+            'OpenAI',
+            'Gemini',
+        ],
+        'Cloud / DevOps': [
+            'AWS',
+            'Azure',
             'Docker',
-            'K8s',
+            'Prometheus',
+            'Grafana',
+            'k3s',
             'Kafka',
-            'Github',
         ],
-        Cloud: ['AWS', 'Oracle Cloud', 'Azure'],
-        Other: ['OAuth2', 'Functional Programming', 'Reactive Programming'],
+        Tools: ['Git', 'Gradle', 'Maven', 'Webpack', 'Jest', 'Monorepo'],
     };
 
     const education = [
         {
             school: 'University of Central Missouri',
             degree: 'M.S. Computer Science',
-            period: '01/2025 - 12/2026',
+            period: '01/2025 – 05/2027 (Expected)',
             courses: [
                 'Algorithms',
                 'Compiler Design',
@@ -231,7 +267,7 @@ const TerminalProfile = () => {
 
                             <CardDescription className="mt-2">
                                 Warrensburg, MO | tio.taek.lim@gmail.com |
-                                Github: tradelunch
+                                Github: tradelunch | in/tiotaeklim
                                 {/* Warrensburg, MO | 660-238-5036 | */}
                                 {/* tio.taek.lim@gmail.com | Github: tradelunch */}
                             </CardDescription>
@@ -484,6 +520,9 @@ const TerminalProfile = () => {
                                         </CardHeader>
                                         <CardContent className="space-y-1 text-sm">
                                             <p>
+                                                • Global Vision Scholarship, UCM
+                                            </p>
+                                            <p>
                                                 • Graduate Student Achievement
                                                 Award, UCM $1,000
                                             </p>
@@ -508,10 +547,7 @@ const TerminalProfile = () => {
                             READY FOR OPPORTUNITIES
                         </div>
                         <div className="text-foreground">
-                            Available: 05/2026 | Last Updated:{' '}
-                            <span suppressHydrationWarning>
-                                {new Date().toLocaleDateString()}
-                            </span>
+                            Available: 05/2026 | Last Updated: 6/26/2026
                         </div>
                     </CardContent>
                 </Card>
