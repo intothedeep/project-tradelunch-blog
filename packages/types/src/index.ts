@@ -1,14 +1,19 @@
 // API-contract types for the category tree structure.
 // These are consumed by both dashboard_client_web and dashboard_server.
-// No build step — consumers compile raw TS via transpilePackages / tsc.
+// No build step — consumers compile raw TS via transpilePackages / tsc, and the
+// server function loads this at runtime via Node's native TS (strip-only) mode.
+// IMPORTANT: keep this file strip-only-safe — NO `enum`/`namespace` (Node strip-only
+// cannot run them). Use a const-object + union instead of an enum.
 
-export enum ETreeNodeType {
-    CATEGORY = 'category',
-    POST = 'post',
-}
+export const ETreeNodeType = {
+    CATEGORY: 'category',
+    POST: 'post',
+} as const;
+
+export type ETreeNodeType = (typeof ETreeNodeType)[keyof typeof ETreeNodeType];
 
 export interface TCategoryTreeNode {
-    type: ETreeNodeType.CATEGORY;
+    type: typeof ETreeNodeType.CATEGORY;
     id: number;
     title: string;
     slug: null;
@@ -25,7 +30,7 @@ export interface TCategoryTreeNode {
 }
 
 export interface TPostTreeNode {
-    type: ETreeNodeType.POST;
+    type: typeof ETreeNodeType.POST;
     id: number;
     title: string;
     slug: string;
