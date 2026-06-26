@@ -116,6 +116,7 @@ router.get(
             res.status(500).json({
                 success: false,
                 message: 'Failed to fetch posts',
+                detail: error instanceof Error ? error.message : String(error),
             });
         }
     }
@@ -238,6 +239,7 @@ router.get(
             res.status(500).json({
                 success: false,
                 message: 'Failed to fetch posts',
+                detail: error instanceof Error ? error.message : String(error),
             });
         }
     }
@@ -565,6 +567,7 @@ router.get(
             res.status(500).json({
                 success: false,
                 message: 'Failed to fetch posts',
+                detail: error instanceof Error ? error.message : String(error),
             });
         }
     }
