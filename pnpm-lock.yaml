@@ -4,9 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  '@types/express-serve-static-core': 5.1.1
-
 importers:
 
   .:
@@ -330,6 +327,9 @@ importers:
       '@types/express':
         specifier: ^5.0.6
         version: 5.0.6
+      '@types/express-serve-static-core':
+        specifier: 5.1.1
+        version: 5.1.1
       '@types/mime-types':
         specifier: ^3.0.1
         version: 3.0.1
