@@ -8,6 +8,8 @@ project_root = str(Path(__file__).parent.parent)
 sys.path.insert(0, project_root)
 
 from agents.uploading_agent import UploadingAgent
+import pytest
+from __tests__.conftest import db_available
 
 
 class TestCategoryStorage(IsolatedAsyncioTestCase):
@@ -23,6 +25,7 @@ class TestCategoryStorage(IsolatedAsyncioTestCase):
         result = await self.agent._resolve_category_hierarchy([])
         self.assertEqual(result, ([], None, []))
 
+    @pytest.mark.skipif(not db_available(), reason="Database not available")
     async def test_resolve_category_hierarchy_single_level(self):
         """Test resolving single-level category."""
         categories = ["technology"]
@@ -33,6 +36,7 @@ class TestCategoryStorage(IsolatedAsyncioTestCase):
         self.assertIsNotNone(deepest_id)
         self.assertEqual(deepest_id, category_ids[0])
 
+    @pytest.mark.skipif(not db_available(), reason="Database not available")
     async def test_resolve_category_hierarchy_multi_level(self):
         """Test resolving multi-level category hierarchy."""
         categories = ["technology", "ai", "machine-learning"]
@@ -44,6 +48,7 @@ class TestCategoryStorage(IsolatedAsyncioTestCase):
         # All IDs should be unique (simulated snowflake IDs)
         self.assertEqual(len(set(category_ids)), 3)
 
+    @pytest.mark.skipif(not db_available(), reason="Database not available")
     async def test_resolve_category_hierarchy_ids_are_integers(self):
         """Test that resolved category IDs are integers."""
         categories = ["programming", "python"]

@@ -5,7 +5,7 @@ Configuration Module
 Exports all configuration settings for the application.
 """
 
-from configs.aws import *
+from configs.storage import *
 from configs.database import *
 from configs.env import *
 from configs.paths import *
@@ -19,13 +19,10 @@ __all__ = [
     # Database
     "DATABASE_URL",
     "get_database_url",
-    # Storage (Supabase, S3-compatible)
-    "SUPABASE_S3_ENDPOINT",
-    "SUPABASE_S3_REGION",
-    "SUPABASE_S3_ACCESS_KEY_ID",
-    "SUPABASE_S3_SECRET_ACCESS_KEY",
-    "S3_BUCKET",
-    "S3_REGION",
+    # Storage (Supabase native client)
+    "SUPABASE_URL",
+    "SUPABASE_SECRET_KEY",
+    "SUPABASE_STORAGE_BUCKET",
     "CDN_ASSETS",
     # Paths
     "PROJECT_ROOT",

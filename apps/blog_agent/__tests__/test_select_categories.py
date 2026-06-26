@@ -9,6 +9,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from db.connection import get_db_session
 from db.repositories.category import CategoryRepository
+import pytest
+from __tests__.conftest import db_available
+
+pytestmark = pytest.mark.skipif(not db_available(), reason="Database not available")
 
 async def test_select_all_categories():
     """

@@ -1,10 +1,12 @@
-// apps/article_server/src/types/env.d.ts
+// apps/dashboard_server/types/env.d.ts
 declare global {
     namespace NodeJS {
         interface ProcessEnv {
             NODE_ENV: 'development' | 'production' | 'test' | 'local';
             PORT?: string;
-            DATABASE_URL?: string;
+            POSTGRES_URL?: string;
+            POSTGRES_URL_NON_POOLING?: string;
+            POSTGRES_PRISMA_URL?: string;
             // add other keys you expect
         }
     }

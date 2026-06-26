@@ -38,15 +38,14 @@ const envSchema = z.object({
     DEFAULT_USER_ID: z.coerce.number().default(2),
 
     // supabase
-    DATABASE_URL: z.string().optional(),
-    DATABASE_URL_DIRECT: z.string().optional(),
-    // Vercel ↔ Supabase integration auto-injects these (preferred on Vercel):
+    // Vercel ↔ Supabase integration auto-injects these (the only DB names used):
     //   POSTGRES_URL             = pooled (transaction pooler, port 6543) → runtime pg Pool
     //   POSTGRES_URL_NON_POOLING = direct (port 5432) → migrations / direct
     POSTGRES_URL: z.string().optional(),
     POSTGRES_URL_NON_POOLING: z.string().optional(),
+    POSTGRES_PRISMA_URL: z.string().optional(), // IGNORED — Prisma-only ?pgbouncer param; not wired into code
+    //   POSTGRES_USER/HOST/PASSWORD/DATABASE = discrete parts, auto-injected, intentionally NOT parsed (redundant with POSTGRES_URL*)
     SUPABASE_PROJECT_ID: z.string().optional(),
-    SUPABASE_DB_PASSWORD: z.string().optional(),
     SUPABASE_URL: z.string().optional(),
     SUPABASE_SECRET_KEY: z.string().optional(),
     SUPABASE_STORAGE_BUCKET: z.string().default('blog.prettylog'),
@@ -84,12 +83,14 @@ export const CDN_ASSETS = env.CDN_ASSETS;
 export const DEFAULT_USER_ID = env.DEFAULT_USER_ID;
 
 // supabase / database url
-// Prefer the Vercel↔Supabase integration vars (POSTGRES_URL); fall back to
-// DATABASE_URL for local .env. database.ts consumes DATABASE_URL — no change needed there.
-export const DATABASE_URL = env.POSTGRES_URL ?? env.DATABASE_URL;
-export const DATABASE_URL_DIRECT = env.POSTGRES_URL_NON_POOLING ?? env.DATABASE_URL_DIRECT;
+// Resolved purely from the Vercel↔Supabase integration vars (no DATABASE_URL
+// fallback). These two exported symbol names are internal aliases for the
+// resolved connection string; database.ts and migration scripts import them.
+//   DATABASE_URL        ← POSTGRES_URL             (pooled, port 6543) → runtime pg Pool
+//   DATABASE_URL_DIRECT ← POSTGRES_URL_NON_POOLING (direct, port 5432) → migrations
+export const DATABASE_URL = env.POSTGRES_URL;
+export const DATABASE_URL_DIRECT = env.POSTGRES_URL_NON_POOLING;
 export const SUPABASE_PROJECT_ID = env.SUPABASE_PROJECT_ID;
-export const SUPABASE_DB_PASSWORD = env.SUPABASE_DB_PASSWORD;
 export const SUPABASE_URL = env.SUPABASE_URL;
 export const SUPABASE_SECRET_KEY = env.SUPABASE_SECRET_KEY;
 export const SUPABASE_STORAGE_BUCKET = env.SUPABASE_STORAGE_BUCKET;

@@ -292,7 +292,7 @@ class UploadingAgent(BaseAgent):
         Returns:
             CDN URL for the uploaded file
         """
-        from db.s3 import FileMetadata, async_upload_file_s3
+        from db.storage import FileMetadata, async_upload_file
         from utils.snowflake import generate_id
 
         # Read file content
@@ -319,7 +319,7 @@ class UploadingAgent(BaseAgent):
         )
 
         # Upload to S3
-        result = await async_upload_file_s3(meta)
+        result = await async_upload_file(meta)
 
         return result.stored_uri
 

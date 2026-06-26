@@ -6,7 +6,7 @@ Provides async database operations for PostgreSQL using SQLAlchemy 2.x.
 
 Usage:
     from db import get_db_session, CategoryRepository, PostRepository
-    
+
     async with get_db_session() as session:
         repo = CategoryRepository(session)
         await repo.insert_category_hierarchy(['tech', 'ai'], user_id=1)
@@ -28,14 +28,14 @@ from db.repositories.post import PostRepository
 from db.repositories.file import FileRepository
 from db.repositories.tag import TagRepository
 from utils.snowflake import Snowflake
-from db.s3 import (
+from db.storage import (
     FileMetadata,
     load_local_file,
-    upload_file_s3,
+    upload_file,
     get_signed_url,
-    delete_file_s3,
-    file_exists_s3,
-    async_upload_file_s3,
+    delete_file,
+    file_exists,
+    async_upload_file,
     async_load_local_file,
     async_get_signed_url,
 )
@@ -60,15 +60,14 @@ __all__ = [
     "TagRepository",
     # Utils
     "Snowflake",
-    # S3
+    # Storage
     "FileMetadata",
     "load_local_file",
-    "upload_file_s3",
+    "upload_file",
     "get_signed_url",
-    "delete_file_s3",
-    "file_exists_s3",
-    "async_upload_file_s3",
+    "delete_file",
+    "file_exists",
+    "async_upload_file",
     "async_load_local_file",
     "async_get_signed_url",
 ]
-

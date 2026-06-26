@@ -1,0 +1,1 @@
+use architect to analyze and design system and split tasks. use pm to dispatch to developer. use pm to udpate docs in background. use architect to validate and verify best convention with latest search. use architect and ml engineer to choose better option. use this cycle and repeat until done.

@@ -5,7 +5,7 @@ Database Connection Management
 Provides async session factory and engine configuration for PostgreSQL.
 Uses the asyncpg driver with SQLAlchemy 2.x async support.
 
-Connection target: Supabase pooler via DATABASE_URL.
+Connection target: Supabase via resolved Postgres URL (direct preferred).
 SSL mirrors the TS server's `rejectUnauthorized: false` — a context with
 hostname/cert verification disabled (no CA bundle, no RDS logic).
 
@@ -55,7 +55,8 @@ def get_engine() -> AsyncEngine:
     """Get or create the async database engine.
 
     Returns:
-        Configured AsyncEngine bound to DATABASE_URL with non-verifying SSL.
+        Configured AsyncEngine bound to the resolved Postgres URL (direct
+        preferred) with non-verifying SSL.
     """
     global _engine
     if _engine is None:

@@ -8,7 +8,10 @@
 //      string's `sslmode=require` to rejectUnauthorized:true (full verify), which
 //      then fails with "self-signed certificate in certificate chain" even though
 //      we pass ssl.rejectUnauthorized:false. Strip `sslmode` so our explicit ssl
-//      config is the sole governor and accepts the chain.
+//      config is the sole governor and accepts the chain. Also strip `pgbouncer`
+//      so a pgbouncer-tagged fallback URL stays safe for node-pg (it is a
+//      Prisma-only param). `connect_timeout` is left intact — node-pg ignores
+//      unknown keys.
 // Side effects: opens TCP connections on first query.
 import { Pool } from 'pg';
 import { DATABASE_URL } from './config/env.schema';
@@ -18,6 +21,7 @@ function stripSslmode(url?: string): string | undefined {
     try {
         const u = new URL(url);
         u.searchParams.delete('sslmode');
+        u.searchParams.delete('pgbouncer');
         return u.toString();
     } catch {
         return url;
