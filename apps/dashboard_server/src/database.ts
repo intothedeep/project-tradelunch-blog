@@ -7,7 +7,7 @@
 //             Supabase free-tier connection limits.
 // Side effects: opens TCP connections on first query.
 import { Pool } from 'pg';
-import { DATABASE_URL } from '@/src/config/env.schema';
+import { DATABASE_URL } from './config/env.schema';
 
 export const pool = new Pool({
     connectionString: DATABASE_URL,

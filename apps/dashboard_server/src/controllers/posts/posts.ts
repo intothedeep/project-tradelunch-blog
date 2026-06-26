@@ -1,4 +1,4 @@
-import { pool } from '@/src/database';
+import { pool } from '../../database';
 import {
     ETreeNodeType,
     TCategoryTreeResponse,

@@ -1,7 +1,7 @@
 import express from 'express';
 import cors, { CorsOptions } from 'cors';
 import routers from './controllers';
-import { ALLOWED_ORIGINS } from '@/src/config/env.schema';
+import { ALLOWED_ORIGINS } from './config/env.schema';
 
 export const app = express();
 

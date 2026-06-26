@@ -29,5 +29,10 @@
     },
     "engines": {
         "node": ">=20"
+    },
+    "pnpm": {
+        "overrides": {
+            "@types/express-serve-static-core": "5.1.1"
+        }
     }
 }

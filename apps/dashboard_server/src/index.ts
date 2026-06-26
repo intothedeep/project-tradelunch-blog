@@ -1,6 +1,6 @@
 import { app } from './server';
-import { SERVER_PORT, HOST_NAME } from '@/src/config/env.schema';
-import { pool } from '@/src/database';
+import { SERVER_PORT, HOST_NAME } from './config/env.schema';
+import { pool } from './database';
 
 async function shutdown(signal: string): Promise<void> {
     console.log(`${signal} received`);
