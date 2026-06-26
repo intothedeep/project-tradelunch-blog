@@ -100,3 +100,29 @@ export interface TImageSignResponse {
     path: string;
     publicUrl: string;
 }
+
+// ---------------------------------------------------------------------------
+// D4 admin API contract (admin post moderation: list + status change).
+// Reuses TPostStatus. Cursor-based pagination over all users' posts.
+// ---------------------------------------------------------------------------
+
+export interface TAdminPostListItem {
+    id: number;
+    userId: number;
+    username: string | null;
+    slug: string;
+    title: string;
+    status: TPostStatus;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface TAdminPostListResponse {
+    items: TAdminPostListItem[];
+    nextCursor: number | null;
+    hasMore: boolean;
+}
+
+export interface TAdminPostStatusInput {
+    status: TPostStatus;
+}
