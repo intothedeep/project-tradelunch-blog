@@ -114,12 +114,8 @@ export const MobileNavigation = () => {
 
     return (
         <>
-            {/* Mobile Header Bar */}
-            <nav className="md:hidden flex h-14 items-center justify-start gap-3 border-b-2 border-primary bg-background/95 backdrop-blur px-4">
-                <div className="flex items-center gap-2">
-                    <ModeToggle />
-                    <AuthButton signInClassName="px-3 py-1 font-mono text-xs border border-primary/50 hover:border-primary transition-colors" />
-                </div>
+            {/* Mobile Header Bar — logo left, theme right; sign-in lives in drawer */}
+            <nav className="md:hidden flex h-14 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-4">
                 <Link
                     href="/"
                     className="flex items-center gap-2"
@@ -131,6 +127,7 @@ export const MobileNavigation = () => {
                         Taek Lim
                     </span>
                 </Link>
+                <ModeToggle />
             </nav>
 
             {/* Menu Button - Bottom Left */}
