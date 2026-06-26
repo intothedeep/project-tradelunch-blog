@@ -150,9 +150,9 @@ No circular dependencies allowed.
 - all config must be environment-based (.env)
 - no hardcoded secrets or environment values
 - config precedence:
-  1. environment variables
-  2. config files
-  3. defaults
+    1. environment variables
+    2. config files
+    3. defaults
 
 ---
 
@@ -220,7 +220,7 @@ Exactly three living root-level docs — do not create per-feature variants; fol
 - `00.tasks.md` → atomic execution breakdown for every phase
 - `01.status.md` → progress log: one line per update, sequential, newest at bottom (append-only style)
 
-No `doc_history`. Superseded/verbose source docs move to `_docs/` (gitignored, local-only archive) —
+Superseded/verbose source docs move to `_docs/` (gitignored, local-only archive) —
 never deleted, never committed.
 
 ---
@@ -272,15 +272,15 @@ If complexity increases or boundaries are unclear:
 - protobuf: weatherbot[Name][Api|Ws][Hist]
 - weatherbot*[name]*[api|ws]\_hist
 - folder
-  - use-api
-  - use-ws
-  - use-poll
+    - use-api
+    - use-ws
+    - use-poll
 
 - files
-  - api: [method]-[name].api[.batch]ts
-  - parsing: _.parsing.[api|ws]._
-  - ws: _.ws._
-  - mock: mock.[api|ws].[source: weatherbot].[name].json
+    - api: [method]-[name].api[.batch]ts
+    - parsing: _.parsing.[api|ws]._
+    - ws: _.ws._
+    - mock: mock.[api|ws].[source: weatherbot].[name].json
 
 ---
 

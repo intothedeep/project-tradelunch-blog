@@ -118,8 +118,7 @@ Rules:
 - When starting non-trivial work, read all three first; update in place.
 - Do **not** spin up extra docs (`00.<feature>.plan.md`, `*.arch.md`, `00.migration.md`, etc.).
   A large sub-effort becomes a section/phase inside `00.plan.md` + `00.tasks.md`.
-- **No `doc_history`.** Superseded or verbose source docs move to `_docs/` (gitignored, local-only
-  archive) — they are not deleted and not committed.
+- use `_docs/` (gitignored, local-only archive) — they are not deleted and not committed.
 
 ## Naming Conventions (Quick Reference)
 

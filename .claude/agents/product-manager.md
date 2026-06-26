@@ -22,10 +22,9 @@ Inputs:
 
 Outputs:
 
-- Updated 00.plan.md -> local feature
-- Updated 00.tasks.md -> local feature
-- doc_history/00.plan.md -> global
-- doc_history/00.tasks.md -> global
+- Updated 00.plan.md (in place)
+- Updated 00.tasks.md (in place)
+- No snapshots/doc_history; only when a doc is superseded, move the old verbose copy to _docs/ (gitignored) — see CLAUDE.md "Workflow Docs"
 
 Rules:
 
