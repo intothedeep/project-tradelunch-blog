@@ -22,6 +22,9 @@ const envSchema = z.object({
         .string()
         .url()
         .default('https://posts.prettylog.com'),
+
+    // Dashboard data source switch. Absent env → 'mock' (live behavior unchanged).
+    DASHBOARD_DATA_SOURCE: z.enum(['mock', 'backend']).default('mock'),
 });
 
 export const env = envSchema.parse(process.env);
@@ -30,3 +33,4 @@ export const SERVER_PORT = env.PORT;
 export const HOST_NAME = env.HOST_NAME;
 export const API_BASE = env.NEXT_PUBLIC_API_BASE;
 export const CDN_ASSET_POSTS = env.NEXT_PUBLIC_CDN_ASSET_POSTS;
+export const DASHBOARD_DATA_SOURCE = env.DASHBOARD_DATA_SOURCE;
