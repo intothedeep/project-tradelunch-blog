@@ -32,7 +32,7 @@ export const router = Router();
 router.post('', requireAuth, async (req, res) => {
     try {
         const parsed = validatePostInput(req.body);
-        if (!parsed.ok) {
+        if (parsed.ok === false) {
             res.status(400).json({ success: false, message: parsed.reason });
             return;
         }
@@ -66,7 +66,7 @@ router.patch('/:postid', requireAuth, async (req, res) => {
         }
 
         const parsed = validatePostInput(req.body);
-        if (!parsed.ok) {
+        if (parsed.ok === false) {
             res.status(400).json({ success: false, message: parsed.reason });
             return;
         }
@@ -155,7 +155,7 @@ router.post('/images/sign', requireAuth, async (req, res) => {
             }
         );
 
-        if (!result.ok) {
+        if (result.ok === false) {
             res.status(400).json({ success: false, message: result.reason });
             return;
         }
