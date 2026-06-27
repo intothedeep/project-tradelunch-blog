@@ -22,6 +22,15 @@ export const router = Router();
  * @apiSuccess {Object[]} posts List of the user's most recent posts for each slug.
  * @apiSuccess {String|null} nextCursor Next cursor value (null if no more posts).
  * @apiSuccess {Boolean} hasMore Indicates if more posts are available.
+ *
+ * CDN GUARDRAIL — the feed is cacheable-anonymous. `optionalAuth` only
+ * personalizes `viewer_liked` WHEN a token is present; the client feed fetcher
+ * (apis/getPosts.api.ts) intentionally sends NONE (viewer-likes are derived via
+ * a separate client query — see 01.status.md FIX-like-persist), so every
+ * response here is viewer-agnostic and safe for a shared cache. If you EVER
+ * forward a per-user token to this route, the response becomes per-user — you
+ * MUST then mark it `Cache-Control: private`/`no-store` or add
+ * `Vary: Authorization`, or a CDN will serve one user's like-state to another.
  */
 router.get(
     '',
