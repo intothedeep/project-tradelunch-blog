@@ -2,10 +2,12 @@
 
 // Purpose: a single recent-post card on /blog/@<username>.
 // Invariants: the whole card is ONE navigation target (overlay stretched-link);
-//   interactive actions (Share live, Save live) are siblings at z-10 so they
-//   never nest inside the anchor (valid HTML, no nested-interactive conflict).
+//   interactive actions (Like live, Share live, Save live) are siblings at z-10
+//   so they never nest inside the anchor (valid HTML, no nested-interactive
+//   conflict).
 // Constraints: overlay link is omitted when username/slug is missing so the URL
-//   never serializes "@undefined". No vote/comment UI, no fabricated counts.
+//   never serializes "@undefined". Live like count + viewer state come from the
+//   enriched feed read (L5).
 // Side effects: none (delegated to action components).
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -18,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { PostContentHeader } from '@/app/blog/components/PostContentHeader.server';
 import { ShareButton } from '@/app/blog/components/post-card-actions/ShareButton.client';
 import { SaveButton } from '@/app/blog/components/post-card-actions/SaveButton.client';
+import { LikeButton } from '@/app/blog/components/post-card-actions/LikeButton.client';
 
 interface RecentPostCardProps {
     post: TPost;
@@ -120,8 +123,13 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
                     ))}
                 </div>
 
-                {/* Footer - Actions (Share live + Save live) */}
+                {/* Footer - Actions (Like live + Share live + Save live) */}
                 <div className="flex items-center gap-3 flex-wrap border-t border-primary/30 pt-3">
+                    <LikeButton
+                        postId={post.id}
+                        initialLiked={post.viewerLiked ?? false}
+                        initialLikeCount={post.likeCount ?? 0}
+                    />
                     <ShareButton
                         username={post.username}
                         slug={post.slug}
