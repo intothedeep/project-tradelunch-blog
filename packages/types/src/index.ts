@@ -160,6 +160,14 @@ export interface TLikeToggleResponse {
     likeCount: number;
 }
 
+// GET /v1/api/likes → { success, data: TLikedResponse }
+// The caller's OWN liked post ids — lets the client seed each LikeButton's
+// viewer state without forwarding a token through the (cacheable) SSR post
+// read. Mirrors TFavoritesResponse; ids stay STRINGS (Snowflake precision).
+export interface TLikedResponse {
+    postIds: string[];
+}
+
 // ---------------------------------------------------------------------------
 // Threaded comments contract (Phase E — Option C: materialized BIGINT[] path,
 // UNLIMITED depth). The list is a FLAT pre-order array (ordered by `path`); the

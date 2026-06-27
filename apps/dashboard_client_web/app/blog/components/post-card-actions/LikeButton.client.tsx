@@ -5,12 +5,17 @@
 //   own liked state.
 // Invariants: sits above any overlay nav link (relative z-10) so clicking it
 //   toggles the like and NEVER navigates. Signed-in click → OPTIMISTIC flip
-//   (liked + count) reconciled to the server result, rolled back on error;
-//   signed-out click → /sign-in?redirect_url=<current path>.
+//   reconciled to the server result, rolled back on error; signed-out click →
+//   /sign-in?redirect_url=<current path>.
 // Constraints: post id is a STRING (Snowflake) — never Number()/parseInt. Heart
-//   is filled when liked, outline otherwise. The optimistic state is seeded from
-//   the server-supplied initial props (likeCount/viewerLiked).
-// Side effects: delegated to useToggleLike (network) / router navigation.
+//   is filled when liked, outline otherwise.
+//   The viewer's LIKED state is read from the shared ['viewer-likes'] query
+//   (useViewerLikes), NOT from the server-rendered initialLiked: the SSR post
+//   read is cacheable/anonymous so its viewerLiked is always false — relying on
+//   it made a like vanish on refresh. initialLiked is only the pre-hydration
+//   fallback (signed-out / query not yet loaded). The COUNT is a public
+//   aggregate, so it stays local state seeded from initialLikeCount.
+// Side effects: delegated to useToggleLike (network + cache) / router navigation.
 
 import { useState } from 'react';
 import { Heart } from 'lucide-react';
@@ -18,6 +23,7 @@ import { useAuth } from '@clerk/nextjs';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useToggleLike } from '@/hooks/useToggleLike.query.client';
+import { useViewerLikes } from '@/hooks/useViewerLikes.query.client';
 
 type Props = {
     postId: string;
@@ -34,8 +40,12 @@ export const LikeButton: React.FC<Props> = ({
     const router = useRouter();
     const pathname = usePathname();
     const toggle = useToggleLike();
+    const { data: likedSet } = useViewerLikes();
 
-    const [liked, setLiked] = useState(initialLiked);
+    // Liked state is authoritative from the shared viewer-likes cache (which the
+    // toggle mutation flips optimistically); fall back to the SSR seed only
+    // until that query resolves.
+    const liked = likedSet?.has(postId) ?? initialLiked;
     const [likeCount, setLikeCount] = useState(initialLikeCount);
 
     const handleClick = () => {
@@ -48,21 +58,18 @@ export const LikeButton: React.FC<Props> = ({
         }
         if (toggle.isPending) return;
 
-        // Optimistic flip; reconcile to the server's authoritative state/count.
-        const prevLiked = liked;
+        // Optimistic COUNT flip; the liked set is flipped by the hook. Reconcile
+        // the count to the server's authoritative value, roll back on error.
         const prevCount = likeCount;
-        setLiked(!prevLiked);
-        setLikeCount(prevCount + (prevLiked ? -1 : 1));
+        setLikeCount(prevCount + (liked ? -1 : 1));
 
         toggle.mutate(
             { postId },
             {
                 onSuccess: (data) => {
-                    setLiked(data.liked);
                     setLikeCount(data.likeCount);
                 },
                 onError: () => {
-                    setLiked(prevLiked);
                     setLikeCount(prevCount);
                 },
             }

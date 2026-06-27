@@ -77,6 +77,22 @@ export async function toggleLike(
     }
 }
 
+// Returns the caller's liked post ids as strings. Owner-scoped: bound to
+// user_id = $caller, so a user only ever reads their OWN likes. The client
+// consumes this as a membership Set, so no ordering is needed.
+export async function listLikedPostIds(
+    db: TDb,
+    userId: number
+): Promise<string[]> {
+    const { rows } = await db.query<{ post_id: string }>(
+        `SELECT post_id
+         FROM post_likes
+         WHERE user_id = $1`,
+        [userId]
+    );
+    return rows.map((row) => String(row.post_id));
+}
+
 // Read the caller's like state for a post (did I like it + the live count).
 // Owner-scoped: the `liked` flag is bound to user_id = $caller.
 export async function getLikeState(

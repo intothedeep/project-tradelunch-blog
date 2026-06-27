@@ -1,7 +1,7 @@
 import { Router } from "express";
 import home from "./home";
 import posts from "./posts";
-import likes from "./likes";
+import likes, { likesListRouter } from "./likes";
 import { postCommentsRouter, commentsRouter } from "./comments";
 import dashboard from "./dashboard";
 import users from "./users";
@@ -25,6 +25,9 @@ router.use("/api/dashboard", dashboard);
 router.use("/api/users", users);
 router.use("/api/admin", admin);
 router.use("/api/favorites", favorites);
+// Viewer-likes list (GET /api/likes) — the caller's own liked ids, on its own
+// prefix so it never collides with the public feed at GET /api/posts.
+router.use("/api/likes", likesListRouter);
 // router.use("/accounts", require("./accounts"));
 // router.use("/auth", require("./auth"));
 // router.use("/chat", require("./chat"));
