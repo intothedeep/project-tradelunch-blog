@@ -64,9 +64,14 @@ export type TPost = {
     updated_at?: string;
     date?: string;
 
-    // TODO
-    comments?: number;
-    upvotes?: number;
+    // Engagement counts surfaced by the post read queries (Phase E — Likes /
+    // Comments). likeCount/commentCount are live COUNT(*)s; viewerLiked is the
+    // per-viewer "did I like this" boolean. commentCount stays 0 until the
+    // Comments feature lands.
+    likeCount: number;
+    viewerLiked: boolean;
+    commentCount: number;
+
     author?: string;
     views?: number;
     username?: string;

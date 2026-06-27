@@ -49,7 +49,9 @@ export const FeaturedPostCard: React.FC<FeaturedPostCardProps> = ({ post }) => {
 
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-muted-foreground">
                     <span>👁 {post.views}</span>
-                    {post.comments && <span>💬 {post.comments}</span>}
+                    {post.commentCount > 0 && (
+                        <span>💬 {post.commentCount}</span>
+                    )}
                     {post.reposts && <span>🔄 {post.reposts}</span>}
                 </div>
             </CardContent>
