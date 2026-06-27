@@ -13,10 +13,13 @@ import { EditorToolbar } from '@/components/write/EditorToolbar.client';
 import { AutosaveIndicator } from '@/components/write/AutosaveIndicator.client';
 import { useEditorSeed } from '@/hooks/useEditorSeed.hook';
 import { useDraftAutosave } from '@/hooks/useDraftAutosave.hook';
+import { useUnsavedGuard } from '@/hooks/useUnsavedGuard.hook';
 import { useImageUpload } from '@/hooks/useImageUpload.hook';
+import { useComposition } from '@/hooks/useComposition.hook';
 import { useCreatePost } from '@/hooks/useCreatePost.query.client';
 import { useUpdatePost } from '@/hooks/useUpdatePost.query.client';
 import { useDeletePost } from '@/hooks/useDeletePost.query.client';
+import { cn } from '@/lib/utils';
 import type { TPostInput, TPostStatus } from '@repo/types';
 
 // Status values the editor can represent. Legacy/out-of-set values (e.g.
@@ -37,11 +40,16 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
     const [description, setDescription] = useState('');
     const [status, setStatus] = useState<TPostStatus>('draft');
     const [isSeeded, setIsSeeded] = useState(false);
+    // Mobile-only pane toggle. At md+ both panes show via `md:block`, so this
+    // state is irrelevant there; it only drives which single pane renders
+    // below md. CSS handles the breakpoint to avoid a JS-measured flash.
+    const [viewMode, setViewMode] = useState<'write' | 'preview'>('write');
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const image = useImageUpload();
+    const composition = useComposition();
     const createPost = useCreatePost();
     const updatePost = useUpdatePost();
     const deletePost = useDeletePost();
@@ -68,6 +76,12 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
     };
     const autosave = useDraftAutosave(postId, draftInput, isSeeded);
 
+    // Warn on hard unload (tab close / refresh) while edits are pending. SPA
+    // navigation is covered by flush-on-unmount inside useDraftAutosave.
+    const isDirty =
+        autosave.status === 'unsaved' || autosave.status === 'saving';
+    useUnsavedGuard(isDirty);
+
     const insertAtCursor = (text: string) => {
         const ta = textareaRef.current;
         if (!ta) {
@@ -77,6 +91,10 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
         const start = ta.selectionStart;
         const end = ta.selectionEnd;
         setContent((c) => c.slice(0, start) + text + c.slice(end));
+        // While the IME is composing it owns the caret; mutating the
+        // selection here would duplicate the trailing jamo and jump the
+        // cursor, so skip the manual caret set during composition.
+        if (composition.isComposingRef.current) return;
         requestAnimationFrame(() => {
             ta.focus();
             const pos = start + text.length;
@@ -149,16 +167,58 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
                 onDelete={handleDelete}
                 isDeleting={deletePost.isPending}
             >
+                <div
+                    role="tablist"
+                    aria-label="editor view"
+                    className="mb-3 flex gap-2 md:hidden"
+                >
+                    {(['write', 'preview'] as const).map((mode) => (
+                        <button
+                            key={mode}
+                            type="button"
+                            role="tab"
+                            aria-selected={viewMode === mode}
+                            onClick={() => setViewMode(mode)}
+                            className={cn(
+                                'flex-1 border-2 border-primary/50 p-2 text-xs uppercase tracking-wider transition-colors hover:border-primary',
+                                viewMode === mode
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-transparent text-foreground'
+                            )}
+                        >
+                            {mode}
+                        </button>
+                    ))}
+                </div>
                 <div className="grid gap-4 md:grid-cols-2">
-                    <textarea
-                        ref={textareaRef}
-                        aria-label="content"
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        placeholder="# write markdown here"
-                        className="min-h-[60vh] w-full resize-y border-2 border-primary/50 bg-transparent p-3 text-sm outline-none focus:border-primary"
-                    />
-                    <EditorPreview content={content} />
+                    <div
+                        className={cn(
+                            viewMode === 'write' ? 'block' : 'hidden',
+                            'md:block'
+                        )}
+                    >
+                        <textarea
+                            ref={textareaRef}
+                            aria-label="content"
+                            value={content}
+                            onChange={(e) => setContent(e.target.value)}
+                            onCompositionStart={composition.onCompositionStart}
+                            onCompositionEnd={composition.onCompositionEnd}
+                            placeholder="# write markdown here"
+                            className="min-h-[60vh] w-full resize-y border-2 border-primary/50 bg-transparent p-3 text-sm outline-none focus:border-primary"
+                        />
+                    </div>
+                    <div
+                        className={cn(
+                            viewMode === 'preview' ? 'block' : 'hidden',
+                            'md:block'
+                        )}
+                    >
+                        <EditorPreview
+                            content={content}
+                            isComposing={composition.isComposing}
+                        />
+                    </div>
                 </div>
             </EditorToolbar>
         </div>

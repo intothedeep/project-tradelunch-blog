@@ -68,6 +68,11 @@ export function useDraftAutosave(
     const [dirty, setDirty] = useState(false);
     const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
 
+    // Mirror `dirty` into a ref so the unmount-only flush effect (empty deps)
+    // can read the current value at cleanup time.
+    const dirtyRef = useRef(false);
+    dirtyRef.current = dirty;
+
     // Latest save routine, captured in a ref so the debounced wrapper stays
     // stable across renders while always invoking current closures.
     const runSaveRef = useRef<() => Promise<void>>(async () => {});
@@ -124,6 +129,19 @@ export function useDraftAutosave(
         debouncedSave();
         return () => debouncedSave.cancel();
     }, [input, enabled, debouncedSave]);
+
+    // Flush-on-unmount: a user navigating away (SPA nav) within the debounce
+    // window would otherwise lose the pending edit — `beforeunload` does not
+    // fire on in-app navigation. Empty deps so the cleanup runs ONLY on final
+    // unmount; refs supply the current values. Fire-and-forget is fine: the
+    // TanStack mutation completes via the QueryClient after unmount.
+    useEffect(() => {
+        return () => {
+            if (dirtyRef.current && hasContent(inputRef.current)) {
+                void runSaveRef.current();
+            }
+        };
+    }, []);
 
     const retry = useCallback(() => {
         void runSaveRef.current();
