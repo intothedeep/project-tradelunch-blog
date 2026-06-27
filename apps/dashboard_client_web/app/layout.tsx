@@ -6,6 +6,7 @@ import { ClientTrailCursorCanvas } from '../components/ClientTrailCursorCanvas';
 import { ClientTrailCursorDom } from '../components/ClientTrailCursorDom';
 
 import { ThemeProvider } from '@/components/theme-provider';
+import { ReactQueryProvider } from '@/components/providers/ReactQueryProvider.client';
 
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
@@ -118,20 +119,22 @@ export default async function RootLayout({
                             enableSystem
                             disableTransitionOnChange
                         >
-                            <CustomNavigation />
-                            {/* <header className="sticky top-0 z-50 border-b-2 border-foreground bg-background">
-                                <div className="mx-auto max-w-[95vw] px-2"></div>
-                            </header> */}
+                            <ReactQueryProvider>
+                                <CustomNavigation />
+                                {/* <header className="sticky top-0 z-50 border-b-2 border-foreground bg-background">
+                                    <div className="mx-auto max-w-[95vw] px-2"></div>
+                                </header> */}
 
-                            {/* <header className={clsx('flex')}>
-                                <NavigationMenuDemo />
-                            </header> */}
+                                {/* <header className={clsx('flex')}>
+                                    <NavigationMenuDemo />
+                                </header> */}
 
-                            <div className="flex-1">{children}</div>
+                                <div className="flex-1">{children}</div>
 
-                            {/* <footer>Main footer</footer> */}
-                            {/* <ClientTrailCursorCanvas /> */}
-                            {/* <ClientTrailCursorDom /> */}
+                                {/* <footer>Main footer</footer> */}
+                                {/* <ClientTrailCursorCanvas /> */}
+                                {/* <ClientTrailCursorDom /> */}
+                            </ReactQueryProvider>
                         </ThemeProvider>
                     </NextIntlClientProvider>
                 </body>
