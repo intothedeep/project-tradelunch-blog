@@ -5,6 +5,8 @@
         "empty": "아직 댓글이 없습니다 — 첫 댓글을 남겨보세요.",
         "loadError": "댓글을 불러오지 못했습니다.",
         "retry": "다시 시도",
+        "loadMore": "더 보기",
+        "loading": "불러오는 중…",
         "continueThread": "스레드 계속 보기 →",
         "composerLabel": "댓글 작성",
         "composerPlaceholder": "댓글을 입력하세요…",

@@ -1,12 +1,12 @@
 'use client';
 
 // CommentsSection.client.tsx — the post-detail comment thread island.
-// Purpose: render the public comment tree (seeded by the RSC) as a flat
-//   pre-order walk indented by depth, with render-collapse beyond N visible
-//   levels (N=4 desktop, N=2 mobile); a top-level composer + per-row reply
-//   composers (optimistic); delete via a focus-trapped Dialog. Body is PLAIN
-//   TEXT (escaped + line breaks preserved, NO markdown). Tombstones render
-//   "[deleted]".
+// Purpose: render the public comment tree (seeded by the RSC, paginated 50 roots
+//   per page) as a flat pre-order walk indented by depth, with render-collapse
+//   beyond N visible levels (N=4 desktop, N=2 mobile); a top-level composer +
+//   per-row reply composers (optimistic); delete via a focus-trapped Dialog; a
+//   bottom "Load more" control for the next page. Body is PLAIN TEXT (escaped +
+//   line breaks preserved, NO markdown). Tombstones render "[deleted]".
 // Constraints: reads are public; writes require auth (composer redirects
 //   signed-out). The client delete gate (author/owner/admin) is UX only — the
 //   server is authoritative. ids stay STRINGS.
@@ -21,24 +21,31 @@ import { useIsMobile } from '@/hooks/useIsMobile.hook';
 import { buildRenderRows } from '@/utils/commentTree.util';
 import { CommentComposer } from '@/app/blog/components/comments/CommentComposer.client';
 import { CommentRow } from '@/app/blog/components/comments/CommentRow.client';
-import type { TComment } from '@repo/types';
+import { CommentsPagination } from '@/app/blog/components/comments/CommentsPagination.client';
+import type { TComment, TCommentListResponse } from '@repo/types';
 
 type Props = {
     postId: string;
     ownerUsername: string;
-    initialComments?: TComment[];
+    initialPage?: TCommentListResponse;
 };
 
 export const CommentsSection: React.FC<Props> = ({
     postId,
     ownerUsername,
-    initialComments,
+    initialPage,
 }) => {
     const t = useTranslations('blog');
     const isMobile = useIsMobile();
     const maxDepth = isMobile ? 2 : 4;
 
-    const { data: comments, isError } = useComments(postId, initialComments);
+    const {
+        comments,
+        isError,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+    } = useComments(postId, initialPage);
     const { data: me } = useMe();
     const createComment = useCreateComment(postId);
     const deleteComment = useDeleteComment(postId);
@@ -48,7 +55,7 @@ export const CommentsSection: React.FC<Props> = ({
         () => new Set()
     );
 
-    const list = useMemo(() => comments ?? [], [comments]);
+    const list = useMemo(() => comments, [comments]);
 
     const rows = useMemo(
         () => buildRenderRows(list, maxDepth, expanded),
@@ -99,41 +106,49 @@ export const CommentsSection: React.FC<Props> = ({
             ) : list.length === 0 ? (
                 <p className="text-sm text-primary/60">{t('comments.empty')}</p>
             ) : (
-                <ul role="list">
-                    {rows.map((row) => (
-                        <CommentRow
-                            key={row.comment.id}
-                            comment={row.comment}
-                            indent={row.indent}
-                            hasHiddenChildren={row.hasHiddenChildren}
-                            canDelete={canDelete(row.comment)}
-                            isReplyOpen={replyOpenId === row.comment.id}
-                            isReplyPending={createComment.isPending}
-                            onToggleReply={() =>
-                                setReplyOpenId((prev) =>
-                                    prev === row.comment.id
-                                        ? null
-                                        : row.comment.id
-                                )
-                            }
-                            onSubmitReply={(body) => {
-                                createComment.mutate({
-                                    body,
-                                    parentId: row.comment.id,
-                                });
-                                setReplyOpenId(null);
-                            }}
-                            onDelete={() =>
-                                deleteComment.mutate({
-                                    commentId: row.comment.id,
-                                })
-                            }
-                            onContinueThread={() =>
-                                continueThread(row.comment.id)
-                            }
-                        />
-                    ))}
-                </ul>
+                <>
+                    <ul role="list">
+                        {rows.map((row) => (
+                            <CommentRow
+                                key={row.comment.id}
+                                comment={row.comment}
+                                indent={row.indent}
+                                hasHiddenChildren={row.hasHiddenChildren}
+                                canDelete={canDelete(row.comment)}
+                                isReplyOpen={replyOpenId === row.comment.id}
+                                isReplyPending={createComment.isPending}
+                                onToggleReply={() =>
+                                    setReplyOpenId((prev) =>
+                                        prev === row.comment.id
+                                            ? null
+                                            : row.comment.id
+                                    )
+                                }
+                                onSubmitReply={(body) => {
+                                    createComment.mutate({
+                                        body,
+                                        parentId: row.comment.id,
+                                    });
+                                    setReplyOpenId(null);
+                                }}
+                                onDelete={() =>
+                                    deleteComment.mutate({
+                                        commentId: row.comment.id,
+                                    })
+                                }
+                                onContinueThread={() =>
+                                    continueThread(row.comment.id)
+                                }
+                            />
+                        ))}
+                    </ul>
+
+                    <CommentsPagination
+                        hasNextPage={hasNextPage}
+                        isFetchingNextPage={isFetchingNextPage}
+                        onLoadMore={() => void fetchNextPage()}
+                    />
+                </>
             )}
         </section>
     );

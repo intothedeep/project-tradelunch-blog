@@ -1,26 +1,49 @@
 // hooks/useComments.query.client.ts
-// Purpose: TanStack Query wrapper over getComments — the PUBLIC comment tree for
-//   a post as a flat pre-order array (the client nests by depth). Seeded from a
-//   server-fetched initialData so the RSC paints instantly; refetches reconcile
-//   after create/delete mutations invalidate the key.
-// Constraints: public read (no token). post/comment ids stay STRINGS.
+// Purpose: TanStack useInfiniteQuery over getComments — the PUBLIC comment tree
+//   for a post, paginated 50 ROOT comments per page (each page a flat pre-order
+//   array incl. subtrees). Seeded from a server-fetched first page so the RSC
+//   paints instantly; refetches reconcile after create/delete invalidate. A
+//   bottom "Load more" control drives fetchNextPage.
+// Constraints: public read (no token). post/comment ids stay STRINGS. The cache
+//   shape is InfiniteData<TCommentListResponse>; optimistic updaters must match.
 
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { getComments } from '@/apis/getComments.api';
-import type { TComment } from '@repo/types';
+import type { TCommentListResponse } from '@repo/types';
 
 export const commentsQueryKey = (postId: string) =>
     ['comments', postId] as const;
 
-export function useComments(postId: string, initialData?: TComment[]) {
-    return useQuery<TComment[]>({
+const PAGE_LIMIT = 50;
+
+export function useComments(
+    postId: string,
+    initialData?: TCommentListResponse
+) {
+    const query = useInfiniteQuery<TCommentListResponse>({
         queryKey: commentsQueryKey(postId),
-        queryFn: async () => {
-            const { comments } = await getComments(postId);
-            return comments;
-        },
-        initialData,
+        queryFn: ({ pageParam }) =>
+            getComments(postId, {
+                cursor: pageParam as string | undefined,
+                limit: PAGE_LIMIT,
+            }),
+        initialPageParam: undefined,
+        getNextPageParam: (lastPage) =>
+            lastPage.hasMore ? (lastPage.nextCursor ?? undefined) : undefined,
+        initialData: initialData
+            ? { pages: [initialData], pageParams: [undefined] }
+            : undefined,
     });
+
+    const comments = query.data?.pages.flatMap((p) => p.comments) ?? [];
+
+    return {
+        comments,
+        isError: query.isError,
+        fetchNextPage: query.fetchNextPage,
+        hasNextPage: query.hasNextPage,
+        isFetchingNextPage: query.isFetchingNextPage,
+    };
 }

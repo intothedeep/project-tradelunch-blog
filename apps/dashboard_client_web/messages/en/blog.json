@@ -8,6 +8,8 @@
         "empty": "No comments yet — be the first to comment.",
         "loadError": "Couldn't load comments.",
         "retry": "Retry",
+        "loadMore": "Load more",
+        "loading": "Loading…",
         "continueThread": "Continue thread →",
         "composerLabel": "Write a comment",
         "composerPlaceholder": "Add a comment…",

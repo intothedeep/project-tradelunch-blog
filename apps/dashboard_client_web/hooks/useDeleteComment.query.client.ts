@@ -3,24 +3,32 @@
 //   the post's comment tree. Optimistic tombstone: the cached row's body is
 //   masked to "[deleted]" + isDeleted=true in place (the row + its children
 //   survive — never removed); the server result reconciles on settle.
-// Constraints: requires a Clerk token; ids stay STRINGS.
+// Constraints: requires a Clerk token; ids stay STRINGS. The cache is
+//   InfiniteData<TCommentListResponse> — the tombstone spread is applied across
+//   every page's comments array.
 
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+    useMutation,
+    useQueryClient,
+    type InfiniteData,
+} from '@tanstack/react-query';
 import { deleteComment } from '@/apis/deleteComment.api';
 import { commentsQueryKey } from '@/hooks/useComments.query.client';
-import type { TComment } from '@repo/types';
+import type { TComment, TCommentListResponse } from '@repo/types';
 
 type TInput = { commentId: string };
+type TCache = InfiniteData<TCommentListResponse>;
+type TContext = { previous?: TCache };
 
 export function useDeleteComment(postId: string) {
     const { getToken } = useAuth();
     const queryClient = useQueryClient();
     const key = commentsQueryKey(postId);
 
-    return useMutation<TComment, Error, TInput, { previous?: TComment[] }>({
+    return useMutation<TComment, Error, TInput, TContext>({
         mutationFn: async ({ commentId }) => {
             const token = await getToken();
             if (!token) throw new Error('Not authenticated');
@@ -28,11 +36,11 @@ export function useDeleteComment(postId: string) {
         },
         onMutate: async ({ commentId }) => {
             await queryClient.cancelQueries({ queryKey: key });
-            const previous = queryClient.getQueryData<TComment[]>(key);
+            const previous = queryClient.getQueryData<TCache>(key);
             if (previous) {
-                queryClient.setQueryData<TComment[]>(
-                    key,
-                    previous.map((c) =>
+                const pages = previous.pages.map((page) => ({
+                    ...page,
+                    comments: page.comments.map((c) =>
                         c.id === commentId
                             ? {
                                   ...c,
@@ -41,8 +49,12 @@ export function useDeleteComment(postId: string) {
                                   authorName: undefined,
                               }
                             : c
-                    )
-                );
+                    ),
+                }));
+                queryClient.setQueryData<TCache>(key, {
+                    ...previous,
+                    pages,
+                });
             }
             return { previous };
         },
