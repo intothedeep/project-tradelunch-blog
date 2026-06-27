@@ -7,6 +7,11 @@
 // userId — the exact SQL the route runs — so a green run proves a user can only
 // toggle their OWN like and that the live count is correct.
 //
+// L5 read-enrichment: the post read routes surface likeCount/viewerLiked via
+// correlated subqueries (the same shape getLikeState uses) and now carry the
+// Rule-1 `deleted_at IS NULL` guard on the by-id read. The final block exercises
+// that exact by-id read SQL so the enrichment + soft-delete fix are asserted.
+//
 // Requires a live Postgres (DATABASE_URL) WITH migration 0008 applied
 // (post_likes table). Skips wholesale when the DB is unreachable OR the table is
 // absent (migration not yet pushed) — it never fakes a pass.
@@ -145,5 +150,71 @@ describe('likes toggle + caller-scoping (integration)', () => {
 
         const bAfter = await getLikeState(pool, userB, postId);
         expect(bAfter.liked).toBe(true);
+    });
+
+    // L5 — the by-id read enrichment + Rule-1 soft-delete fix. Runs the exact
+    // SQL shape the route uses (correlated likeCount/viewerLiked + deleted_at
+    // IS NULL) so both the enrichment and the soft-delete fix are asserted.
+    const readById = (pid: string, viewerId: number) =>
+        pool.query<{
+            id: string;
+            likeCount: number;
+            viewerLiked: boolean;
+            commentCount: number;
+        }>(
+            `SELECT
+                p.id,
+                (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.id)::int AS "likeCount",
+                EXISTS (
+                    SELECT 1 FROM post_likes pl
+                    WHERE pl.post_id = p.id AND pl.user_id = $2
+                ) AS "viewerLiked",
+                0 AS "commentCount"
+             FROM posts p
+             WHERE p.id = $1
+               AND p.deleted_at IS NULL
+               AND (p.status = 'public' OR p.user_id = $2)`,
+            [pid, viewerId]
+        );
+
+    it('by-id read surfaces likeCount/viewerLiked and masks comment_count to 0', async () => {
+        if (!guard()) return;
+
+        // Make B the sole liker so the count and viewer state are deterministic.
+        const aState = await getLikeState(pool, userA, postId);
+        if (aState.liked) await toggleLike(pool, userA, postId);
+        const bState = await getLikeState(pool, userB, postId);
+        if (!bState.liked) await toggleLike(pool, userB, postId);
+
+        const { rows } = await readById(postId, userB);
+        expect(rows).toHaveLength(1);
+        expect(rows[0].likeCount).toBe(1);
+        expect(rows[0].viewerLiked).toBe(true);
+        expect(rows[0].commentCount).toBe(0);
+
+        // A (non-liker) sees the same public count but viewerLiked = false.
+        const { rows: aRows } = await readById(postId, userA);
+        expect(aRows[0].viewerLiked).toBe(false);
+        expect(aRows[0].likeCount).toBe(1);
+    });
+
+    it('by-id read excludes a soft-deleted post (Rule-1 deleted_at IS NULL)', async () => {
+        if (!guard()) return;
+
+        const gone = await createPost(pool, userB, {
+            slug: `like-deleted-${tag}`,
+            title: 'Soft-deleted',
+            content: null,
+            description: null,
+            categoryId: null,
+            status: 'public',
+        });
+        const goneId = String(gone.id);
+        await pool.query('UPDATE posts SET deleted_at = now() WHERE id = $1', [
+            goneId,
+        ]);
+
+        const { rows } = await readById(goneId, userB);
+        expect(rows).toHaveLength(0);
     });
 });

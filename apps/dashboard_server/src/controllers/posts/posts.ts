@@ -25,6 +25,7 @@ export const router = Router();
  */
 router.get(
     '',
+    optionalAuth,
     async (
         req: Request<{}, {}, {}, { cursor?: string; limit?: string }>,
         res
@@ -40,6 +41,10 @@ router.get(
 
             // Fetch one extra row to determine if there are more posts
             const fetchLimit = limit + 1;
+
+            // EL3/L5: anon (viewerId -1, never matches a user_id) sees public
+            // counts only; signed-in viewers get their own viewer_liked.
+            const viewerId = req.auth?.userId ?? -1;
 
             const postsQuery = `
                 WITH ranked_posts AS (
@@ -90,7 +95,18 @@ router.get(
                      FROM post_tags pt
                      WHERE pt.post_id = ranked_posts.id
                        AND pt.deleted_at IS NULL
-                    ) AS tags
+                    ) AS tags,
+                    (SELECT COUNT(*)
+                     FROM post_likes pl
+                     WHERE pl.post_id = ranked_posts.id
+                    )::int AS "likeCount",
+                    EXISTS (
+                        SELECT 1 FROM post_likes pl
+                        WHERE pl.post_id = ranked_posts.id
+                          AND pl.user_id = $3
+                    ) AS "viewerLiked",
+                    -- comment_count: 0 until Comments feature (C5 folds it in)
+                    0 AS "commentCount"
                 FROM ranked_posts
                 WHERE rn = 1
                 ORDER BY id DESC
@@ -100,6 +116,7 @@ router.get(
             const { rows } = await pool.query(postsQuery, [
                 cursorParam,
                 fetchLimit,
+                viewerId,
             ]);
 
             // Check if there are more posts
@@ -221,7 +238,18 @@ router.get(
                      FROM post_tags pt
                      WHERE pt.post_id = ranked_posts.id
                        AND pt.deleted_at IS NULL
-                    ) AS tags
+                    ) AS tags,
+                    (SELECT COUNT(*)
+                     FROM post_likes pl
+                     WHERE pl.post_id = ranked_posts.id
+                    )::int AS "likeCount",
+                    EXISTS (
+                        SELECT 1 FROM post_likes pl
+                        WHERE pl.post_id = ranked_posts.id
+                          AND pl.user_id = $4
+                    ) AS "viewerLiked",
+                    -- comment_count: 0 until Comments feature (C5 folds it in)
+                    0 AS "commentCount"
                 FROM ranked_posts
                 WHERE rn = 1
                 ORDER BY id DESC
@@ -279,9 +307,25 @@ router.get('/:postid', optionalAuth, async (req, res) => {
         const { postid } = req.params;
         // D2.7: anon sees only public; owner sees own post in any status.
         // $1 = postid, $2 = viewer user id (-1 = nobody, never matches user_id).
+        // Rule-1: deleted posts are never selected (deleted_at IS NULL).
         const viewerId = req.auth?.userId ?? -1;
         const { rows: results } = await pool.query(
-            'SELECT * FROM posts WHERE id = $1 AND (status = \'public\' OR user_id = $2)',
+            `SELECT
+                p.*,
+                (SELECT COUNT(*)
+                 FROM post_likes pl
+                 WHERE pl.post_id = p.id
+                )::int AS "likeCount",
+                EXISTS (
+                    SELECT 1 FROM post_likes pl
+                    WHERE pl.post_id = p.id AND pl.user_id = $2
+                ) AS "viewerLiked",
+                -- comment_count: 0 until Comments feature (C5 folds it in)
+                0 AS "commentCount"
+             FROM posts p
+             WHERE p.id = $1
+               AND p.deleted_at IS NULL
+               AND (p.status = 'public' OR p.user_id = $2)`,
             [postid, viewerId]
         );
         const post = results[0];
@@ -332,13 +376,24 @@ router.get('/slug/:slug', optionalAuth, async (req, res) => {
                 u.avatar_url,
                 f.stored_uri,
                 p.created_at as date,
-                ARRAY_AGG(pt.tag_title) FILTER (WHERE pt.tag_title IS NOT NULL) AS tags
+                ARRAY_AGG(pt.tag_title) FILTER (WHERE pt.tag_title IS NOT NULL) AS tags,
+                (SELECT COUNT(*)
+                 FROM post_likes pl
+                 WHERE pl.post_id = p.id
+                )::int AS "likeCount",
+                EXISTS (
+                    SELECT 1 FROM post_likes pl
+                    WHERE pl.post_id = p.id AND pl.user_id = $${viewerParamIndex}
+                ) AS "viewerLiked",
+                -- comment_count: 0 until Comments feature (C5 folds it in)
+                0 AS "commentCount"
 			FROM
                 posts p
                 INNER JOIN users u ON p.user_id = u.id
                 LEFT JOIN files f ON p.id = f.post_id AND f.is_thumbnail = true
                 LEFT JOIN post_tags pt ON p.id = pt.post_id AND pt.deleted_at IS NULL
 			WHERE p.slug = $1
+                AND p.deleted_at IS NULL
 			${username ? 'AND u.username = $2' : ''}
                 AND (p.status = 'public' OR p.user_id = $${viewerParamIndex})
             GROUP BY p.id, u.username, u.display_name, u.avatar_url, f.stored_uri
