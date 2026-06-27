@@ -26,6 +26,12 @@ type NavMenuProps = {
 const TRIGGER_CLASS =
     'flex h-9 w-9 items-center justify-center border border-transparent hover:border-primary hover:bg-primary hover:text-primary-foreground transition-colors';
 
+// Avatar trigger: circular highlight to match the round avatar. The avatar image
+// fills the button, so a background fill is hidden — use a ring instead for the
+// hover and open (selected) states.
+const AVATAR_TRIGGER_CLASS =
+    'flex h-9 w-9 items-center justify-center rounded-full ring-2 ring-transparent ring-offset-2 ring-offset-background transition-shadow hover:ring-primary data-[state=open]:ring-primary';
+
 // Theme toggle row; keeps the menu open on select so the flip is visible.
 function ThemeMenuItem() {
     const { mounted, currentTheme, toggleTheme } = useThemeToggle();
@@ -76,7 +82,7 @@ export function NavMenu({
             <DropdownMenuTrigger asChild>
                 {isSignedIn ? (
                     <button
-                        className={TRIGGER_CLASS}
+                        className={AVATAR_TRIGGER_CLASS}
                         aria-label="Account menu"
                     >
                         <Avatar className="h-9 w-9">
