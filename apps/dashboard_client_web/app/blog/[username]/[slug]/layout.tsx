@@ -1,5 +1,3 @@
-import clsx from 'clsx';
-
 export const BlogDetailLayout = ({
     children,
 }: {

@@ -14,10 +14,15 @@ try:
 except ImportError:
     pass
 
-from configs.database import *
-from configs.env import *
-from configs.paths import *
-from configs.storage import *
+from configs.database import DATABASE_URL, get_database_url
+from configs.env import IS_DEVELOPMENT, IS_LOCAL, IS_PRODUCTION, NODE_ENV
+from configs.paths import LOGS_DIR, POSTS_DIR, PROJECT_ROOT, TEMP_DIR
+from configs.storage import (
+    CDN_ASSETS,
+    SUPABASE_SECRET_KEY,
+    SUPABASE_STORAGE_BUCKET,
+    SUPABASE_URL,
+)
 
 __all__ = [
     # Environment

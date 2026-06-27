@@ -17,7 +17,7 @@ from pathlib import Path
 project_root = str(Path(__file__).parent.parent)
 sys.path.insert(0, project_root)
 
-from agents.extracting_agent import ExtractingAgent
+from agents.extracting_agent import ExtractingAgent  # noqa: E402
 
 _REL_PATH = "./posts/java/spring/jdbc/java-spring-jdbc/java-spring-jdbc.md"
 _EXPECTED = ["java", "spring", "jdbc"]

@@ -75,7 +75,7 @@ class FileRepository(BaseRepository[File]):
         stmt = (
             select(File)
             .where(File.post_id == post_id)
-            .where(File.is_thumbnail == True)
+            .where(File.is_thumbnail)
             .where(File.deleted_at.is_(None))
         )
         result = await self.session.execute(stmt)

@@ -307,7 +307,6 @@ You can also use natural language:
 
                 for match in matches:
                     path = match.get("path", "")
-                    name = match.get("name", "")
                     match_type = match.get("match_type", "")
 
                     file_path = Path(path)

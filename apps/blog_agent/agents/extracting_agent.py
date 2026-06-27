@@ -70,8 +70,6 @@ class ExtractingAgent(BaseAgent):
             hints). When enable_llm=False, they come straight from the frontmatter
             with a deterministic content-excerpt fallback for an empty description.
         """
-        action = task.get("action")
-
         # Initialize LLM if needed (lazy initialization)
         if self.enable_llm and self.llm is None:
             try:

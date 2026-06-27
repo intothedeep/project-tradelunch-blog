@@ -1,5 +1,4 @@
 import { getRequestConfig } from 'next-intl/server';
-import { notFound } from 'next/navigation';
 
 import en_common from '../messages/en/common.json';
 import en_blog from '../messages/en/blog.json';
@@ -7,7 +6,6 @@ import en_write from '../messages/en/write.json';
 import ko_common from '../messages/ko/common.json';
 import ko_blog from '../messages/ko/blog.json';
 import ko_write from '../messages/ko/write.json';
-import { Locale } from 'next-intl';
 
 // Define the specific locales supported by the application as a union type.
 // This provides stronger type safety than relying solely on `next-intl`'s generic `Locale` type (which might be just `string`).

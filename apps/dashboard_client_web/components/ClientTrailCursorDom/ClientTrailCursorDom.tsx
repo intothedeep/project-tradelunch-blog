@@ -4,9 +4,9 @@ import { useTrailingCursorDom } from '@/hooks/useTrailingCursor.hook';
 
 import './ClientTrailCursorDom.scss';
 
-type Props = {};
+type Props = Record<string, never>;
 
-export const ClientTrailCursorDom = ({}: Props) => {
+export const ClientTrailCursorDom: React.FC<Props> = () => {
     useTrailingCursorDom();
 
     return undefined;

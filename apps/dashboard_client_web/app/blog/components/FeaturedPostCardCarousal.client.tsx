@@ -3,7 +3,7 @@
 import { use, useRef, useState } from 'react';
 import { FeaturedPostCard } from '@/app/blog/components/FeaturedPostCard.server';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FeaturedPost, TPaginatedResponse } from '@/apis/blog.types';
+import { TPaginatedResponse } from '@/apis/blog.types';
 
 // ============================================================================
 // FeaturedPostsCarousel Component
@@ -16,7 +16,7 @@ interface FeaturedPostsCarouselProps {
 export const FeaturedPostsCarouselClient: React.FC<
     FeaturedPostsCarouselProps
 > = ({ data }) => {
-    const { posts, nextCursor, hasMore } = use(data);
+    const { posts } = use(data);
 
     const [currentSlide, setCurrentSlide] = useState(0);
     const carouselRef = useRef<HTMLDivElement>(null);
@@ -107,8 +107,11 @@ export const FeaturedPostsCarouselClient: React.FC<
                 </div>
             </CardContent>
 
+            {/* styled-jsx directives: `jsx`/`global` are consumed by the
+                styled-jsx Babel transform, not real DOM props. */}
+            {/* eslint-disable react/no-unknown-property */}
             <style
-                // @ts-ignore
+                // @ts-expect-error styled-jsx jsx/global props are not typed
                 jsx
                 global
             >{`
@@ -120,6 +123,7 @@ export const FeaturedPostsCarouselClient: React.FC<
                     scrollbar-width: none;
                 }
             `}</style>
+            {/* eslint-enable react/no-unknown-property */}
         </Card>
     );
 };

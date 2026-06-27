@@ -74,9 +74,10 @@ export const ResumePage = () => {
                                         </p>
                                         <p className="text-sm">
                                             Replace with: &lt;img
-                                            src="/resume-image.jpg" alt="Resume"
-                                            className="w-full h-full
-                                            object-contain" /&gt;
+                                            src=&quot;/resume-image.jpg&quot;
+                                            alt=&quot;Resume&quot;
+                                            className=&quot;w-full h-full
+                                            object-contain&quot; /&gt;
                                         </p>
                                     </div>
                                 </div>

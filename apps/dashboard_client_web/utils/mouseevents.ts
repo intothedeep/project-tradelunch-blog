@@ -1,14 +1,12 @@
 'use client';
 
-import { map } from 'rxjs';
+import { map, type Observable } from 'rxjs';
 
 export const validateTouchSupport = () => {
     return typeof window !== 'undefined' && 'ontouchstart' in window;
 };
 
-const isWindowAvailable = typeof window !== 'undefined';
 const isTouchSupport = validateTouchSupport();
-const isDocumentReady = typeof document !== 'undefined';
 
 export const MOUSE_MOVE_EVENTS = {
     start: isTouchSupport ? 'touchstart' : 'mousedown',
@@ -16,15 +14,19 @@ export const MOUSE_MOVE_EVENTS = {
     end: isTouchSupport ? 'touchend' : 'mouseup',
 };
 
-export const toPos = (obs$: any) => {
+export const toPos = (
+    obs$: Observable<Event>
+): Observable<[number, number]> => {
     return obs$.pipe(
-        map((e: any) => {
+        map((e: Event): [number, number] => {
             const isTouchSupport = validateTouchSupport();
-            if (isTouchSupport) {
-                return [e.changedTouches[0].pageX, e.changedTouches[0].pageY];
+            if (isTouchSupport && 'changedTouches' in e) {
+                const touch = (e as TouchEvent).changedTouches[0];
+                return [touch?.pageX ?? 0, touch?.pageY ?? 0];
             }
 
-            return [e.pageX, e.pageY];
+            const mouse = e as MouseEvent;
+            return [mouse.pageX, mouse.pageY];
         })
     );
 };
@@ -46,7 +48,6 @@ export function createTrailDot(x: number, y: number) {
     dot.style.height = `${initialDotSize}px`;
 
     // Start animation
-    let opacity = 0.7;
     let scale = 1;
     const lifespan = 100; // milliseconds before complete fade
     const startTime = Date.now();
@@ -54,9 +55,6 @@ export function createTrailDot(x: number, y: number) {
     function animate() {
         const elapsed = Date.now() - startTime;
         const progress = Math.min(elapsed / lifespan, 1);
-
-        // Decrease opacity over time
-        opacity = 0.7 * (1 - progress);
 
         // Decrease size significantly as it fades
         scale = 1 - progress * 0.8; // More dramatic shrinking (80% reduction)

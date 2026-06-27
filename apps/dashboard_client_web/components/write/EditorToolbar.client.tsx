@@ -81,7 +81,10 @@ export function EditorToolbar({
                     className="border-2 border-primary/50 bg-transparent px-2 py-2 text-sm outline-none focus:border-primary"
                 >
                     {STATUS_OPTIONS.map((s) => (
-                        <option key={s} value={s}>
+                        <option
+                            key={s}
+                            value={s}
+                        >
                             {t(`status.${s}`)}
                         </option>
                     ))}
@@ -126,7 +129,10 @@ export function EditorToolbar({
                     </span>
                 )}
                 {imageError && !isStorageDisabled && (
-                    <span role="alert" className="text-destructive">
+                    <span
+                        role="alert"
+                        className="text-destructive"
+                    >
                         {imageError}
                     </span>
                 )}

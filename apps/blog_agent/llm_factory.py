@@ -137,7 +137,7 @@ def _create_local_llm(
         raise LLMProviderError(
             "langchain-ollama not installed. "
             "Install: pip install langchain-ollama"
-        )
+        ) from None
 
     model = model or config.OLLAMA_MODEL
     base_url = config.OLLAMA_BASE_URL
@@ -155,7 +155,7 @@ def _create_local_llm(
         raise LLMProviderError(
             f"Failed to create local LLM (Ollama): {e}. "
             f"Make sure Ollama is running: ollama serve"
-        )
+        ) from e
 
 
 def _create_openai_llm(
@@ -176,7 +176,7 @@ def _create_openai_llm(
         raise LLMProviderError(
             "langchain-openai not installed. "
             "Install: pip install langchain-openai openai"
-        )
+        ) from None
 
     api_key = config.OPENAI_API_KEY
     if not api_key:
@@ -197,7 +197,7 @@ def _create_openai_llm(
         )
         return llm
     except Exception as e:
-        raise LLMProviderError(f"Failed to create OpenAI LLM: {e}")
+        raise LLMProviderError(f"Failed to create OpenAI LLM: {e}") from e
 
 
 def _create_anthropic_llm(
@@ -218,7 +218,7 @@ def _create_anthropic_llm(
         raise LLMProviderError(
             "langchain-anthropic not installed. "
             "Install: pip install langchain-anthropic anthropic"
-        )
+        ) from None
 
     api_key = config.ANTHROPIC_API_KEY
     if not api_key:
@@ -239,7 +239,7 @@ def _create_anthropic_llm(
         )
         return llm
     except Exception as e:
-        raise LLMProviderError(f"Failed to create Anthropic LLM: {e}")
+        raise LLMProviderError(f"Failed to create Anthropic LLM: {e}") from e
 
 
 def get_provider_info() -> dict[str, Any]:

@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     '**/*.(ts|tsx)': () => 'npx tsc --noEmit',
     '*.{js,tsx,ts}': [
         'echo :::: prettier starts',

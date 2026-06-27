@@ -53,7 +53,7 @@ const TerminalProfile = () => {
 
     const scrollToSection = (section: string) => {
         setActiveSection(section);
-        // @ts-ignore
+        // @ts-expect-error sectionRefs is indexed by dynamic string key
         sectionRefs[section].current?.scrollIntoView({
             behavior: 'smooth',
             block: 'start',

@@ -134,7 +134,9 @@ export default function SidebarNav({ username }: Props) {
     );
 }
 
-function Tree({ item }: { item: string | any[] }) {
+type TreeItem = string | TreeItem[];
+
+function Tree({ item }: { item: TreeItem }) {
     const [name, ...items] = Array.isArray(item) ? item : [item];
     // console.log('TREE ITEM:', item, name, items);
 

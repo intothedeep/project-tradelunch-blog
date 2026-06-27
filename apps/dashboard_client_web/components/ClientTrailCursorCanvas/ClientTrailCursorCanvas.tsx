@@ -2,9 +2,9 @@ import React from 'react';
 
 import './ClientTrailCursorCanvas.scss';
 
-type Props = {};
+type Props = Record<string, never>;
 
-export const ClientTrailCursorCanvas = (props: Props) => {
+export const ClientTrailCursorCanvas: React.FC<Props> = () => {
     return (
         <canvas
             hidden

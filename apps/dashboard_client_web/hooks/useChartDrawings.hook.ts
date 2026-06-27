@@ -5,7 +5,7 @@
 // (re)attaches a single DrawingsPrimitive whenever the underlying chart
 // rebuilds (interval/range/indicator changes).
 
-import { useCallback, useEffect, useRef, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type RefObject } from 'react';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import type {
     IChartApi,
@@ -61,7 +61,13 @@ export function useChartDrawings({
     const primitiveRef = useRef<DrawingsPrimitive | null>(null);
 
     const key = label !== null ? drawingsKey(label, interval) : null;
-    const drawings = key !== null ? (drawingsByKey[key] ?? []) : [];
+    // Memoize so the array identity is stable across renders; otherwise the
+    // `?? []` fallback yields a fresh array each render and destabilizes the
+    // effects below that depend on `drawings`.
+    const drawings = useMemo(
+        () => (key !== null ? (drawingsByKey[key] ?? []) : []),
+        [key, drawingsByKey]
+    );
 
     // Snap cursor coordinates to nearest OHLC of nearest bar based on magnet mode.
     const resolvePoint = useCallback(

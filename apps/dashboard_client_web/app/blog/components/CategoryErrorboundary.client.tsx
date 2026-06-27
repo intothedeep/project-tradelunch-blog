@@ -1,7 +1,7 @@
 // app/blog/ErrorBoundary.client.tsx
 'use client';
 
-import { Component, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface Props {
@@ -24,7 +24,7 @@ export class CategoryErrorBoundary extends Component<Props, State> {
         return { hasError: true, error };
     }
 
-    componentDidCatch(error: Error, errorInfo: any) {
+    componentDidCatch(error: Error, errorInfo: ErrorInfo) {
         console.error('ErrorBoundary caught:', error, errorInfo);
     }
 

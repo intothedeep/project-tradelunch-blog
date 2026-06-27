@@ -11,7 +11,10 @@ export const PostContentToc = async ({ slug }: { slug: string }) => {
     return (
         <aside className="hidden lg:block w-64 xl:w-72 shrink-0">
             <div className="sticky top-4">
-                <TableOfContents items={tocItems} className="my-0" />
+                <TableOfContents
+                    items={tocItems}
+                    className="my-0"
+                />
             </div>
         </aside>
     );

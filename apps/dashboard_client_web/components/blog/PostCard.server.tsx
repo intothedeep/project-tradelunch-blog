@@ -12,7 +12,7 @@ type PostCardProps = {
     image: string;
 } & TPost;
 
-export function PostCard({ id, title, content, image }: PostCardProps) {
+export function PostCard({ title, content, image }: PostCardProps) {
     return (
         <Card className="flex flex-col overflow-hidden transition hover:bg-secondary">
             <div className="relative w-full flex-shrink-0 overflow-hidden">

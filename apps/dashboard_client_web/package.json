@@ -14,7 +14,7 @@
         "status": "pm2 ps",
         "logs": "pm2 logs",
         "stop": "pm2 stop",
-        "lint": "eslint .",
+        "lint": "eslint . --max-warnings 0",
         "check-types": "tsc --noEmit",
         "test": "vitest run"
     },

@@ -522,7 +522,6 @@ class UploadingAgent(BaseAgent):
         for img in all_items:
             local_path = img.get("local_path", "")
             s3_url = img.get("s3_url", "")
-            stored_name = img.get("stored_name", "")
 
             if not local_path or not s3_url:
                 if img not in (thumbnail if isinstance(thumbnail, dict) else []):

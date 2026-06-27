@@ -1,9 +1,7 @@
 import type { Metadata } from 'next';
-import { IBM_Plex_Mono, Geist, IBM_Plex_Sans } from 'next/font/google';
+import { IBM_Plex_Mono } from 'next/font/google';
 import clsx from 'clsx';
 import { ClerkProvider } from '@clerk/nextjs';
-import { ClientTrailCursorCanvas } from '../components/ClientTrailCursorCanvas';
-import { ClientTrailCursorDom } from '../components/ClientTrailCursorDom';
 
 import { ThemeProvider } from '@/components/theme-provider';
 import { ReactQueryProvider } from '@/components/providers/ReactQueryProvider.client';
@@ -13,11 +11,6 @@ import { getLocale, getMessages } from 'next-intl/server';
 
 import '@/styles/globals.css';
 import CustomNavigation from '@/components/navigation-desktop';
-
-const geist = Geist({
-    subsets: ['latin'],
-    variable: '--font-geist',
-});
 
 const ibmPlexMono = IBM_Plex_Mono({
     weight: ['400', '500', '700'],
@@ -68,13 +61,27 @@ export const metadata: Metadata = {
     icons: {
         icon: [
             { url: '/favicon/favicon.ico', sizes: 'any' },
-            { url: '/favicon/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-            { url: '/favicon/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+            {
+                url: '/favicon/favicon-32x32.png',
+                sizes: '32x32',
+                type: 'image/png',
+            },
+            {
+                url: '/favicon/favicon-16x16.png',
+                sizes: '16x16',
+                type: 'image/png',
+            },
         ],
         apple: '/favicon/apple-touch-icon.png',
         other: [
-            { rel: 'android-chrome-192x192', url: '/favicon/android-chrome-192x192.png' },
-            { rel: 'android-chrome-512x512', url: '/favicon/android-chrome-512x512.png' },
+            {
+                rel: 'android-chrome-192x192',
+                url: '/favicon/android-chrome-192x192.png',
+            },
+            {
+                rel: 'android-chrome-512x512',
+                url: '/favicon/android-chrome-512x512.png',
+            },
         ],
     },
     manifest: '/favicon/site.webmanifest',

@@ -31,7 +31,7 @@ export const useMediaQuery = (query: string) => {
 
         try {
             matchMedia.addEventListener('change', handleMatchChange);
-        } catch (e: any) {
+        } catch (e) {
             // for old browser
             console.log('old browser: ', e);
             matchMedia.addListener(handleMatchChange);

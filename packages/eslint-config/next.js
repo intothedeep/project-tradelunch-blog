@@ -44,6 +44,23 @@ export const nextJsConfig = [
             ...pluginReactHooks.configs.recommended.rules,
             // React scope no longer necessary with new JSX transform.
             'react/react-in-jsx-scope': 'off',
+            // This is a TypeScript codebase: component prop shapes are enforced
+            // by tsc via prop interfaces, so the runtime PropTypes check is
+            // redundant noise. Disable it project-wide.
+            'react/prop-types': 'off',
+            // eslint-plugin-react-hooks@7's `recommended` preset bundles the
+            // React Compiler ruleset. This codebase is NOT compiled with the
+            // React Compiler, and these four rules flag legitimate,
+            // hydration-safe patterns (mount guards that setState on mount,
+            // refs synced during render, third-party canvas/ref mutation,
+            // memoized impure id generators). Enabling them would force risky
+            // restructurings of working code. Keep `rules-of-hooks` (error) and
+            // `exhaustive-deps` (warn); defer the compiler rules until the
+            // React Compiler is actually adopted.
+            'react-hooks/set-state-in-effect': 'off',
+            'react-hooks/refs': 'off',
+            'react-hooks/immutability': 'off',
+            'react-hooks/purity': 'off',
         },
     },
 ];

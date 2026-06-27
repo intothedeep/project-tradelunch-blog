@@ -7,10 +7,10 @@ from unittest import IsolatedAsyncioTestCase
 project_root = str(Path(__file__).parent.parent)
 sys.path.insert(0, project_root)
 
-import pytest
+import pytest  # noqa: E402
 
-from __tests__.conftest import db_available
-from agents.uploading_agent import UploadingAgent
+from __tests__.conftest import db_available  # noqa: E402
+from agents.uploading_agent import UploadingAgent  # noqa: E402
 
 
 class TestCategoryStorage(IsolatedAsyncioTestCase):

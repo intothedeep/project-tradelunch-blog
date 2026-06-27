@@ -36,7 +36,7 @@ function calcVolume(
     seed: number
 ): number {
     const volSeed =
-        (seed ^ (dayIndex * 6364136223846793005 + 1442695040888963407)) &
+        (seed ^ (dayIndex * 6364136223846793216 + 1442695040888963328)) &
         0x7fffffff;
     const base = 100_000 + labelIndex * 450_000;
     const variation = volSeed % 9_000_000;

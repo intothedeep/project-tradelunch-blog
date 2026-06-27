@@ -23,6 +23,9 @@ export default function ChartVariantLayout({ snapshot, history }: Props) {
                 setSelected(firstStock.label);
             }
         }
+        // Intentional one-time default selection on mount only; re-running on
+        // snapshot/selected changes would clobber the user's manual choice.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (

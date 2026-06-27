@@ -395,7 +395,6 @@ Examples:
             file_name = Path(state.get("file_path", "")).name or "N/A"
 
             # Extract image info
-            extracted_images = state["extracted_data"].get("images", [])
             thumbnail = state["extracted_data"].get("thumbnail")
             uploaded_images = state["uploaded_data"].get("images", [])
 

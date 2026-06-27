@@ -10,9 +10,9 @@ import clsx from 'clsx';
 
 import React from 'react';
 
-type Props = {};
+type Props = Record<string, never>;
 
-const PostListCarousal = (props: Props) => {
+const PostListCarousal: React.FC<Props> = () => {
     return (
         <section className="px-0 md:px-16">
             <Carousel
@@ -48,3 +48,5 @@ const PostListCarousal = (props: Props) => {
         </section>
     );
 };
+
+export default PostListCarousal;

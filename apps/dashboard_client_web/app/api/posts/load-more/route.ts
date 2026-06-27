@@ -18,7 +18,7 @@ export async function GET(req: Request) {
         const data = await getBlogPostsByUsername(cursor, limit, username);
 
         return NextResponse.json(data);
-    } catch (err) {
+    } catch {
         return NextResponse.json(
             { error: 'Failed to load posts' },
             { status: 500 }

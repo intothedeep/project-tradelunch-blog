@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 type TProps = {
-    className?: any;
+    className?: string;
 };
 
-export const MoveBack: React.FC<TProps> = ({ className }) => {
+export const MoveBack: React.FC<TProps> = () => {
     const router = useRouter();
 
     return (

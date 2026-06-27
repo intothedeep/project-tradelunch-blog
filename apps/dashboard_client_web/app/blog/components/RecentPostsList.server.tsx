@@ -13,7 +13,6 @@ interface RecentPostsListProps {
 
 export const RecentPostsList: React.FC<RecentPostsListProps> = async ({
     username,
-    cdnBaseUrl = '',
 }) => {
     const { posts, nextCursor, hasMore } = await loadMorePosts(
         undefined,

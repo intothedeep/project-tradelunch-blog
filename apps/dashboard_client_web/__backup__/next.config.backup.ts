@@ -1,12 +1,15 @@
 import type { NextConfig } from 'next';
 import path from 'path';
 
+type WebpackFn = NonNullable<NextConfig['webpack']>;
+type WebpackConfig = Parameters<WebpackFn>[0];
+
 /** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
     typescript: {
         ignoreBuildErrors: true,
     },
-    webpack: (config: any, options: any) => {
+    webpack: (config: WebpackConfig) => {
         console.log('>> next.config.ts::webpack config called');
 
         // PDF loader

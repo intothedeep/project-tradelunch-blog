@@ -1,7 +1,5 @@
 import clsx from 'clsx';
-import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer.server';
 import PostContent from '@/components/blog/PostContent.server';
-import { Suspense } from 'react';
 
 type Props = {
     params: Promise<{

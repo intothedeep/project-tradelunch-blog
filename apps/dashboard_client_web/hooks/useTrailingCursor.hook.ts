@@ -3,7 +3,7 @@
 import { useIsMounted } from '@/hooks/useIsMounted.hook';
 import { createTrailDot, MOUSE_MOVE_EVENTS, toPos } from '@/utils/mouseevents';
 import { useObservable, useSubscription } from 'observable-hooks';
-import { fromEvent, NEVER, shareReplay, switchMap } from 'rxjs';
+import { fromEvent, shareReplay, switchMap } from 'rxjs';
 
 export const useTrailingCursorDom = () => {
     const { isMounted$ } = useIsMounted();
@@ -11,7 +11,6 @@ export const useTrailingCursorDom = () => {
     const move$ = useObservable(() => {
         const click$ = isMounted$.pipe(
             switchMap(() => {
-                const main = document.querySelector('main');
                 // if (main == null) {
                 //     return NEVER;
                 // }
@@ -25,7 +24,7 @@ export const useTrailingCursorDom = () => {
         return click$;
     });
 
-    useSubscription(move$, ([x, y]: any) => {
+    useSubscription(move$, ([x, y]: [number, number]) => {
         // console.log("start$:: subscribed:: ", x, y);
         createTrailDot(x, y);
     });

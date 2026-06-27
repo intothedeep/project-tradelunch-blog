@@ -17,10 +17,11 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # NOTE: `pnpm lint` is intentionally omitted. Next.js 16 removed the
-      # `next lint` subcommand and the shared eslint flat config still imports
-      # the dropped `eslint-config-next` package, so lint cannot run yet.
-      # Re-add this step once the ESLint flat config is migrated to the
-      # @next/eslint-plugin-next setup (tracked in 00.migration.md S7.2).
+      # Client lint gate (ESLint flat config, eslint . --max-warnings 0).
+      # The blog_agent ruff lane is intentionally NOT run here: it requires a
+      # Python/uv toolchain (pyenv 3.12.3) that this Node-only job does not set
+      # up. Run `pnpm --filter blog_agent lint` in a dedicated Python job to
+      # enforce that lane in CI.
+      - run: pnpm --filter dashboard_client_web lint
       - run: pnpm --filter dashboard_client_web check-types
       - run: pnpm --filter dashboard_server check-types

@@ -19,7 +19,7 @@ export async function getCategoriesByUsername(
 ): Promise<{ categories: TTreeNodeWithChildren[] }> {
     try {
         const response = await axios_instance.get<
-            any,
+            TCategoryTreeResponse,
             TCategoryTreeResponse,
             { username: string }
         >(`/v1/api/posts/users/${username}/categories`);
