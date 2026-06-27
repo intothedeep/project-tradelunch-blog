@@ -1,24 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useTheme } from 'next-themes';
 import { Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useThemeToggle } from '@/hooks/useThemeToggle.hook';
 
 export function ModeToggle() {
-    const { theme, systemTheme, setTheme } = useTheme();
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => setMounted(true), []);
+    const { mounted, currentTheme, toggleTheme } = useThemeToggle();
 
     if (!mounted) return null;
-
-    // 실제 적용 중인 테마 감지 (system 설정 시 OS 테마 따라감)
-    const currentTheme = theme === 'system' ? systemTheme : theme;
-
-    const toggleTheme = () => {
-        setTheme(currentTheme === 'dark' ? 'light' : 'dark');
-    };
 
     return (
         <Button

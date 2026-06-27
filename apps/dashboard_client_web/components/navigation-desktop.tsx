@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
-import { ModeToggle } from '@/components/mode-toggle';
-import { AuthButton } from '@/components/auth-button';
+import { NavMenu } from '@/components/nav-menu.client';
 import { DEFAULT_BLOG_AUTHOR } from '@/utils/blog-author';
 
 type NavLink = { title: string; href: string };
@@ -61,10 +60,7 @@ export const DesktopNavigation = () => {
                         </li>
                     ))}
                 </ul>
-                <div className="flex items-center gap-2">
-                    <AuthButton showName />
-                    <ModeToggle />
-                </div>
+                <NavMenu links={links} />
             </div>
         </nav>
     );
@@ -127,10 +123,10 @@ export const MobileNavigation = () => {
                         Taek Lim
                     </span>
                 </Link>
-                <div className="flex items-center gap-2">
-                    <AuthButton />
-                    <ModeToggle />
-                </div>
+                <NavMenu
+                    links={links}
+                    showNavLinks
+                />
             </nav>
 
             {/* Menu Button - Bottom Left */}
