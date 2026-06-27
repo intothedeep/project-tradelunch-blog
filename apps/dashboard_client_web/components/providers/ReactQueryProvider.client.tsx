@@ -3,6 +3,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import { QueryAuthReset } from './QueryAuthReset.client';
+
 export function ReactQueryProvider({
     children,
 }: {
@@ -21,6 +23,7 @@ export function ReactQueryProvider({
 
     return (
         <QueryClientProvider client={queryClient}>
+            <QueryAuthReset />
             {children}
         </QueryClientProvider>
     );
