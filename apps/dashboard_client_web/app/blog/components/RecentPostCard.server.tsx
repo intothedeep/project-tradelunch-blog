@@ -163,8 +163,12 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
     onCommentClick,
     onShare,
 }) => {
+    // stored_uri is already an absolute URL (post-publish); only prefix the CDN
+    // base for legacy bare-key values.
     const imageUrl = post.stored_uri
-        ? `${cdnBaseUrl}/${post.stored_uri}`
+        ? /^https?:\/\//.test(post.stored_uri)
+            ? post.stored_uri
+            : `${cdnBaseUrl}/${post.stored_uri}`
         : null;
 
     const upvotes = post.upvotes ?? 410;
