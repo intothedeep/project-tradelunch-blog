@@ -10,6 +10,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer.server';
 
 const DEBOUNCE_MS = 180;
@@ -21,6 +22,7 @@ export function EditorPreview({
     content: string;
     isComposing?: boolean;
 }) {
+    const t = useTranslations('write');
     const [debouncedContent, setDebouncedContent] = useState(content);
 
     useEffect(() => {
@@ -34,7 +36,7 @@ export function EditorPreview({
 
     return (
         <div
-            aria-label="preview"
+            aria-label={t('a11y.preview')}
             className="prose-area min-h-[60vh] overflow-auto border-2 border-primary/30 p-3"
         >
             <MarkdownRenderer content={debouncedContent} />

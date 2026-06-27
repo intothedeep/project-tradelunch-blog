@@ -8,25 +8,62 @@
         "justNow": "just now",
         "secondsAgo": "{seconds}s ago",
         "minutesAgo": "{minutes}m ago",
-        "hoursAgo": "{hours}h ago"
+        "hoursAgo": "{hours}h ago",
+        "daysAgo": "{days}d ago",
+        "monthsAgo": "{months}mo ago",
+        "yearsAgo": "{years}y ago"
     },
     "settings": {
         "title": "POST SETTINGS",
-        "slugHint": "empty = auto-generated from title"
+        "slugHint": "empty = auto-generated from title",
+        "slugLabel": "slug",
+        "slugPlaceholder": "auto-generated-from-title"
     },
     "editor": {
         "publishConfirm": "이 글을 공개로 발행할까요? 모두에게 보입니다.",
-        "viewLive": "VIEW LIVE →"
+        "viewLive": "VIEW LIVE →",
+        "titlePlaceholder": "TITLE",
+        "descriptionPlaceholder": "DESCRIPTION (optional)",
+        "contentPlaceholder": "# write markdown here",
+        "deleteConfirm": "Delete this post?",
+        "notFound": "> post not found",
+        "tabWrite": "write",
+        "tabPreview": "preview"
+    },
+    "status": {
+        "draft": "draft",
+        "private": "private",
+        "public": "public"
     },
     "toolbar": {
-        "titleRequired": "Title required to save"
+        "titleRequired": "Title required to save",
+        "insertImage": "INSERT IMAGE",
+        "uploading": "UPLOADING...",
+        "save": "SAVE",
+        "saving": "SAVING...",
+        "delete": "DELETE",
+        "deleting": "DELETING...",
+        "storageDisabled": "Image storage is not configured, so uploads are disabled."
     },
     "drafts": {
+        "heading": "DRAFTS",
         "newPost": "NEW POST",
         "emptyTitle": "No drafts yet.",
         "emptyCta": "WRITE YOUR FIRST POST",
         "loadError": "Failed to load drafts.",
         "untitled": "UNTITLED"
+    },
+    "a11y": {
+        "title": "title",
+        "status": "status",
+        "description": "description",
+        "content": "content",
+        "slug": "slug",
+        "preview": "preview",
+        "editorView": "editor view"
+    },
+    "ownerEdit": {
+        "edit": "Edit"
     },
     "nav": {
         "write": "Write",

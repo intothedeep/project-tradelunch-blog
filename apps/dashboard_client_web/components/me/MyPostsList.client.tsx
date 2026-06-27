@@ -24,7 +24,7 @@ export function MyPostsList() {
     return (
         <div className="mx-auto w-full max-w-3xl p-4 font-mono">
             <div className="mb-4 flex items-center justify-between gap-2">
-                <h1 className="text-lg">DRAFTS</h1>
+                <h1 className="text-lg">{t('drafts.heading')}</h1>
                 <Link
                     href="/write"
                     className={newPostButtonClass}

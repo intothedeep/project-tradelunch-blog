@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Pencil } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
+import { useTranslations } from 'next-intl';
 
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -17,6 +18,7 @@ type Props = {
 // Anonymous viewers and non-owners get nothing (returns null).
 export const OwnerEditButton = ({ postId, ownerUsername }: Props) => {
     const { user } = useUser();
+    const t = useTranslations('write');
 
     if (!ownerUsername || user?.username !== ownerUsername) return null;
 
@@ -29,7 +31,7 @@ export const OwnerEditButton = ({ postId, ownerUsername }: Props) => {
             )}
         >
             <Pencil />
-            Edit
+            {t('ownerEdit.edit')}
         </Link>
     );
 };

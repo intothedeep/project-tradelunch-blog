@@ -62,18 +62,18 @@ export function EditorToolbar({
         <>
             <div className="mb-3 flex flex-wrap items-center gap-2">
                 <input
-                    aria-label="title"
+                    aria-label={t('a11y.title')}
                     autoFocus={autoFocusTitle}
                     value={title}
                     onChange={(e) => onTitleChange(e.target.value)}
-                    placeholder="TITLE"
+                    placeholder={t('editor.titlePlaceholder')}
                     aria-describedby={
                         canSave ? undefined : 'title-required-hint'
                     }
                     className="flex-1 border-2 border-primary/50 bg-transparent px-3 py-2 text-lg outline-none focus:border-primary"
                 />
                 <select
-                    aria-label="status"
+                    aria-label={t('a11y.status')}
                     value={status}
                     onChange={(e) =>
                         onStatusChange(e.target.value as TPostStatus)
@@ -82,7 +82,7 @@ export function EditorToolbar({
                 >
                     {STATUS_OPTIONS.map((s) => (
                         <option key={s} value={s}>
-                            {s}
+                            {t(`status.${s}`)}
                         </option>
                     ))}
                 </select>
@@ -98,10 +98,10 @@ export function EditorToolbar({
             )}
 
             <input
-                aria-label="description"
+                aria-label={t('a11y.description')}
                 value={description}
                 onChange={(e) => onDescriptionChange(e.target.value)}
-                placeholder="DESCRIPTION (optional)"
+                placeholder={t('editor.descriptionPlaceholder')}
                 className="mb-3 w-full border-2 border-primary/50 bg-transparent px-3 py-2 text-sm outline-none focus:border-primary"
             />
 
@@ -116,11 +116,13 @@ export function EditorToolbar({
                         'disabled:cursor-not-allowed disabled:opacity-50'
                     )}
                 >
-                    {isUploading ? 'UPLOADING...' : 'INSERT IMAGE'}
+                    {isUploading
+                        ? t('toolbar.uploading')
+                        : t('toolbar.insertImage')}
                 </button>
                 {isStorageDisabled && (
                     <span className="text-muted-foreground">
-                        이미지 저장소가 설정되지 않아 업로드가 비활성화되었습니다.
+                        {t('toolbar.storageDisabled')}
                     </span>
                 )}
                 {imageError && !isStorageDisabled && (
@@ -150,7 +152,7 @@ export function EditorToolbar({
                         'disabled:cursor-not-allowed disabled:opacity-50'
                     )}
                 >
-                    {isSaving ? 'SAVING...' : 'SAVE'}
+                    {isSaving ? t('toolbar.saving') : t('toolbar.save')}
                 </button>
                 <button
                     type="button"
@@ -162,7 +164,7 @@ export function EditorToolbar({
                         'disabled:cursor-not-allowed disabled:opacity-50'
                     )}
                 >
-                    {isDeleting ? 'DELETING...' : 'DELETE'}
+                    {isDeleting ? t('toolbar.deleting') : t('toolbar.delete')}
                 </button>
             </div>
         </>

@@ -10,21 +10,25 @@ import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { TDraftSummary } from '@repo/types';
 
-// Minimal relative-time formatter (no external deps). Past timestamps only.
-function formatRelativeTime(iso: string): string {
+// Localised relative-time formatter (no external deps). Past timestamps only.
+// Reuses the autosave.* relative-time keys so the wording stays consistent
+// across the editor and the drafts list. `t` is bound to the 'write' namespace.
+type WriteTranslator = ReturnType<typeof useTranslations<'write'>>;
+
+function formatRelativeTime(iso: string, t: WriteTranslator): string {
     const then = new Date(iso).getTime();
     if (Number.isNaN(then)) return '';
     const seconds = Math.max(0, Math.floor((Date.now() - then) / 1000));
-    if (seconds < 60) return 'just now';
+    if (seconds < 60) return t('autosave.justNow');
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
+    if (minutes < 60) return t('autosave.minutesAgo', { minutes });
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
+    if (hours < 24) return t('autosave.hoursAgo', { hours });
     const days = Math.floor(hours / 24);
-    if (days < 30) return `${days}d ago`;
+    if (days < 30) return t('autosave.daysAgo', { days });
     const months = Math.floor(days / 30);
-    if (months < 12) return `${months}mo ago`;
-    return `${Math.floor(months / 12)}y ago`;
+    if (months < 12) return t('autosave.monthsAgo', { months });
+    return t('autosave.yearsAgo', { years: Math.floor(months / 12) });
 }
 
 export function PostListItem({ draft }: { draft: TDraftSummary }) {
@@ -41,7 +45,7 @@ export function PostListItem({ draft }: { draft: TDraftSummary }) {
                 {draft.title.trim() || t('drafts.untitled')}
             </span>
             <span className="shrink-0 text-xs text-muted-foreground">
-                {formatRelativeTime(draft.updatedAt)}
+                {formatRelativeTime(draft.updatedAt, t)}
             </span>
         </Link>
     );

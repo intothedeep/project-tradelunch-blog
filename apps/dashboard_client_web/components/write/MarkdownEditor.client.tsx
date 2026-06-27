@@ -153,7 +153,7 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
             router.push('/blog');
             return;
         }
-        if (!window.confirm('이 글을 삭제할까요?')) return;
+        if (!window.confirm(t('editor.deleteConfirm'))) return;
         await deletePost.mutateAsync(postId);
         router.push('/blog');
     };
@@ -161,7 +161,7 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
     if (postId != null && !isSeeded && !seed.initial && !seed.isLoading) {
         return (
             <div className="flex min-h-[60vh] items-center justify-center font-mono text-sm text-muted-foreground">
-                &gt; post not found
+                {t('editor.notFound')}
             </div>
         );
     }
@@ -212,7 +212,7 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
                 </PostSettings>
                 <div
                     role="tablist"
-                    aria-label="editor view"
+                    aria-label={t('a11y.editorView')}
                     className="mb-3 flex gap-2 md:hidden"
                 >
                     {(['write', 'preview'] as const).map((mode) => (
@@ -229,7 +229,9 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
                                     : 'bg-transparent text-foreground'
                             )}
                         >
-                            {mode}
+                            {mode === 'write'
+                                ? t('editor.tabWrite')
+                                : t('editor.tabPreview')}
                         </button>
                     ))}
                 </div>
@@ -242,12 +244,12 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
                     >
                         <textarea
                             ref={textareaRef}
-                            aria-label="content"
+                            aria-label={t('a11y.content')}
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
                             onCompositionStart={composition.onCompositionStart}
                             onCompositionEnd={composition.onCompositionEnd}
-                            placeholder="# write markdown here"
+                            placeholder={t('editor.contentPlaceholder')}
                             className="min-h-[60vh] w-full resize-y border-2 border-primary/50 bg-transparent p-3 text-sm outline-none focus:border-primary"
                         />
                     </div>
