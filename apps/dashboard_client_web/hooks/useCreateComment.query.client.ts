@@ -22,6 +22,7 @@ function buildOptimistic(
     parent: TComment | undefined,
     body: string
 ): TComment {
+    const now = new Date().toISOString();
     return {
         id: tempId,
         postId: parent?.postId ?? '',
@@ -31,7 +32,8 @@ function buildOptimistic(
         depth: parent ? parent.depth + 1 : 0,
         body,
         isDeleted: false,
-        createdAt: new Date().toISOString(),
+        createdAt: now,
+        updatedAt: now,
     };
 }
 

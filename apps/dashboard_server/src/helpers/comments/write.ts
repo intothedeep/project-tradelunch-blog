@@ -103,7 +103,7 @@ export async function createComment(
                 SET path = $1::bigint[] || c.id
                 WHERE c.id = $2
                 RETURNING c.id, c.post_id, c.user_id, c.parent_id, c.path,
-                          c.body, c.created_at
+                          c.body, c.created_at, c.updated_at
              )
              SELECT
                 upd.id,
@@ -115,7 +115,8 @@ export async function createComment(
                 upd.body,
                 false                                    AS is_deleted,
                 COALESCE(u.display_name, u.username)     AS author_name,
-                upd.created_at
+                upd.created_at,
+                upd.updated_at
              FROM upd
              JOIN users u ON u.id = upd.user_id`,
             [parentPath, newId]
@@ -169,7 +170,7 @@ export async function softDeleteComment(
                 UPDATE comments
                 SET deleted_at = now()
                 WHERE id = $1
-                RETURNING id, post_id, user_id, parent_id, path, created_at
+                RETURNING id, post_id, user_id, parent_id, path, created_at, updated_at
              )
              SELECT
                 del.id,
@@ -181,7 +182,8 @@ export async function softDeleteComment(
                 '[deleted]'                 AS body,
                 true                        AS is_deleted,
                 NULL                        AS author_name,
-                del.created_at
+                del.created_at,
+                del.updated_at
              FROM del`,
             [commentId]
         );

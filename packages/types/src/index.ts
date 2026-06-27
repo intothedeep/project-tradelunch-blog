@@ -190,6 +190,9 @@ export interface TComment {
     // Author username; omitted/undefined for a tombstoned comment.
     authorName?: string;
     createdAt: string;
+    // Last-edit timestamp; equals createdAt when never edited. `edited` is
+    // derived as updatedAt !== createdAt (no separate boolean on the wire).
+    updatedAt: string;
     isDeleted: boolean;
 }
 

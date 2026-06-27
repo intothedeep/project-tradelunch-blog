@@ -32,7 +32,8 @@ export async function listCommentTree(
             (c.deleted_at IS NOT NULL)                                AS is_deleted,
             CASE WHEN c.deleted_at IS NOT NULL THEN NULL
                  ELSE COALESCE(u.display_name, u.username) END        AS author_name,
-            c.created_at
+            c.created_at,
+            c.updated_at
          FROM comments c
          JOIN users u ON u.id = c.user_id
          WHERE c.post_id = $1

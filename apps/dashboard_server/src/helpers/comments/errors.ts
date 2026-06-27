@@ -25,6 +25,7 @@ export interface TCommentRow {
     is_deleted: boolean;
     author_name: string | null;
     created_at: string;
+    updated_at: string;
 }
 
 export class CommentParentError extends Error {
@@ -61,6 +62,7 @@ export function toComment(row: TCommentRow): TComment {
         body: row.body,
         isDeleted: row.is_deleted,
         createdAt: row.created_at,
+        updatedAt: row.updated_at,
     };
     if (!row.is_deleted && row.author_name) {
         base.authorName = row.author_name;
