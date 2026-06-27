@@ -2,6 +2,7 @@ import { getPostBySlug } from '@/apis/getPost.api';
 import { PostContentHeader } from '@/app/blog/components/PostContentHeader.server';
 import { LikeButton } from '@/app/blog/components/post-card-actions/LikeButton.client';
 import { SaveButton } from '@/app/blog/components/post-card-actions/SaveButton.client';
+import { ShareButton } from '@/app/blog/components/post-card-actions/ShareButton.client';
 import { Comments } from '@/app/blog/components/comments/Comments.server';
 import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer.server';
 import { OwnerEditButton } from '@/components/blog/OwnerEditButton.client';
@@ -26,7 +27,7 @@ export const PostContentCard = async ({
             )}
         >
             <CardHeader className={cn('p-3 pb-0 sm:p-4 sm:pb-0')}>
-                {/* Byline left; Like + Save + owner Edit pinned top-right. */}
+                {/* Byline left; Like + Share + Save + owner Edit top-right. */}
                 <div className="flex items-start gap-2">
                     <PostContentHeader
                         post={post}
@@ -37,6 +38,11 @@ export const PostContentCard = async ({
                             postId={post.id}
                             initialLiked={post.viewerLiked ?? false}
                             initialLikeCount={post.likeCount ?? 0}
+                        />
+                        <ShareButton
+                            username={post.username}
+                            slug={post.slug}
+                            title={post.title}
                         />
                         <SaveButton postId={post.id} />
                         <OwnerEditButton
