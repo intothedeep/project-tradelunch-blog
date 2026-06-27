@@ -5,6 +5,15 @@ Configuration Module
 Exports all configuration settings for the application.
 """
 
+# Load .env BEFORE any submodule import. configs/storage.py captures its
+# constants at import time, so the .env must be loaded order-independently here
+# (configs/env.py's load_dotenv runs too late for storage's module-level reads).
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 from configs.storage import *
 from configs.database import *
 from configs.env import *

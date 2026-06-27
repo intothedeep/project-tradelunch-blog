@@ -23,7 +23,7 @@ IS_LOCAL = NODE_ENV == "local"
 
 
 # ==================== User Configuration ====================
-DEFAULT_USER_ID = int(os.getenv("DEFAULT_USER_ID", "2"))
+DEFAULT_USER_ID = int(os.getenv("DEFAULT_USER_ID", "1"))
 DEFAULT_USERNAME = os.getenv("DEFAULT_USERNAME", "taeklim")
 
 
