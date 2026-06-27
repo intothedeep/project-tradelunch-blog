@@ -1,0 +1,36 @@
+{
+    "autosave": {
+        "saving": "저장 중…",
+        "saved": "저장됨 · {time}",
+        "unsaved": "저장되지 않은 변경사항",
+        "failed": "저장 실패",
+        "retry": "다시 시도",
+        "justNow": "방금",
+        "secondsAgo": "{seconds}초 전",
+        "minutesAgo": "{minutes}분 전",
+        "hoursAgo": "{hours}시간 전"
+    },
+    "settings": {
+        "title": "글 설정",
+        "slugHint": "비워두면 제목에서 자동 생성됩니다"
+    },
+    "editor": {
+        "publishConfirm": "이 글을 공개로 발행할까요? 모두에게 보입니다.",
+        "viewLive": "실시간 보기 →"
+    },
+    "toolbar": {
+        "titleRequired": "저장하려면 제목이 필요합니다"
+    },
+    "drafts": {
+        "newPost": "새 글",
+        "emptyTitle": "아직 초안이 없습니다.",
+        "emptyCta": "첫 글을 작성해보세요",
+        "loadError": "초안을 불러오지 못했습니다.",
+        "untitled": "제목 없음"
+    },
+    "nav": {
+        "write": "글쓰기",
+        "myDrafts": "내 초안",
+        "writeHeader": "글쓰기"
+    }
+}

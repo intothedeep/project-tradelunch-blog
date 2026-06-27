@@ -8,6 +8,7 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
 interface PostSettingsProps {
@@ -21,6 +22,7 @@ export function PostSettings({
     onSlugChange,
     children,
 }: PostSettingsProps) {
+    const t = useTranslations('write');
     const [isOpen, setIsOpen] = useState(false);
 
     return (
@@ -31,7 +33,7 @@ export function PostSettings({
                 onClick={() => setIsOpen((v) => !v)}
                 className="flex w-full items-center justify-between bg-transparent p-2 text-xs uppercase tracking-wider text-foreground transition-colors hover:text-primary"
             >
-                <span>post settings</span>
+                <span>{t('settings.title')}</span>
                 <span aria-hidden>{isOpen ? '▾' : '▸'}</span>
             </button>
             <div
@@ -51,7 +53,7 @@ export function PostSettings({
                     className="mt-1 w-full border-2 border-primary/50 bg-transparent p-2 text-sm outline-none focus:border-primary"
                 />
                 <p className="mt-1 text-[0.65rem] text-muted-foreground">
-                    empty = auto-generated from title
+                    {t('settings.slugHint')}
                 </p>
                 {children}
             </div>

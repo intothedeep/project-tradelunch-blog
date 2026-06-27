@@ -7,6 +7,7 @@
 
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { TAutosaveStatus } from '@/hooks/useDraftAutosave.hook';
 
@@ -16,16 +17,25 @@ type AutosaveIndicatorProps = {
     onRetry: () => void;
 };
 
-// Minimal relative-time label; no deps. Bucketed to the precision the UI needs.
-const formatRelative = (timestamp: number | null): string => {
-    if (timestamp == null) return '';
+// Bucketed relative-time descriptor. Kept impure (Date.now) but at module scope
+// so the i18n mapping in the component stays a pure render. Translation happens
+// in the component via literal-key `t` calls.
+type TRelativeBucket =
+    | { kind: 'none' }
+    | { kind: 'justNow' }
+    | { kind: 'seconds'; seconds: number }
+    | { kind: 'minutes'; minutes: number }
+    | { kind: 'hours'; hours: number };
+
+const toRelativeBucket = (timestamp: number | null): TRelativeBucket => {
+    if (timestamp == null) return { kind: 'none' };
     const seconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
-    if (seconds < 5) return 'just now';
-    if (seconds < 60) return `${seconds}s ago`;
+    if (seconds < 5) return { kind: 'justNow' };
+    if (seconds < 60) return { kind: 'seconds', seconds };
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
+    if (minutes < 60) return { kind: 'minutes', minutes };
     const hours = Math.floor(minutes / 60);
-    return `${hours}h ago`;
+    return { kind: 'hours', hours };
 };
 
 const BADGE_CLASS =
@@ -36,6 +46,23 @@ export function AutosaveIndicator({
     lastSavedAt,
     onRetry,
 }: AutosaveIndicatorProps) {
+    const t = useTranslations('write');
+
+    const relativeLabel = (bucket: TRelativeBucket): string => {
+        switch (bucket.kind) {
+            case 'none':
+                return '';
+            case 'justNow':
+                return t('autosave.justNow');
+            case 'seconds':
+                return t('autosave.secondsAgo', { seconds: bucket.seconds });
+            case 'minutes':
+                return t('autosave.minutesAgo', { minutes: bucket.minutes });
+            case 'hours':
+                return t('autosave.hoursAgo', { hours: bucket.hours });
+        }
+    };
+
     if (status === 'idle') return null;
 
     if (status === 'error') {
@@ -48,7 +75,7 @@ export function AutosaveIndicator({
                     'border-destructive text-destructive'
                 )}
             >
-                FAILED TO SAVE
+                {t('autosave.failed')}
                 <button
                     type="button"
                     onClick={onRetry}
@@ -57,7 +84,7 @@ export function AutosaveIndicator({
                         'hover:bg-destructive hover:text-white'
                     )}
                 >
-                    RETRY
+                    {t('autosave.retry')}
                 </button>
             </div>
         );
@@ -65,10 +92,12 @@ export function AutosaveIndicator({
 
     const label =
         status === 'saving'
-            ? 'SAVING…'
+            ? t('autosave.saving')
             : status === 'saved'
-              ? `SAVED · ${formatRelative(lastSavedAt)}`
-              : 'UNSAVED CHANGES';
+              ? t('autosave.saved', {
+                    time: relativeLabel(toRelativeBucket(lastSavedAt)),
+                })
+              : t('autosave.unsaved');
 
     return (
         <div

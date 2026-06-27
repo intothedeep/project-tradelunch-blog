@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useUser } from '@clerk/nextjs';
 import { EditorPreview } from '@/components/write/EditorPreview.client';
 import { PostSettings } from '@/components/write/PostSettings.client';
@@ -38,6 +39,7 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
     const router = useRouter();
     const { user } = useUser();
     const seed = useEditorSeed(postId);
+    const t = useTranslations('write');
 
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
@@ -124,7 +126,7 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
         // draft/private post becomes world-readable. Other statuses save silently.
         if (
             status === 'public' &&
-            !window.confirm('이 글을 공개로 발행할까요? 모두에게 보입니다.')
+            !window.confirm(t('editor.publishConfirm'))
         ) {
             return;
         }
@@ -204,7 +206,7 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
                             target="_blank"
                             className="mt-3 inline-block text-xs uppercase tracking-wider text-primary underline-offset-4 hover:underline"
                         >
-                            view live →
+                            {t('editor.viewLive')}
                         </Link>
                     )}
                 </PostSettings>

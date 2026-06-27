@@ -8,6 +8,7 @@
 
 import Link from 'next/link';
 import { useMyDrafts } from '@/hooks/useMyDrafts.query.client';
+import { useTranslations } from 'next-intl';
 import { PostListItem } from '@/components/me/PostListItem.client';
 import { cn } from '@/lib/utils';
 
@@ -17,6 +18,7 @@ const newPostButtonClass = cn(
 );
 
 export function MyPostsList() {
+    const t = useTranslations('write');
     const { data, isLoading, isError } = useMyDrafts();
 
     return (
@@ -27,7 +29,7 @@ export function MyPostsList() {
                     href="/write"
                     className={newPostButtonClass}
                 >
-                    NEW POST
+                    {t('drafts.newPost')}
                 </Link>
             </div>
 
@@ -50,20 +52,20 @@ export function MyPostsList() {
                     role="alert"
                     className="text-sm text-destructive"
                 >
-                    Failed to load drafts.
+                    {t('drafts.loadError')}
                 </p>
             )}
 
             {!isLoading && !isError && data && data.length === 0 && (
                 <div className="flex flex-col items-start gap-3 border-2 border-primary/30 p-6 text-sm">
                     <span className="text-muted-foreground">
-                        No drafts yet.
+                        {t('drafts.emptyTitle')}
                     </span>
                     <Link
                         href="/write"
                         className={newPostButtonClass}
                     >
-                        WRITE YOUR FIRST POST
+                        {t('drafts.emptyCta')}
                     </Link>
                 </div>
             )}

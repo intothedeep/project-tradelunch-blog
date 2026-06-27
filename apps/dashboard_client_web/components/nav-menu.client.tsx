@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useThemeToggle } from '@/hooks/useThemeToggle.hook';
+import { useTranslations } from 'next-intl';
 
 type NavLink = { title: string; href: string };
 
@@ -68,6 +69,7 @@ export function NavMenu({
 }: NavMenuProps) {
     const { isLoaded, isSignedIn, user } = useUser();
     const { openUserProfile, signOut } = useClerk();
+    const t = useTranslations('write');
 
     if (!isLoaded)
         return (
@@ -134,10 +136,10 @@ export function NavMenu({
                     <>
                         <DropdownMenuGroup>
                             <DropdownMenuItem asChild>
-                                <Link href="/write">Write</Link>
+                                <Link href="/write">{t('nav.write')}</Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
-                                <Link href="/me">My drafts</Link>
+                                <Link href="/me">{t('nav.myDrafts')}</Link>
                             </DropdownMenuItem>
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />

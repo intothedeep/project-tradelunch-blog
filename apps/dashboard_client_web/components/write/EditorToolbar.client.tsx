@@ -8,6 +8,7 @@
 'use client';
 
 import type { ChangeEvent, ReactNode, RefObject } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { TPostStatus } from '@repo/types';
 
@@ -56,6 +57,7 @@ export function EditorToolbar({
     autoFocusTitle,
     children,
 }: EditorToolbarProps) {
+    const t = useTranslations('write');
     return (
         <>
             <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -91,7 +93,7 @@ export function EditorToolbar({
                     id="title-required-hint"
                     className="mb-3 font-mono text-xs text-muted-foreground"
                 >
-                    Title required to save
+                    {t('toolbar.titleRequired')}
                 </p>
             )}
 

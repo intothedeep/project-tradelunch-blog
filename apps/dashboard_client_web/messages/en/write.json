@@ -1,0 +1,36 @@
+{
+    "autosave": {
+        "saving": "SAVING…",
+        "saved": "SAVED · {time}",
+        "unsaved": "UNSAVED CHANGES",
+        "failed": "FAILED TO SAVE",
+        "retry": "RETRY",
+        "justNow": "just now",
+        "secondsAgo": "{seconds}s ago",
+        "minutesAgo": "{minutes}m ago",
+        "hoursAgo": "{hours}h ago"
+    },
+    "settings": {
+        "title": "POST SETTINGS",
+        "slugHint": "empty = auto-generated from title"
+    },
+    "editor": {
+        "publishConfirm": "이 글을 공개로 발행할까요? 모두에게 보입니다.",
+        "viewLive": "VIEW LIVE →"
+    },
+    "toolbar": {
+        "titleRequired": "Title required to save"
+    },
+    "drafts": {
+        "newPost": "NEW POST",
+        "emptyTitle": "No drafts yet.",
+        "emptyCta": "WRITE YOUR FIRST POST",
+        "loadError": "Failed to load drafts.",
+        "untitled": "UNTITLED"
+    },
+    "nav": {
+        "write": "Write",
+        "myDrafts": "My drafts",
+        "writeHeader": "WRITE"
+    }
+}

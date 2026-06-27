@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
+import { useTranslations } from 'next-intl';
 import { NavMenu } from '@/components/nav-menu.client';
 import { DEFAULT_BLOG_AUTHOR } from '@/utils/blog-author';
 
@@ -29,6 +30,7 @@ export const DesktopNavigation = () => {
     const blogUsername = useBlogUsername();
     const { isSignedIn } = useUser();
     const links = buildLinks(blogUsername);
+    const t = useTranslations('write');
 
     return (
         <nav className="hidden md:flex h-16 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-6">
@@ -67,7 +69,7 @@ export const DesktopNavigation = () => {
                                 href="/write"
                                 className="px-4 py-2 font-mono text-sm hover:bg-primary hover:text-primary-foreground transition-colors border border-transparent hover:border-primary"
                             >
-                                WRITE
+                                {t('nav.writeHeader')}
                             </Link>
                         )}
                     </li>
@@ -83,6 +85,7 @@ export const MobileNavigation = () => {
     const blogUsername = useBlogUsername();
     const { isSignedIn } = useUser();
     const links = buildLinks(blogUsername);
+    const t = useTranslations('write');
 
     const [isOpen, setIsOpen] = useState(false);
     const [touchStart, setTouchStart] = useState(0);
@@ -281,7 +284,7 @@ export const MobileNavigation = () => {
                                     }}
                                 >
                                     <span className="text-primary">&gt;</span>{' '}
-                                    WRITE
+                                    {t('nav.writeHeader')}
                                 </Link>
                             </li>
                         )}

@@ -6,6 +6,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { TDraftSummary } from '@repo/types';
 
@@ -27,6 +28,7 @@ function formatRelativeTime(iso: string): string {
 }
 
 export function PostListItem({ draft }: { draft: TDraftSummary }) {
+    const t = useTranslations('write');
     return (
         <Link
             href={`/write/${draft.id}`}
@@ -36,7 +38,7 @@ export function PostListItem({ draft }: { draft: TDraftSummary }) {
             )}
         >
             <span className="truncate text-sm">
-                {draft.title.trim() || 'UNTITLED'}
+                {draft.title.trim() || t('drafts.untitled')}
             </span>
             <span className="shrink-0 text-xs text-muted-foreground">
                 {formatRelativeTime(draft.updatedAt)}
