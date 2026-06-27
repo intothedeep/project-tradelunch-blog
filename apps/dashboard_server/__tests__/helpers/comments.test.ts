@@ -6,8 +6,9 @@
 // authoritative caller. This suite exercises the helper directly with an INJECTED
 // userId — the exact SQL the route runs — so a green run proves: path is computed
 // correctly for nested replies; ORDER BY path yields pre-order DFS; a tombstone
-// masks body but keeps the row; a non-author/non-owner cannot delete; a reply to
-// a deleted or foreign-post parent is rejected.
+// masks body but keeps the row; a non-author/non-owner cannot delete/edit; a
+// reply to a deleted or foreign-post parent is rejected; an edit replaces body
+// and bumps updatedAt; editing a tombstone is rejected.
 //
 // Requires a live Postgres (DATABASE_URL) WITH migration 0009 applied (comments
 // table). Skips wholesale when the DB is unreachable OR the table is absent
@@ -17,8 +18,11 @@ import {
     createComment,
     listCommentTree,
     softDeleteComment,
+    updateComment,
     CommentParentError,
     CommentForbiddenError,
+    CommentNotFoundError,
+    CommentDeletedError,
 } from '../../src/helpers/comments';
 import { createPost } from '../../src/helpers/writePost';
 
@@ -224,5 +228,87 @@ describe('comments helper (Option C path / tombstone / auth) — integration', (
         await expect(
             createComment(pool, userA, postId, foreign.id, 'cross-post')
         ).rejects.toBeInstanceOf(CommentParentError);
+    });
+
+    it('author edits own comment: body replaced, updatedAt bumped, not deleted', async () => {
+        if (!guard()) return;
+
+        const c = await createComment(pool, userA, postId, null, 'before edit');
+        // On insert created_at == updated_at (same now()); compared to ms to
+        // avoid microsecond-precision noise in the raw pg timestamp strings.
+        expect(new Date(c.updatedAt).getTime()).toBe(
+            new Date(c.createdAt).getTime()
+        );
+
+        const edited = await updateComment(
+            pool,
+            c.id,
+            userA,
+            false,
+            'after edit'
+        );
+        expect(edited.id).toBe(c.id);
+        expect(edited.body).toBe('after edit');
+        expect(edited.isDeleted).toBe(false);
+        expect(edited.authorName).toBeDefined();
+        // updated_at advanced past created_at (edited marker on the wire).
+        expect(edited.updatedAt > edited.createdAt).toBe(true);
+    });
+
+    it('post owner may edit another user comment (same policy as delete)', async () => {
+        if (!guard()) return;
+
+        const c = await createComment(pool, userA, postId, null, 'owner-edit');
+        const edited = await updateComment(
+            pool,
+            c.id,
+            userB,
+            false,
+            'edited by owner'
+        );
+        expect(edited.body).toBe('edited by owner');
+        expect(edited.isDeleted).toBe(false);
+    });
+
+    it('admin may edit any comment', async () => {
+        if (!guard()) return;
+
+        const c = await createComment(pool, userA, postId, null, 'admin-edit');
+        const edited = await updateComment(
+            pool,
+            c.id,
+            userC,
+            true,
+            'edited by admin'
+        );
+        expect(edited.body).toBe('edited by admin');
+        expect(edited.isDeleted).toBe(false);
+    });
+
+    it('an unrelated non-author/non-owner/non-admin cannot edit (forbidden)', async () => {
+        if (!guard()) return;
+
+        const c = await createComment(pool, userA, postId, null, 'no-edit');
+        await expect(
+            updateComment(pool, c.id, userC, false, 'should fail')
+        ).rejects.toBeInstanceOf(CommentForbiddenError);
+    });
+
+    it('editing a soft-deleted comment is rejected (deleted)', async () => {
+        if (!guard()) return;
+
+        const c = await createComment(pool, userA, postId, null, 'tombstone-edit');
+        await softDeleteComment(pool, c.id, userA, false);
+        await expect(
+            updateComment(pool, c.id, userA, false, 'resurrect')
+        ).rejects.toBeInstanceOf(CommentDeletedError);
+    });
+
+    it('editing an unknown comment id is rejected (not found)', async () => {
+        if (!guard()) return;
+
+        await expect(
+            updateComment(pool, '999999999999999999', userA, false, 'ghost')
+        ).rejects.toBeInstanceOf(CommentNotFoundError);
     });
 });

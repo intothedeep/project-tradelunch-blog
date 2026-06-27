@@ -7,6 +7,7 @@ export {
     CommentParentError,
     CommentForbiddenError,
     CommentNotFoundError,
+    CommentDeletedError,
 } from './errors';
 export { listCommentTree } from './list';
-export { createComment, softDeleteComment } from './write';
+export { createComment, softDeleteComment, updateComment } from './write';

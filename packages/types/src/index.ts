@@ -208,3 +208,10 @@ export interface TCommentCreateRequest {
     body: string;
     parentId?: string | null;
 }
+
+// PATCH /v1/api/comments/:commentId body. body is PLAIN TEXT (not markdown),
+// trimmed/non-empty/length-capped server-side; replaces the existing body and
+// bumps updatedAt. Editing is author/post-owner/admin (same policy as delete).
+export interface TCommentUpdateRequest {
+    body: string;
+}

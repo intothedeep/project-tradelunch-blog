@@ -3,6 +3,7 @@
 //       - POST   /:postId/comments  (requireAuth)  → create comment/reply, 201
 //       - GET    /:postId/comments  (optionalAuth)  → flat pre-order tree
 //   * commentsRouter (mounted at /api/comments):
+//       - PATCH  /:commentId        (requireAuth)  → edit body (author/owner/admin), 200
 //       - DELETE /:commentId        (requireAuth)  → soft-delete (author/owner/admin)
 // Invariants:
 //   * Snowflake ids are STRINGS end-to-end — :postId/:commentId pass to the
@@ -11,8 +12,9 @@
 //   * Body is PLAIN TEXT (not markdown): trimmed, non-empty, length-capped here;
 //     never rendered/parsed server-side.
 //   * Read is public via optionalAuth (viewer-agnostic tree).
-//   * Delete authorization (author OR post owner OR admin) lives in the helper;
-//     the route maps its typed errors to 403/404.
+//   * Edit/Delete authorization (author OR post owner OR admin) lives in the
+//     helper; the route maps its typed errors to 403/404/409.
+//   * Edit of a tombstone → CommentDeletedError → 409 (conflict, not 404).
 // Side effects: DB reads/writes via the comments helpers.
 import { Router } from 'express';
 import { pool } from '../../database';
@@ -22,13 +24,16 @@ import {
     createComment,
     listCommentTree,
     softDeleteComment,
+    updateComment,
     CommentParentError,
     CommentForbiddenError,
     CommentNotFoundError,
+    CommentDeletedError,
 } from '../../helpers/comments';
 import type {
     TComment,
     TCommentCreateRequest,
+    TCommentUpdateRequest,
     TCommentListResponse,
 } from '@repo/types';
 
@@ -143,6 +148,63 @@ postCommentsRouter.post(
 
 // Routes keyed by a comment id directly: /api/comments/:commentId.
 export const commentsRouter = Router();
+
+commentsRouter.patch('/:commentId', requireAuth, async (req, res) => {
+    try {
+        const commentId = String(req.params.commentId);
+        if (!isValidId(commentId)) {
+            res.status(400).json({
+                success: false,
+                message: 'invalid comment id',
+            });
+            return;
+        }
+
+        const input = req.body as TCommentUpdateRequest;
+        const body = typeof input.body === 'string' ? input.body.trim() : '';
+        if (body.length === 0) {
+            res.status(400).json({
+                success: false,
+                message: 'comment body is required',
+            });
+            return;
+        }
+        if (body.length > MAX_BODY_LENGTH) {
+            res.status(400).json({
+                success: false,
+                message: 'comment body is too long',
+            });
+            return;
+        }
+
+        const comment = await updateComment(
+            pool,
+            commentId,
+            req.auth!.userId,
+            req.auth!.isAdmin,
+            body
+        );
+        res.json({ success: true, data: comment });
+    } catch (error) {
+        if (error instanceof CommentNotFoundError) {
+            res.status(404).json({ success: false, message: error.message });
+            return;
+        }
+        if (error instanceof CommentDeletedError) {
+            res.status(409).json({ success: false, message: error.message });
+            return;
+        }
+        if (error instanceof CommentForbiddenError) {
+            res.status(403).json({ success: false, message: error.message });
+            return;
+        }
+        console.error('PATCH /api/comments/:commentId error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'failed to update comment',
+        });
+    }
+});
 
 commentsRouter.delete('/:commentId', requireAuth, async (req, res) => {
     try {

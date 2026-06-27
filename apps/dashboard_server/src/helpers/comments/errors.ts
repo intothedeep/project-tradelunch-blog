@@ -1,6 +1,6 @@
 // Purpose: shared primitives for the threaded-comment service (Option C) — the
 //          typed error classes plus the pure row→wire mapper used by both the
-//          read (list) and write (create/delete) paths.
+//          read (list) and write (create/delete/update) paths.
 // Invariants:
 //   * ids are Snowflake BIGINT — kept as STRINGS end-to-end (node-pg returns
 //     int8 as a string; never Number()-ed, which truncates past MAX_SAFE_INTEGER).
@@ -46,6 +46,16 @@ export class CommentNotFoundError extends Error {
     constructor(message: string) {
         super(message);
         this.name = 'CommentNotFoundError';
+    }
+}
+
+// Raised when an edit targets a tombstoned comment (deleted_at IS NOT NULL).
+// The row exists, so this is NOT a 404 — the route maps it to 409 (conflict):
+// the resource state forbids the mutation. body of a tombstone is immutable.
+export class CommentDeletedError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'CommentDeletedError';
     }
 }
 

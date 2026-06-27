@@ -1,17 +1,20 @@
 // Purpose: write path for threaded comments (Option C — stored BIGINT[]
 //          materialized path). createComment writes ONE comments row (path =
 //          parent.path || newId, written once across two statements in a txn);
-//          softDeleteComment sets deleted_at only (tombstone, body retained).
+//          softDeleteComment sets deleted_at only (tombstone, body retained);
+//          updateComment replaces body + bumps updated_at on a LIVE comment.
 // Invariants:
 //   * Isolation: every statement touches the `comments` table only (plus a
-//     posts.user_id read for delete auth) — never posts.parent_id/group_id/level.
+//     posts.user_id read for mutate-auth) — never posts.parent_id/group_id/level.
 //   * user_id is ALWAYS the caller (owner-scoped) — never a client-supplied id.
 //   * path is self-inclusive (path = parent.path || id) and written exactly once
 //     (parent_id is immutable); depth = cardinality(path) - 1, derived only.
 //   * A reply must attach to a LIVE comment on the SAME post (parent exists,
 //     deleted_at IS NULL, post_id matches) — else the create is rejected.
 //   * softDeleteComment NEVER hard-deletes; body/author/timestamps preserved.
-// Side effects: a transaction per create/delete.
+//   * delete + update share ONE authorization gate (author/post-owner/admin).
+//   * a tombstoned comment is immutable: updateComment rejects it (deleted state).
+// Side effects: a transaction per create/delete/update.
 import type { Pool } from 'pg';
 import type { TComment } from '@repo/types';
 import {
@@ -20,11 +23,12 @@ import {
     CommentParentError,
     CommentForbiddenError,
     CommentNotFoundError,
+    CommentDeletedError,
     toComment,
 } from './errors';
 
 // Read one comment by id (post-scoped author lookup reuse). Returns null when
-// absent. Used internally for the create parent-check and the delete auth-check.
+// absent. Used internally for the create parent-check and the mutate auth-check.
 async function findComment(
     db: TDb,
     commentId: string
@@ -48,6 +52,28 @@ async function findComment(
         [commentId]
     );
     return rows[0] ?? null;
+}
+
+// Shared mutate-authorization gate for delete + update. Allows the comment
+// AUTHOR, the POST OWNER (moderation), or an ADMIN; throws CommentForbiddenError
+// otherwise. Reads posts.user_id within the caller's transaction (client).
+async function assertCommentMutable(
+    db: TDb,
+    target: { post_id: string; user_id: string },
+    userId: number,
+    isAdmin: boolean
+): Promise<void> {
+    const { rows: postRows } = await db.query<{ user_id: string }>(
+        `SELECT user_id FROM posts WHERE id = $1`,
+        [target.post_id]
+    );
+    const postOwnerId = postRows[0]?.user_id;
+    const isAuthor = String(target.user_id) === String(userId);
+    const isPostOwner =
+        postOwnerId !== undefined && String(postOwnerId) === String(userId);
+    if (!isAuthor && !isPostOwner && !isAdmin) {
+        throw new CommentForbiddenError('not allowed to mutate this comment');
+    }
 }
 
 // Create a comment (or reply). TRANSACTIONAL. For a reply, the parent must
@@ -151,19 +177,7 @@ export async function softDeleteComment(
         if (target === null) {
             throw new CommentNotFoundError('comment not found');
         }
-
-        // Post owner may moderate any comment on their post.
-        const { rows: postRows } = await client.query<{ user_id: string }>(
-            `SELECT user_id FROM posts WHERE id = $1`,
-            [target.post_id]
-        );
-        const postOwnerId = postRows[0]?.user_id;
-        const isAuthor = String(target.user_id) === String(userId);
-        const isPostOwner =
-            postOwnerId !== undefined && String(postOwnerId) === String(userId);
-        if (!isAuthor && !isPostOwner && !isAdmin) {
-            throw new CommentForbiddenError('not allowed to delete this comment');
-        }
+        await assertCommentMutable(client, target, userId, isAdmin);
 
         const { rows } = await client.query<TCommentRow>(
             `WITH del AS (
@@ -186,6 +200,67 @@ export async function softDeleteComment(
                 del.updated_at
              FROM del`,
             [commentId]
+        );
+
+        await client.query('COMMIT');
+        return toComment(rows[0]!);
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
+// Edit a comment's body. TRANSACTIONAL. Same authorization as delete (author /
+// post owner / admin). Rejects an unknown id (CommentNotFoundError) and a
+// tombstoned comment (CommentDeletedError — body of a tombstone is immutable).
+// Replaces body and bumps updated_at, then projects the LIVE wire row (real
+// author_name, is_deleted=false, includes updatedAt). body is already
+// validated/trimmed by the controller. Returns the updated TComment.
+export async function updateComment(
+    db: Pool,
+    commentId: string,
+    userId: number,
+    isAdmin: boolean,
+    body: string
+): Promise<TComment> {
+    const client = await db.connect();
+    try {
+        await client.query('BEGIN');
+
+        const target = await findComment(client, commentId);
+        if (target === null) {
+            throw new CommentNotFoundError('comment not found');
+        }
+        if (target.deleted_at !== null) {
+            throw new CommentDeletedError('cannot edit a deleted comment');
+        }
+        await assertCommentMutable(client, target, userId, isAdmin);
+
+        const { rows } = await client.query<TCommentRow>(
+            `WITH upd AS (
+                UPDATE comments
+                SET body = $1, updated_at = now()
+                WHERE id = $2
+                RETURNING id, post_id, user_id, parent_id, path,
+                          body, created_at, updated_at
+             )
+             SELECT
+                upd.id,
+                upd.post_id,
+                upd.user_id,
+                upd.parent_id,
+                upd.path,
+                cardinality(upd.path) - 1               AS depth,
+                upd.body,
+                false                                   AS is_deleted,
+                COALESCE(u.display_name, u.username)    AS author_name,
+                upd.created_at,
+                upd.updated_at
+             FROM upd
+             JOIN users u ON u.id = upd.user_id`,
+            [body, commentId]
         );
 
         await client.query('COMMIT');
