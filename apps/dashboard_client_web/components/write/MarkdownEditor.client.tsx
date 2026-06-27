@@ -8,32 +8,58 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer.server';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { useUser } from '@clerk/nextjs';
+import { EditorPreview } from '@/components/write/EditorPreview.client';
+import { PostSettings } from '@/components/write/PostSettings.client';
+import { EditorToolbar } from '@/components/write/EditorToolbar.client';
+import { AutosaveIndicator } from '@/components/write/AutosaveIndicator.client';
 import { useEditorSeed } from '@/hooks/useEditorSeed.hook';
 import { useDraftAutosave } from '@/hooks/useDraftAutosave.hook';
+import { useUnsavedGuard } from '@/hooks/useUnsavedGuard.hook';
 import { useImageUpload } from '@/hooks/useImageUpload.hook';
+import { useComposition } from '@/hooks/useComposition.hook';
 import { useCreatePost } from '@/hooks/useCreatePost.query.client';
 import { useUpdatePost } from '@/hooks/useUpdatePost.query.client';
 import { useDeletePost } from '@/hooks/useDeletePost.query.client';
 import { cn } from '@/lib/utils';
 import type { TPostInput, TPostStatus } from '@repo/types';
 
-const STATUS_OPTIONS: TPostStatus[] = ['draft', 'private', 'follower', 'public'];
+// Status values the editor can represent. Legacy/out-of-set values (e.g.
+// 'follower') must be coerced on seed so the controlled <select> always has a
+// matching option and does not silently rewrite status on the next save.
+const ALLOWED_SEED_STATUS = new Set<TPostStatus>([
+    'draft',
+    'private',
+    'public',
+]);
 
 export function MarkdownEditor({ postId }: { postId: number | null }) {
     const router = useRouter();
+    const { user } = useUser();
     const seed = useEditorSeed(postId);
+    const t = useTranslations('write');
 
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [description, setDescription] = useState('');
     const [status, setStatus] = useState<TPostStatus>('draft');
+    const [slug, setSlug] = useState('');
+    // Slug of the most recent successful public save, used to surface a
+    // "view live" link. Null until a public save lands.
+    const [liveSlug, setLiveSlug] = useState<string | null>(null);
     const [isSeeded, setIsSeeded] = useState(false);
+    // Mobile-only pane toggle. At md+ both panes show via `md:block`, so this
+    // state is irrelevant there; it only drives which single pane renders
+    // below md. CSS handles the breakpoint to avoid a JS-measured flash.
+    const [viewMode, setViewMode] = useState<'write' | 'preview'>('write');
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const image = useImageUpload();
+    const composition = useComposition();
     const createPost = useCreatePost();
     const updatePost = useUpdatePost();
     const deletePost = useDeletePost();
@@ -45,7 +71,11 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
         setTitle(seed.initial.title);
         setContent(seed.initial.content ?? '');
         setDescription(seed.initial.description ?? '');
-        setStatus(seed.initial.status ?? 'draft');
+        setSlug(seed.initial.slug ?? '');
+        const seededStatus = seed.initial.status ?? 'draft';
+        setStatus(
+            ALLOWED_SEED_STATUS.has(seededStatus) ? seededStatus : 'private'
+        );
         setIsSeeded(true);
     }, [isSeeded, seed.isLoading, seed.initial]);
 
@@ -53,9 +83,15 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
         title,
         content,
         description,
-        status: 'draft',
+        status,
     };
-    useDraftAutosave(postId, draftInput, isSeeded);
+    const autosave = useDraftAutosave(postId, draftInput, isSeeded);
+
+    // Warn on hard unload (tab close / refresh) while edits are pending. SPA
+    // navigation is covered by flush-on-unmount inside useDraftAutosave.
+    const isDirty =
+        autosave.status === 'unsaved' || autosave.status === 'saving';
+    useUnsavedGuard(isDirty);
 
     const insertAtCursor = (text: string) => {
         const ta = textareaRef.current;
@@ -66,6 +102,10 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
         const start = ta.selectionStart;
         const end = ta.selectionEnd;
         setContent((c) => c.slice(0, start) + text + c.slice(end));
+        // While the IME is composing it owns the caret; mutating the
+        // selection here would duplicate the trailing jamo and jump the
+        // cursor, so skip the manual caret set during composition.
+        if (composition.isComposingRef.current) return;
         requestAnimationFrame(() => {
             ta.focus();
             const pos = start + text.length;
@@ -82,13 +122,30 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
     };
 
     const handleSave = async () => {
-        const input: TPostInput = { title, content, description, status };
-        if (postId == null) {
-            const created = await createPost.mutateAsync(input);
-            router.replace(`/write/${created.id}`);
+        // Publishing is irreversible-feeling for the author: confirm before a
+        // draft/private post becomes world-readable. Other statuses save silently.
+        if (
+            status === 'public' &&
+            !window.confirm(t('editor.publishConfirm'))
+        ) {
             return;
         }
-        await updatePost.mutateAsync({ postId, input });
+        const input: TPostInput = {
+            title,
+            content,
+            description,
+            status,
+            slug: slug.trim() || undefined,
+        };
+        const saved =
+            postId == null
+                ? await createPost.mutateAsync(input)
+                : await updatePost.mutateAsync({ postId, input });
+        if (status === 'public') setLiveSlug(saved.slug);
+        // router.replace is a soft URL swap in the App Router: it updates the
+        // route without remounting this client tree, so the textarea keeps its
+        // focus/caret. No manual focus restoration is needed here.
+        if (postId == null) router.replace(`/write/${saved.id}`);
     };
 
     const handleDelete = async () => {
@@ -113,110 +170,100 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
 
     return (
         <div className="mx-auto w-full max-w-6xl p-4 font-mono">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-                <input
-                    aria-label="title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="TITLE"
-                    className="flex-1 border-2 border-primary/50 bg-transparent px-3 py-2 text-lg outline-none focus:border-primary"
+            <div className="mb-2 flex min-h-[1.75rem] justify-end">
+                <AutosaveIndicator
+                    status={autosave.status}
+                    lastSavedAt={autosave.lastSavedAt}
+                    onRetry={autosave.retry}
                 />
-                <select
-                    aria-label="status"
-                    value={status}
-                    onChange={(e) =>
-                        setStatus(e.target.value as TPostStatus)
-                    }
-                    className="border-2 border-primary/50 bg-transparent px-2 py-2 text-sm outline-none focus:border-primary"
+            </div>
+            <EditorToolbar
+                title={title}
+                onTitleChange={setTitle}
+                status={status}
+                onStatusChange={setStatus}
+                description={description}
+                onDescriptionChange={setDescription}
+                onPickImage={handleImagePick}
+                isUploading={image.isUploading}
+                isStorageDisabled={image.isStorageDisabled}
+                imageError={image.error}
+                fileInputRef={fileInputRef}
+                onSave={handleSave}
+                isSaving={isSaving}
+                canSave={!!title.trim()}
+                onDelete={handleDelete}
+                isDeleting={deletePost.isPending}
+                autoFocusTitle={postId == null}
+            >
+                <PostSettings
+                    slug={slug}
+                    onSlugChange={setSlug}
                 >
-                    {STATUS_OPTIONS.map((s) => (
-                        <option key={s} value={s}>
-                            {s}
-                        </option>
+                    {status === 'public' && user?.username && liveSlug && (
+                        <Link
+                            href={`/blog/@${user.username}/${liveSlug}`}
+                            target="_blank"
+                            className="mt-3 inline-block text-xs uppercase tracking-wider text-primary underline-offset-4 hover:underline"
+                        >
+                            {t('editor.viewLive')}
+                        </Link>
+                    )}
+                </PostSettings>
+                <div
+                    role="tablist"
+                    aria-label="editor view"
+                    className="mb-3 flex gap-2 md:hidden"
+                >
+                    {(['write', 'preview'] as const).map((mode) => (
+                        <button
+                            key={mode}
+                            type="button"
+                            role="tab"
+                            aria-selected={viewMode === mode}
+                            onClick={() => setViewMode(mode)}
+                            className={cn(
+                                'flex-1 border-2 border-primary/50 p-2 text-xs uppercase tracking-wider transition-colors hover:border-primary',
+                                viewMode === mode
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-transparent text-foreground'
+                            )}
+                        >
+                            {mode}
+                        </button>
                     ))}
-                </select>
-            </div>
-
-            <input
-                aria-label="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="DESCRIPTION (optional)"
-                className="mb-3 w-full border-2 border-primary/50 bg-transparent px-3 py-2 text-sm outline-none focus:border-primary"
-            />
-
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
-                <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={image.isUploading || image.isStorageDisabled}
-                    className={cn(
-                        'border-2 border-primary px-3 py-1 transition-colors',
-                        'hover:bg-primary hover:text-primary-foreground',
-                        'disabled:cursor-not-allowed disabled:opacity-50'
-                    )}
-                >
-                    {image.isUploading ? 'UPLOADING...' : 'INSERT IMAGE'}
-                </button>
-                {image.isStorageDisabled && (
-                    <span className="text-muted-foreground">
-                        이미지 저장소가 설정되지 않아 업로드가 비활성화되었습니다.
-                    </span>
-                )}
-                {image.error && !image.isStorageDisabled && (
-                    <span role="alert" className="text-destructive">
-                        {image.error}
-                    </span>
-                )}
-                <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    onChange={handleImagePick}
-                />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-                <textarea
-                    ref={textareaRef}
-                    aria-label="content"
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="# write markdown here"
-                    className="min-h-[60vh] w-full resize-y border-2 border-primary/50 bg-transparent p-3 text-sm outline-none focus:border-primary"
-                />
-                <div className="prose-area min-h-[60vh] overflow-auto border-2 border-primary/30 p-3">
-                    <MarkdownRenderer content={content} />
                 </div>
-            </div>
-
-            <div className="mt-4 flex items-center gap-2">
-                <button
-                    type="button"
-                    onClick={handleSave}
-                    disabled={isSaving || !title.trim()}
-                    className={cn(
-                        'border-2 border-primary px-4 py-2 text-sm transition-colors',
-                        'hover:bg-primary hover:text-primary-foreground',
-                        'disabled:cursor-not-allowed disabled:opacity-50'
-                    )}
-                >
-                    {isSaving ? 'SAVING...' : 'SAVE'}
-                </button>
-                <button
-                    type="button"
-                    onClick={handleDelete}
-                    disabled={deletePost.isPending}
-                    className={cn(
-                        'border-2 border-destructive px-4 py-2 text-sm text-destructive transition-colors',
-                        'hover:bg-destructive hover:text-white',
-                        'disabled:cursor-not-allowed disabled:opacity-50'
-                    )}
-                >
-                    {deletePost.isPending ? 'DELETING...' : 'DELETE'}
-                </button>
-            </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                    <div
+                        className={cn(
+                            viewMode === 'write' ? 'block' : 'hidden',
+                            'md:block'
+                        )}
+                    >
+                        <textarea
+                            ref={textareaRef}
+                            aria-label="content"
+                            value={content}
+                            onChange={(e) => setContent(e.target.value)}
+                            onCompositionStart={composition.onCompositionStart}
+                            onCompositionEnd={composition.onCompositionEnd}
+                            placeholder="# write markdown here"
+                            className="min-h-[60vh] w-full resize-y border-2 border-primary/50 bg-transparent p-3 text-sm outline-none focus:border-primary"
+                        />
+                    </div>
+                    <div
+                        className={cn(
+                            viewMode === 'preview' ? 'block' : 'hidden',
+                            'md:block'
+                        )}
+                    >
+                        <EditorPreview
+                            content={content}
+                            isComposing={composition.isComposing}
+                        />
+                    </div>
+                </div>
+            </EditorToolbar>
         </div>
     );
 }

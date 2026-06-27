@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
+import { useTranslations } from 'next-intl';
 import { NavMenu } from '@/components/nav-menu.client';
 import { DEFAULT_BLOG_AUTHOR } from '@/utils/blog-author';
 
@@ -27,7 +28,9 @@ const useBlogUsername = (): string => {
 // Desktop Navigation with Terminal Style
 export const DesktopNavigation = () => {
     const blogUsername = useBlogUsername();
+    const { isSignedIn } = useUser();
     const links = buildLinks(blogUsername);
+    const t = useTranslations('write');
 
     return (
         <nav className="hidden md:flex h-16 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-6">
@@ -59,6 +62,17 @@ export const DesktopNavigation = () => {
                             </Link>
                         </li>
                     ))}
+                    {/* WRITE — signed-in only. Reserve a fixed-width slot to avoid CLS while Clerk resolves. */}
+                    <li className="min-w-[4.75rem]">
+                        {isSignedIn && (
+                            <Link
+                                href="/write"
+                                className="px-4 py-2 font-mono text-sm hover:bg-primary hover:text-primary-foreground transition-colors border border-transparent hover:border-primary"
+                            >
+                                {t('nav.writeHeader')}
+                            </Link>
+                        )}
+                    </li>
                 </ul>
                 <NavMenu links={links} />
             </div>
@@ -69,7 +83,9 @@ export const DesktopNavigation = () => {
 // Mobile Navigation with Bottom Drawer
 export const MobileNavigation = () => {
     const blogUsername = useBlogUsername();
+    const { isSignedIn } = useUser();
     const links = buildLinks(blogUsername);
+    const t = useTranslations('write');
 
     const [isOpen, setIsOpen] = useState(false);
     const [touchStart, setTouchStart] = useState(0);
@@ -254,6 +270,24 @@ export const MobileNavigation = () => {
                                 </Link>
                             </li>
                         ))}
+                        {/* WRITE — signed-in only */}
+                        {isSignedIn && (
+                            <li>
+                                <Link
+                                    href="/write"
+                                    onClick={() => setIsOpen(false)}
+                                    className="block px-4 py-4 font-mono text-lg border-2 border-primary/30 hover:border-primary hover:bg-secondary transition-all"
+                                    style={{
+                                        animation: isOpen
+                                            ? 'slideInUp 0.3s ease-out forwards'
+                                            : 'none',
+                                    }}
+                                >
+                                    <span className="text-primary">&gt;</span>{' '}
+                                    {t('nav.writeHeader')}
+                                </Link>
+                            </li>
+                        )}
                     </ul>
 
                     {/* Additional Info */}

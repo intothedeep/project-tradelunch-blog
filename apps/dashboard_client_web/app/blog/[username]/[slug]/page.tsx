@@ -13,8 +13,9 @@ type Props = {
 export default async function BlogDetailPage({ params }: Props) {
     const { slug, username } = await params;
 
-    const decodedUsername = decodeURIComponent(username ?? '').substring(1);
-    console.log('username:', decodedUsername, slug);
+    // Route param is `@`-prefixed (links built as `/blog/@${username}`);
+    // strip the leading `@` so it can be compared to a Clerk username.
+    const ownerUsername = decodeURIComponent(username ?? '').replace(/^@/, '');
 
     return (
         <section
@@ -27,7 +28,10 @@ export default async function BlogDetailPage({ params }: Props) {
                 // 'border border-primary rounded-xl'
             )}
         >
-            <PostContent slug={slug} />
+            <PostContent
+                slug={slug}
+                ownerUsername={ownerUsername}
+            />
         </section>
     );
 }

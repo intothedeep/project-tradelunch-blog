@@ -3,8 +3,10 @@ import { notFound } from 'next/navigation';
 
 import en_common from '../messages/en/common.json';
 import en_blog from '../messages/en/blog.json';
+import en_write from '../messages/en/write.json';
 import ko_common from '../messages/ko/common.json';
 import ko_blog from '../messages/ko/blog.json';
+import ko_write from '../messages/ko/write.json';
 import { Locale } from 'next-intl';
 
 // Define the specific locales supported by the application as a union type.
@@ -20,13 +22,14 @@ const locales: AppLocale[] = ['en', 'ko'];
 type LocaleMessages = {
     common: typeof en_common;
     blog: typeof en_blog;
+    write: typeof en_write;
 };
 
 // Explicitly type the `messages` object using `Record<AppLocale, LocaleMessages>`.
 // This ensures that TypeScript knows the exact structure of the messages for each locale,
 // and provides type safety when accessing `messages` with an `AppLocale` key.
 const messages: Record<AppLocale, LocaleMessages> = {
-    en: { common: en_common, blog: en_blog },
+    en: { common: en_common, blog: en_blog, write: en_write },
     ko: {
         common: {
             ...en_blog,
@@ -35,6 +38,10 @@ const messages: Record<AppLocale, LocaleMessages> = {
         blog: {
             ...en_blog,
             ...ko_blog,
+        },
+        write: {
+            ...en_write,
+            ...ko_write,
         },
     },
 };
