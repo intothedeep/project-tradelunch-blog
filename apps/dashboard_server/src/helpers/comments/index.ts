@@ -9,5 +9,5 @@ export {
     CommentNotFoundError,
     CommentDeletedError,
 } from './errors';
-export { listCommentTree } from './list';
+export { listCommentTree, listCommentPage, orderByRoots } from './list';
 export { createComment, softDeleteComment, updateComment } from './write';

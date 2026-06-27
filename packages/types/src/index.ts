@@ -197,9 +197,14 @@ export interface TComment {
 }
 
 // GET /v1/api/posts/:postId/comments → { success, data: TCommentListResponse }
-// Flat pre-order array; the client nests by depth/parentId.
+// Flat pre-order array; the client nests by depth/parentId. A page is 50 ROOT
+// comments (newest-first), each returned with its FULL descendant subtree so
+// replies never orphan; replies do NOT count toward the page size.
+// nextCursor = the last ROOT id of the page (string), or null when exhausted.
 export interface TCommentListResponse {
     comments: TComment[];
+    nextCursor: string | null;
+    hasMore: boolean;
 }
 
 // POST /v1/api/posts/:postId/comments body. body is PLAIN TEXT (not markdown);

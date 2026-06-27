@@ -1,7 +1,10 @@
 // Purpose: threaded-comment routes (Phase E — Option C). Two routers:
 //   * postCommentsRouter (mounted at /api/posts):
 //       - POST   /:postId/comments  (requireAuth)  → create comment/reply, 201
-//       - GET    /:postId/comments  (optionalAuth)  → flat pre-order tree
+//       - GET    /:postId/comments  (optionalAuth)  → paged pre-order tree
+//                                                     query: ?cursor=<rootId>&limit=<1..100,default 50>
+//                                                     page = 50 ROOT comments (newest-first), each WITH its full
+//                                                     subtree (replies don't count); returns { comments, nextCursor, hasMore }
 //   * commentsRouter (mounted at /api/comments):
 //       - PATCH  /:commentId        (requireAuth)  → edit body (author/owner/admin), 200
 //       - DELETE /:commentId        (requireAuth)  → soft-delete (author/owner/admin)
@@ -22,7 +25,7 @@ import { requireAuth } from '../../middlewares/requireAuth';
 import { optionalAuth } from '../../middlewares/optionalAuth';
 import {
     createComment,
-    listCommentTree,
+    listCommentPage,
     softDeleteComment,
     updateComment,
     CommentParentError,
@@ -38,6 +41,20 @@ import type {
 } from '@repo/types';
 
 const MAX_BODY_LENGTH = 4000;
+
+// Page size of ROOT comments. Default 50; clamped to [1, 100]. Mirrors the
+// limit-clamp style used by the favorites / posts cursor routes.
+const DEFAULT_PAGE_LIMIT = 50;
+const MAX_PAGE_LIMIT = 100;
+const CURSOR_SENTINEL = '9223372036854775807';
+
+// Clamp the requested page size into [1, MAX_PAGE_LIMIT], defaulting when
+// absent/invalid (a pure function: explicit in, explicit out, no IO).
+function clampPageLimit(raw?: string): number {
+    const n = typeof raw === 'string' ? parseInt(raw, 10) : NaN;
+    if (!Number.isFinite(n) || n <= 0) return DEFAULT_PAGE_LIMIT;
+    return Math.min(n, MAX_PAGE_LIMIT);
+}
 
 // A Snowflake id is a non-empty run of digits; reject anything else with 400
 // before binding so node-pg never raises a 500 on a malformed BIGINT.
@@ -56,8 +73,22 @@ postCommentsRouter.get('/:postId/comments', optionalAuth, async (req, res) => {
             return;
         }
 
-        const comments = await listCommentTree(pool, postId);
-        const payload: TCommentListResponse = { comments };
+        // Keyset cursor = the last ROOT id of the previous page; the sentinel
+        // (max bigint) starts at the newest. Reject a malformed cursor by
+        // falling back to the sentinel rather than binding a bad BIGINT.
+        const rawCursor =
+            typeof req.query.cursor === 'string' ? req.query.cursor : '';
+        const cursor = isValidId(rawCursor) ? rawCursor : CURSOR_SENTINEL;
+        const limit = clampPageLimit(
+            typeof req.query.limit === 'string' ? req.query.limit : undefined
+        );
+
+        const { comments, nextCursor, hasMore } = await listCommentPage(
+            pool,
+            postId,
+            { cursor, limit }
+        );
+        const payload: TCommentListResponse = { comments, nextCursor, hasMore };
         res.json({ success: true, data: payload });
     } catch (error) {
         console.error('GET /api/posts/:postId/comments error:', error);

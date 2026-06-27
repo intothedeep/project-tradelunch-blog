@@ -17,6 +17,8 @@ import { pool } from '../../src/database';
 import {
     createComment,
     listCommentTree,
+    listCommentPage,
+    orderByRoots,
     softDeleteComment,
     updateComment,
     CommentParentError,
@@ -310,5 +312,213 @@ describe('comments helper (Option C path / tombstone / auth) — integration', (
         await expect(
             updateComment(pool, '999999999999999999', userA, false, 'ghost')
         ).rejects.toBeInstanceOf(CommentNotFoundError);
+    });
+
+    // -----------------------------------------------------------------------
+    // C4 cursor pagination — listCommentPage: a page is 50 ROOT comments
+    // (newest-first), EACH with its full descendant subtree (replies never
+    // count toward the 50). Cursor = the last root id (string).
+    // -----------------------------------------------------------------------
+    const SENTINEL = '9223372036854775807';
+
+    it('paginates 50 roots per page; cursor round-trips as a string', async () => {
+        if (!guard()) return;
+
+        // A dedicated post so the root count is deterministic (cleaned up by the
+        // shared afterAll: comments are authored by userA on userB's post set).
+        const pagePost = await createPost(pool, userB, {
+            slug: `comment-page-${tag}`,
+            title: 'Comment page target',
+            content: null,
+            description: null,
+            categoryId: null,
+            status: 'public',
+        });
+        const pagePostId = String(pagePost.id);
+
+        // 55 ROOT comments → page 1 = 50, page 2 = 5.
+        const rootIds: string[] = [];
+        for (let i = 0; i < 55; i++) {
+            const c = await createComment(
+                pool,
+                userA,
+                pagePostId,
+                null,
+                `root ${i}`
+            );
+            rootIds.push(c.id);
+        }
+        // Newest-first: ids descend by creation. Expected page-1 roots are the
+        // 50 newest (last 50 created, reversed); page-2 roots are the oldest 5.
+        const newestFirst = [...rootIds].reverse();
+
+        const page1 = await listCommentPage(pool, pagePostId, {
+            cursor: SENTINEL,
+            limit: 50,
+        });
+        expect(page1.comments).toHaveLength(50);
+        expect(page1.hasMore).toBe(true);
+        const page1Roots = page1.comments.map((c) => c.id);
+        expect(page1Roots).toEqual(newestFirst.slice(0, 50));
+        // nextCursor = the 50th (last kept) root id, AS A STRING.
+        expect(typeof page1.nextCursor).toBe('string');
+        expect(page1.nextCursor).toBe(newestFirst[49]);
+
+        const page2 = await listCommentPage(pool, pagePostId, {
+            cursor: page1.nextCursor!,
+            limit: 50,
+        });
+        expect(page2.comments).toHaveLength(5);
+        expect(page2.hasMore).toBe(false);
+        expect(page2.nextCursor).toBeNull();
+        expect(page2.comments.map((c) => c.id)).toEqual(newestFirst.slice(50));
+        // ids in the response are strings end-to-end.
+        for (const c of page2.comments) {
+            expect(typeof c.id).toBe('string');
+        }
+    }, 60000);
+
+    it('returns a root full subtree in pre-order; replies do not count toward 50', async () => {
+        if (!guard()) return;
+
+        const subPost = await createPost(pool, userB, {
+            slug: `comment-subtree-${tag}`,
+            title: 'Subtree page target',
+            content: null,
+            description: null,
+            categoryId: null,
+            status: 'public',
+        });
+        const subPostId = String(subPost.id);
+
+        // One root with a nested reply chain, then 50 more bare roots. Even with
+        // 51 roots, the subtree of the FIRST (oldest) root comes back intact on
+        // whichever page that root lands — replies are not roots, so they never
+        // consume a slot.
+        const rooted = await createComment(
+            pool,
+            userA,
+            subPostId,
+            null,
+            'has-subtree'
+        );
+        const reply = await createComment(
+            pool,
+            userA,
+            subPostId,
+            rooted.id,
+            'reply-1'
+        );
+        const deep = await createComment(
+            pool,
+            userA,
+            subPostId,
+            reply.id,
+            'reply-2'
+        );
+        for (let i = 0; i < 50; i++) {
+            await createComment(pool, userA, subPostId, null, `bare ${i}`);
+        }
+
+        // 51 roots → page 1 = 50 newest roots (hasMore), the 'has-subtree' root
+        // (oldest) is on page 2 with its full chain.
+        const p1 = await listCommentPage(pool, subPostId, {
+            cursor: SENTINEL,
+            limit: 50,
+        });
+        expect(p1.hasMore).toBe(true);
+
+        const p2 = await listCommentPage(pool, subPostId, {
+            cursor: p1.nextCursor!,
+            limit: 50,
+        });
+        const sub = p2.comments.filter((c) => c.path[0] === rooted.id);
+        // Whole subtree present, pre-order DFS (root, reply, deep).
+        expect(sub.map((c) => c.id)).toEqual([rooted.id, reply.id, deep.id]);
+        expect(sub.map((c) => c.depth)).toEqual([0, 1, 2]);
+    }, 60000);
+
+    it('excludes a fully-dead root; keeps a tombstoned root with a live reply (masked)', async () => {
+        if (!guard()) return;
+
+        const tPost = await createPost(pool, userB, {
+            slug: `comment-tomb-page-${tag}`,
+            title: 'Tombstone page target',
+            content: null,
+            description: null,
+            categoryId: null,
+            status: 'public',
+        });
+        const tPostId = String(tPost.id);
+
+        // Root 1: deleted, NO live descendant → excluded.
+        const dead = await createComment(pool, userA, tPostId, null, 'dead root');
+        await softDeleteComment(pool, dead.id, userA, false);
+
+        // Root 2: deleted, but has a LIVE reply → still appears (masked).
+        const masked = await createComment(
+            pool,
+            userA,
+            tPostId,
+            null,
+            'masked root'
+        );
+        const liveReply = await createComment(
+            pool,
+            userA,
+            tPostId,
+            masked.id,
+            'alive'
+        );
+        await softDeleteComment(pool, masked.id, userA, false);
+
+        const page = await listCommentPage(pool, tPostId, {
+            cursor: SENTINEL,
+            limit: 50,
+        });
+        const ids = page.comments.map((c) => c.id);
+        expect(ids).not.toContain(dead.id);
+        expect(ids).toContain(masked.id);
+        const maskedRow = page.comments.find((c) => c.id === masked.id)!;
+        expect(maskedRow.isDeleted).toBe(true);
+        expect(maskedRow.body).toBe('[deleted]');
+        expect(maskedRow.authorName).toBeUndefined();
+        // The live reply survives under its tombstoned parent.
+        const replyRow = page.comments.find((c) => c.id === liveReply.id)!;
+        expect(replyRow.body).toBe('alive');
+        expect(replyRow.path[0]).toBe(masked.id);
+    }, 30000);
+});
+
+// Pure unit test of orderByRoots — no IO, no DB. Verifies roots come back in the
+// supplied (newest-first) order while each root's rows keep their incoming
+// pre-order (path-sorted) sequence, and that unknown roots are ignored.
+describe('orderByRoots (pure)', () => {
+    it('groups by path[1] then concatenates groups in rootIds order', () => {
+        const rows = [
+            { id: 'a1', path: ['a', 'a1'] },
+            { id: 'b', path: ['b'] },
+            { id: 'a', path: ['a'] },
+            { id: 'b1', path: ['b', 'b1'] },
+            { id: 'a2', path: ['a', 'a1', 'a2'] },
+        ];
+        // SQL already returns each group path-sorted; the function must NOT
+        // re-sort within a group — it preserves incoming per-root order.
+        const grouped = orderByRoots(
+            [
+                { id: 'a', path: ['a'] },
+                { id: 'a1', path: ['a', 'a1'] },
+                { id: 'a2', path: ['a', 'a1', 'a2'] },
+                { id: 'b', path: ['b'] },
+                { id: 'b1', path: ['b', 'b1'] },
+            ],
+            ['b', 'a']
+        );
+        // roots in rootIds order: b-subtree first, then a-subtree (each in order).
+        expect(grouped.map((r) => r.id)).toEqual(['b', 'b1', 'a', 'a1', 'a2']);
+
+        // an unknown root id contributes nothing; rows with no matching root drop.
+        const partial = orderByRoots(rows, ['a']);
+        expect(partial.map((r) => r.id)).toEqual(['a1', 'a', 'a2']);
     });
 });
