@@ -13,12 +13,12 @@ Agents:
 """
 
 from .base import BaseAgent
-from .protocol import AgentMessage, AgentTask, AgentResponse
 from .document_scanner_agent import DocumentScannerAgent
 from .extracting_agent import ExtractingAgent
-from .uploading_agent import UploadingAgent
 from .logging_agent import LoggingAgent
-from .project_manager import ProjectManagerAgent, AgentState
+from .project_manager import AgentState, ProjectManagerAgent
+from .protocol import AgentMessage, AgentResponse, AgentTask
+from .uploading_agent import UploadingAgent
 
 __all__ = [
     "BaseAgent",

@@ -12,22 +12,23 @@
 - 스키마 검증 (PostSchema, FileSchema)
 """
 
-import asyncio
-import config
-from typing import Dict, Any, List, Optional
 from pathlib import Path
+from typing import Any
+
 from pydantic import ValidationError
-from .base import BaseAgent
+
+import config
 from schema import (
-    PostSchema,
-    FileSchema,
-    PostStatusEnum,
-    generate_slug_from_title,
-    UploadPayload,
     ArticleMetadata,
-    FileInfo,
     CategoryInfo,
+    FileInfo,
+    PostSchema,
+    PostStatusEnum,
+    UploadPayload,
+    generate_slug_from_title,
 )
+
+from .base import BaseAgent
 
 
 class UploadingAgent(BaseAgent):
@@ -45,7 +46,7 @@ class UploadingAgent(BaseAgent):
         self.s3_bucket = s3_bucket
         self._db_session = None  # Will be set per operation
 
-    async def execute(self, task: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute(self, task: dict[str, Any]) -> dict[str, Any]:
         """
         작업 실행
 
@@ -129,11 +130,11 @@ class UploadingAgent(BaseAgent):
 
     async def _upload_images(
         self,
-        images: List[Dict[str, str]],
-        thumbnail: Dict[str, str] = None,
-        context: Dict[str, Any] = None,
+        images: list[dict[str, str]],
+        thumbnail: dict[str, str] = None,
+        context: dict[str, Any] = None,
         is_thumbnail: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         이미지들을 S3에 업로드 (썸네일 우선 처리)
 
@@ -323,7 +324,7 @@ class UploadingAgent(BaseAgent):
 
         return result.stored_uri
 
-    async def _save_article(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    async def _save_article(self, data: dict[str, Any]) -> dict[str, Any]:
         """
         문서를 RDS에 저장 (schema/posts.schema.sql 준수)
 
@@ -363,7 +364,7 @@ class UploadingAgent(BaseAgent):
         if images or thumbnail:
             content, images = self._replace_content_urls(content, images, thumbnail)
             data["content"] = content
-            self._log(f"✓ Replaced image URLs with CDN paths")
+            self._log("✓ Replaced image URLs with CDN paths")
 
         # Validate status field
         status_value = data.get("status", PostStatusEnum.PUBLIC)
@@ -395,7 +396,7 @@ class UploadingAgent(BaseAgent):
             }
 
         # Use SINGLE database session for all operations
-        from db import get_db_session, PostRepository, CategoryRepository, TagRepository
+        from db import PostRepository, TagRepository, get_db_session
 
         categories = data.get("categories", [])
         category_ids = []
@@ -417,14 +418,14 @@ class UploadingAgent(BaseAgent):
 
             # 2. Create post using upsert
             post_repo = PostRepository(session)
-            
+
             # Build SEO fields
             thumbnail_data = data.get("thumbnail", {})
             og_image_url = thumbnail_data.get("s3_url") if isinstance(thumbnail_data, dict) else None
             meta_title = data.get("title", "")[:70]
             meta_description = (data.get("summary") or data.get("description", ""))[:170] if data.get("summary") or data.get("description") else None
             og_image_alt = f"{data.get('title', 'Article')} thumbnail"
-            
+
             article_id = await post_repo.upsert_post(
                 user_id=data.get("user_id", config.DEFAULT_USER_ID),
                 title=data.get("title"),
@@ -493,8 +494,8 @@ class UploadingAgent(BaseAgent):
         }
 
     def _replace_content_urls(
-        self, content: str, images: List[Dict], thumbnail: Dict = None
-    ) -> tuple[str, List[Dict]]:
+        self, content: str, images: list[dict], thumbnail: dict = None
+    ) -> tuple[str, list[dict]]:
         """
         Replace local image paths in markdown content with CDN URLs.
 
@@ -511,7 +512,7 @@ class UploadingAgent(BaseAgent):
         import re
 
         updated_images = []
-        
+
         # Combine thumbnail and images for processing
         all_items = []
         if thumbnail and isinstance(thumbnail, dict):
@@ -550,8 +551,8 @@ class UploadingAgent(BaseAgent):
         return content, updated_images
 
     async def _save_file_records(
-        self, session, post_id: int, images: List[Dict], thumbnail: Dict, user_id: int
-    ) -> List[int]:
+        self, session, post_id: int, images: list[dict], thumbnail: dict, user_id: int
+    ) -> list[int]:
         """
         Save image/file records to files table.
 
@@ -665,8 +666,8 @@ class UploadingAgent(BaseAgent):
         return content_types.get(ext.lower(), "application/octet-stream")
 
     async def _resolve_category_hierarchy_with_session(
-        self, session, categories: List[str], user_id: int = 1
-    ) -> tuple[List[int], Optional[int], List[CategoryInfo]]:
+        self, session, categories: list[str], user_id: int = 1
+    ) -> tuple[list[int], int | None, list[CategoryInfo]]:
         """
         Resolve category hierarchy from folder path to database IDs.
         Uses an existing database session (no commit - caller handles it).
@@ -723,8 +724,8 @@ class UploadingAgent(BaseAgent):
         return category_ids, deepest_id, category_infos
 
     async def _resolve_category_hierarchy(
-        self, categories: List[str], user_id: int = 1
-    ) -> tuple[List[int], Optional[int], List[CategoryInfo]]:
+        self, categories: list[str], user_id: int = 1
+    ) -> tuple[list[int], int | None, list[CategoryInfo]]:
         """
         Resolve category hierarchy (opens own session - for standalone use).
         Prefer _resolve_category_hierarchy_with_session when you have an existing session.
@@ -742,7 +743,7 @@ class UploadingAgent(BaseAgent):
             return result
 
     async def _link_post_to_categories(
-        self, session, post_id: int, category_ids: List[int]
+        self, session, post_id: int, category_ids: list[int]
     ) -> None:
         """
         Link a post to all categories in its hierarchy.
@@ -759,6 +760,7 @@ class UploadingAgent(BaseAgent):
 
         from sqlalchemy import func
         from sqlalchemy.dialects.postgresql import insert
+
         from db.models import PostCategory
 
         for category_id in category_ids:
@@ -776,9 +778,9 @@ class UploadingAgent(BaseAgent):
 
     def _build_upload_payload(
         self,
-        data: Dict[str, Any],
-        category_ids: List[int] = None,
-        category_infos: List[CategoryInfo] = None,
+        data: dict[str, Any],
+        category_ids: list[int] = None,
+        category_infos: list[CategoryInfo] = None,
     ) -> UploadPayload:
         """
         Build UploadPayload from processed data.

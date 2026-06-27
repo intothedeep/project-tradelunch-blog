@@ -16,21 +16,21 @@ LangGraph를 사용한 상태 기반 워크플로우:
 """
 
 import asyncio
-from typing import Dict, Any, List, Literal
-from typing_extensions import TypedDict
 from datetime import datetime
+from typing import Any
 
-from langgraph.graph import StateGraph, END
 from langchain_ollama import ChatOllama
-from llm_factory import get_shared_llm
+from langgraph.graph import END, StateGraph
+from typing_extensions import TypedDict
+
 from configs.llm import is_llm_enabled
+from llm_factory import get_shared_llm
 
 from .base import BaseAgent
-from .protocol import AgentTask, AgentResponse
 from .document_scanner_agent import DocumentScannerAgent
 from .extracting_agent import ExtractingAgent
-from .uploading_agent import UploadingAgent
 from .logging_agent import LoggingAgent
+from .uploading_agent import UploadingAgent
 
 
 class AgentState(TypedDict):
@@ -42,19 +42,19 @@ class AgentState(TypedDict):
 
     # Processing steps
     current_step: str
-    plan: List[str]
+    plan: list[str]
 
     # Data
-    extracted_data: Dict[str, Any]
-    uploaded_data: Dict[str, Any]
+    extracted_data: dict[str, Any]
+    uploaded_data: dict[str, Any]
 
     # Metadata
     task_id: str
     start_time: datetime
-    errors: List[str]
+    errors: list[str]
 
     # Final result
-    final_result: Dict[str, Any]
+    final_result: dict[str, Any]
 
 
 class ProjectManagerAgent(BaseAgent):
@@ -128,7 +128,7 @@ class ProjectManagerAgent(BaseAgent):
         # Compile
         self.workflow = workflow.compile()
 
-    async def execute(self, task: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute(self, task: dict[str, Any]) -> dict[str, Any]:
         """
         메인 실행 로직
 
@@ -292,7 +292,7 @@ Examples:
             return state
 
         # If file not found, search with DocumentScannerAgent
-        self._log(f"File not found, searching with DocumentScannerAgent...")
+        self._log("File not found, searching with DocumentScannerAgent...")
         matches = self.document_scanner.find_file_by_name(file_path)
 
         if not matches:
@@ -346,7 +346,7 @@ Examples:
             self._log(f"Extraction completed: {result['data']['title']}", "success")
         else:
             state["errors"].append(f"Extraction failed: {result.get('error', 'Unknown')}")
-            self._log(f"Extraction failed", "error")
+            self._log("Extraction failed", "error")
 
         return state
 
@@ -378,7 +378,7 @@ Examples:
             )
         else:
             state["errors"].append(f"Upload failed: {result.get('error', 'Unknown')}")
-            self._log(f"Upload failed", "error")
+            self._log("Upload failed", "error")
 
         return state
 
@@ -464,7 +464,7 @@ Examples:
 
         return state
 
-    def get_agents_info(self) -> List[Dict[str, Any]]:
+    def get_agents_info(self) -> list[dict[str, Any]]:
         """모든 에이전트 정보 반환"""
         return [
             self.get_info(),
@@ -476,7 +476,7 @@ Examples:
 
     def check_file_exists(
         self, filename: str, quiet: bool = False, search_root: str | None = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         파일 이름으로 존재 여부 확인 및 경로 반환
 
@@ -535,7 +535,7 @@ Examples:
 
         return result
 
-    def list_available_files(self) -> Dict[str, Any]:
+    def list_available_files(self) -> dict[str, Any]:
         """
         DocumentScannerAgent를 사용하여 사용 가능한 모든 파일 스캔
 
@@ -546,7 +546,6 @@ Examples:
                 "total_files": int
             }
         """
-        from pathlib import Path
         from config import POSTS_DIR, PROJECT_ROOT
 
         self._log("Scanning available files...")
@@ -585,9 +584,10 @@ Examples:
         Args:
             root_dir: 스캔할 루트 디렉토리 (기본값: posts)
         """
+
         from rich.console import Console
         from rich.tree import Tree
-        from pathlib import Path
+
         import config
 
         console = Console()

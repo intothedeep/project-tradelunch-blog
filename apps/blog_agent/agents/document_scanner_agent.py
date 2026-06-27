@@ -12,8 +12,9 @@
 - 카테고리 트리 생성
 """
 
-from typing import Dict, Any, List
 from pathlib import Path
+from typing import Any
+
 from .base import BaseAgent
 
 
@@ -47,7 +48,7 @@ class DocumentScannerAgent(BaseAgent):
         # Supported image extensions
         self.image_extensions = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
 
-    async def execute(self, task: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute(self, task: dict[str, Any]) -> dict[str, Any]:
         """
         문서 폴더 스캔 실행
 
@@ -84,7 +85,7 @@ class DocumentScannerAgent(BaseAgent):
             self._log(f"Scan failed: {e}", "error")
             return {"success": False, "error": str(e), "agent": self.name}
 
-    def _scan_documentation(self, root: Path, max_depth: int = None) -> Dict[str, Any]:
+    def _scan_documentation(self, root: Path, max_depth: int = None) -> dict[str, Any]:
         """
         재귀적으로 폴더를 스캔하여 article 정보 수집
 
@@ -120,7 +121,7 @@ class DocumentScannerAgent(BaseAgent):
             "total_categories": len(category_tree),
         }
 
-    def _extract_article_info(self, md_file: Path, root: Path) -> Dict[str, Any]:
+    def _extract_article_info(self, md_file: Path, root: Path) -> dict[str, Any]:
         """
         마크다운 파일에서 article 정보 추출
 
@@ -209,7 +210,7 @@ class DocumentScannerAgent(BaseAgent):
 
     def _find_content_images(
         self, article_folder: Path, article_name: str
-    ) -> List[str]:
+    ) -> list[str]:
         """
         본문 이미지 찾기 (썸네일 제외)
 
@@ -236,8 +237,8 @@ class DocumentScannerAgent(BaseAgent):
         return sorted(images)  # 알파벳 순 정렬
 
     def find_file_by_name(
-        self, filename: str, search_dirs: List[Path] = None
-    ) -> List[Dict[str, Any]]:
+        self, filename: str, search_dirs: list[Path] = None
+    ) -> list[dict[str, Any]]:
         """
         Find files matching the given filename across directories.
 
@@ -309,7 +310,7 @@ class DocumentScannerAgent(BaseAgent):
         self._log(f"Found {len(matches)} matches for '{filename}'")
         return matches
 
-    def _add_to_category_tree(self, tree: Dict, article_info: Dict):
+    def _add_to_category_tree(self, tree: dict, article_info: dict):
         """
         category tree에 article 추가
 
@@ -345,7 +346,7 @@ class DocumentScannerAgent(BaseAgent):
                 tree[category]["_root"] = []
             tree[category]["_root"].append(article_name)
 
-    def get_category_summary(self, category_tree: Dict) -> str:
+    def get_category_summary(self, category_tree: dict) -> str:
         """
         카테고리 트리를 보기 좋은 문자열로 변환
 

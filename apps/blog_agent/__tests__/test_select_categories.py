@@ -7,10 +7,11 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import pytest
+
+from __tests__.conftest import db_available
 from db.connection import get_db_session
 from db.repositories.category import CategoryRepository
-import pytest
-from __tests__.conftest import db_available
 
 pytestmark = pytest.mark.skipif(not db_available(), reason="Database not available")
 
@@ -19,17 +20,17 @@ async def test_select_all_categories():
     Test selecting all categories from the database.
     """
     print("\n--- Testing Select All Categories ---")
-    
+
     async with get_db_session() as session:
         repo = CategoryRepository(session)
-        
+
         # Select all categories (default limit is 100)
         categories = await repo.get_all(limit=100)
-        
+
         print(f"Found {len(categories)} categories:")
         for cat in categories:
             print(f"  - [{cat.id}] {cat.title} (Level: {cat.level}, Parent: {cat.parent_id})")
-            
+
         return categories
 
 if __name__ == "__main__":

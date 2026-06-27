@@ -15,11 +15,10 @@ Models:
 - PostCategorySchema: post_categories junction table
 """
 
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional
 from datetime import datetime
 from enum import Enum
 
+from pydantic import BaseModel, ConfigDict, Field
 
 # ===========================
 # ENUMS (matching SQL ENUMs)
@@ -78,37 +77,37 @@ class PostSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     # Identity
-    id: Optional[int] = Field(default=None, description="Post/comment snowflake ID")
+    id: int | None = Field(default=None, description="Post/comment snowflake ID")
 
     # Hierarchy (for posts and comments)
-    group_id: Optional[int] = Field(default=None, description="Root post ID (self for root posts)")
+    group_id: int | None = Field(default=None, description="Root post ID (self for root posts)")
     level: int = Field(default=0, description="Depth: 0=post, 1=comment, 2+=nested reply")
-    parent_id: Optional[int] = Field(default=None, description="Parent ID (NULL for posts, post/comment ID for replies)")
+    parent_id: int | None = Field(default=None, description="Parent ID (NULL for posts, post/comment ID for replies)")
     priority: int = Field(default=100, description="Display order priority")
 
     # Content
     slug: str = Field(max_length=255, description="URL-friendly slug")
     title: str = Field(max_length=255, description="Post/comment title")
-    content: Optional[str] = Field(default=None, description="Full content in markdown")
-    description: Optional[str] = Field(default=None, description="Post description/summary")
+    content: str | None = Field(default=None, description="Full content in markdown")
+    description: str | None = Field(default=None, description="Post description/summary")
 
     # Relations
-    category_id: Optional[int] = Field(default=None, description="Primary category snowflake ID")
+    category_id: int | None = Field(default=None, description="Primary category snowflake ID")
     user_id: int = Field(description="Author user ID")
 
     # Status
     status: PostStatusEnum = Field(default=PostStatusEnum.PUBLIC, description="Visibility status")
 
     # SEO fields
-    meta_title: Optional[str] = Field(default=None, max_length=70, description="SEO title for search results")
-    meta_description: Optional[str] = Field(default=None, max_length=170, description="SEO description for search results")
-    og_image_url: Optional[str] = Field(default=None, description="Open Graph image URL for social sharing")
-    og_image_alt: Optional[str] = Field(default=None, max_length=125, description="Open Graph image alt text")
+    meta_title: str | None = Field(default=None, max_length=70, description="SEO title for search results")
+    meta_description: str | None = Field(default=None, max_length=170, description="SEO description for search results")
+    og_image_url: str | None = Field(default=None, description="Open Graph image URL for social sharing")
+    og_image_alt: str | None = Field(default=None, max_length=125, description="Open Graph image alt text")
 
     # Timestamps
-    created_at: Optional[datetime] = Field(default=None, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(default=None, description="Last update timestamp")
-    deleted_at: Optional[datetime] = Field(default=None, description="Soft delete timestamp")
+    created_at: datetime | None = Field(default=None, description="Creation timestamp")
+    updated_at: datetime | None = Field(default=None, description="Last update timestamp")
+    deleted_at: datetime | None = Field(default=None, description="Soft delete timestamp")
 
 
 class FileSchema(BaseModel):
@@ -139,20 +138,20 @@ class FileSchema(BaseModel):
     """
     model_config = ConfigDict(from_attributes=True)
 
-    id: Optional[int] = Field(default=None, description="Auto-generated file ID")
-    user_id: Optional[int] = Field(default=None, description="User ID who uploaded the file")
-    post_id: Optional[int] = Field(default=None, description="Associated post ID")
-    content_type: Optional[str] = Field(default=None, max_length=100, description="MIME type")
-    ext: Optional[str] = Field(default=None, max_length=30, description="File extension")
+    id: int | None = Field(default=None, description="Auto-generated file ID")
+    user_id: int | None = Field(default=None, description="User ID who uploaded the file")
+    post_id: int | None = Field(default=None, description="Associated post ID")
+    content_type: str | None = Field(default=None, max_length=100, description="MIME type")
+    ext: str | None = Field(default=None, max_length=30, description="File extension")
     original_filename: str = Field(max_length=255, description="Original filename from local filesystem")
     stored_name: str = Field(max_length=255, description="Slug-based filename for storage")
-    s3_key: Optional[str] = Field(default=None, description="S3 key path (e.g., user_id/category/.../slug/filename)")
+    s3_key: str | None = Field(default=None, description="S3 key path (e.g., user_id/category/.../slug/filename)")
     stored_uri: str = Field(description="Full CDN URL where file is stored")
-    file_size: Optional[int] = Field(default=None, description="File size in bytes")
+    file_size: int | None = Field(default=None, description="File size in bytes")
     is_thumbnail: bool = Field(default=False, description="Whether this is a thumbnail image")
-    created_at: Optional[datetime] = Field(default=None, description="Upload timestamp")
-    updated_at: Optional[datetime] = Field(default=None, description="Last update timestamp")
-    deleted_at: Optional[datetime] = Field(default=None, description="Soft delete timestamp")
+    created_at: datetime | None = Field(default=None, description="Upload timestamp")
+    updated_at: datetime | None = Field(default=None, description="Last update timestamp")
+    deleted_at: datetime | None = Field(default=None, description="Soft delete timestamp")
 
 
 class TagSchema(BaseModel):
@@ -168,11 +167,11 @@ class TagSchema(BaseModel):
     """
     model_config = ConfigDict(from_attributes=True)
 
-    id: Optional[int] = Field(default=None, description="Auto-generated tag ID")
+    id: int | None = Field(default=None, description="Auto-generated tag ID")
     name: str = Field(max_length=50, description="Tag name (unique)")
-    created_at: Optional[datetime] = Field(default=None, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(default=None, description="Last update timestamp")
-    deleted_at: Optional[datetime] = Field(default=None, description="Soft delete timestamp")
+    created_at: datetime | None = Field(default=None, description="Creation timestamp")
+    updated_at: datetime | None = Field(default=None, description="Last update timestamp")
+    deleted_at: datetime | None = Field(default=None, description="Soft delete timestamp")
 
 
 class CategorySchema(BaseModel):
@@ -192,17 +191,17 @@ class CategorySchema(BaseModel):
     """
     model_config = ConfigDict(from_attributes=True)
 
-    seq: Optional[int] = Field(default=None, description="Auto-generated sequential number (unique)")
-    id: Optional[int] = Field(default=None, description="Category ID (auto-generated or manual)")
-    group_id: Optional[int] = Field(default=None, description="Root category ID (self-reference for root)")
+    seq: int | None = Field(default=None, description="Auto-generated sequential number (unique)")
+    id: int | None = Field(default=None, description="Category ID (auto-generated or manual)")
+    group_id: int | None = Field(default=None, description="Root category ID (self-reference for root)")
     level: int = Field(default=0, description="Hierarchy level (0 = root, 1+ = children)")
     priority: int = Field(default=100, description="Display order priority")
-    parent_id: Optional[int] = Field(default=None, description="Parent category ID (NULL for root)")
+    parent_id: int | None = Field(default=None, description="Parent category ID (NULL for root)")
     user_id: int = Field(description="User ID who created this category")
     title: str = Field(max_length=100, description="Category name (unique)")
-    created_at: Optional[datetime] = Field(default=None, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(default=None, description="Last update timestamp")
-    deleted_at: Optional[datetime] = Field(default=None, description="Soft delete timestamp")
+    created_at: datetime | None = Field(default=None, description="Creation timestamp")
+    updated_at: datetime | None = Field(default=None, description="Last update timestamp")
+    deleted_at: datetime | None = Field(default=None, description="Soft delete timestamp")
 
 
 # ===========================
@@ -224,9 +223,9 @@ class PostTagSchema(BaseModel):
 
     post_id: int = Field(description="Post ID")
     tag_name: str = Field(max_length=50, description="Tag name")
-    created_at: Optional[datetime] = Field(default=None, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(default=None, description="Last update timestamp")
-    deleted_at: Optional[datetime] = Field(default=None, description="Soft delete timestamp")
+    created_at: datetime | None = Field(default=None, description="Creation timestamp")
+    updated_at: datetime | None = Field(default=None, description="Last update timestamp")
+    deleted_at: datetime | None = Field(default=None, description="Soft delete timestamp")
 
 
 class PostCategorySchema(BaseModel):
@@ -244,9 +243,9 @@ class PostCategorySchema(BaseModel):
 
     post_id: int = Field(description="Post ID")
     category_id: int = Field(description="Category ID")
-    created_at: Optional[datetime] = Field(default=None, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(default=None, description="Last update timestamp")
-    deleted_at: Optional[datetime] = Field(default=None, description="Soft delete timestamp")
+    created_at: datetime | None = Field(default=None, description="Creation timestamp")
+    updated_at: datetime | None = Field(default=None, description="Last update timestamp")
+    deleted_at: datetime | None = Field(default=None, description="Soft delete timestamp")
 
 
 # ===========================
@@ -264,14 +263,14 @@ class PostWithRelations(BaseModel):
     post: PostSchema
 
     # Related data
-    files: List[FileSchema] = Field(default_factory=list, description="Associated files/images")
-    tags: List[str] = Field(default_factory=list, description="Tag names")
-    categories: List[int] = Field(default_factory=list, description="Category IDs")
+    files: list[FileSchema] = Field(default_factory=list, description="Associated files/images")
+    tags: list[str] = Field(default_factory=list, description="Tag names")
+    categories: list[int] = Field(default_factory=list, description="Category IDs")
 
     # Computed fields
-    thumbnail_file: Optional[FileSchema] = Field(default=None, description="Thumbnail file if exists")
-    word_count: Optional[int] = Field(default=None, description="Word count of content")
-    reading_time: Optional[int] = Field(default=None, description="Estimated reading time in minutes")
+    thumbnail_file: FileSchema | None = Field(default=None, description="Thumbnail file if exists")
+    word_count: int | None = Field(default=None, description="Word count of content")
+    reading_time: int | None = Field(default=None, description="Estimated reading time in minutes")
 
 
 # ===========================
@@ -391,7 +390,7 @@ class FileInfo(BaseModel):
 
     # Original file info
     original_filename: str = Field(description="Original filename from local filesystem")
-    local_path: Optional[str] = Field(default=None, description="Local filesystem path")
+    local_path: str | None = Field(default=None, description="Local filesystem path")
 
     # Stored file info (slug-based)
     stored_name: str = Field(description="Slug-based filename for storage")
@@ -399,9 +398,9 @@ class FileInfo(BaseModel):
     s3_url: str = Field(description="Full S3/CDN URL")
 
     # File metadata
-    content_type: Optional[str] = Field(default=None, description="MIME type (e.g., image/png)")
-    ext: Optional[str] = Field(default=None, description="File extension without dot")
-    file_size: Optional[int] = Field(default=None, description="File size in bytes")
+    content_type: str | None = Field(default=None, description="MIME type (e.g., image/png)")
+    ext: str | None = Field(default=None, description="File extension without dot")
+    file_size: int | None = Field(default=None, description="File size in bytes")
 
     # Flags
     is_thumbnail: bool = Field(default=False, description="Whether this is the thumbnail image")
@@ -415,13 +414,13 @@ class CategoryInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     # Category identification
-    id: Optional[int] = Field(default=None, description="Category snowflake ID (if known)")
+    id: int | None = Field(default=None, description="Category snowflake ID (if known)")
     title: str = Field(description="Category name (e.g., 'technology')")
 
     # Hierarchy info
     level: int = Field(default=0, description="Hierarchy level (0 = root)")
-    parent_id: Optional[int] = Field(default=None, description="Parent category snowflake ID")
-    group_id: Optional[int] = Field(default=None, description="Root category snowflake ID")
+    parent_id: int | None = Field(default=None, description="Parent category snowflake ID")
+    group_id: int | None = Field(default=None, description="Root category snowflake ID")
 
     # Ownership
     user_id: int = Field(description="User ID who owns this category")
@@ -446,33 +445,33 @@ class ArticleMetadata(BaseModel):
     username: str = Field(description="Username for URL (@username)")
 
     # Hierarchy (for posts and comments)
-    group_id: Optional[int] = Field(default=None, description="Root post ID (self for root posts, set after creation)")
+    group_id: int | None = Field(default=None, description="Root post ID (self for root posts, set after creation)")
     level: int = Field(default=0, description="Depth: 0=post, 1=comment, 2+=nested reply")
-    parent_id: Optional[int] = Field(default=None, description="Parent ID (NULL for posts, post/comment ID for replies)")
+    parent_id: int | None = Field(default=None, description="Parent ID (NULL for posts, post/comment ID for replies)")
     priority: int = Field(default=100, description="Display order priority")
 
     # Content metadata
-    description: Optional[str] = Field(default=None, description="Article description/summary")
+    description: str | None = Field(default=None, description="Article description/summary")
     status: PostStatusEnum = Field(default=PostStatusEnum.PUBLIC, description="Post visibility")
-    date: Optional[str] = Field(default=None, description="Publication date from frontmatter")
+    date: str | None = Field(default=None, description="Publication date from frontmatter")
 
     # Categories (from folder path)
-    categories: List[str] = Field(default_factory=list, description="Category hierarchy names")
-    category_ids: List[int] = Field(default_factory=list, description="Resolved category snowflake IDs")
-    category_id: Optional[int] = Field(default=None, description="Primary (deepest) category snowflake ID")
+    categories: list[str] = Field(default_factory=list, description="Category hierarchy names")
+    category_ids: list[int] = Field(default_factory=list, description="Resolved category snowflake IDs")
+    category_id: int | None = Field(default=None, description="Primary (deepest) category snowflake ID")
 
     # Tags
-    tags: List[str] = Field(default_factory=list, description="Article tags")
+    tags: list[str] = Field(default_factory=list, description="Article tags")
 
     # Computed metadata
-    word_count: Optional[int] = Field(default=None, description="Word count of content")
-    reading_time: Optional[int] = Field(default=None, description="Estimated reading time in minutes")
+    word_count: int | None = Field(default=None, description="Word count of content")
+    reading_time: int | None = Field(default=None, description="Estimated reading time in minutes")
 
     # SEO fields
-    meta_title: Optional[str] = Field(default=None, max_length=70, description="SEO title for search results")
-    meta_description: Optional[str] = Field(default=None, max_length=170, description="SEO description for search results")
-    og_image_url: Optional[str] = Field(default=None, description="Open Graph image URL for social sharing")
-    og_image_alt: Optional[str] = Field(default=None, max_length=125, description="Open Graph image alt text")
+    meta_title: str | None = Field(default=None, max_length=70, description="SEO title for search results")
+    meta_description: str | None = Field(default=None, max_length=170, description="SEO description for search results")
+    og_image_url: str | None = Field(default=None, description="Open Graph image URL for social sharing")
+    og_image_alt: str | None = Field(default=None, max_length=125, description="Open Graph image alt text")
 
 
 
@@ -505,10 +504,10 @@ class UploadPayload(BaseModel):
     thumbnail: FileInfo = Field(description="Thumbnail image info")
 
     # Content images (optional)
-    images: List[FileInfo] = Field(default_factory=list, description="Content images")
+    images: list[FileInfo] = Field(default_factory=list, description="Content images")
 
     # Category hierarchy with full info
-    category_hierarchy: List[CategoryInfo] = Field(
+    category_hierarchy: list[CategoryInfo] = Field(
         default_factory=list,
         description="Full category hierarchy with snowflake IDs for linking"
     )
@@ -517,8 +516,8 @@ class UploadPayload(BaseModel):
     published_url: str = Field(description="Final published URL")
 
     # Processing info
-    source_file: Optional[str] = Field(default=None, description="Original markdown file path")
-    processed_at: Optional[datetime] = Field(default=None, description="Processing timestamp")
+    source_file: str | None = Field(default=None, description="Original markdown file path")
+    processed_at: datetime | None = Field(default=None, description="Processing timestamp")
 
 
 class UploadResponse(BaseModel):
@@ -528,12 +527,12 @@ class UploadResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     success: bool = Field(description="Whether upload was successful")
-    post_id: Optional[int] = Field(default=None, description="Created post ID")
-    file_ids: List[int] = Field(default_factory=list, description="Created file record IDs")
-    category_ids: List[int] = Field(default_factory=list, description="Linked category IDs")
-    tag_ids: List[int] = Field(default_factory=list, description="Created/linked tag IDs")
-    published_url: Optional[str] = Field(default=None, description="Final published URL")
-    error: Optional[str] = Field(default=None, description="Error message if failed")
+    post_id: int | None = Field(default=None, description="Created post ID")
+    file_ids: list[int] = Field(default_factory=list, description="Created file record IDs")
+    category_ids: list[int] = Field(default_factory=list, description="Linked category IDs")
+    tag_ids: list[int] = Field(default_factory=list, description="Created/linked tag IDs")
+    published_url: str | None = Field(default=None, description="Final published URL")
+    error: str | None = Field(default=None, description="Error message if failed")
 
 
 # Backward compatibility aliases

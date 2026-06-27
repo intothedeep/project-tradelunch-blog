@@ -7,7 +7,6 @@ Settings for various LLM providers (Ollama, OpenAI, Anthropic).
 
 import os
 
-
 # ==================== LLM Provider ====================
 # Options: "local" (Ollama), "openai", "anthropic"
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "local")

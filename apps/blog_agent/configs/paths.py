@@ -7,7 +7,6 @@ Project directory structure and file paths.
 
 from pathlib import Path
 
-
 # ==================== Project Paths ====================
 PROJECT_ROOT = Path(__file__).parent.parent
 POSTS_DIR = PROJECT_ROOT / "posts"

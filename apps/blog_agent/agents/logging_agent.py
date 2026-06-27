@@ -12,16 +12,18 @@
 - 작업 히스토리 표시
 """
 
-from typing import Dict, Any, List
 from datetime import datetime
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn
-from rich.tree import Tree
-from rich.live import Live
+from typing import Any
+
 from langchain_ollama import ChatOllama
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
+from rich.table import Table
+from rich.tree import Tree
+
 from llm_factory import get_shared_llm
+
 from .base import BaseAgent
 
 
@@ -42,12 +44,12 @@ class LoggingAgent(BaseAgent):
             description="Unified logging and terminal output formatting",
         )
         self.console = Console()
-        self.logs: List[Dict[str, Any]] = []
-        
+        self.logs: list[dict[str, Any]] = []
+
         # LLM for error message conversion (use shared singleton instance)
         self.llm = llm or get_shared_llm()
 
-    async def execute(self, task: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute(self, task: dict[str, Any]) -> dict[str, Any]:
         """
         작업 실행
 
@@ -123,7 +125,7 @@ class LoggingAgent(BaseAgent):
             style="bold" if status == "running" else "",
         )
 
-    def _log_final_result(self, result: Dict[str, Any]):
+    def _log_final_result(self, result: dict[str, Any]):
         """최종 결과를 패널로 출력"""
         if result.get("success", False):
             data = result.get("data", {})
@@ -131,12 +133,12 @@ class LoggingAgent(BaseAgent):
             # Build image list
             images = data.get('images', [])
             thumbnail = data.get('thumbnail')
-            
+
             image_section = ""
             if thumbnail:
                 thumb_name = thumbnail.get('local_path', '').split('/')[-1] if isinstance(thumbnail, dict) else str(thumbnail).split('/')[-1]
                 image_section += f"\n[bold]Thumbnail:[/bold]\n  📷 {thumb_name}"
-            
+
             if images:
                 image_section += f"\n\n[bold]Images ({len(images)}):[/bold]"
                 for img in images[:5]:  # Show max 5
@@ -147,18 +149,18 @@ class LoggingAgent(BaseAgent):
                         image_section += f" → [dim]{s3_url[:50]}...[/dim]"
                 if len(images) > 5:
                     image_section += f"\n  ... and {len(images) - 5} more"
-            
+
             # Build tags section
             metadata = data.get('extracted_metadata', {})
             tags = metadata.get('tags', [])
             tags_str = ', '.join(tags[:6]) if tags else 'N/A'
             if len(tags) > 6:
                 tags_str += f" (+{len(tags) - 6} more)"
-            
-            # Build categories section  
+
+            # Build categories section
             categories = data.get('categories', []) or metadata.get('categories', [])
             cat_str = ' > '.join(categories) if categories else data.get('category', 'N/A')
-            
+
             # Build post properties section
             user_id = metadata.get('user_id') or data.get('user_id', 'N/A')
             username = metadata.get('username') or data.get('username', 'N/A')
@@ -224,13 +226,14 @@ class LoggingAgent(BaseAgent):
     def _print_upload_payload(self, payload: dict):
         """Print the full upload payload as formatted JSON."""
         import json
+
         from rich.syntax import Syntax
 
         # Deep copy and truncate content for display
         display_payload = payload.copy()
         if 'content' in display_payload and len(str(display_payload.get('content', ''))) > 100:
             display_payload['content'] = str(display_payload['content'])[:100] + '...'
-        
+
         # Truncate nested content in metadata if present
         if 'metadata' in display_payload and isinstance(display_payload['metadata'], dict):
             meta = display_payload['metadata'].copy()
@@ -256,7 +259,7 @@ class LoggingAgent(BaseAgent):
         """에러 메시지 출력 (LLM으로 사용자 친화적 메시지 변환)"""
         # Try to convert error message to user-friendly format
         friendly_error = self._convert_error_message(error)
-        
+
         self.console.print(
             Panel(
                 f"[bold red]Error in {agent_name}:[/bold red]\n\n{friendly_error}",
@@ -264,7 +267,7 @@ class LoggingAgent(BaseAgent):
                 padding=(1, 2),
             )
         )
-    
+
     def _convert_error_message(self, error: str) -> str:
         """
         Use Qwen3 to convert technical error messages to user-friendly format.
@@ -273,28 +276,28 @@ class LoggingAgent(BaseAgent):
         # Skip conversion for short/simple errors
         if len(error) < 30:
             return error
-        
+
         try:
-            prompt = f"""Convert this technical error message into a simple, user-friendly explanation in 1-2 sentences. 
+            prompt = f"""Convert this technical error message into a simple, user-friendly explanation in 1-2 sentences.
 Keep it concise and actionable. If it's already clear, just rephrase slightly.
 
 Error: {error}
 
 User-friendly explanation:"""
-            
+
             response = self.llm.invoke(prompt)
             friendly = response.content.strip()
-            
+
             # Return converted message with original for reference
             if friendly and len(friendly) > 10:
                 return f"{friendly}\n\n[dim]Original: {error}[/dim]"
             return error
-            
-        except Exception as e:
+
+        except Exception:
             # Fallback to original error
             return error
 
-    def _show_task_summary(self, tasks: List[Dict[str, Any]]):
+    def _show_task_summary(self, tasks: list[dict[str, Any]]):
         """작업 목록을 테이블로 표시"""
         if not tasks:
             self.console.print("[yellow]No tasks to display[/yellow]")
@@ -329,7 +332,7 @@ User-friendly explanation:"""
 
         self.console.print(table)
 
-    def show_agent_tree(self, agents: List[Dict[str, Any]]):
+    def show_agent_tree(self, agents: list[dict[str, Any]]):
         """에이전트 구조를 트리로 표시"""
         tree = Tree("🤖 [bold]Multi-Agent System[/bold]")
 

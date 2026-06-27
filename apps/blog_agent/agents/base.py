@@ -7,9 +7,8 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
 from datetime import datetime
-import asyncio
+from typing import Any
 
 
 class BaseAgent(ABC):
@@ -22,7 +21,7 @@ class BaseAgent(ABC):
         self.created_at = datetime.now()
 
     @abstractmethod
-    async def execute(self, task: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute(self, task: dict[str, Any]) -> dict[str, Any]:
         """
         각 에이전트가 구현해야 하는 메인 실행 로직
 
@@ -40,7 +39,7 @@ class BaseAgent(ABC):
         """
         pass
 
-    async def run(self, task: Dict[str, Any]) -> Dict[str, Any]:
+    async def run(self, task: dict[str, Any]) -> dict[str, Any]:
         """
         에이전트 실행 래퍼 (상태 관리 포함)
         """
@@ -79,7 +78,7 @@ class BaseAgent(ABC):
 
         print(f"[{timestamp}] {prefix} [{self.name}] {message}")
 
-    def get_info(self) -> Dict[str, Any]:
+    def get_info(self) -> dict[str, Any]:
         """에이전트 정보 반환"""
         return {
             "name": self.name,

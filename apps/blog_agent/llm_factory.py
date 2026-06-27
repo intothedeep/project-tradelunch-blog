@@ -18,8 +18,10 @@ Usage:
     llm = create_llm(provider="anthropic")
 """
 
-from typing import Optional, Any
+from typing import Any
+
 from langchain_core.language_models import BaseChatModel
+
 import config
 
 
@@ -29,28 +31,28 @@ class LLMProviderError(Exception):
 
 
 # Singleton LLM instance storage
-_shared_llm_instance: Optional[BaseChatModel] = None
+_shared_llm_instance: BaseChatModel | None = None
 
 
 def get_shared_llm() -> BaseChatModel:
     """
     Get or create a shared LLM instance (singleton pattern).
-    
+
     All agents should use this function to share the same LLM instance,
     reducing memory usage and connection overhead.
-    
+
     Returns:
         Shared BaseChatModel instance
-        
+
     Example:
         >>> from llm_factory import get_shared_llm
         >>> llm = get_shared_llm()  # Creates or returns existing instance
     """
     global _shared_llm_instance
-    
+
     if _shared_llm_instance is None:
         _shared_llm_instance = create_llm()
-    
+
     return _shared_llm_instance
 
 
@@ -61,10 +63,10 @@ def reset_shared_llm() -> None:
 
 
 def create_llm(
-    provider: Optional[str] = None,
-    model: Optional[str] = None,
-    temperature: Optional[float] = None,
-    max_tokens: Optional[int] = None,
+    provider: str | None = None,
+    model: str | None = None,
+    temperature: float | None = None,
+    max_tokens: int | None = None,
     **kwargs: Any
 ) -> BaseChatModel:
     """
@@ -117,7 +119,7 @@ def create_llm(
 
 
 def _create_local_llm(
-    model: Optional[str] = None,
+    model: str | None = None,
     temperature: float = 0.3,
     max_tokens: int = 2048,
     **kwargs: Any
@@ -157,7 +159,7 @@ def _create_local_llm(
 
 
 def _create_openai_llm(
-    model: Optional[str] = None,
+    model: str | None = None,
     temperature: float = 0.3,
     max_tokens: int = 2048,
     **kwargs: Any
@@ -199,7 +201,7 @@ def _create_openai_llm(
 
 
 def _create_anthropic_llm(
-    model: Optional[str] = None,
+    model: str | None = None,
     temperature: float = 0.3,
     max_tokens: int = 2048,
     **kwargs: Any
@@ -271,7 +273,7 @@ def get_provider_info() -> dict[str, Any]:
 
 
 # Convenience function to test LLM connection
-async def test_llm(provider: Optional[str] = None) -> bool:
+async def test_llm(provider: str | None = None) -> bool:
     """
     Test LLM connection with a simple prompt.
 

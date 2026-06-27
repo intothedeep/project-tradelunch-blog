@@ -18,8 +18,9 @@
 """
 
 import asyncio
-from agents import DocumentScannerAgent, ExtractingAgent, UploadingAgent, AgentTask
-from schema import PostSchema, PostWithRelations, get_schema_description, generate_slug_from_title
+
+from agents import AgentTask, DocumentScannerAgent, ExtractingAgent, UploadingAgent
+from schema import PostSchema, generate_slug_from_title, get_schema_description
 
 
 async def test_document_scanner():
@@ -51,7 +52,7 @@ async def test_document_scanner():
                 category_path = ' > '.join(categories)
                 print(f"     Categories: {category_path}")
             else:
-                print(f"     Categories: (root)")
+                print("     Categories: (root)")
             print(f"     Thumbnail: {'✓' if article['thumbnail'] else '✗'}")
             print(f"     Images: {len(article['images'])}")
 
@@ -88,7 +89,7 @@ async def test_improved_extracting(article_info):
             category_path = ' > '.join(categories)
             print(f"✅ Categories: {category_path}")
         else:
-            print(f"✅ Categories: (root)")
+            print("✅ Categories: (root)")
         print(f"✅ Word count: {data['word_count']}")
         print(f"✅ Reading time: {data['reading_time']} min")
         print(f"✅ Images: {len(data.get('images', []))}")
@@ -168,7 +169,7 @@ async def test_with_llm():
     print("=" * 60)
 
     try:
-        from llm_factory import create_llm, get_provider_info
+        from llm_factory import get_provider_info
 
         # Show current LLM configuration
         info = get_provider_info()
@@ -203,7 +204,7 @@ async def test_with_llm():
 
         if result["success"]:
             data = result["data"]
-            print(f"\n✅ Generated Metadata:")
+            print("\n✅ Generated Metadata:")
             print(f"   Tags: {', '.join(data.get('tags', []))}")
             print(f"   Summary: {data.get('summary', 'N/A')[:100]}...")
             return True

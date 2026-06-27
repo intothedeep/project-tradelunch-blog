@@ -11,8 +11,9 @@ Tests:
 
 import asyncio
 import os
-from llm_factory import create_llm, get_provider_info, LLMProviderError
-from agents import ExtractingAgent, AgentTask
+
+from agents import AgentTask, ExtractingAgent
+from llm_factory import LLMProviderError, create_llm, get_provider_info
 
 
 async def test_provider(provider_name: str, api_key_env: str = None):
@@ -81,7 +82,7 @@ async def test_extracting_agent_with_llm(provider_name: str = None):
 
     if result["success"]:
         data = result["data"]
-        print(f"\n✅ Extraction successful!")
+        print("\n✅ Extraction successful!")
         print(f"   Title: {data.get('title')}")
         print(f"   Tags: {', '.join(data.get('tags', []))}")
         print(f"   Description: {data.get('description', '')[:100]}...")
@@ -99,7 +100,7 @@ async def main():
 
     # Show current configuration
     info = get_provider_info()
-    print(f"\nCurrent Configuration:")
+    print("\nCurrent Configuration:")
     print(f"  Provider: {info['provider']}")
     print(f"  Model: {info.get('model', 'N/A')}")
     print(f"  Temperature: {info['temperature']}")

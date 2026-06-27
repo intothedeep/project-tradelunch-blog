@@ -5,7 +5,7 @@
   "scripts": {
     "start": "uv run python cli_multi_agent.py",
     "test": "uv run pytest",
-    "lint": "uv run ruff check .",
+    "lint": "uvx ruff check .",
     "check-types": "uv run mypy agents configs db utils"
   }
 }
