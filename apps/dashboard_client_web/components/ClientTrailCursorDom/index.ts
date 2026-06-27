@@ -1,1 +1,1 @@
-export { ClientTrailCursorDom } from "./ClientTrailCursorDom";
+export { ClientTrailCursorDom } from './ClientTrailCursorDom';

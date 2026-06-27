@@ -22,6 +22,10 @@ export const itemOHLCHistorySchema = z.object({
 export type ItemOHLCHistory = z.infer<typeof itemOHLCHistorySchema>;
 
 // Bidirectional structural-equality guard (compile-time only).
-type AssertEqual<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
+type AssertEqual<A, B> = [A] extends [B]
+    ? [B] extends [A]
+        ? true
+        : never
+    : never;
 const _historyAligns: AssertEqual<ItemOHLCHistory, IItemOHLCHistory> = true;
 void _historyAligns;

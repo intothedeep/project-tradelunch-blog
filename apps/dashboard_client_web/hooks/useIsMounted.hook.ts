@@ -1,6 +1,6 @@
 import { pluckFirst, useObservable, useSubscription } from 'observable-hooks';
 import { useEffect, useState } from 'react';
-import { fromEvent, map, NEVER, share, switchMap } from 'rxjs';
+import { fromEvent, NEVER, share, switchMap } from 'rxjs';
 
 export const useIsMounted = () => {
     const [isMounted, setIsMounted] = useState(false);

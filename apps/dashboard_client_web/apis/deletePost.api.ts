@@ -6,10 +6,7 @@
 import axios_instance from '@/apis/axios_instance';
 import { toApiError } from '@/utils/apiError.util';
 
-export async function deletePost(
-    token: string,
-    postId: number
-): Promise<void> {
+export async function deletePost(token: string, postId: number): Promise<void> {
     try {
         await axios_instance.delete<unknown, void>(`/v1/api/posts/${postId}`, {
             headers: { Authorization: `Bearer ${token}` },

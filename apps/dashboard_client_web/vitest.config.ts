@@ -4,12 +4,12 @@
 // Aliases mirror tsconfig paths so @/* resolves to the app root.
 // Not wired into turbo or CI — standalone via `pnpm test`.
 
-import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
-import { resolve } from 'path'
-import { fileURLToPath } from 'url'
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+import { resolve } from 'path';
+import { fileURLToPath } from 'url';
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url))
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
     plugins: [react()],
@@ -24,4 +24,4 @@ export default defineConfig({
             { find: /^@\//, replacement: resolve(__dirname, '') + '/' },
         ],
     },
-})
+});

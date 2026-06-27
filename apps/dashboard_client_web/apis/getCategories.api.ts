@@ -1,10 +1,7 @@
 // apis/getCategories.api.ts
 
 import axios_instance from '@/apis/axios_instance';
-import {
-    TCategoryTreeResponse,
-    TTreeNodeWithChildren,
-} from '@repo/types';
+import { TCategoryTreeResponse, TTreeNodeWithChildren } from '@repo/types';
 
 // export type TCategory = {
 //     id: number;

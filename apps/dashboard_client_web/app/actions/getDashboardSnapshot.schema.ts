@@ -50,6 +50,11 @@ export const dashboardSnapshotSchema = z.object({
 export type DashboardSnapshot = z.infer<typeof dashboardSnapshotSchema>;
 
 // Bidirectional structural-equality guard (compile-time only).
-type AssertEqual<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
-const _snapshotAligns: AssertEqual<DashboardSnapshot, IDashboardSnapshot> = true;
+type AssertEqual<A, B> = [A] extends [B]
+    ? [B] extends [A]
+        ? true
+        : never
+    : never;
+const _snapshotAligns: AssertEqual<DashboardSnapshot, IDashboardSnapshot> =
+    true;
 void _snapshotAligns;
