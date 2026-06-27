@@ -159,3 +159,41 @@ export interface TLikeToggleResponse {
     liked: boolean;
     likeCount: number;
 }
+
+// ---------------------------------------------------------------------------
+// Threaded comments contract (Phase E — Option C: materialized BIGINT[] path,
+// UNLIMITED depth). The list is a FLAT pre-order array (ordered by `path`); the
+// client builds indentation from `depth`. Snowflake ids are STRINGS end-to-end;
+// never Number()/parseInt them. A tombstoned comment masks its body to
+// "[deleted]" at READ and sets isDeleted (the original stays in the DB).
+// ---------------------------------------------------------------------------
+
+export interface TComment {
+    id: string;
+    postId: string;
+    userId: string;
+    parentId: string | null;
+    // Self-inclusive materialized path (path = parent.path || id); depth =
+    // path.length - 1 (0 = top-level). Strings: Snowflake ids never Number()-ed.
+    path: string[];
+    depth: number;
+    // "[deleted]" when isDeleted (tombstone); the original body stays in the DB.
+    body: string;
+    // Author username; omitted/undefined for a tombstoned comment.
+    authorName?: string;
+    createdAt: string;
+    isDeleted: boolean;
+}
+
+// GET /v1/api/posts/:postId/comments → { success, data: TCommentListResponse }
+// Flat pre-order array; the client nests by depth/parentId.
+export interface TCommentListResponse {
+    comments: TComment[];
+}
+
+// POST /v1/api/posts/:postId/comments body. body is PLAIN TEXT (not markdown);
+// parentId nests a reply under an existing comment on the same post.
+export interface TCommentCreateRequest {
+    body: string;
+    parentId?: string | null;
+}
