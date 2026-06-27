@@ -1,14 +1,12 @@
 import { z } from 'zod';
-import dotenv from 'dotenv';
-import path from 'path';
 
-const dotenv_path = path.resolve(process.cwd(), '.env');
-dotenv.config({ path: dotenv_path });
-
-if (process.env.NODE_ENV == 'production') {
-    // Load .env.production to override any variables from .env
-    dotenv.config({ path: path.resolve(process.cwd(), '.env.production'), override: true });
-}
+// NOTE: do NOT call dotenv.config()/process.cwd() here. This module is
+// isomorphic — it is pulled into the CLIENT bundle via axios_instance →
+// apis/*.api.ts → client query hooks (e.g. useFavorites). dotenv reads
+// process.stdout.isTTY, which is undefined in the browser and throws,
+// crashing client module evaluation. Next.js already injects .env / .env.*
+// (and NEXT_PUBLIC_* are inlined at build time), so dotenv is redundant.
+// Read process.env directly; zod defaults cover anything unset on the client.
 
 const envSchema = z.object({
     NODE_ENV: z
