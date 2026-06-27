@@ -24,8 +24,13 @@ const envSchema = z.object({
     NEXT_PUBLIC_API_BASE: z
         .string()
         .url()
-        .default('http://localhost:4000')
-        .catch('http://localhost:4000'),
+        // Default/catch to the PROD backend (mirrors NEXT_PUBLIC_CDN_ASSETS below).
+        // Public hosts default to prod so an unset/invalid Vercel env can never
+        // bake `localhost:4000` into the client bundle (favorites etc. → CONN
+        // REFUSED). Local dev overrides via `.env.local` (NEXT_PUBLIC_API_BASE=
+        // http://localhost:4000). Repoint to a custom api domain once one exists.
+        .default('https://project-tradelunch-blog-server.vercel.app')
+        .catch('https://project-tradelunch-blog-server.vercel.app'),
     NEXT_PUBLIC_CDN_ASSETS: z
         .string()
         .url()
