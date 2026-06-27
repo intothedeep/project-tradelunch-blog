@@ -340,3 +340,19 @@ CREATE TABLE if not exists market_history (
 );
 
 CREATE INDEX IF NOT EXISTS idx_market_history_label_interval ON market_history(label, interval, bar_time);
+
+
+-- ===========================
+-- POST_FAVORITES TABLE
+-- Per-user blog post favorites (Phase 2 — post-card Save persistence).
+-- Composite PK (user_id, post_id) dedupes; insert uses ON CONFLICT DO NOTHING.
+-- post_id is a Snowflake BIGINT — read as a STRING end-to-end.
+-- ===========================
+CREATE TABLE IF NOT EXISTS post_favorites (
+    user_id     BIGINT NOT NULL REFERENCES users(id),
+    post_id     BIGINT NOT NULL REFERENCES posts(id),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, post_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_post_favorites_user ON post_favorites(user_id);

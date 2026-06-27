@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState, useTransition } from 'react';
 import { cn } from '@/lib/utils';
 
 import { type TPost } from '@/apis/blog.types';
-import { RecentPostCard } from '@/app/blog/components/RecentPostCard.server';
+import { RecentPostCard } from '@/app/blog/components/RecentPostCard.client';
 
 type Props = {
     username: string;
@@ -63,19 +63,14 @@ export const RecentPostsListClient: React.FC<Props> = (props) => {
             className={cn(
                 'reacent-post-list-container',
                 'space-y-3 sm:space-y-4'
-                // 'flex flex-col items-center flex-1'
             )}
         >
-            {posts.map((post, idx) => {
+            {posts.map((post) => {
                 return (
                     <RecentPostCard
-                        key={idx}
+                        key={post.id}
                         post={post}
                         cdnBaseUrl={cdnURL}
-                        // onUpvote={() => onUpvote?.(idx)}
-                        // onDownvote={() => onDownvote?.(idx)}
-                        // onCommentClick={() => onCommentClick?.(idx)}
-                        // onShare={() => onShare?.(idx)}
                     />
                 );
             })}
@@ -95,9 +90,6 @@ export const RecentPostsListClient: React.FC<Props> = (props) => {
             )}
 
             {!hasMore && posts.length > 0 && (
-                // <p className="py-8 text-center text-sm text-muted-foreground">
-                //     No more posts
-                // </p>
                 <div className="text-center py-6 sm:py-8 text-muted-foreground">
                     <p className="text-xs sm:text-sm font-mono">
                         <span className="animate-pulse">▋</span> No more posts

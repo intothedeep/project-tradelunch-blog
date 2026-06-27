@@ -40,7 +40,10 @@ export const PostContentHeader: React.FC<Props> = ({
                     )}
 
                     {username ? (
-                        <Link href={`/blog/@${username}`}>
+                        <Link
+                            href={`/blog/@${username}`}
+                            className="relative z-10"
+                        >
                             <span>{bylineLabel.toLocaleUpperCase()}</span>
                         </Link>
                     ) : (

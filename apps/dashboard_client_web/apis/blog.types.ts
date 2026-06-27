@@ -50,7 +50,7 @@
 // };
 
 export type TPost = {
-    id?: number;
+    id: string;
     content?: string;
     title: string;
     description?: string;

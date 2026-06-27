@@ -4,6 +4,7 @@ import posts from "./posts";
 import dashboard from "./dashboard";
 import users from "./users";
 import admin from "./admin";
+import favorites from "./favorites";
 
 export const router = Router();
 
@@ -12,6 +13,7 @@ router.use("/api/posts", posts);
 router.use("/api/dashboard", dashboard);
 router.use("/api/users", users);
 router.use("/api/admin", admin);
+router.use("/api/favorites", favorites);
 // router.use("/accounts", require("./accounts"));
 // router.use("/auth", require("./auth"));
 // router.use("/chat", require("./chat"));

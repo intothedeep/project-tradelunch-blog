@@ -126,3 +126,19 @@ export interface TAdminPostListResponse {
 export interface TAdminPostStatusInput {
     status: TPostStatus;
 }
+
+// ---------------------------------------------------------------------------
+// Post favorites contract (Phase 2 — blog post-card Save persistence).
+// Snowflake post ids are STRINGS end-to-end; never Number()/parseInt them.
+// ---------------------------------------------------------------------------
+
+// GET /v1/api/favorites → { success, data: TFavoritesResponse }
+export interface TFavoritesResponse {
+    postIds: string[];
+}
+
+// POST/DELETE /v1/api/favorites/:postId → { success, data: TFavoriteToggleResponse }
+export interface TFavoriteToggleResponse {
+    postId: string;
+    favorited: boolean;
+}
