@@ -59,7 +59,9 @@ export async function listAllPosts(
 ): Promise<TListResult> {
     const fetchLimit = limit + 1;
     const startCursor =
-        cursor && /^\d+$/.test(cursor) ? cursor : MAX_CURSOR;
+        cursor && /^\d+$/.test(cursor) && Number(cursor) > 0
+            ? cursor
+            : MAX_CURSOR;
 
     const { rows } = await db.query<TRawListRow>(
         `SELECT p.id, p.user_id, u.username, p.slug, p.title, p.status,

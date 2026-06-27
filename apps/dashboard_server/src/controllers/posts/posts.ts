@@ -30,10 +30,11 @@ router.get(
         res
     ) => {
         try {
+            const rawCursor =
+                typeof req.query.cursor === 'string' ? req.query.cursor : '';
             const cursorParam =
-                typeof req.query.cursor === 'string' &&
-                /^\d+$/.test(req.query.cursor)
-                    ? req.query.cursor
+                /^\d+$/.test(rawCursor) && Number(rawCursor) > 0
+                    ? rawCursor
                     : '9223372036854775807';
             const limit = parseInt(req.query.limit || '10', 10);
 
@@ -155,10 +156,11 @@ router.get(
     ) => {
         try {
             const { username } = req.params;
+            const rawCursor =
+                typeof req.query.cursor === 'string' ? req.query.cursor : '';
             const cursorParam =
-                typeof req.query.cursor === 'string' &&
-                /^\d+$/.test(req.query.cursor)
-                    ? req.query.cursor
+                /^\d+$/.test(rawCursor) && Number(rawCursor) > 0
+                    ? rawCursor
                     : '9223372036854775807';
             const limit = parseInt(req.query.limit || '10', 10);
 
@@ -543,10 +545,11 @@ router.get(
     ) => {
         try {
             const { username, categoryId } = req.params;
+            const rawCursor =
+                typeof req.query.cursor === 'string' ? req.query.cursor : '';
             const cursorParam =
-                typeof req.query.cursor === 'string' &&
-                /^\d+$/.test(req.query.cursor)
-                    ? req.query.cursor
+                /^\d+$/.test(rawCursor) && Number(rawCursor) > 0
+                    ? rawCursor
                     : '9223372036854775807';
             const limit = Math.min(parseInt(req.query.limit || '10', 10), 50);
             const fetchLimit = limit + 1;

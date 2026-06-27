@@ -15,7 +15,7 @@ export const RecentPostsList: React.FC<RecentPostsListProps> = async ({
     username,
     cdnBaseUrl = '',
 }) => {
-    const { posts, nextCursor, hasMore } = await loadMorePosts(0, 10, username);
+    const { posts, nextCursor, hasMore } = await loadMorePosts(undefined, 10, username);
 
     if (posts.length === 0) {
         return (

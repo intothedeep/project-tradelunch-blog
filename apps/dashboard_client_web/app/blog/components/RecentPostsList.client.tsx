@@ -9,7 +9,7 @@ import { RecentPostCard } from '@/app/blog/components/RecentPostCard.server';
 type Props = {
     username: string;
     initialPosts: TPost[];
-    initialCursor: number | null;
+    initialCursor: string | null;
     initialHasMore: boolean;
     cdnURL: string;
 };
@@ -19,7 +19,7 @@ export const RecentPostsListClient: React.FC<Props> = (props) => {
         props;
 
     const [posts, setPosts] = useState(initialPosts);
-    const [cursor, setCursor] = useState<number | null>(initialCursor);
+    const [cursor, setCursor] = useState<string | null>(initialCursor);
     const [hasMore, setHasMore] = useState(initialHasMore);
     const [isPending, startTransition] = useTransition();
 

@@ -3,7 +3,7 @@ import { TPaginatedResponse } from '@/apis/blog.types';
 import axios_instance from '@/apis/axios_instance';
 
 export async function getBlogPostsByUsername(
-    cursor: number = 0,
+    cursor: string | number = 0,
     limit: number = 10,
     username: string = ''
 ): Promise<TPaginatedResponse> {
@@ -13,7 +13,7 @@ export async function getBlogPostsByUsername(
             : `/v1/api/posts`;
 
         const response = await axios_instance.get<TPaginatedResponse>(url, {
-            params: { cursor, limit },
+            params: { ...(cursor ? { cursor } : {}), limit },
             headers: {
                 // 'Cache-Control':
                 //     'no-store, no-cache, must-revalidate, proxy-revalidate',

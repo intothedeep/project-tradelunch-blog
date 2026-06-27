@@ -4,7 +4,7 @@ import { getBlogPostsByUsername } from '@/apis/getPosts.api';
 
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
-    const cursor = Number(searchParams.get('cursor')) || 0;
+    const cursor = searchParams.get('cursor') ?? undefined;
     const limit = Number(searchParams.get('limit')) || 10;
     const username = searchParams.get('username') || '';
 

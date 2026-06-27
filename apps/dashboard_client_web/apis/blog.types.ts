@@ -88,6 +88,6 @@ export interface RecentPost extends TPost {
 export type TPaginatedResponse = {
     success: boolean;
     posts: TPost[];
-    nextCursor: number | null;
+    nextCursor: string | null;
     hasMore: boolean;
 };

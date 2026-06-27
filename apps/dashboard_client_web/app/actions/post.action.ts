@@ -4,7 +4,7 @@
 import { getBlogPostsByUsername } from '@/apis/getPosts.api';
 
 export async function loadMorePosts(
-    cursor: number,
+    cursor: string | undefined,
     limit: number,
     username: string
 ) {

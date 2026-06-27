@@ -25,7 +25,8 @@ router.get('/', requireAdmin, async (req: Request, res: Response) => {
     try {
         const rawCursor =
             typeof req.query.cursor === 'string' ? req.query.cursor : '';
-        const cursor = /^\d+$/.test(rawCursor) ? rawCursor : null;
+        const cursor =
+            /^\d+$/.test(rawCursor) && Number(rawCursor) > 0 ? rawCursor : null;
 
         const rawLimit = parseInt(String(req.query.limit ?? ''), 10);
         const limit = Math.min(
