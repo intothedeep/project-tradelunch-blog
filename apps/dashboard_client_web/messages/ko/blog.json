@@ -1,3 +1,23 @@
 {
-    "ping": "퐁"
+    "ping": "퐁",
+    "comments": {
+        "heading": "{count, plural, =0 {댓글} other {댓글 #개}}",
+        "empty": "아직 댓글이 없습니다 — 첫 댓글을 남겨보세요.",
+        "loadError": "댓글을 불러오지 못했습니다.",
+        "retry": "다시 시도",
+        "continueThread": "스레드 계속 보기 →",
+        "composerLabel": "댓글 작성",
+        "composerPlaceholder": "댓글을 입력하세요…",
+        "replyPlaceholder": "답글을 입력하세요…",
+        "replyingTo": "{name}님에게 답글",
+        "post": "등록",
+        "posting": "등록 중…",
+        "reply": "답글",
+        "cancel": "취소",
+        "delete": "삭제",
+        "deleteConfirmTitle": "이 댓글을 삭제할까요?",
+        "deleteConfirmBody": "여기서는 되돌릴 수 없습니다.",
+        "deleted": "[삭제됨]",
+        "signInToComment": "로그인하고 댓글 작성"
+    }
 }

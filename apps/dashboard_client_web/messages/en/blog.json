@@ -2,5 +2,25 @@
     "ping": "pong",
     "nav": {
         "category": "CATEGORY"
+    },
+    "comments": {
+        "heading": "{count, plural, =0 {Comments} one {# Comment} other {# Comments}}",
+        "empty": "No comments yet — be the first to comment.",
+        "loadError": "Couldn't load comments.",
+        "retry": "Retry",
+        "continueThread": "Continue thread →",
+        "composerLabel": "Write a comment",
+        "composerPlaceholder": "Add a comment…",
+        "replyPlaceholder": "Write a reply…",
+        "replyingTo": "Replying to {name}",
+        "post": "Post",
+        "posting": "Posting…",
+        "reply": "Reply",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "deleteConfirmTitle": "Delete this comment?",
+        "deleteConfirmBody": "This can't be undone here.",
+        "deleted": "[deleted]",
+        "signInToComment": "Sign in to comment"
     }
 }

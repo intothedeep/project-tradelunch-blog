@@ -1,6 +1,7 @@
 import { getPostBySlug } from '@/apis/getPost.api';
 import { PostContentHeader } from '@/app/blog/components/PostContentHeader.server';
 import { LikeButton } from '@/app/blog/components/post-card-actions/LikeButton.client';
+import { Comments } from '@/app/blog/components/comments/Comments.server';
 import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer.server';
 import { OwnerEditButton } from '@/components/blog/OwnerEditButton.client';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -47,6 +48,12 @@ export const PostContentCard = async ({
                         initialLikeCount={post.likeCount ?? 0}
                     />
                 </div>
+
+                {/* Threaded comments (public read; write requires auth) */}
+                <Comments
+                    postId={post.id}
+                    ownerUsername={ownerUsername}
+                />
             </CardContent>
         </Card>
     );
