@@ -105,8 +105,9 @@ router.get(
                         WHERE pl.post_id = ranked_posts.id
                           AND pl.user_id = $3
                     ) AS "viewerLiked",
-                    -- comment_count: 0 until Comments feature (C5 folds it in)
-                    0 AS "commentCount"
+                    (SELECT COUNT(*)::int FROM comments cc
+                      WHERE cc.post_id = ranked_posts.id
+                        AND cc.deleted_at IS NULL) AS "commentCount"
                 FROM ranked_posts
                 WHERE rn = 1
                 ORDER BY id DESC
@@ -248,8 +249,9 @@ router.get(
                         WHERE pl.post_id = ranked_posts.id
                           AND pl.user_id = $4
                     ) AS "viewerLiked",
-                    -- comment_count: 0 until Comments feature (C5 folds it in)
-                    0 AS "commentCount"
+                    (SELECT COUNT(*)::int FROM comments cc
+                      WHERE cc.post_id = ranked_posts.id
+                        AND cc.deleted_at IS NULL) AS "commentCount"
                 FROM ranked_posts
                 WHERE rn = 1
                 ORDER BY id DESC
@@ -320,8 +322,9 @@ router.get('/:postid', optionalAuth, async (req, res) => {
                     SELECT 1 FROM post_likes pl
                     WHERE pl.post_id = p.id AND pl.user_id = $2
                 ) AS "viewerLiked",
-                -- comment_count: 0 until Comments feature (C5 folds it in)
-                0 AS "commentCount"
+                (SELECT COUNT(*)::int FROM comments cc
+                  WHERE cc.post_id = p.id
+                    AND cc.deleted_at IS NULL) AS "commentCount"
              FROM posts p
              WHERE p.id = $1
                AND p.deleted_at IS NULL
@@ -385,8 +388,9 @@ router.get('/slug/:slug', optionalAuth, async (req, res) => {
                     SELECT 1 FROM post_likes pl
                     WHERE pl.post_id = p.id AND pl.user_id = $${viewerParamIndex}
                 ) AS "viewerLiked",
-                -- comment_count: 0 until Comments feature (C5 folds it in)
-                0 AS "commentCount"
+                (SELECT COUNT(*)::int FROM comments cc
+                  WHERE cc.post_id = p.id
+                    AND cc.deleted_at IS NULL) AS "commentCount"
 			FROM
                 posts p
                 INNER JOIN users u ON p.user_id = u.id
