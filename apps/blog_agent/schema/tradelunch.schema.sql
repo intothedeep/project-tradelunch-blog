@@ -361,3 +361,24 @@ CREATE INDEX IF NOT EXISTS idx_post_favorites_user ON post_favorites(user_id);
 -- Additive; the existing idx_post_favorites_user (user_id) is KEPT.
 CREATE INDEX IF NOT EXISTS idx_post_favorites_user_created
     ON post_favorites (user_id, created_at DESC);
+
+
+-- ===========================
+-- POST_LIKES TABLE
+-- Per-user blog post LIKES (Phase E — public like count). A like is a PUBLIC
+-- approval signal: aggregate COUNT(*) visible to everyone + a per-viewer
+-- "did I like this" boolean. Distinct from post_favorites (private bookmark).
+-- Composite PK (user_id, post_id) dedupes; insert uses ON CONFLICT DO NOTHING.
+-- post_id is a Snowflake BIGINT — read as a STRING end-to-end.
+-- Like count is a LIVE COUNT(*) (no denormalized counter), served by
+-- idx_post_likes_post. FK ON DELETE: NO ACTION, matching post_favorites for
+-- cross-table consistency (db-structure-audit Issue #3).
+-- ===========================
+CREATE TABLE IF NOT EXISTS post_likes (
+    user_id     BIGINT NOT NULL REFERENCES users(id),
+    post_id     BIGINT NOT NULL REFERENCES posts(id),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, post_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_post_likes_post ON post_likes(post_id);
