@@ -356,3 +356,8 @@ CREATE TABLE IF NOT EXISTS post_favorites (
 );
 
 CREATE INDEX IF NOT EXISTS idx_post_favorites_user ON post_favorites(user_id);
+
+-- 0007: index the saved-posts list order (user_id + created_at DESC).
+-- Additive; the existing idx_post_favorites_user (user_id) is KEPT.
+CREATE INDEX IF NOT EXISTS idx_post_favorites_user_created
+    ON post_favorites (user_id, created_at DESC);
