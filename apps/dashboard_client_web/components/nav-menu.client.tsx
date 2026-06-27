@@ -141,6 +141,9 @@ export function NavMenu({
                             <DropdownMenuItem asChild>
                                 <Link href="/me">{t('nav.myDrafts')}</Link>
                             </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link href="/me/saved">{t('nav.saved')}</Link>
+                            </DropdownMenuItem>
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onSelect={() => openUserProfile()}>

@@ -59,6 +59,17 @@
         "loadError": "Failed to load drafts.",
         "untitled": "UNTITLED"
     },
+    "saved": {
+        "heading": "Saved posts",
+        "searchLabel": "Search saved posts",
+        "searchPlaceholder": "Search saved posts…",
+        "clearSearch": "Clear search",
+        "emptyTitle": "No saved posts yet",
+        "emptyCta": "Browse posts →",
+        "noResults": "No saved posts match \"{query}\"",
+        "loadError": "Couldn't load saved posts.",
+        "loadMore": "Load more"
+    },
     "a11y": {
         "title": "title",
         "status": "status",
@@ -75,6 +86,7 @@
     "nav": {
         "write": "Write",
         "myDrafts": "My drafts",
+        "saved": "Saved",
         "writeHeader": "WRITE"
     }
 }
