@@ -1,25 +1,38 @@
 // components/write/PostSettings.client.tsx
 // Purpose: collapsible "post settings" panel for the editor. Holds an editable
-// slug field (empty = auto-generated from title on save) and slots extra
-// controls (e.g. a post-publish "view live" link) via children.
+// slug field (empty = auto-generated from title on save), a thumbnail picker,
+// and slots extra controls (e.g. a post-publish "view live" link) via children.
 // Constraints: client-only, presentational. Owns only its open/closed flag; the
-// slug value is a controlled prop lifted to MarkdownEditor.
+// slug + thumbnail values are controlled props lifted to MarkdownEditor.
 
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState, type ChangeEvent, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
+import { ThumbnailPicker } from '@/components/write/ThumbnailPicker.client';
 
 interface PostSettingsProps {
     slug: string;
     onSlugChange: (slug: string) => void;
+    thumbnailUrl: string | null;
+    onPickThumbnail: (e: ChangeEvent<HTMLInputElement>) => void;
+    onClearThumbnail: () => void;
+    isThumbnailUploading: boolean;
+    isStorageDisabled: boolean;
+    thumbnailError: string | null;
     children?: ReactNode;
 }
 
 export function PostSettings({
     slug,
     onSlugChange,
+    thumbnailUrl,
+    onPickThumbnail,
+    onClearThumbnail,
+    isThumbnailUploading,
+    isStorageDisabled,
+    thumbnailError,
     children,
 }: PostSettingsProps) {
     const t = useTranslations('write');
@@ -55,6 +68,14 @@ export function PostSettings({
                 <p className="mt-1 text-[0.65rem] text-muted-foreground">
                     {t('settings.slugHint')}
                 </p>
+                <ThumbnailPicker
+                    thumbnailUrl={thumbnailUrl}
+                    onPick={onPickThumbnail}
+                    onClear={onClearThumbnail}
+                    isUploading={isThumbnailUploading}
+                    isStorageDisabled={isStorageDisabled}
+                    error={thumbnailError}
+                />
                 {children}
             </div>
         </div>

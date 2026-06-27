@@ -31,6 +31,10 @@ const EMPTY_INPUT: TPostInput = {
 
 export interface EditorSeed {
     initial: TPostInput | null;
+    // Stored thumbnail public URL for an existing post (the files.is_thumbnail
+    // row, surfaced as post.stored_uri by the read API). Null for a new post or
+    // a post without a thumbnail.
+    thumbnailUrl: string | null;
     isLoading: boolean;
 }
 
@@ -65,5 +69,11 @@ export function useEditorSeed(postId: number | null): EditorSeed {
         return toEditorInput(post);
     }, [isEdit, post]);
 
-    return { initial, isLoading: isEdit ? isLoading : false };
+    const thumbnailUrl = isEdit ? (post?.stored_uri ?? null) : null;
+
+    return {
+        initial,
+        thumbnailUrl,
+        isLoading: isEdit ? isLoading : false,
+    };
 }

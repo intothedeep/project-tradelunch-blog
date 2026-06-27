@@ -17,7 +17,13 @@
         "title": "글 설정",
         "slugHint": "비워두면 제목에서 자동 생성됩니다",
         "slugLabel": "슬러그",
-        "slugPlaceholder": "제목에서-자동-생성됩니다"
+        "slugPlaceholder": "제목에서-자동-생성됩니다",
+        "thumbnailLabel": "썸네일",
+        "thumbnailHint": "글의 대표 이미지로 표시됩니다",
+        "thumbnailPick": "썸네일 선택",
+        "thumbnailReplace": "썸네일 교체",
+        "thumbnailUploading": "업로드 중...",
+        "thumbnailClear": "지우기"
     },
     "editor": {
         "publishConfirm": "이 글을 공개로 발행할까요? 모두에게 보입니다.",
@@ -60,7 +66,8 @@
         "content": "본문",
         "slug": "슬러그",
         "preview": "미리보기",
-        "editorView": "에디터 보기"
+        "editorView": "에디터 보기",
+        "thumbnailPreview": "썸네일 미리보기"
     },
     "ownerEdit": {
         "edit": "수정"

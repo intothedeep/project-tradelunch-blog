@@ -17,7 +17,13 @@
         "title": "POST SETTINGS",
         "slugHint": "empty = auto-generated from title",
         "slugLabel": "slug",
-        "slugPlaceholder": "auto-generated-from-title"
+        "slugPlaceholder": "auto-generated-from-title",
+        "thumbnailLabel": "thumbnail",
+        "thumbnailHint": "shown as the post cover image",
+        "thumbnailPick": "PICK THUMBNAIL",
+        "thumbnailReplace": "REPLACE THUMBNAIL",
+        "thumbnailUploading": "UPLOADING...",
+        "thumbnailClear": "CLEAR"
     },
     "editor": {
         "publishConfirm": "이 글을 공개로 발행할까요? 모두에게 보입니다.",
@@ -60,7 +66,8 @@
         "content": "content",
         "slug": "slug",
         "preview": "preview",
-        "editorView": "editor view"
+        "editorView": "editor view",
+        "thumbnailPreview": "thumbnail preview"
     },
     "ownerEdit": {
         "edit": "Edit"

@@ -46,6 +46,12 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
     const [description, setDescription] = useState('');
     const [status, setStatus] = useState<TPostStatus>('draft');
     const [slug, setSlug] = useState('');
+    // Author-chosen thumbnail public URL (reuses the image-upload pipeline).
+    // Null = no thumbnail. NOTE: persisting this through the post create/update
+    // flow needs a backend thumbnail field (files.is_thumbnail writer) that the
+    // owner-scoped authoring API does not yet expose, so the selection lives in
+    // editor state and preview only for now.
+    const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
     // Slug of the most recent successful public save, used to surface a
     // "view live" link. Null until a public save lands.
     const [liveSlug, setLiveSlug] = useState<string | null>(null);
@@ -59,6 +65,7 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const image = useImageUpload();
+    const thumbnail = useImageUpload();
     const composition = useComposition();
     const createPost = useCreatePost();
     const updatePost = useUpdatePost();
@@ -76,8 +83,9 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
         setStatus(
             ALLOWED_SEED_STATUS.has(seededStatus) ? seededStatus : 'private'
         );
+        setThumbnailUrl(seed.thumbnailUrl);
         setIsSeeded(true);
-    }, [isSeeded, seed.isLoading, seed.initial]);
+    }, [isSeeded, seed.isLoading, seed.initial, seed.thumbnailUrl]);
 
     const draftInput: TPostInput = {
         title,
@@ -120,6 +128,18 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
         const url = await image.upload(file);
         if (url) insertAtCursor(`![${file.name}](${url})`);
     };
+
+    // Reuse the existing image-upload pipeline for the thumbnail: a picked file
+    // is uploaded to Supabase Storage and its public URL becomes the preview.
+    const handleThumbnailPick = async (e: ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        const url = await thumbnail.upload(file);
+        if (url) setThumbnailUrl(url);
+    };
+
+    const handleClearThumbnail = () => setThumbnailUrl(null);
 
     const handleSave = async () => {
         // Publishing is irreversible-feeling for the author: confirm before a
@@ -199,6 +219,12 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
                 <PostSettings
                     slug={slug}
                     onSlugChange={setSlug}
+                    thumbnailUrl={thumbnailUrl}
+                    onPickThumbnail={handleThumbnailPick}
+                    onClearThumbnail={handleClearThumbnail}
+                    isThumbnailUploading={thumbnail.isUploading}
+                    isStorageDisabled={thumbnail.isStorageDisabled}
+                    thumbnailError={thumbnail.error}
                 >
                     {status === 'public' && user?.username && liveSlug && (
                         <Link
