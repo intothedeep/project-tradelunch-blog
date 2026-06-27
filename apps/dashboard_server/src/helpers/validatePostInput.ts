@@ -35,7 +35,8 @@ export function validatePostInput(body: unknown): TValidatePostInputResult {
         return { ok: false, reason: 'body must be an object' };
     }
 
-    const { title, content, description, categoryId, status, slug } = body;
+    const { title, content, description, categoryId, status, slug, thumbnailUrl } =
+        body;
 
     if (status !== undefined && !VALID_STATUSES.has(status as TPostStatus)) {
         return { ok: false, reason: 'status is invalid' };
@@ -71,6 +72,15 @@ export function validatePostInput(body: unknown): TValidatePostInputResult {
         return { ok: false, reason: 'slug must be a string' };
     }
 
+    // Tri-state thumbnail: undefined = untouched, null = clear, string = set.
+    if (
+        thumbnailUrl !== undefined &&
+        thumbnailUrl !== null &&
+        typeof thumbnailUrl !== 'string'
+    ) {
+        return { ok: false, reason: 'thumbnailUrl must be a string or null' };
+    }
+
     const value: TPostInput = {
         title: trimmedTitle,
         ...(content !== undefined ? { content } : {}),
@@ -80,6 +90,9 @@ export function validatePostInput(body: unknown): TValidatePostInputResult {
             : {}),
         ...(status !== undefined ? { status: status as TPostStatus } : {}),
         ...(slug !== undefined ? { slug } : {}),
+        ...(thumbnailUrl !== undefined
+            ? { thumbnailUrl: thumbnailUrl as string | null }
+            : {}),
     };
 
     return { ok: true, value };

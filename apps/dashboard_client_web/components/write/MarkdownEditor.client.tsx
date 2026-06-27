@@ -47,10 +47,9 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
     const [status, setStatus] = useState<TPostStatus>('draft');
     const [slug, setSlug] = useState('');
     // Author-chosen thumbnail public URL (reuses the image-upload pipeline).
-    // Null = no thumbnail. NOTE: persisting this through the post create/update
-    // flow needs a backend thumbnail field (files.is_thumbnail writer) that the
-    // owner-scoped authoring API does not yet expose, so the selection lives in
-    // editor state and preview only for now.
+    // Null = no thumbnail. Persisted on explicit Save via TPostInput.thumbnailUrl
+    // (the backend writes the files.is_thumbnail row); autosave deliberately
+    // omits it (see draftInput below) so it stays a low-frequency, deliberate choice.
     const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
     // Slug of the most recent successful public save, used to surface a
     // "view live" link. Null until a public save lands.
@@ -87,6 +86,9 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
         setIsSeeded(true);
     }, [isSeeded, seed.isLoading, seed.initial, seed.thumbnailUrl]);
 
+    // Autosave payload. Deliberately OMITS thumbnailUrl: the thumbnail is a
+    // low-frequency deliberate choice persisted on explicit Save only, never on
+    // the keystroke-debounced draft autosave.
     const draftInput: TPostInput = {
         title,
         content,
@@ -156,6 +158,9 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
             description,
             status,
             slug: slug.trim() || undefined,
+            // Persist the current thumbnail choice on explicit Save: a string
+            // sets/replaces it, null clears it. Backend writes the files row.
+            thumbnailUrl,
         };
         const saved =
             postId == null

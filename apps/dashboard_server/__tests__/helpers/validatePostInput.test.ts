@@ -67,4 +67,38 @@ describe('validatePostInput', () => {
         expect(validatePostInput('nope').ok).toBe(false);
         expect(validatePostInput(null).ok).toBe(false);
     });
+
+    it('accepts a string thumbnailUrl and threads it into value', () => {
+        const url =
+            'https://assets.prettylog.com/blog.prettylog/42/x-1.png';
+        const result = validatePostInput({ title: 'T', thumbnailUrl: url });
+        expect(result).toEqual({
+            ok: true,
+            value: { title: 'T', thumbnailUrl: url },
+        });
+    });
+
+    it('accepts a null thumbnailUrl (clear) and keeps it in value', () => {
+        const result = validatePostInput({ title: 'T', thumbnailUrl: null });
+        expect(result).toEqual({
+            ok: true,
+            value: { title: 'T', thumbnailUrl: null },
+        });
+    });
+
+    it('omits thumbnailUrl from value when absent (untouched)', () => {
+        const result = validatePostInput({ title: 'T' });
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+            expect('thumbnailUrl' in result.value).toBe(false);
+        }
+    });
+
+    it('rejects a non-string, non-null thumbnailUrl', () => {
+        const result = validatePostInput({ title: 'T', thumbnailUrl: 123 });
+        expect(result).toEqual({
+            ok: false,
+            reason: 'thumbnailUrl must be a string or null',
+        });
+    });
 });

@@ -76,6 +76,10 @@ export interface TPostInput {
     categoryId?: number | null;
     status?: TPostStatus;
     slug?: string;
+    // Author-chosen thumbnail. Absolute CDN URL from the image-sign step.
+    // Tri-state (mirrors the COALESCE PATCH semantics): undefined = leave the
+    // existing thumbnail untouched; null = clear it; non-empty string = set/replace.
+    thumbnailUrl?: string | null;
 }
 
 // List item for GET /users/me/drafts.

@@ -18,6 +18,7 @@ import {
     updatePost,
     softDeletePost,
 } from '../../helpers/writePost';
+import { upsertThumbnail } from '../../helpers/writeThumbnail';
 import { signImageUpload } from '../../helpers/signImageUpload';
 import {
     SUPABASE_URL,
@@ -28,6 +29,12 @@ import {
 import type { TImageSignResponse, TPostStatus } from '@repo/types';
 
 export const router = Router();
+
+// The base the thumbnail writer strips back off the stored URL. MUST mirror the
+// sign route's publicBase (below) so parseThumbnailUrl's prefix-strip is exact.
+const thumbnailCdnBase =
+    CDN_ASSETS?.replace(/\/+$/, '') ||
+    `${SUPABASE_URL}/storage/v1/object/public`;
 
 router.post('', requireAuth, async (req, res) => {
     try {
@@ -40,15 +47,38 @@ router.post('', requireAuth, async (req, res) => {
         const input = parsed.value;
         const slug = input.slug?.trim() || slugify(input.title);
         const status: TPostStatus = input.status ?? 'draft';
+        const userId = req.auth!.userId;
 
-        const row = await createPost(pool, req.auth!.userId, {
-            slug,
-            title: input.title,
-            content: input.content ?? null,
-            description: input.description ?? null,
-            categoryId: input.categoryId ?? null,
-            status,
-        });
+        // Post + thumbnail share one transaction: a failed thumbnail write must
+        // not leave an orphaned post row (and vice versa).
+        const client = await pool.connect();
+        let row;
+        try {
+            await client.query('BEGIN');
+            row = await createPost(client, userId, {
+                slug,
+                title: input.title,
+                content: input.content ?? null,
+                description: input.description ?? null,
+                categoryId: input.categoryId ?? null,
+                status,
+            });
+            if (input.thumbnailUrl !== undefined) {
+                await upsertThumbnail(
+                    client,
+                    userId,
+                    row.id,
+                    input.thumbnailUrl,
+                    { cdnBase: thumbnailCdnBase, bucket: SUPABASE_STORAGE_BUCKET }
+                );
+            }
+            await client.query('COMMIT');
+        } catch (txError) {
+            await client.query('ROLLBACK');
+            throw txError;
+        } finally {
+            client.release();
+        }
 
         res.status(201).json({ success: true, data: row });
     } catch (error) {
@@ -71,15 +101,39 @@ router.patch('/:postid', requireAuth, async (req, res) => {
             return;
         }
 
-        const row = await updatePost(
-            pool,
-            req.auth!.userId,
-            postId,
-            parsed.value
-        );
-        if (!row) {
-            res.status(404).json({ success: false, message: 'Post not found' });
-            return;
+        const input = parsed.value;
+        const userId = req.auth!.userId;
+
+        // Update + thumbnail in one transaction. A non-owner/not-found PATCH
+        // short-circuits to 404 BEFORE any files write (owner-scoping preserved).
+        const client = await pool.connect();
+        let row;
+        try {
+            await client.query('BEGIN');
+            row = await updatePost(client, userId, postId, input);
+            if (!row) {
+                await client.query('ROLLBACK');
+                res.status(404).json({
+                    success: false,
+                    message: 'Post not found',
+                });
+                return;
+            }
+            if (input.thumbnailUrl !== undefined) {
+                await upsertThumbnail(
+                    client,
+                    userId,
+                    row.id,
+                    input.thumbnailUrl,
+                    { cdnBase: thumbnailCdnBase, bucket: SUPABASE_STORAGE_BUCKET }
+                );
+            }
+            await client.query('COMMIT');
+        } catch (txError) {
+            await client.query('ROLLBACK');
+            throw txError;
+        } finally {
+            client.release();
         }
 
         res.json({ success: true, data: row });
