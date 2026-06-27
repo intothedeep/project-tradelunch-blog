@@ -203,8 +203,7 @@ class FileRepository(BaseRepository[File]):
             "post_id": post_id,
             "original_filename": original_filename,
             "stored_name": stored_name,
-            # TODO client is using s3_key, so I set stored_uri to s3_key
-            "stored_uri": s3_key, 
+            "stored_uri": stored_uri,
             "s3_key": s3_key,
             "content_type": content_type,
             "ext": ext,

@@ -188,9 +188,10 @@ class PostRepository(BaseRepository[Post]):
         og_image_alt: Optional[str] = None,
     ) -> int:
         """
-        Upsert a post using raw SQL with ON CONFLICT.
+        Insert a new versioned post row using raw SQL.
         
-        Matches the pattern from temp/insert_categories.ts.
+        Each call INSERTs a fresh row (no upsert); the server selects the
+        latest version per slug via ROW_NUMBER() PARTITION BY slug.
         
         Args:
             user_id: Author user ID.
@@ -217,17 +218,6 @@ class PostRepository(BaseRepository[Post]):
         query = text("""
             INSERT INTO posts (id, group_id, level, parent_id, user_id, title, slug, content, description, category_id, status, meta_title, meta_description, og_image_url, og_image_alt)
             VALUES (:id, :id, 0, NULL, :user_id, :title, :slug, :content, :description, :category_id, :status, :meta_title, :meta_description, :og_image_url, :og_image_alt)
-            ON CONFLICT (user_id, slug) DO UPDATE SET
-                title = EXCLUDED.title,
-                content = EXCLUDED.content,
-                description = EXCLUDED.description,
-                category_id = EXCLUDED.category_id,
-                status = EXCLUDED.status,
-                meta_title = EXCLUDED.meta_title,
-                meta_description = EXCLUDED.meta_description,
-                og_image_url = EXCLUDED.og_image_url,
-                og_image_alt = EXCLUDED.og_image_alt,
-                updated_at = CURRENT_TIMESTAMP
             RETURNING id
         """)
         

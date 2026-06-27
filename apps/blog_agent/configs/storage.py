@@ -32,4 +32,4 @@ SUPABASE_PUBLISHABLE_KEY = os.getenv("SUPABASE_PUBLISHABLE_KEY", "")
 
 # ==================== CDN Configuration ====================
 # Public base for stored objects; stored_uri = f"{CDN_ASSETS}/{key}".
-CDN_ASSETS = os.getenv("CDN_ASSETS", "https://assets.prettylog.com")
+CDN_ASSETS = os.getenv("CDN_ASSETS", "https://assets.prettylog.com").rstrip("/")

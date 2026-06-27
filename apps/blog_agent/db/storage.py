@@ -199,7 +199,7 @@ def upload_file(meta: FileMetadata) -> FileMetadata:
 
     meta.s3_key = key
     meta.stored_name = f"{meta.slug}.{meta.ext}"
-    meta.stored_uri = f"{CDN_ASSETS}/{key}"
+    meta.stored_uri = f"{CDN_ASSETS}/{SUPABASE_STORAGE_BUCKET}/{key}"
 
     return meta
 
