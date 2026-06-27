@@ -1,5 +1,6 @@
 import { getPostBySlug } from '@/apis/getPost.api';
 import { PostContentHeader } from '@/app/blog/components/PostContentHeader.server';
+import { LikeButton } from '@/app/blog/components/post-card-actions/LikeButton.client';
 import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer.server';
 import { OwnerEditButton } from '@/components/blog/OwnerEditButton.client';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -37,6 +38,15 @@ export const PostContentCard = async ({
 
             <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                 <MarkdownRenderer content={post.content || ''} />
+
+                {/* Engagement actions (Like live) */}
+                <div className="flex items-center gap-3 flex-wrap border-t border-primary/30 pt-3 mt-3">
+                    <LikeButton
+                        postId={post.id}
+                        initialLiked={post.viewerLiked ?? false}
+                        initialLikeCount={post.likeCount ?? 0}
+                    />
+                </div>
             </CardContent>
         </Card>
     );
