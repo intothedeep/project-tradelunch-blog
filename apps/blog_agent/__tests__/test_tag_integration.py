@@ -13,11 +13,10 @@ Note:
     if the database is not available.
 """
 
-import asyncio
 import sys
 from pathlib import Path
 from unittest import IsolatedAsyncioTestCase
-from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
 # Add project root to path
@@ -29,8 +28,10 @@ def db_available():
     """Check if database is available."""
     try:
         import asyncio
-        from db import get_db_session
+
         from sqlalchemy import text
+
+        from db import get_db_session
 
         async def check():
             async with get_db_session() as session:
@@ -54,7 +55,7 @@ class TestTagRepository(IsolatedAsyncioTestCase):
 
     async def test_upsert_tag_raw_normalizes_title(self):
         """Test that tag titles are normalized to lowercase."""
-        from db import get_db_session, TagRepository
+        from db import TagRepository, get_db_session
 
         async with get_db_session() as session:
             repo = TagRepository(session)
@@ -71,7 +72,7 @@ class TestTagRepository(IsolatedAsyncioTestCase):
 
     async def test_upsert_tag_raw_empty_title_raises(self):
         """Test that empty tag title raises ValueError."""
-        from db import get_db_session, TagRepository
+        from db import TagRepository, get_db_session
 
         async with get_db_session() as session:
             repo = TagRepository(session)
@@ -86,7 +87,7 @@ class TestTagRepository(IsolatedAsyncioTestCase):
 
     async def test_upsert_tags_raw_multiple(self):
         """Test upserting multiple tags."""
-        from db import get_db_session, TagRepository
+        from db import TagRepository, get_db_session
 
         async with get_db_session() as session:
             repo = TagRepository(session)
@@ -103,7 +104,7 @@ class TestTagRepository(IsolatedAsyncioTestCase):
 
     async def test_upsert_tags_raw_empty_list(self):
         """Test upserting empty tag list."""
-        from db import get_db_session, TagRepository
+        from db import TagRepository, get_db_session
 
         async with get_db_session() as session:
             repo = TagRepository(session)
@@ -115,8 +116,8 @@ class TestTagRepository(IsolatedAsyncioTestCase):
 
     async def test_upsert_and_link_tags(self):
         """Test upserting and linking tags to a post."""
-        from db import get_db_session, TagRepository, PostRepository
         import config
+        from db import PostRepository, TagRepository, get_db_session
 
         async with get_db_session() as session:
             # First create a test post
@@ -147,7 +148,7 @@ class TestTagRepository(IsolatedAsyncioTestCase):
 
     async def test_upsert_and_link_tags_empty(self):
         """Test linking empty tag list to a post."""
-        from db import get_db_session, TagRepository
+        from db import TagRepository, get_db_session
 
         async with get_db_session() as session:
             repo = TagRepository(session)
@@ -159,8 +160,8 @@ class TestTagRepository(IsolatedAsyncioTestCase):
 
     async def test_upsert_and_link_tags_normalizes(self):
         """Test that linked tags are normalized to lowercase."""
-        from db import get_db_session, TagRepository, PostRepository
         import config
+        from db import PostRepository, TagRepository, get_db_session
 
         async with get_db_session() as session:
             # Create test post
@@ -259,7 +260,7 @@ class TestTagRepositoryIdempotency(IsolatedAsyncioTestCase):
 
     async def test_upsert_same_tag_twice_returns_same_id(self):
         """Test that upserting same tag twice returns same ID."""
-        from db import get_db_session, TagRepository
+        from db import TagRepository, get_db_session
 
         async with get_db_session() as session:
             repo = TagRepository(session)
@@ -275,8 +276,8 @@ class TestTagRepositoryIdempotency(IsolatedAsyncioTestCase):
 
     async def test_link_same_tag_twice_no_duplicate(self):
         """Test that linking same tag twice doesn't create duplicate."""
-        from db import get_db_session, TagRepository, PostRepository
         import config
+        from db import PostRepository, TagRepository, get_db_session
 
         async with get_db_session() as session:
             # Create test post

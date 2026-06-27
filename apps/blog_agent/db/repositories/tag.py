@@ -6,13 +6,11 @@ Handles tag and post-tag operations.
 Supports UPSERT for tags and linking posts to tags.
 """
 
-from typing import List, Optional
 
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.dialects.postgresql import insert
 
-from db.models import Tag, PostTag
+from db.models import PostTag, Tag
 from db.repositories.base import BaseRepository
 from utils.snowflake import generate_id
 
@@ -36,7 +34,7 @@ class TagRepository(BaseRepository[Tag]):
     def __init__(self, session: AsyncSession):
         super().__init__(Tag, session)
 
-    async def get_by_title(self, title: str) -> Optional[Tag]:
+    async def get_by_title(self, title: str) -> Tag | None:
         """
         Get tag by title.
 
@@ -71,7 +69,7 @@ class TagRepository(BaseRepository[Tag]):
         await self.session.refresh(tag)
         return tag
 
-    async def upsert_tags(self, tag_titles: List[str]) -> List[Tag]:
+    async def upsert_tags(self, tag_titles: list[str]) -> list[Tag]:
         """
         Upsert multiple tags (create if not exists).
 
@@ -128,7 +126,7 @@ class TagRepository(BaseRepository[Tag]):
         )
         return result.scalar_one()
 
-    async def upsert_tags_raw(self, tag_titles: List[str]) -> List[int]:
+    async def upsert_tags_raw(self, tag_titles: list[str]) -> list[int]:
         """
         Upsert multiple tags using raw SQL with Snowflake IDs.
 
@@ -153,8 +151,8 @@ class TagRepository(BaseRepository[Tag]):
     async def upsert_and_link_tags(
         self,
         post_id: int,
-        tag_titles: List[str],
-    ) -> List[str]:
+        tag_titles: list[str],
+    ) -> list[str]:
         """
         Upsert tags into tags table and link to post in post_tags.
 
@@ -208,8 +206,8 @@ class TagRepository(BaseRepository[Tag]):
     async def link_post_tags(
         self,
         post_id: int,
-        tag_titles: List[str],
-    ) -> List[str]:
+        tag_titles: list[str],
+    ) -> list[str]:
         """
         Link a post to multiple tags.
 
@@ -258,7 +256,7 @@ class TagRepository(BaseRepository[Tag]):
 
         return linked_titles
 
-    async def get_post_tags(self, post_id: int) -> List[str]:
+    async def get_post_tags(self, post_id: int) -> list[str]:
         """
         Get all tag titles for a post.
 
@@ -298,7 +296,7 @@ class TagRepository(BaseRepository[Tag]):
             return True
         return False
 
-    async def get_popular_tags(self, limit: int = 20) -> List[tuple[str, int]]:
+    async def get_popular_tags(self, limit: int = 20) -> list[tuple[str, int]]:
         """
         Get most used tags with counts.
 

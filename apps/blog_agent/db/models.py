@@ -6,25 +6,23 @@ Models matching the PostgreSQL schema in schema/posts.schema.sql.
 All models inherit from Base and use common mixins for timestamps and soft delete.
 """
 
-from datetime import datetime
 from enum import Enum as PyEnum
-from typing import Optional, List
+from typing import Optional
 
 from sqlalchemy import (
     BigInteger,
     Boolean,
     Enum,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
     UniqueConstraint,
-    Index,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from db.base import Base, TimestampMixin, SoftDeleteMixin
-
+from db.base import Base, SoftDeleteMixin, TimestampMixin
 
 # ===========================
 # ENUMS
@@ -59,11 +57,11 @@ class UsersAuthProvider(str, PyEnum):
 class User(Base, TimestampMixin, SoftDeleteMixin):
     """
     User model matching users table.
-    
+
     Supports multiple auth providers (OAuth, app-based).
     """
     __tablename__ = "users"
-    
+
     seq: Mapped[int] = mapped_column(
         BigInteger,
         autoincrement=True,
@@ -74,17 +72,17 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
         primary_key=True,
         autoincrement=True,
     )
-    username: Mapped[Optional[str]] = mapped_column(
+    username: Mapped[str | None] = mapped_column(
         String(50),
         unique=True,
         nullable=True,
     )
-    email: Mapped[Optional[str]] = mapped_column(
+    email: Mapped[str | None] = mapped_column(
         String(255),
         unique=True,
         nullable=True,
     )
-    password_hash: Mapped[Optional[str]] = mapped_column(
+    password_hash: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
     )
@@ -93,26 +91,26 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
         default=UsersAuthProvider.APP,
         nullable=False,
     )
-    provider_id: Mapped[Optional[str]] = mapped_column(
+    provider_id: Mapped[str | None] = mapped_column(
         String(255),
         unique=True,
         nullable=True,
     )
-    
+
     # Relationships
-    posts: Mapped[List["Post"]] = relationship(
+    posts: Mapped[list["Post"]] = relationship(
         "Post",
         back_populates="user",
         lazy="selectin",
     )
-    categories: Mapped[List["Category"]] = relationship(
+    categories: Mapped[list["Category"]] = relationship(
         "Category",
         back_populates="user",
         lazy="selectin",
         primaryjoin="User.id == Category.user_id",
         foreign_keys="Category.user_id",
     )
-    files: Mapped[List["File"]] = relationship(
+    files: Mapped[list["File"]] = relationship(
         "File",
         back_populates="user",
         lazy="selectin",
@@ -122,13 +120,13 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
 class Post(Base, TimestampMixin, SoftDeleteMixin):
     """
     Post model matching posts table.
-    
+
     Supports hierarchical structure:
     - Post (root): group_id = self, parent_id = NULL, level = 0
     - Comment: group_id = root post, parent_id = post/comment, level = 1+
     """
     __tablename__ = "posts"
-    
+
     seq: Mapped[int] = mapped_column(
         BigInteger,
         autoincrement=True,
@@ -139,7 +137,7 @@ class Post(Base, TimestampMixin, SoftDeleteMixin):
         primary_key=True,
         autoincrement=True,
     )
-    group_id: Mapped[Optional[int]] = mapped_column(
+    group_id: Mapped[int | None] = mapped_column(
         BigInteger,
         nullable=True,
     )
@@ -148,7 +146,7 @@ class Post(Base, TimestampMixin, SoftDeleteMixin):
         default=0,
         nullable=False,
     )
-    parent_id: Mapped[Optional[int]] = mapped_column(
+    parent_id: Mapped[int | None] = mapped_column(
         BigInteger,
         ForeignKey("posts.id", ondelete="CASCADE"),
         nullable=True,
@@ -166,11 +164,11 @@ class Post(Base, TimestampMixin, SoftDeleteMixin):
         String(255),
         nullable=False,
     )
-    content: Mapped[Optional[str]] = mapped_column(
+    content: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
-    category_id: Mapped[Optional[int]] = mapped_column(
+    category_id: Mapped[int | None] = mapped_column(
         BigInteger,
         nullable=True,
     )
@@ -179,24 +177,24 @@ class Post(Base, TimestampMixin, SoftDeleteMixin):
         ForeignKey("users.id"),
         nullable=False,
     )
-    description: Mapped[Optional[str]] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
     # SEO fields
-    meta_title: Mapped[Optional[str]] = mapped_column(
+    meta_title: Mapped[str | None] = mapped_column(
         String(70),
         nullable=True,
     )
-    meta_description: Mapped[Optional[str]] = mapped_column(
+    meta_description: Mapped[str | None] = mapped_column(
         String(170),
         nullable=True,
     )
-    og_image_url: Mapped[Optional[str]] = mapped_column(
+    og_image_url: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
-    og_image_alt: Mapped[Optional[str]] = mapped_column(
+    og_image_alt: Mapped[str | None] = mapped_column(
         String(125),
         nullable=True,
     )
@@ -205,7 +203,7 @@ class Post(Base, TimestampMixin, SoftDeleteMixin):
         default=PostStatusEnum.PUBLIC,
         nullable=False,
     )
-    
+
     # Relationships
     user: Mapped["User"] = relationship(
         "User",
@@ -216,22 +214,22 @@ class Post(Base, TimestampMixin, SoftDeleteMixin):
         remote_side=[id],
         backref="children",
     )
-    files: Mapped[List["File"]] = relationship(
+    files: Mapped[list["File"]] = relationship(
         "File",
         back_populates="post",
         lazy="selectin",
     )
-    post_tags: Mapped[List["PostTag"]] = relationship(
+    post_tags: Mapped[list["PostTag"]] = relationship(
         "PostTag",
         back_populates="post",
         lazy="selectin",
     )
-    post_categories: Mapped[List["PostCategory"]] = relationship(
+    post_categories: Mapped[list["PostCategory"]] = relationship(
         "PostCategory",
         back_populates="post",
         lazy="selectin",
     )
-    
+
     # Indexes (defined at table level)
     __table_args__ = (
         Index("idx_posts_user_id", "user_id"),
@@ -242,13 +240,13 @@ class Post(Base, TimestampMixin, SoftDeleteMixin):
 class Category(Base, TimestampMixin, SoftDeleteMixin):
     """
     Category model matching categories table.
-    
+
     Hierarchical structure:
     - Root: group_id = self, parent_id = NULL, level = 0
     - Child: group_id = root, parent_id = parent, level = parent.level + 1
     """
     __tablename__ = "categories"
-    
+
     seq: Mapped[int] = mapped_column(
         BigInteger,
         autoincrement=True,
@@ -259,7 +257,7 @@ class Category(Base, TimestampMixin, SoftDeleteMixin):
         primary_key=True,
         autoincrement=True,
     )
-    group_id: Mapped[Optional[int]] = mapped_column(
+    group_id: Mapped[int | None] = mapped_column(
         BigInteger,
         nullable=True,
     )
@@ -273,7 +271,7 @@ class Category(Base, TimestampMixin, SoftDeleteMixin):
         default=100,
         nullable=False,
     )
-    parent_id: Mapped[Optional[int]] = mapped_column(
+    parent_id: Mapped[int | None] = mapped_column(
         BigInteger,
         ForeignKey("categories.id", ondelete="CASCADE"),
         nullable=True,
@@ -286,7 +284,7 @@ class Category(Base, TimestampMixin, SoftDeleteMixin):
         String(100),
         nullable=False,  # unique per user, not globally
     )
-    
+
     # Relationships
     user: Mapped["User"] = relationship(
         "User",
@@ -299,7 +297,7 @@ class Category(Base, TimestampMixin, SoftDeleteMixin):
         remote_side=[id],
         backref="children",
     )
-    
+
     __table_args__ = (
         UniqueConstraint("user_id", "title", name="categories_user_title_key"),
         Index("idx_categories_parent_id", "parent_id"),
@@ -311,12 +309,12 @@ class Category(Base, TimestampMixin, SoftDeleteMixin):
 class File(Base, TimestampMixin, SoftDeleteMixin):
     """
     File model matching files table.
-    
+
     Stores file metadata for posts (thumbnails, images).
     Actual files are stored in S3.
     """
     __tablename__ = "files"
-    
+
     seq: Mapped[int] = mapped_column(
         BigInteger,
         autoincrement=True,
@@ -327,21 +325,21 @@ class File(Base, TimestampMixin, SoftDeleteMixin):
         primary_key=True,
         autoincrement=True,
     )
-    user_id: Mapped[Optional[int]] = mapped_column(
+    user_id: Mapped[int | None] = mapped_column(
         BigInteger,
         ForeignKey("users.id"),
         nullable=True,
     )
-    post_id: Mapped[Optional[int]] = mapped_column(
+    post_id: Mapped[int | None] = mapped_column(
         BigInteger,
         ForeignKey("posts.id"),
         nullable=True,
     )
-    content_type: Mapped[Optional[str]] = mapped_column(
+    content_type: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
     )
-    ext: Mapped[Optional[str]] = mapped_column(
+    ext: Mapped[str | None] = mapped_column(
         String(30),
         nullable=True,
     )
@@ -353,7 +351,7 @@ class File(Base, TimestampMixin, SoftDeleteMixin):
         String(255),
         nullable=False,
     )
-    s3_key: Mapped[Optional[str]] = mapped_column(
+    s3_key: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
@@ -361,7 +359,7 @@ class File(Base, TimestampMixin, SoftDeleteMixin):
         Text,
         nullable=False,
     )
-    file_size: Mapped[Optional[int]] = mapped_column(
+    file_size: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
     )
@@ -370,7 +368,7 @@ class File(Base, TimestampMixin, SoftDeleteMixin):
         default=False,
         nullable=False,
     )
-    
+
     # Relationships
     user: Mapped[Optional["User"]] = relationship(
         "User",
@@ -380,7 +378,7 @@ class File(Base, TimestampMixin, SoftDeleteMixin):
         "Post",
         back_populates="files",
     )
-    
+
     __table_args__ = (
         Index("idx_files_user_id", "user_id"),
         Index("idx_files_post_id", "post_id"),
@@ -390,7 +388,7 @@ class File(Base, TimestampMixin, SoftDeleteMixin):
 class Tag(Base, TimestampMixin, SoftDeleteMixin):
     """Tag model matching tags table."""
     __tablename__ = "tags"
-    
+
     seq: Mapped[int] = mapped_column(
         BigInteger,
         autoincrement=True,
@@ -406,7 +404,7 @@ class Tag(Base, TimestampMixin, SoftDeleteMixin):
         unique=True,
         nullable=False,
     )
-    
+
     __table_args__ = (
         Index("idx_tags_title", "title"),
     )
@@ -415,11 +413,11 @@ class Tag(Base, TimestampMixin, SoftDeleteMixin):
 class PostTag(Base, TimestampMixin, SoftDeleteMixin):
     """
     Post-Tag junction table.
-    
+
     Links posts to tags (many-to-many).
     """
     __tablename__ = "post_tags"
-    
+
     seq: Mapped[int] = mapped_column(
         BigInteger,
         autoincrement=True,
@@ -436,13 +434,13 @@ class PostTag(Base, TimestampMixin, SoftDeleteMixin):
         primary_key=True,
         nullable=False,
     )
-    
+
     # Relationships
     post: Mapped["Post"] = relationship(
         "Post",
         back_populates="post_tags",
     )
-    
+
     __table_args__ = (
         Index("idx_post_tags_tag_title", "tag_title"),
         Index("idx_post_tags_post_id", "post_id"),
@@ -452,11 +450,11 @@ class PostTag(Base, TimestampMixin, SoftDeleteMixin):
 class PostCategory(Base, TimestampMixin, SoftDeleteMixin):
     """
     Post-Category junction table.
-    
+
     Links posts to categories (many-to-many).
     """
     __tablename__ = "post_categories"
-    
+
     seq: Mapped[int] = mapped_column(
         BigInteger,
         autoincrement=True,
@@ -474,14 +472,14 @@ class PostCategory(Base, TimestampMixin, SoftDeleteMixin):
         primary_key=True,
         nullable=False,
     )
-    
+
     # Relationships
     post: Mapped["Post"] = relationship(
         "Post",
         back_populates="post_categories",
     )
     category: Mapped["Category"] = relationship("Category")
-    
+
     __table_args__ = (
         Index("idx_post_categories_category_id", "category_id"),
         Index("idx_post_categories_post_id", "post_id"),

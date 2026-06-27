@@ -16,13 +16,16 @@ schema/posts.schema.sql 스키마와 호환되는 데이터를 생성합니다.
 - PostSchema 검증
 """
 
-import re
 import os
-from typing import Dict, Any, List, Optional
+import re
 from pathlib import Path
+from typing import Any
+
 import frontmatter
+
+from schema import PostStatusEnum, calculate_reading_time, generate_slug_from_title
+
 from .base import BaseAgent
-from schema import calculate_reading_time, generate_slug_from_title, PostSchema, PostStatusEnum
 
 
 class ExtractingAgent(BaseAgent):
@@ -52,7 +55,7 @@ class ExtractingAgent(BaseAgent):
         self.enable_llm = enable_llm
         self.llm = llm  # Will be set in execute() if None and enable_llm=True
 
-    async def execute(self, task: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute(self, task: dict[str, Any]) -> dict[str, Any]:
         """
         작업 실행
 
@@ -133,7 +136,7 @@ class ExtractingAgent(BaseAgent):
                     }
             else:
                 # Extract images from markdown content
-                self._log(f"Extracting images from content...")
+                self._log("Extracting images from content...")
                 base_dir = os.path.dirname(file_path)
                 images, detected_thumbnail = self._extract_images(parsed_data["content"], base_dir)
                 parsed_data["images"] = images
@@ -253,14 +256,14 @@ class ExtractingAgent(BaseAgent):
 
         return ""
 
-    def _parse_markdown(self, file_path: str) -> Dict[str, Any]:
+    def _parse_markdown(self, file_path: str) -> dict[str, Any]:
         """
         마크다운 파일 파싱 (frontmatter 기반)
 
         Extracts metadata from YAML frontmatter and returns data compatible with PostSchema.
         Supports fields: title, userId, tags, desc, date, author, status
         """
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             post = frontmatter.load(f)
 
         # Extract metadata from frontmatter
@@ -335,7 +338,7 @@ class ExtractingAgent(BaseAgent):
             return match.group(1).strip()
         return "Untitled"
 
-    def _extract_categories_from_path(self, file_path: str) -> List[str]:
+    def _extract_categories_from_path(self, file_path: str) -> list[str]:
         """
         Extract category hierarchy from folder path structure.
 
@@ -353,7 +356,6 @@ class ExtractingAgent(BaseAgent):
             List of category names (excluding the article folder)
         """
         from config import POSTS_DIR
-        from pathlib import Path
 
         if not file_path:
             return []
@@ -405,7 +407,6 @@ class ExtractingAgent(BaseAgent):
         Returns:
             Tuple of (thumbnail_path, list_of_image_paths)
         """
-        from pathlib import Path
 
         if not file_path:
             return None, []
@@ -441,7 +442,7 @@ class ExtractingAgent(BaseAgent):
             self._log(f"Failed to detect article assets: {e}", "warning")
             return None, []
 
-    def _extract_images(self, content: str, base_dir: Optional[str] = None) -> List[Dict[str, Any]]:
+    def _extract_images(self, content: str, base_dir: str | None = None) -> list[dict[str, Any]]:
         """
         본문에서 이미지 경로 추출 및 썸네일 감지
 
@@ -493,10 +494,10 @@ class ExtractingAgent(BaseAgent):
         self,
         title: str,
         content: str,
-        categories: List[str] = None,
-        existing_tags: List[str] = None,
+        categories: list[str] = None,
+        existing_tags: list[str] = None,
         existing_desc: str = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         LLM을 사용하여 메타데이터 생성
 

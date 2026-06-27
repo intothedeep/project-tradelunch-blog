@@ -1,5 +1,5 @@
-import unittest
 import sys
+import unittest
 from pathlib import Path
 from unittest import IsolatedAsyncioTestCase
 
@@ -7,9 +7,10 @@ from unittest import IsolatedAsyncioTestCase
 project_root = str(Path(__file__).parent.parent)
 sys.path.insert(0, project_root)
 
-from agents.uploading_agent import UploadingAgent
 import pytest
+
 from __tests__.conftest import db_available
+from agents.uploading_agent import UploadingAgent
 
 
 class TestCategoryStorage(IsolatedAsyncioTestCase):
@@ -61,25 +62,25 @@ class TestCategoryStorage(IsolatedAsyncioTestCase):
     async def test_link_post_to_categories_empty(self):
         """Test linking post to empty category list (should not raise)."""
         # Needs session argument now
-        from unittest.mock import MagicMock, AsyncMock
+        from unittest.mock import AsyncMock
         mock_session = AsyncMock()
-        
+
         await self.agent._link_post_to_categories(mock_session, "123456789", [])
 
     async def test_link_post_to_categories_simulated(self):
         """Test simulated linking of post to categories."""
         post_id = 123456789012345678
         category_ids = [1, 2, 3]
-        
-        from unittest.mock import MagicMock, AsyncMock
+
+        from unittest.mock import AsyncMock
         mock_session = AsyncMock()
-        
+
         # Should not raise any exception
         await self.agent._link_post_to_categories(mock_session, post_id, category_ids)
 
     def test_save_article_with_categories(self):
         """Test saving article with category hierarchy."""
-        # _save_article is complex and requires full DB interaction. 
+        # _save_article is complex and requires full DB interaction.
         # For unit test, we might skip or better mock it, but sticking to fixes for now.
         # Given _save_article calls internal methods we fixed, let's see if it works.
         # But _save_article expects a file structure on disk effectively or mocks.

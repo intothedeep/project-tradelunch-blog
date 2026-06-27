@@ -8,10 +8,10 @@
 - AgentResponse: 작업 결과
 """
 
-from dataclasses import dataclass, asdict
-from datetime import datetime
-from typing import Dict, Any, Optional
 import uuid
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from typing import Any
 
 
 @dataclass
@@ -22,12 +22,12 @@ class AgentMessage:
     to_agent: str
     task_id: str
     action: str  # "extract", "upload", "log", "analyze", etc.
-    data: Dict[str, Any]
+    data: dict[str, Any]
     timestamp: datetime
     message_id: str
     priority: int = 0  # 0 = normal, 1 = high, 2 = urgent
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """메시지를 딕셔너리로 변환"""
         result = asdict(self)
         result["timestamp"] = self.timestamp.isoformat()
@@ -39,8 +39,8 @@ class AgentMessage:
         from_agent: str,
         to_agent: str,
         action: str,
-        data: Dict[str, Any],
-        task_id: Optional[str] = None,
+        data: dict[str, Any],
+        task_id: str | None = None,
     ) -> "AgentMessage":
         """새 메시지 생성 헬퍼"""
         return cls(
@@ -60,13 +60,13 @@ class AgentTask:
 
     task_id: str
     action: str
-    data: Dict[str, Any]
+    data: dict[str, Any]
     created_at: datetime
     status: str = "pending"  # pending, running, completed, failed
-    result: Optional[Dict[str, Any]] = None
-    error: Optional[str] = None
+    result: dict[str, Any] | None = None
+    error: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """작업을 딕셔너리로 변환"""
         result = {
             "task_id": self.task_id,
@@ -82,16 +82,16 @@ class AgentTask:
         return result
 
     @classmethod
-    def create(cls, action: str, data: Dict[str, Any], filename: str = None) -> "AgentTask":
+    def create(cls, action: str, data: dict[str, Any], filename: str = None) -> "AgentTask":
         """새 작업 생성 헬퍼
-        
+
         Args:
             action: 작업 유형
             data: 작업 데이터
             filename: 파일 이름 (있으면 task_id에 포함)
         """
         short_uuid = str(uuid.uuid4())[:8]
-        
+
         # Format: filename-uuid or just uuid
         if filename:
             # Clean filename (remove extension, lowercase, replace spaces)
@@ -102,7 +102,7 @@ class AgentTask:
             task_id = f"{clean_name}-{short_uuid}"
         else:
             task_id = short_uuid
-        
+
         return cls(
             task_id=task_id,
             action=action,
@@ -118,16 +118,16 @@ class AgentResponse:
     task_id: str
     agent_name: str
     success: bool
-    data: Optional[Dict[str, Any]] = None
-    error: Optional[str] = None
-    duration: Optional[float] = None  # seconds
+    data: dict[str, Any] | None = None
+    error: str | None = None
+    duration: float | None = None  # seconds
     timestamp: datetime = None
 
     def __post_init__(self):
         if self.timestamp is None:
             self.timestamp = datetime.now()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """응답을 딕셔너리로 변환"""
         result = {
             "task_id": self.task_id,

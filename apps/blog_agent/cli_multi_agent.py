@@ -13,8 +13,8 @@
 """
 
 import asyncio
-import sys
 import json
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -24,8 +24,8 @@ from prompt_toolkit.styles import Style
 from rich.console import Console
 from rich.panel import Panel
 
-from agents import ProjectManagerAgent, AgentTask
-from config import MODEL_NAME, OLLAMA_BASE_URL, CLI_HISTORY_FILE
+from agents import AgentTask, ProjectManagerAgent
+from config import CLI_HISTORY_FILE, MODEL_NAME
 
 
 class MultiAgentCLI:
@@ -95,7 +95,6 @@ class MultiAgentCLI:
 
         # Check if first part is an existing directory
         first_part = parts[0]
-        from pathlib import Path
         import config
 
         # Check absolute path or relative to project root
@@ -182,7 +181,7 @@ You can also use natural language:
         """시스템 상태"""
         agents_info = self.pm.get_agents_info()
 
-        status_text = f"""[bold]System Status:[/bold]
+        status_text = """[bold]System Status:[/bold]
 
 [bold]Agents:[/bold]"""
 
@@ -302,6 +301,7 @@ You can also use natural language:
 
             if matches:
                 from pathlib import Path
+
                 import config
                 project_root = config.PROJECT_ROOT
 
@@ -357,7 +357,9 @@ You can also use natural language:
 
             # Pre-LLM file discovery: 파일 찾기 먼저 실행
             from pathlib import Path
+
             from rich.tree import Tree
+
             import config
 
             # Parse args: check if first part is a directory (root folder)
@@ -375,7 +377,7 @@ You can also use natural language:
                     matches = result.get("matches", [])
 
                     # Show tree view like find command
-                    tree = Tree(f"[bold green]✅ Found:[/bold green]")
+                    tree = Tree("[bold green]✅ Found:[/bold green]")
 
                     if matches:
                         project_root = config.PROJECT_ROOT
@@ -448,7 +450,6 @@ You can also use natural language:
         start_time = datetime.now()
 
         # Task 생성 (filename으로 task_id 포맷 설정)
-        from pathlib import Path
         filename = Path(file_path).name if file_path else None
 
         task = AgentTask.create(
@@ -489,7 +490,7 @@ You can also use natural language:
         """히스토리 로드"""
         if CLI_HISTORY_FILE.exists():
             try:
-                with open(CLI_HISTORY_FILE, "r") as f:
+                with open(CLI_HISTORY_FILE) as f:
                     data = json.load(f)
                     self.history = data.get("commands", [])
             except Exception as e:

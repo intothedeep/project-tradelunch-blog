@@ -6,8 +6,9 @@ Resizes images to OG-friendly dimensions (1200x630) with letterboxing
 (transparent padding) to prevent distortion.
 """
 
-from typing import Dict, Any, Optional, Tuple
 from pathlib import Path
+from typing import Any
+
 from .base import BaseAgent
 
 
@@ -28,7 +29,7 @@ class ImageProcessingAgent(BaseAgent):
             description="Resize images for OG/social sharing",
         )
 
-    async def execute(self, task: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute(self, task: dict[str, Any]) -> dict[str, Any]:
         """
         Execute image processing task.
 
@@ -72,8 +73,8 @@ class ImageProcessingAgent(BaseAgent):
     def resize_for_og(
         self,
         image_path: str,
-        output_path: Optional[str] = None,
-        target_size: Tuple[int, int] = (1200, 630),
+        output_path: str | None = None,
+        target_size: tuple[int, int] = (1200, 630),
     ) -> str:
         """
         Resize image to OG dimensions with letterboxing (transparent padding).
@@ -94,7 +95,7 @@ class ImageProcessingAgent(BaseAgent):
         # Open and convert to RGBA for transparency support
         img = Image.open(image_path).convert("RGBA")
         original_size = img.size
-        
+
         # Scale image to fit within target bounds (maintain aspect ratio)
         img.thumbnail(target_size, Image.LANCZOS)
         scaled_size = img.size
@@ -118,7 +119,7 @@ class ImageProcessingAgent(BaseAgent):
 
         return out_path
 
-    def get_image_dimensions(self, image_path: str) -> Tuple[int, int]:
+    def get_image_dimensions(self, image_path: str) -> tuple[int, int]:
         """Get image dimensions without loading full image."""
         from PIL import Image
 

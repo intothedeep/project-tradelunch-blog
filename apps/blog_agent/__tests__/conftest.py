@@ -35,8 +35,10 @@ def db_available() -> bool:
     """
     try:
         import asyncio
-        from db import get_db_session
+
         from sqlalchemy import text
+
+        from db import get_db_session
 
         async def check():
             async with get_db_session() as session:

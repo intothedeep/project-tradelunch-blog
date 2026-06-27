@@ -6,8 +6,8 @@ Settings for agents, CLI, and MCP.
 """
 
 import os
-from configs.paths import PROJECT_ROOT
 
+from configs.paths import PROJECT_ROOT
 
 # ==================== Agent Settings ====================
 AGENT_TIMEOUT = 300  # seconds

@@ -14,7 +14,8 @@ Ollama/LLM 없이도 대부분의 테스트가 가능합니다.
 """
 
 import asyncio
-from agents import ExtractingAgent, UploadingAgent, LoggingAgent, ProjectManagerAgent, AgentTask
+
+from agents import AgentTask, ExtractingAgent, LoggingAgent, ProjectManagerAgent, UploadingAgent
 
 
 async def test_extracting_agent():

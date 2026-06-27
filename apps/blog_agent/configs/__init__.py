@@ -14,10 +14,10 @@ try:
 except ImportError:
     pass
 
-from configs.storage import *
 from configs.database import *
 from configs.env import *
 from configs.paths import *
+from configs.storage import *
 
 __all__ = [
     # Environment
