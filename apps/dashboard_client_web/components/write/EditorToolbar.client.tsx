@@ -30,6 +30,9 @@ type EditorToolbarProps = {
     canSave: boolean;
     onDelete: () => void;
     isDeleting: boolean;
+    // Autofocus the title input on mount. Only enabled for a brand-new post so
+    // editing an existing post does not yank focus after the seed lands.
+    autoFocusTitle?: boolean;
     children: ReactNode;
 };
 
@@ -50,6 +53,7 @@ export function EditorToolbar({
     canSave,
     onDelete,
     isDeleting,
+    autoFocusTitle,
     children,
 }: EditorToolbarProps) {
     return (
@@ -57,9 +61,13 @@ export function EditorToolbar({
             <div className="mb-3 flex flex-wrap items-center gap-2">
                 <input
                     aria-label="title"
+                    autoFocus={autoFocusTitle}
                     value={title}
                     onChange={(e) => onTitleChange(e.target.value)}
                     placeholder="TITLE"
+                    aria-describedby={
+                        canSave ? undefined : 'title-required-hint'
+                    }
                     className="flex-1 border-2 border-primary/50 bg-transparent px-3 py-2 text-lg outline-none focus:border-primary"
                 />
                 <select
@@ -77,6 +85,15 @@ export function EditorToolbar({
                     ))}
                 </select>
             </div>
+
+            {!canSave && (
+                <p
+                    id="title-required-hint"
+                    className="mb-3 font-mono text-xs text-muted-foreground"
+                >
+                    Title required to save
+                </p>
+            )}
 
             <input
                 aria-label="description"

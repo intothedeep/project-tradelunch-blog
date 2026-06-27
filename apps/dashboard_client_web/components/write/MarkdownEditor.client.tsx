@@ -140,6 +140,9 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
                 ? await createPost.mutateAsync(input)
                 : await updatePost.mutateAsync({ postId, input });
         if (status === 'public') setLiveSlug(saved.slug);
+        // router.replace is a soft URL swap in the App Router: it updates the
+        // route without remounting this client tree, so the textarea keeps its
+        // focus/caret. No manual focus restoration is needed here.
         if (postId == null) router.replace(`/write/${saved.id}`);
     };
 
@@ -189,6 +192,7 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
                 canSave={!!title.trim()}
                 onDelete={handleDelete}
                 isDeleting={deletePost.isPending}
+                autoFocusTitle={postId == null}
             >
                 <PostSettings
                     slug={slug}
