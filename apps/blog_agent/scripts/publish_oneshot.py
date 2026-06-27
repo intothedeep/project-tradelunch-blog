@@ -17,7 +17,7 @@ Side-effects:
     - Writes to Supabase Storage (image/thumbnail object upload).
 
 Usage:
-    uv run python scripts/publish_oneshot.py ./posts/<cat>/<slug>/<slug>.md
+    uv run python scripts/publish_oneshot.py [--no-llm] ./posts/<cat>/<slug>/<slug>.md
 """
 
 import argparse
@@ -31,16 +31,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from cli_multi_agent import MultiAgentCLI
 
 
-async def publish(md_path: str) -> tuple[bool, object]:
+async def publish(md_path: str, enable_llm: bool) -> tuple[bool, object]:
     """Publish one markdown post non-interactively.
 
     Args:
         md_path: Path to the markdown file to publish.
+        enable_llm: When False, take the offline frontmatter-only metadata path
+            (no LLM network calls). When True, use the LLM-backed path.
 
     Returns:
         Tuple of (success, result) where result is the raw last-history result.
     """
-    cli = MultiAgentCLI()
+    cli = MultiAgentCLI(enable_llm=enable_llm)
     await cli.initialize()
     await cli.execute_task(f"upload {md_path}", md_path)
     last = cli.history[-1] if cli.history else {}
@@ -51,12 +53,17 @@ def parse_args() -> argparse.Namespace:
     """Parse CLI arguments.
 
     Returns:
-        Parsed namespace with the `post` positional argument.
+        Parsed namespace with the `post` positional argument and `no_llm` flag.
     """
     parser = argparse.ArgumentParser(
         description="Publish a single markdown post to Supabase (non-interactive)."
     )
     parser.add_argument("post", help="Path to the markdown (.md) post file.")
+    parser.add_argument(
+        "--no-llm",
+        action="store_true",
+        help="Disable the LLM path; derive tags/description from frontmatter only.",
+    )
     return parser.parse_args()
 
 
@@ -72,7 +79,8 @@ def main() -> int:
         print(f"PUBLISH FAIL: file not found: {args.post}")
         return 2
 
-    success, result = asyncio.run(publish(str(post_path)))
+    enable_llm = not args.no_llm
+    success, result = asyncio.run(publish(str(post_path), enable_llm))
     if success:
         print("PUBLISH PASS")
         return 0

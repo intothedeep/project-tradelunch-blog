@@ -35,3 +35,28 @@ LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "2048"))
 
 # ==================== Backward Compatibility ====================
 MODEL_NAME = OLLAMA_MODEL
+
+
+def is_llm_enabled() -> bool:
+    """Determine whether LLM-backed metadata generation is enabled.
+
+    Reads environment variables at call time (not import time) so runtime
+    overrides and tests take effect. The LLM path is treated as DISABLED when
+    either of the following holds:
+      - ENABLE_LLM is one of {"false", "0", "no"} (case-insensitive), or
+      - LLM_PROVIDER is one of {"none", "off", "disabled"} (case-insensitive).
+    Otherwise the LLM path is ENABLED (the default when unset).
+
+    Returns:
+        True if the LLM should be used; False to take the no-LLM frontmatter
+        metadata path.
+    """
+    enable_flag = os.getenv("ENABLE_LLM", "").strip().lower()
+    if enable_flag in {"false", "0", "no"}:
+        return False
+
+    provider = os.getenv("LLM_PROVIDER", "").strip().lower()
+    if provider in {"none", "off", "disabled"}:
+        return False
+
+    return True

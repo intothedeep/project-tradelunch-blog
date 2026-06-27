@@ -23,6 +23,7 @@ from datetime import datetime
 from langgraph.graph import StateGraph, END
 from langchain_ollama import ChatOllama
 from llm_factory import get_shared_llm
+from configs.llm import is_llm_enabled
 
 from .base import BaseAgent
 from .protocol import AgentTask, AgentResponse
@@ -68,15 +69,34 @@ class ProjectManagerAgent(BaseAgent):
     5. 최종 결과 취합
     """
 
-    def __init__(self, llm: ChatOllama = None):
+    def __init__(self, llm: ChatOllama = None, enable_llm: bool | None = None):
+        """
+        Initialize ProjectManagerAgent.
+
+        Args:
+            llm: Pre-configured LLM instance (optional). If None and the LLM is
+                 enabled, a shared singleton instance is created lazily.
+            enable_llm: Force-enable/disable the LLM path. When None (default),
+                        resolved from the environment via is_llm_enabled().
+                        When disabled, get_shared_llm() is NOT called, so the
+                        system works with Ollama/providers fully offline.
+        """
         super().__init__(name="ProjectManager", description="Orchestrates multi-agent workflow")
 
-        # Initialize LLM (use shared singleton instance)
-        self.llm = llm or get_shared_llm()
+        # Resolve LLM enablement (env-driven unless explicitly overridden)
+        self.enable_llm = is_llm_enabled() if enable_llm is None else enable_llm
+
+        # Initialize LLM only when enabled — never touch the factory when disabled
+        if llm is not None:
+            self.llm = llm
+        elif self.enable_llm:
+            self.llm = get_shared_llm()
+        else:
+            self.llm = None
 
         # Initialize specialized agents
         self.document_scanner = DocumentScannerAgent()
-        self.extracting_agent = ExtractingAgent(llm=self.llm)
+        self.extracting_agent = ExtractingAgent(llm=self.llm, enable_llm=self.enable_llm)
         self.uploading_agent = UploadingAgent()
         self.logging_agent = LoggingAgent()
 
@@ -164,45 +184,45 @@ class ProjectManagerAgent(BaseAgent):
     def analyze_command_node(self, state: AgentState) -> AgentState:
         """
         사용자 명령 분석 및 작업 계획 수립
-        
+
         Known commands (upload, process, analyze) bypass LLM for speed.
         Only natural language commands require LLM analysis.
         """
         user_command = state["user_command"]
         file_path = state.get("file_path", "")
-        
+
         # Check for known commands - skip LLM if command is structured
         known_commands = {
             "upload": ["extract", "upload"],
             "process": ["extract", "upload"],
             "analyze": ["extract"],
         }
-        
+
         command_parts = user_command.strip().split()
         first_word = command_parts[0].lower() if command_parts else ""
-        
+
         if first_word in known_commands and file_path:
             # Skip LLM - use predefined actions for known commands
             self._log(f"Processing '{first_word}' command...")
-            
+
             # Extract filename from command if no file_path was pre-resolved
             if not file_path and len(command_parts) > 1:
                 file_path = " ".join(command_parts[1:])
-            
+
             state["file_path"] = file_path
             state["plan"] = known_commands[first_word]
             state["current_step"] = "analyzed"
-            
+
             self._log(f"File: {file_path}")
             self._log(f"Actions: {', '.join(state['plan'])}")
-            
+
             return state
-        
+
         # Use LLM only for natural language / ambiguous commands
         self._log("Analyzing user command with LLM...")
 
         # Request command analysis from Qwen3
-        prompt = f"""You are a project manager for a blog automation system. 
+        prompt = f"""You are a project manager for a blog automation system.
 Analyze this user command and determine the file path and required actions.
 
 User command: "{user_command}"
@@ -252,34 +272,34 @@ Examples:
     def resolve_file_node(self, state: AgentState) -> AgentState:
         """
         파일 경로 해결 - DocumentScannerAgent를 사용하여 파일 찾기
-        
+
         직접 경로가 없으면 파일 이름으로 검색
         """
         from pathlib import Path
-        
+
         file_path = state.get("file_path", "")
-        
+
         if not file_path:
             self._log("No file path to resolve", "warning")
             return state
-        
+
         self._log(f"Resolving file: {file_path}")
-        
+
         # Use path directly if it exists
         if Path(file_path).exists():
             self._log(f"File exists at: {file_path}")
             state["current_step"] = "resolved"
             return state
-        
+
         # If file not found, search with DocumentScannerAgent
         self._log(f"File not found, searching with DocumentScannerAgent...")
         matches = self.document_scanner.find_file_by_name(file_path)
-        
+
         if not matches:
             state["errors"].append(f"File not found: {file_path}")
             self._log(f"No matches found for: {file_path}", "error")
             return state
-        
+
         if len(matches) == 1:
             # Single match - use directly
             resolved_path = matches[0]["path"]
@@ -292,7 +312,7 @@ Examples:
             self._log(f"Multiple matches found, using best match: {resolved_path}", "warning")
             for m in matches[1:4]:  # Show up to 3 other matches
                 self._log(f"  Other match: {m['name']} ({m['match_type']})")
-        
+
         state["current_step"] = "resolved"
         return state
 
@@ -373,12 +393,12 @@ Examples:
             # Extract filename
             from pathlib import Path
             file_name = Path(state.get("file_path", "")).name or "N/A"
-            
+
             # Extract image info
             extracted_images = state["extracted_data"].get("images", [])
             thumbnail = state["extracted_data"].get("thumbnail")
             uploaded_images = state["uploaded_data"].get("images", [])
-            
+
             # Compose final result
             state["final_result"] = {
                 "success": True,
@@ -479,7 +499,7 @@ Examples:
             "path": None,
             "matches": []
         }
-        
+
         # 1. Check if it's a direct path that exists
         if Path(filename).exists():
             result["exists"] = True
@@ -487,18 +507,18 @@ Examples:
             if not quiet:
                 self._log(f"File exists: {result['path']}", "success")
             return result
-        
+
         # 2. Use DocumentScannerAgent to find the file
         search_dirs = [Path(search_root)] if search_root else None
         matches = self.document_scanner.find_file_by_name(filename, search_dirs=search_dirs)
-        
+
         if not matches:
             if not quiet:
                 self._log(f"File not found: {filename}", "error")
             return result
-        
+
         result["matches"] = matches
-        
+
         if len(matches) == 1:
             result["exists"] = True
             result["path"] = matches[0]["path"]
@@ -512,13 +532,13 @@ Examples:
                 self._log(f"Found {len(matches)} matches for '{filename}':", "warning")
                 for m in matches[:5]:
                     self._log(f"  • {m['name']} ({m['match_type']})")
-        
+
         return result
 
     def list_available_files(self) -> Dict[str, Any]:
         """
         DocumentScannerAgent를 사용하여 사용 가능한 모든 파일 스캔
-        
+
         Returns:
             {
                 "posts": [...],
@@ -528,15 +548,15 @@ Examples:
         """
         from pathlib import Path
         from config import POSTS_DIR, PROJECT_ROOT
-        
+
         self._log("Scanning available files...")
-        
+
         result = {
             "posts": [],
             "docs": {},
             "total_files": 0
         }
-        
+
         # Scan posts/ directory (flat structure)
         if POSTS_DIR.exists():
             for md_file in POSTS_DIR.glob("*.md"):
@@ -545,23 +565,23 @@ Examples:
                     "path": str(md_file),
                     "size": md_file.stat().st_size
                 })
-        
+
         # Scan docs/ directory (nested structure with categories)
         docs_dir = PROJECT_ROOT / "docs"
         if docs_dir.exists():
             # Use DocumentScannerAgent's internal scan method directly (sync)
             scan_data = self.document_scanner._scan_documentation(docs_dir)
             result["docs"] = scan_data
-        
+
         result["total_files"] = len(result["posts"]) + result["docs"].get("total_articles", 0)
-        
+
         self._log(f"Found {result['total_files']} files total", "success")
         return result
 
     def print_file_tree(self, root_dir: str = "posts") -> None:
         """
         터미널에 파일 트리 출력
-        
+
         Args:
             root_dir: 스캔할 루트 디렉토리 (기본값: posts)
         """
@@ -569,25 +589,25 @@ Examples:
         from rich.tree import Tree
         from pathlib import Path
         import config
-        
+
         console = Console()
         target_dir = config.PROJECT_ROOT / root_dir
-        
+
         if not target_dir.exists():
             console.print(f"[red]❌ Directory not found: {root_dir}[/red]")
             return
-        
+
         tree = Tree(f"📁 [bold]{root_dir}/[/bold]")
-        
+
         def add_files_to_tree(branch, directory, depth=0):
             """Recursively add files and folders to tree"""
             items = sorted(directory.iterdir(), key=lambda x: (x.is_file(), x.name))
-            
+
             file_count = 0
             for item in items:
                 if item.name.startswith('.'):
                     continue
-                    
+
                 if item.is_dir():
                     # Add folder
                     folder_branch = branch.add(f"📂 [blue]{item.name}/[/blue]")
@@ -604,13 +624,13 @@ Examples:
                     # Image file
                     size_kb = item.stat().st_size / 1024
                     branch.add(f"📷 [dim]{item.name} ({size_kb:.1f}KB)[/dim]")
-            
+
             return file_count
-        
+
         total = add_files_to_tree(tree, target_dir)
-        
+
         if total == 0:
             tree.add("[dim]No markdown files found[/dim]")
-        
+
         tree.add(f"\n[bold]Total:[/bold] {total} markdown file(s)")
         console.print(tree)

@@ -33,8 +33,18 @@ class MultiAgentCLI:
     멀티 에이전트 시스템을 위한 대화형 CLI
     """
 
-    def __init__(self):
+    def __init__(self, enable_llm: bool | None = None):
+        """
+        Initialize the CLI.
+
+        Args:
+            enable_llm: Force-enable/disable the LLM path for the underlying
+                        ProjectManagerAgent. When None (default), enablement is
+                        resolved from the environment. Pass False for the offline,
+                        frontmatter-only metadata path (no LLM network calls).
+        """
         self.console = Console()
+        self.enable_llm = enable_llm
         self.pm = None  # ProjectManagerAgent (나중에 초기화)
         self.history = []
         self.running = True
@@ -105,8 +115,8 @@ class MultiAgentCLI:
         self.console.print("[yellow]Initializing multi-agent system...[/yellow]")
 
         try:
-            # ProjectManager 초기화 (싱글톤 LLM 자동 사용)
-            self.pm = ProjectManagerAgent()
+            # ProjectManager 초기화 (enable_llm 전달; None이면 환경변수 기반)
+            self.pm = ProjectManagerAgent(enable_llm=self.enable_llm)
 
             # 이전 히스토리 로드
             self.load_history()
@@ -127,7 +137,7 @@ class MultiAgentCLI:
 [dim]Agents:[/dim]
   • [cyan]Project Manager[/cyan] - Orchestrates workflow
   • [blue]Extracting Agent[/blue] - Parses markdown & metadata
-  • [green]Uploading Agent[/green] - S3 & RDS operations  
+  • [green]Uploading Agent[/green] - S3 & RDS operations
   • [yellow]Logging Agent[/yellow] - Terminal output
 
 Type [bold]'help'[/bold] for available commands
@@ -154,7 +164,7 @@ Type [bold]'help'[/bold] for available commands
   agents                - List all agents
   files                 - Show available files (posts & docs)
   history [n]           - Show recent commands (default: 5)
-  
+
 [cyan]Utility:[/cyan]
   help                  - Show this help
   clear                 - Clear screen
@@ -228,7 +238,7 @@ You can also use natural language:
         bypass_confirm = "-y" in user_input
         if bypass_confirm:
             user_input = user_input.replace("-y", "").strip()
-            
+
         parts = user_input.split(maxsplit=1)
         command = parts[0].lower()
         args = parts[1] if len(parts) > 1 else ""
@@ -281,39 +291,39 @@ You can also use natural language:
 
             result = self.pm.check_file_exists(query, quiet=True, search_root=search_root)
             matches = result.get("matches", [])
-            
+
             if not result["exists"]:
                 self.console.print(f"[red]❌ No matches found for: {args}[/red]")
                 self.console.print("[dim]Use 'files' command to see all available files[/dim]")
                 return
-            
+
             # Build tree view
             tree = Tree(f"🔍 [bold]Search results for:[/bold] [cyan]{args}[/cyan]")
-            
+
             if matches:
                 from pathlib import Path
                 import config
                 project_root = config.PROJECT_ROOT
-                
+
                 for match in matches:
                     path = match.get("path", "")
                     name = match.get("name", "")
                     match_type = match.get("match_type", "")
-                    
+
                     file_path = Path(path)
                     parent = file_path.parent
-                    
+
                     # Get relative path from project root
                     try:
                         rel_path = parent.relative_to(project_root)
                     except ValueError:
                         rel_path = parent.name
-                    
+
                     # If parent folder has same name as file (nested structure)
                     if parent.name == file_path.stem:
                         # Show folder with relative path
                         folder_branch = tree.add(f"📁 [blue]{rel_path}/[/blue] [dim]({match_type})[/dim]")
-                        
+
                         # List all files in the folder
                         for item in sorted(parent.iterdir(), key=lambda x: (x.suffix != '.md', x.name)):
                             if item.is_file():
@@ -333,7 +343,7 @@ You can also use natural language:
                 # Single match without detailed info
                 from pathlib import Path
                 tree.add(f"📄 {Path(result['path']).name}")
-            
+
             tree.add(f"\n[bold]Total:[/bold] {len(matches) if matches else 1} match(es)")
             self.console.print(tree)
             return
@@ -359,26 +369,26 @@ You can also use natural language:
                     search_msg += f" in {search_root}"
                 self.console.print(f"\n[dim]{search_msg}[/dim]")
                 result = self.pm.check_file_exists(query, quiet=True, search_root=search_root)
-                
+
                 if result["exists"]:
                     resolved_path = result["path"]
                     matches = result.get("matches", [])
-                    
+
                     # Show tree view like find command
                     tree = Tree(f"[bold green]✅ Found:[/bold green]")
-                    
+
                     if matches:
                         project_root = config.PROJECT_ROOT
                         match = matches[0]  # Use first/best match
                         file_path = Path(match.get("path", resolved_path))
                         parent = file_path.parent
-                        
+
                         # Get relative path
                         try:
                             rel_path = parent.relative_to(project_root)
                         except ValueError:
                             rel_path = parent.name
-                        
+
                         # If nested folder structure
                         if parent.name == file_path.stem:
                             folder_branch = tree.add(f"📁 [blue]{rel_path}/[/blue]")
@@ -396,15 +406,15 @@ You can also use natural language:
                             tree.add(f"📄 [blue]{rel_file}[/blue]")
                     else:
                         tree.add(f"📄 {Path(resolved_path).name}")
-                    
+
                     self.console.print(tree)
-                    
+
                     # Ask for confirmation before proceeding
                     if not bypass_confirm:
                         self.console.print()
                         try:
                             confirm = await asyncio.get_event_loop().run_in_executor(
-                                None, 
+                                None,
                                 lambda: self.session.prompt("Proceed with upload? (y/n): ")
                             )
                             if confirm.lower() not in ['y', 'yes']:
@@ -413,7 +423,7 @@ You can also use natural language:
                         except (KeyboardInterrupt, EOFError):
                             self.console.print("[yellow]Upload cancelled.[/yellow]")
                             return
-                    
+
                     # Use resolved path for the task
                     args = resolved_path
                 else:
@@ -440,7 +450,7 @@ You can also use natural language:
         # Task 생성 (filename으로 task_id 포맷 설정)
         from pathlib import Path
         filename = Path(file_path).name if file_path else None
-        
+
         task = AgentTask.create(
             action="process",
             data={"user_command": user_command, "file_path": file_path},
