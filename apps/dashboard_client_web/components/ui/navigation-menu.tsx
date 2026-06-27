@@ -5,15 +5,16 @@ import { ChevronDown } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
-type NavigationMenuProps =
-    React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Root> & {
-        /**
-         * Whether to render the visual viewport container used by the
-         * NavigationMenu. Useful to hide the viewport on small screens.
-         * Defaults to true.
-         */
-        showViewport?: boolean;
-    };
+type NavigationMenuProps = React.ComponentPropsWithoutRef<
+    typeof NavigationMenuPrimitive.Root
+> & {
+    /**
+     * Whether to render the visual viewport container used by the
+     * NavigationMenu. Useful to hide the viewport on small screens.
+     * Defaults to true.
+     */
+    showViewport?: boolean;
+};
 
 const NavigationMenu = React.forwardRef<
     React.ElementRef<typeof NavigationMenuPrimitive.Root>,

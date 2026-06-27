@@ -12,10 +12,11 @@ export const LayoutWrapper = ({ children, locale }: Props) => {
     return (
         <html
             lang={locale}
-            className={clsx()
-            // geist.variable,
-            // ibmPlexSans.variable,
-            // ibmPlexMono.variable
+            className={
+                clsx()
+                // geist.variable,
+                // ibmPlexSans.variable,
+                // ibmPlexMono.variable
             }
         >
             <body

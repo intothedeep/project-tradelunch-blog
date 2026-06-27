@@ -78,7 +78,10 @@ export function useDraftAutosave(
     const runSaveRef = useRef<() => Promise<void>>(async () => {});
     runSaveRef.current = async () => {
         const id = postIdRef.current;
-        const status = id == null ? (inputRef.current.status ?? 'draft') : inputRef.current.status;
+        const status =
+            id == null
+                ? (inputRef.current.status ?? 'draft')
+                : inputRef.current.status;
         const current: TPostInput = { ...inputRef.current, status };
         if (!hasContent(current)) return;
 

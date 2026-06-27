@@ -4,23 +4,24 @@
 // Strategy: mock useCreatePost, useUpdatePost, next/navigation; use fake timers
 // to deterministically fire the 2 s debounce without real I/O.
 
-import { renderHook, act } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import type { TPostInput } from '@repo/types'
+import { renderHook, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { TPostInput } from '@repo/types';
 
 // ---------------------------------------------------------------------------
 // Hoisted spies — must be created before vi.mock factories run (both are
 // hoisted by vitest, but vi.hoisted is guaranteed to run first).
 // ---------------------------------------------------------------------------
-const { mockUpdateMutateAsync, mockCreateMutateAsync, mockReplace } = vi.hoisted(() => ({
-    mockUpdateMutateAsync: vi.fn(),
-    mockCreateMutateAsync: vi.fn(),
-    mockReplace: vi.fn(),
-}))
+const { mockUpdateMutateAsync, mockCreateMutateAsync, mockReplace } =
+    vi.hoisted(() => ({
+        mockUpdateMutateAsync: vi.fn(),
+        mockCreateMutateAsync: vi.fn(),
+        mockReplace: vi.fn(),
+    }));
 
 vi.mock('next/navigation', () => ({
     useRouter: () => ({ replace: mockReplace }),
-}))
+}));
 
 vi.mock('@/hooks/useCreatePost.query.client', () => ({
     useCreatePost: () => ({
@@ -28,7 +29,7 @@ vi.mock('@/hooks/useCreatePost.query.client', () => ({
         isPending: false,
         isError: false,
     }),
-}))
+}));
 
 vi.mock('@/hooks/useUpdatePost.query.client', () => ({
     useUpdatePost: () => ({
@@ -36,11 +37,11 @@ vi.mock('@/hooks/useUpdatePost.query.client', () => ({
         isPending: false,
         isError: false,
     }),
-}))
+}));
 
 // Import AFTER mocks are declared (vitest hoists vi.mock above imports, but
 // explicit ordering makes the intent clear).
-import { useDraftAutosave } from '@/hooks/useDraftAutosave.hook'
+import { useDraftAutosave } from '@/hooks/useDraftAutosave.hook';
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -48,15 +49,15 @@ import { useDraftAutosave } from '@/hooks/useDraftAutosave.hook'
 
 describe('useDraftAutosave — UX0 regression', () => {
     beforeEach(() => {
-        vi.useFakeTimers()
-        mockUpdateMutateAsync.mockResolvedValue({ id: 1, title: 'Test' })
-        mockCreateMutateAsync.mockResolvedValue({ id: 99, title: 'New post' })
-    })
+        vi.useFakeTimers();
+        mockUpdateMutateAsync.mockResolvedValue({ id: 1, title: 'Test' });
+        mockCreateMutateAsync.mockResolvedValue({ id: 99, title: 'New post' });
+    });
 
     afterEach(() => {
-        vi.useRealTimers()
-        vi.clearAllMocks()
-    })
+        vi.useRealTimers();
+        vi.clearAllMocks();
+    });
 
     // -----------------------------------------------------------------------
     // PRIMARY REGRESSION: existing post with status:'public' must not be
@@ -67,30 +68,30 @@ describe('useDraftAutosave — UX0 regression', () => {
             title: 'Existing post title',
             content: 'Body content of the post.',
             status: 'public',
-        }
+        };
 
         // postId = 42  →  existing post, triggers updatePost path
-        renderHook(() => useDraftAutosave(42, input, true))
+        renderHook(() => useDraftAutosave(42, input, true));
 
         // Fire the 2 s debounce and flush async work (mutateAsync promise).
         await act(async () => {
-            vi.advanceTimersByTime(2100)
-        })
+            vi.advanceTimersByTime(2100);
+        });
 
-        expect(mockUpdateMutateAsync).toHaveBeenCalledOnce()
+        expect(mockUpdateMutateAsync).toHaveBeenCalledOnce();
 
         // Non-null assertion is safe: we just asserted the call exists above.
         const arg = mockUpdateMutateAsync.mock.calls[0]![0] as {
-            postId: number
-            input: Partial<TPostInput>
-        }
+            postId: number;
+            input: Partial<TPostInput>;
+        };
 
         // Core regression assertion: status must be preserved as-is.
-        expect(arg.input.status).toBe('public')
-        expect(arg.input.status).not.toBe('draft')
+        expect(arg.input.status).toBe('public');
+        expect(arg.input.status).not.toBe('draft');
         // Sanity: correct post targeted.
-        expect(arg.postId).toBe(42)
-    })
+        expect(arg.postId).toBe(42);
+    });
 
     // -----------------------------------------------------------------------
     // SECONDARY (cheap): new post with status omitted must default to 'draft'.
@@ -100,19 +101,19 @@ describe('useDraftAutosave — UX0 regression', () => {
             title: 'Brand new post',
             content: 'Initial content.',
             // status intentionally omitted — should default to draft
-        }
+        };
 
         // postId = null  →  brand-new post, triggers createPost path
-        renderHook(() => useDraftAutosave(null, input, true))
+        renderHook(() => useDraftAutosave(null, input, true));
 
         await act(async () => {
-            vi.advanceTimersByTime(2100)
-        })
+            vi.advanceTimersByTime(2100);
+        });
 
-        expect(mockCreateMutateAsync).toHaveBeenCalledOnce()
+        expect(mockCreateMutateAsync).toHaveBeenCalledOnce();
 
         // Non-null assertion is safe: we just asserted the call exists above.
-        const arg = mockCreateMutateAsync.mock.calls[0]![0] as TPostInput
-        expect(arg.status).toBe('draft')
-    })
-})
+        const arg = mockCreateMutateAsync.mock.calls[0]![0] as TPostInput;
+        expect(arg.status).toBe('draft');
+    });
+});

@@ -15,12 +15,21 @@ export function AuthButton({
 }: AuthButtonProps) {
     const { isSignedIn, isLoaded } = useUser();
 
-    if (!isLoaded) return <div className="w-9 h-9" aria-hidden />;
+    if (!isLoaded)
+        return (
+            <div
+                className="w-9 h-9"
+                aria-hidden
+            />
+        );
     if (isSignedIn) return <UserButton showName={showName} />;
 
     return (
         <SignInButton mode="modal">
-            <button className={signInClassName} aria-label="Sign in">
+            <button
+                className={signInClassName}
+                aria-label="Sign in"
+            >
                 <CircleUserRound className="h-6 w-6" />
             </button>
         </SignInButton>

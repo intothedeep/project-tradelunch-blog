@@ -17,7 +17,10 @@ type TPostByIdResponse = { success: boolean; data: TPost };
 
 // The response interceptor unwraps `response.data`, so the resolved value is
 // the JSON envelope; we return its `data` post row.
-export async function getPostById(token: string, postId: number): Promise<TPost> {
+export async function getPostById(
+    token: string,
+    postId: number
+): Promise<TPost> {
     try {
         const envelope = await axios_instance.get<unknown, TPostByIdResponse>(
             `/v1/api/posts/${postId}`,

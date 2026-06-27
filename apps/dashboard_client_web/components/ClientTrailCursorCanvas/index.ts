@@ -1,1 +1,1 @@
-export { ClientTrailCursorCanvas } from "./ClientTrailCursorCanvas";
+export { ClientTrailCursorCanvas } from './ClientTrailCursorCanvas';
