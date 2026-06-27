@@ -359,7 +359,7 @@ class ExtractingAgent(BaseAgent):
             return []
 
         try:
-            path = Path(file_path)
+            path = Path(file_path).resolve()
             article_folder = path.parent
 
             # Try to get path relative to POSTS_DIR
