@@ -2,6 +2,7 @@ import { Router } from "express";
 import home from "./home";
 import posts from "./posts";
 import likes from "./likes";
+import { postCommentsRouter, commentsRouter } from "./comments";
 import dashboard from "./dashboard";
 import users from "./users";
 import admin from "./admin";
@@ -15,6 +16,11 @@ router.use("/api/posts", posts);
 // posts router so the posts read routes match first; the like toggle is the
 // only POST handler here.
 router.use("/api/posts", likes);
+// Comments nest under a post for create/list (GET+POST /api/posts/:postId/comments);
+// mounted after posts/likes so the literal `/comments` segment is not captured
+// by a post id matcher. The delete-by-comment-id route mounts separately below.
+router.use("/api/posts", postCommentsRouter);
+router.use("/api/comments", commentsRouter);
 router.use("/api/dashboard", dashboard);
 router.use("/api/users", users);
 router.use("/api/admin", admin);
