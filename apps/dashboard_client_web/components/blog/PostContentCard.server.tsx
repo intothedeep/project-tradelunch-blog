@@ -1,6 +1,7 @@
 import { getPostBySlug } from '@/apis/getPost.api';
 import { PostContentHeader } from '@/app/blog/components/PostContentHeader.server';
 import { LikeButton } from '@/app/blog/components/post-card-actions/LikeButton.client';
+import { SaveButton } from '@/app/blog/components/post-card-actions/SaveButton.client';
 import { Comments } from '@/app/blog/components/comments/Comments.server';
 import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer.server';
 import { OwnerEditButton } from '@/components/blog/OwnerEditButton.client';
@@ -25,29 +26,29 @@ export const PostContentCard = async ({
             )}
         >
             <CardHeader className={cn('p-3 pb-0 sm:p-4 sm:pb-0')}>
+                {/* Byline left; Like + Save + owner Edit pinned top-right. */}
                 <div className="flex items-start gap-2">
                     <PostContentHeader
                         post={post}
                         hasBack={true}
                     />
-                    <OwnerEditButton
-                        postId={post.id}
-                        ownerUsername={ownerUsername}
-                    />
+                    <div className="ml-auto flex items-center gap-2 shrink-0">
+                        <LikeButton
+                            postId={post.id}
+                            initialLiked={post.viewerLiked ?? false}
+                            initialLikeCount={post.likeCount ?? 0}
+                        />
+                        <SaveButton postId={post.id} />
+                        <OwnerEditButton
+                            postId={post.id}
+                            ownerUsername={ownerUsername}
+                        />
+                    </div>
                 </div>
             </CardHeader>
 
             <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
                 <MarkdownRenderer content={post.content || ''} />
-
-                {/* Engagement actions (Like live) */}
-                <div className="flex items-center gap-3 flex-wrap border-t border-primary/30 pt-3 mt-3">
-                    <LikeButton
-                        postId={post.id}
-                        initialLiked={post.viewerLiked ?? false}
-                        initialLikeCount={post.likeCount ?? 0}
-                    />
-                </div>
 
                 {/* Threaded comments (public read; write requires auth) */}
                 <Comments

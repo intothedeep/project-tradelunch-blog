@@ -63,7 +63,19 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
             )}
 
             <CardHeader className={cn('p-3 pb-0 sm:p-4 sm:pb-0')}>
-                <PostContentHeader post={post} />
+                {/* Byline left; Like + Save pinned top-right (z-10 siblings so
+                    they never nest inside the card's overlay nav link). */}
+                <div className="flex items-start justify-between gap-2">
+                    <PostContentHeader post={post} />
+                    <div className="flex items-center gap-2 shrink-0">
+                        <LikeButton
+                            postId={post.id}
+                            initialLiked={post.viewerLiked ?? false}
+                            initialLikeCount={post.likeCount ?? 0}
+                        />
+                        <SaveButton postId={post.id} />
+                    </div>
+                </div>
             </CardHeader>
 
             <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
@@ -123,19 +135,13 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
                     ))}
                 </div>
 
-                {/* Footer - Actions (Like live + Share live + Save live) */}
+                {/* Footer - Actions (Share live; Like + Save moved to header) */}
                 <div className="flex items-center gap-3 flex-wrap border-t border-primary/30 pt-3">
-                    <LikeButton
-                        postId={post.id}
-                        initialLiked={post.viewerLiked ?? false}
-                        initialLikeCount={post.likeCount ?? 0}
-                    />
                     <ShareButton
                         username={post.username}
                         slug={post.slug}
                         title={post.title}
                     />
-                    <SaveButton postId={post.id} />
                 </div>
             </CardContent>
         </Card>
