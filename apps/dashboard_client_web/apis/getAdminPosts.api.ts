@@ -15,7 +15,7 @@ interface TAdminPostsEnvelope {
 }
 
 export interface TGetAdminPostsParams {
-    cursor?: number;
+    cursor?: string | number;
     limit?: number;
 }
 

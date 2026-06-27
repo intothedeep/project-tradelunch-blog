@@ -21,16 +21,16 @@ export type TAdminPostRow = Record<string, unknown> & { id: number };
 // `p.id < $cursor` predicate selects the newest rows.
 const MAX_CURSOR = '9223372036854775807';
 
-type TListParams = { cursor?: number | null; limit: number };
+type TListParams = { cursor?: string | null; limit: number };
 
 type TListResult = {
     items: TAdminPostListItem[];
-    nextCursor: number | null;
+    nextCursor: string | null;
     hasMore: boolean;
 };
 
 type TRawListRow = {
-    id: number;
+    id: string;
     user_id: number;
     username: string | null;
     slug: string;
@@ -59,7 +59,7 @@ export async function listAllPosts(
 ): Promise<TListResult> {
     const fetchLimit = limit + 1;
     const startCursor =
-        cursor && cursor > 0 ? String(cursor) : MAX_CURSOR;
+        cursor && /^\d+$/.test(cursor) ? cursor : MAX_CURSOR;
 
     const { rows } = await db.query<TRawListRow>(
         `SELECT p.id, p.user_id, u.username, p.slug, p.title, p.status,
@@ -76,7 +76,7 @@ export async function listAllPosts(
     const page = hasMore ? rows.slice(0, limit) : rows;
     const items = page.map(toItem);
     const nextCursor =
-        hasMore && items.length > 0 ? items[items.length - 1].id : null;
+        hasMore && page.length > 0 ? page[page.length - 1].id : null;
 
     return { items, nextCursor, hasMore };
 }

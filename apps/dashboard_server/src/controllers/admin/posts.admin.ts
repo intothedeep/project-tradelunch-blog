@@ -23,8 +23,9 @@ const MAX_LIMIT = 100;
 
 router.get('/', requireAdmin, async (req: Request, res: Response) => {
     try {
-        const rawCursor = parseInt(String(req.query.cursor ?? ''), 10);
-        const cursor = Number.isInteger(rawCursor) ? rawCursor : null;
+        const rawCursor =
+            typeof req.query.cursor === 'string' ? req.query.cursor : '';
+        const cursor = /^\d+$/.test(rawCursor) ? rawCursor : null;
 
         const rawLimit = parseInt(String(req.query.limit ?? ''), 10);
         const limit = Math.min(

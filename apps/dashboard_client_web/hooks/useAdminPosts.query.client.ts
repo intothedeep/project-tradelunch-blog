@@ -22,7 +22,7 @@ export function useAdminPosts(enabled = true) {
         Error,
         InfiniteData<TAdminPostListResponse>,
         typeof adminPostsQueryKey,
-        number | undefined
+        string | number | undefined
     >({
         queryKey: adminPostsQueryKey,
         initialPageParam: undefined,

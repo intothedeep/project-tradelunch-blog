@@ -30,7 +30,11 @@ router.get(
         res
     ) => {
         try {
-            const cursor = parseInt(req.query.cursor || '0', 10);
+            const cursorParam =
+                typeof req.query.cursor === 'string' &&
+                /^\d+$/.test(req.query.cursor)
+                    ? req.query.cursor
+                    : '9223372036854775807';
             const limit = parseInt(req.query.limit || '10', 10);
 
             // Fetch one extra row to determine if there are more posts
@@ -93,7 +97,7 @@ router.get(
             `;
 
             const { rows } = await pool.query(postsQuery, [
-                cursor || Number.MAX_SAFE_INTEGER,
+                cursorParam,
                 fetchLimit,
             ]);
 
@@ -151,7 +155,11 @@ router.get(
     ) => {
         try {
             const { username } = req.params;
-            const cursor = parseInt(req.query.cursor || '0', 10);
+            const cursorParam =
+                typeof req.query.cursor === 'string' &&
+                /^\d+$/.test(req.query.cursor)
+                    ? req.query.cursor
+                    : '9223372036854775807';
             const limit = parseInt(req.query.limit || '10', 10);
 
             // Fetch one extra row to determine if there are more posts
@@ -223,7 +231,7 @@ router.get(
             const viewerId = req.auth?.userId ?? -1;
             const { rows } = await pool.query(postsQuery, [
                 username,
-                cursor || Number.MAX_SAFE_INTEGER,
+                cursorParam,
                 fetchLimit,
                 viewerId,
             ]);
@@ -535,7 +543,11 @@ router.get(
     ) => {
         try {
             const { username, categoryId } = req.params;
-            const cursor = parseInt(req.query.cursor || '0', 10);
+            const cursorParam =
+                typeof req.query.cursor === 'string' &&
+                /^\d+$/.test(req.query.cursor)
+                    ? req.query.cursor
+                    : '9223372036854775807';
             const limit = Math.min(parseInt(req.query.limit || '10', 10), 50);
             const fetchLimit = limit + 1;
 
@@ -570,7 +582,7 @@ router.get(
             const { rows } = await pool.query(postsQuery, [
                 username,
                 parseInt(categoryId, 10),
-                cursor || Number.MAX_SAFE_INTEGER,
+                cursorParam,
                 fetchLimit,
             ]);
 

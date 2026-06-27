@@ -119,7 +119,7 @@ export interface TAdminPostListItem {
 
 export interface TAdminPostListResponse {
     items: TAdminPostListItem[];
-    nextCursor: number | null;
+    nextCursor: string | number | null;
     hasMore: boolean;
 }
 
