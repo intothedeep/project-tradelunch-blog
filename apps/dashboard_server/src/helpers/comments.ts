@@ -141,10 +141,13 @@ async function findComment(
 
 // Create a comment (or reply). TRANSACTIONAL. For a reply, the parent must
 // exist, be LIVE (deleted_at IS NULL), and belong to the SAME post. The path is
-// computed from the server-generated id in a single CTE:
-//   INSERT ... RETURNING id  →  UPDATE path = parentPath || id
-// so the row is inserted and its self-inclusive path set atomically (top-level:
-// parentPath = '{}' → path = ARRAY[id]).
+// computed from the server-generated id across TWO statements in the txn:
+//   1) INSERT ... RETURNING id   (path placeholder '{}')
+//   2) UPDATE path = parentPath || id  (self-inclusive), then project the row
+// These MUST be separate statements. Sibling data-modifying CTEs share ONE
+// snapshot, so an UPDATE in the same query as the INSERT cannot see the new
+// row — it matches zero rows, the projection returns nothing, and toComment()
+// throws on undefined (top-level: parentPath = '{}' → path = ARRAY[id]).
 export async function createComment(
     db: Pool,
     userId: number,
@@ -171,16 +174,23 @@ export async function createComment(
             parentPath = parent.path.map(String);
         }
 
+        // Statement 1: insert with a placeholder path, returning the
+        // server-generated id (own statement — a sibling CTE could not see it).
+        const inserted = await client.query<{ id: string }>(
+            `INSERT INTO comments (post_id, user_id, parent_id, path, body)
+             VALUES ($1, $2, $3, '{}', $4)
+             RETURNING id`,
+            [postId, userId, parentId, body]
+        );
+        const newId = inserted.rows[0]!.id;
+
+        // Statement 2: set the self-inclusive path (parentPath || id) and
+        // project the wire row. The row is now visible, so the UPDATE matches.
         const { rows } = await client.query<TCommentRow>(
-            `WITH ins AS (
-                INSERT INTO comments (post_id, user_id, parent_id, path, body)
-                VALUES ($1, $2, $3, '{}', $4)
-                RETURNING id
-             ), upd AS (
+            `WITH upd AS (
                 UPDATE comments c
-                SET path = $5::bigint[] || c.id
-                FROM ins
-                WHERE c.id = ins.id
+                SET path = $1::bigint[] || c.id
+                WHERE c.id = $2
                 RETURNING c.id, c.post_id, c.user_id, c.parent_id, c.path,
                           c.body, c.created_at
              )
@@ -197,7 +207,7 @@ export async function createComment(
                 upd.created_at
              FROM upd
              JOIN users u ON u.id = upd.user_id`,
-            [postId, userId, parentId, body, parentPath]
+            [parentPath, newId]
         );
 
         await client.query('COMMIT');
