@@ -8,7 +8,10 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useUser } from '@clerk/nextjs';
 import { EditorPreview } from '@/components/write/EditorPreview.client';
+import { PostSettings } from '@/components/write/PostSettings.client';
 import { EditorToolbar } from '@/components/write/EditorToolbar.client';
 import { AutosaveIndicator } from '@/components/write/AutosaveIndicator.client';
 import { useEditorSeed } from '@/hooks/useEditorSeed.hook';
@@ -33,12 +36,17 @@ const ALLOWED_SEED_STATUS = new Set<TPostStatus>([
 
 export function MarkdownEditor({ postId }: { postId: number | null }) {
     const router = useRouter();
+    const { user } = useUser();
     const seed = useEditorSeed(postId);
 
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [description, setDescription] = useState('');
     const [status, setStatus] = useState<TPostStatus>('draft');
+    const [slug, setSlug] = useState('');
+    // Slug of the most recent successful public save, used to surface a
+    // "view live" link. Null until a public save lands.
+    const [liveSlug, setLiveSlug] = useState<string | null>(null);
     const [isSeeded, setIsSeeded] = useState(false);
     // Mobile-only pane toggle. At md+ both panes show via `md:block`, so this
     // state is irrelevant there; it only drives which single pane renders
@@ -61,6 +69,7 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
         setTitle(seed.initial.title);
         setContent(seed.initial.content ?? '');
         setDescription(seed.initial.description ?? '');
+        setSlug(seed.initial.slug ?? '');
         const seededStatus = seed.initial.status ?? 'draft';
         setStatus(
             ALLOWED_SEED_STATUS.has(seededStatus) ? seededStatus : 'private'
@@ -111,13 +120,27 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
     };
 
     const handleSave = async () => {
-        const input: TPostInput = { title, content, description, status };
-        if (postId == null) {
-            const created = await createPost.mutateAsync(input);
-            router.replace(`/write/${created.id}`);
+        // Publishing is irreversible-feeling for the author: confirm before a
+        // draft/private post becomes world-readable. Other statuses save silently.
+        if (
+            status === 'public' &&
+            !window.confirm('이 글을 공개로 발행할까요? 모두에게 보입니다.')
+        ) {
             return;
         }
-        await updatePost.mutateAsync({ postId, input });
+        const input: TPostInput = {
+            title,
+            content,
+            description,
+            status,
+            slug: slug.trim() || undefined,
+        };
+        const saved =
+            postId == null
+                ? await createPost.mutateAsync(input)
+                : await updatePost.mutateAsync({ postId, input });
+        if (status === 'public') setLiveSlug(saved.slug);
+        if (postId == null) router.replace(`/write/${saved.id}`);
     };
 
     const handleDelete = async () => {
@@ -167,6 +190,20 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
                 onDelete={handleDelete}
                 isDeleting={deletePost.isPending}
             >
+                <PostSettings
+                    slug={slug}
+                    onSlugChange={setSlug}
+                >
+                    {status === 'public' && user?.username && liveSlug && (
+                        <Link
+                            href={`/blog/@${user.username}/${liveSlug}`}
+                            target="_blank"
+                            className="mt-3 inline-block text-xs uppercase tracking-wider text-primary underline-offset-4 hover:underline"
+                        >
+                            view live →
+                        </Link>
+                    )}
+                </PostSettings>
                 <div
                     role="tablist"
                     aria-label="editor view"
