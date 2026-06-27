@@ -146,3 +146,16 @@ export interface TFavoriteToggleResponse {
     postId: string;
     favorited: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Post likes contract (Phase E — public like count). A like is a PUBLIC
+// approval signal: likeCount is a live aggregate COUNT(*) visible to everyone.
+// Snowflake post ids are STRINGS end-to-end; never Number()/parseInt them.
+// ---------------------------------------------------------------------------
+
+// POST /v1/api/posts/:postId/like → { success, data: TLikeToggleResponse }
+// Toggle: the response reflects the resulting state after the toggle.
+export interface TLikeToggleResponse {
+    liked: boolean;
+    likeCount: number;
+}
