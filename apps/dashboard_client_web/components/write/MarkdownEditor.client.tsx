@@ -8,17 +8,25 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer.server';
+import { EditorPreview } from '@/components/write/EditorPreview.client';
+import { EditorToolbar } from '@/components/write/EditorToolbar.client';
+import { AutosaveIndicator } from '@/components/write/AutosaveIndicator.client';
 import { useEditorSeed } from '@/hooks/useEditorSeed.hook';
 import { useDraftAutosave } from '@/hooks/useDraftAutosave.hook';
 import { useImageUpload } from '@/hooks/useImageUpload.hook';
 import { useCreatePost } from '@/hooks/useCreatePost.query.client';
 import { useUpdatePost } from '@/hooks/useUpdatePost.query.client';
 import { useDeletePost } from '@/hooks/useDeletePost.query.client';
-import { cn } from '@/lib/utils';
 import type { TPostInput, TPostStatus } from '@repo/types';
 
-const STATUS_OPTIONS: TPostStatus[] = ['draft', 'private', 'follower', 'public'];
+// Status values the editor can represent. Legacy/out-of-set values (e.g.
+// 'follower') must be coerced on seed so the controlled <select> always has a
+// matching option and does not silently rewrite status on the next save.
+const ALLOWED_SEED_STATUS = new Set<TPostStatus>([
+    'draft',
+    'private',
+    'public',
+]);
 
 export function MarkdownEditor({ postId }: { postId: number | null }) {
     const router = useRouter();
@@ -45,7 +53,10 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
         setTitle(seed.initial.title);
         setContent(seed.initial.content ?? '');
         setDescription(seed.initial.description ?? '');
-        setStatus(seed.initial.status ?? 'draft');
+        const seededStatus = seed.initial.status ?? 'draft';
+        setStatus(
+            ALLOWED_SEED_STATUS.has(seededStatus) ? seededStatus : 'private'
+        );
         setIsSeeded(true);
     }, [isSeeded, seed.isLoading, seed.initial]);
 
@@ -53,9 +64,9 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
         title,
         content,
         description,
-        status: 'draft',
+        status,
     };
-    useDraftAutosave(postId, draftInput, isSeeded);
+    const autosave = useDraftAutosave(postId, draftInput, isSeeded);
 
     const insertAtCursor = (text: string) => {
         const ta = textareaRef.current;
@@ -113,110 +124,43 @@ export function MarkdownEditor({ postId }: { postId: number | null }) {
 
     return (
         <div className="mx-auto w-full max-w-6xl p-4 font-mono">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-                <input
-                    aria-label="title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="TITLE"
-                    className="flex-1 border-2 border-primary/50 bg-transparent px-3 py-2 text-lg outline-none focus:border-primary"
-                />
-                <select
-                    aria-label="status"
-                    value={status}
-                    onChange={(e) =>
-                        setStatus(e.target.value as TPostStatus)
-                    }
-                    className="border-2 border-primary/50 bg-transparent px-2 py-2 text-sm outline-none focus:border-primary"
-                >
-                    {STATUS_OPTIONS.map((s) => (
-                        <option key={s} value={s}>
-                            {s}
-                        </option>
-                    ))}
-                </select>
-            </div>
-
-            <input
-                aria-label="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="DESCRIPTION (optional)"
-                className="mb-3 w-full border-2 border-primary/50 bg-transparent px-3 py-2 text-sm outline-none focus:border-primary"
-            />
-
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
-                <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={image.isUploading || image.isStorageDisabled}
-                    className={cn(
-                        'border-2 border-primary px-3 py-1 transition-colors',
-                        'hover:bg-primary hover:text-primary-foreground',
-                        'disabled:cursor-not-allowed disabled:opacity-50'
-                    )}
-                >
-                    {image.isUploading ? 'UPLOADING...' : 'INSERT IMAGE'}
-                </button>
-                {image.isStorageDisabled && (
-                    <span className="text-muted-foreground">
-                        이미지 저장소가 설정되지 않아 업로드가 비활성화되었습니다.
-                    </span>
-                )}
-                {image.error && !image.isStorageDisabled && (
-                    <span role="alert" className="text-destructive">
-                        {image.error}
-                    </span>
-                )}
-                <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    onChange={handleImagePick}
+            <div className="mb-2 flex min-h-[1.75rem] justify-end">
+                <AutosaveIndicator
+                    status={autosave.status}
+                    lastSavedAt={autosave.lastSavedAt}
+                    onRetry={autosave.retry}
                 />
             </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-                <textarea
-                    ref={textareaRef}
-                    aria-label="content"
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="# write markdown here"
-                    className="min-h-[60vh] w-full resize-y border-2 border-primary/50 bg-transparent p-3 text-sm outline-none focus:border-primary"
-                />
-                <div className="prose-area min-h-[60vh] overflow-auto border-2 border-primary/30 p-3">
-                    <MarkdownRenderer content={content} />
+            <EditorToolbar
+                title={title}
+                onTitleChange={setTitle}
+                status={status}
+                onStatusChange={setStatus}
+                description={description}
+                onDescriptionChange={setDescription}
+                onPickImage={handleImagePick}
+                isUploading={image.isUploading}
+                isStorageDisabled={image.isStorageDisabled}
+                imageError={image.error}
+                fileInputRef={fileInputRef}
+                onSave={handleSave}
+                isSaving={isSaving}
+                canSave={!!title.trim()}
+                onDelete={handleDelete}
+                isDeleting={deletePost.isPending}
+            >
+                <div className="grid gap-4 md:grid-cols-2">
+                    <textarea
+                        ref={textareaRef}
+                        aria-label="content"
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
+                        placeholder="# write markdown here"
+                        className="min-h-[60vh] w-full resize-y border-2 border-primary/50 bg-transparent p-3 text-sm outline-none focus:border-primary"
+                    />
+                    <EditorPreview content={content} />
                 </div>
-            </div>
-
-            <div className="mt-4 flex items-center gap-2">
-                <button
-                    type="button"
-                    onClick={handleSave}
-                    disabled={isSaving || !title.trim()}
-                    className={cn(
-                        'border-2 border-primary px-4 py-2 text-sm transition-colors',
-                        'hover:bg-primary hover:text-primary-foreground',
-                        'disabled:cursor-not-allowed disabled:opacity-50'
-                    )}
-                >
-                    {isSaving ? 'SAVING...' : 'SAVE'}
-                </button>
-                <button
-                    type="button"
-                    onClick={handleDelete}
-                    disabled={deletePost.isPending}
-                    className={cn(
-                        'border-2 border-destructive px-4 py-2 text-sm text-destructive transition-colors',
-                        'hover:bg-destructive hover:text-white',
-                        'disabled:cursor-not-allowed disabled:opacity-50'
-                    )}
-                >
-                    {deletePost.isPending ? 'DELETING...' : 'DELETE'}
-                </button>
-            </div>
+            </EditorToolbar>
         </div>
     );
 }

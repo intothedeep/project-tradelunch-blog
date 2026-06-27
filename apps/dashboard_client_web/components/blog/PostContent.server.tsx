@@ -5,12 +5,21 @@ import { PostContentToc } from '@/components/blog/PostContentToc.server';
 import { PostCardSkeleton } from '@/components/blog/PostCardSkeleton';
 import { PostTocSkeleton } from '@/components/blog/PostTocSkeleton';
 
-export const PostContent = ({ slug }: { slug: string }) => {
+export const PostContent = ({
+    slug,
+    ownerUsername,
+}: {
+    slug: string;
+    ownerUsername: string;
+}) => {
     return (
         <div className="flex gap-6">
             {/* Main Content with Suspense */}
             <Suspense fallback={<PostCardSkeleton />}>
-                <PostContentCard slug={slug} />
+                <PostContentCard
+                    slug={slug}
+                    ownerUsername={ownerUsername}
+                />
             </Suspense>
 
             {/* TOC Sidebar with Suspense */}

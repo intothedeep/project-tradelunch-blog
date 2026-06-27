@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCreatePost } from '@/hooks/useCreatePost.query.client';
 import { useUpdatePost } from '@/hooks/useUpdatePost.query.client';
@@ -18,6 +18,8 @@ import { debounce } from '@/utils/debounce.util';
 import type { TPostInput } from '@repo/types';
 
 const AUTOSAVE_DELAY_MS = 2000;
+
+export type TAutosaveStatus = 'idle' | 'unsaved' | 'saving' | 'saved' | 'error';
 
 const hasContent = (input: TPostInput): boolean =>
     Boolean(input.title?.trim() || input.content?.trim());
@@ -27,6 +29,21 @@ const hasContent = (input: TPostInput): boolean =>
 const toUpdatePayload = (input: TPostInput): Partial<TPostInput> => {
     const { content, ...rest } = input;
     return content && content.trim() ? { ...rest, content } : rest;
+};
+
+// Pure status reducer: collapses the two mutation flags + local dirty/lastSavedAt
+// into a single display status. No bespoke state machine — purely derived.
+const deriveStatus = (params: {
+    isSaving: boolean;
+    isError: boolean;
+    dirty: boolean;
+    lastSavedAt: number | null;
+}): TAutosaveStatus => {
+    if (params.isSaving) return 'saving';
+    if (params.isError) return 'error';
+    if (params.dirty) return 'unsaved';
+    if (params.lastSavedAt != null) return 'saved';
+    return 'idle';
 };
 
 export function useDraftAutosave(
@@ -46,14 +63,20 @@ export function useDraftAutosave(
 
     const creatingRef = useRef(false);
 
+    // The only bespoke state: `dirty` tracks pending/debounced edits awaiting a
+    // save; `lastSavedAt` stamps the most recent successful persist.
+    const [dirty, setDirty] = useState(false);
+    const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
+
     // Latest save routine, captured in a ref so the debounced wrapper stays
     // stable across renders while always invoking current closures.
     const runSaveRef = useRef<() => Promise<void>>(async () => {});
     runSaveRef.current = async () => {
-        const current: TPostInput = { ...inputRef.current, status: 'draft' };
+        const id = postIdRef.current;
+        const status = id == null ? (inputRef.current.status ?? 'draft') : inputRef.current.status;
+        const current: TPostInput = { ...inputRef.current, status };
         if (!hasContent(current)) return;
 
-        const id = postIdRef.current;
         if (id == null) {
             // Brand-new post: create, then hand off to the by-id PATCH flow.
             if (creatingRef.current) return;
@@ -61,6 +84,8 @@ export function useDraftAutosave(
             try {
                 const created = await createPost.mutateAsync(current);
                 postIdRef.current = created.id;
+                setLastSavedAt(Date.now());
+                setDirty(false);
                 router.replace(`/write/${created.id}`);
             } catch (error) {
                 console.error('Draft autosave (create) failed:', error);
@@ -75,6 +100,8 @@ export function useDraftAutosave(
                 postId: id,
                 input: toUpdatePayload(current),
             });
+            setLastSavedAt(Date.now());
+            setDirty(false);
         } catch (error) {
             console.error('Draft autosave (update) failed:', error);
         }
@@ -93,7 +120,21 @@ export function useDraftAutosave(
         // existing post before its real body has hydrated.
         if (!enabled) return;
         if (!hasContent(input)) return;
+        setDirty(true);
         debouncedSave();
         return () => debouncedSave.cancel();
     }, [input, enabled, debouncedSave]);
+
+    const retry = useCallback(() => {
+        void runSaveRef.current();
+    }, []);
+
+    const status = deriveStatus({
+        isSaving: createPost.isPending || updatePost.isPending,
+        isError: createPost.isError || updatePost.isError,
+        dirty,
+        lastSavedAt,
+    });
+
+    return { status, lastSavedAt, retry };
 }

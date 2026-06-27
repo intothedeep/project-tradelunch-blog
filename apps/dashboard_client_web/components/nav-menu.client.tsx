@@ -132,6 +132,15 @@ export function NavMenu({
 
                 {isSignedIn ? (
                     <>
+                        <DropdownMenuGroup>
+                            <DropdownMenuItem asChild>
+                                <Link href="/write">Write</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link href="/me">My drafts</Link>
+                            </DropdownMenuItem>
+                        </DropdownMenuGroup>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onSelect={() => openUserProfile()}>
                             Manage account
                         </DropdownMenuItem>

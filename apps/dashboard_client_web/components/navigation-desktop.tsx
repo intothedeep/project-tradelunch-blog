@@ -27,6 +27,7 @@ const useBlogUsername = (): string => {
 // Desktop Navigation with Terminal Style
 export const DesktopNavigation = () => {
     const blogUsername = useBlogUsername();
+    const { isSignedIn } = useUser();
     const links = buildLinks(blogUsername);
 
     return (
@@ -59,6 +60,17 @@ export const DesktopNavigation = () => {
                             </Link>
                         </li>
                     ))}
+                    {/* WRITE — signed-in only. Reserve a fixed-width slot to avoid CLS while Clerk resolves. */}
+                    <li className="min-w-[4.75rem]">
+                        {isSignedIn && (
+                            <Link
+                                href="/write"
+                                className="px-4 py-2 font-mono text-sm hover:bg-primary hover:text-primary-foreground transition-colors border border-transparent hover:border-primary"
+                            >
+                                WRITE
+                            </Link>
+                        )}
+                    </li>
                 </ul>
                 <NavMenu links={links} />
             </div>
@@ -69,6 +81,7 @@ export const DesktopNavigation = () => {
 // Mobile Navigation with Bottom Drawer
 export const MobileNavigation = () => {
     const blogUsername = useBlogUsername();
+    const { isSignedIn } = useUser();
     const links = buildLinks(blogUsername);
 
     const [isOpen, setIsOpen] = useState(false);
@@ -254,6 +267,24 @@ export const MobileNavigation = () => {
                                 </Link>
                             </li>
                         ))}
+                        {/* WRITE — signed-in only */}
+                        {isSignedIn && (
+                            <li>
+                                <Link
+                                    href="/write"
+                                    onClick={() => setIsOpen(false)}
+                                    className="block px-4 py-4 font-mono text-lg border-2 border-primary/30 hover:border-primary hover:bg-secondary transition-all"
+                                    style={{
+                                        animation: isOpen
+                                            ? 'slideInUp 0.3s ease-out forwards'
+                                            : 'none',
+                                    }}
+                                >
+                                    <span className="text-primary">&gt;</span>{' '}
+                                    WRITE
+                                </Link>
+                            </li>
+                        )}
                     </ul>
 
                     {/* Additional Info */}
