@@ -4,18 +4,20 @@
 // Purpose: render the public comment tree (seeded by the RSC, paginated 50 roots
 //   per page) as a flat pre-order walk indented by depth, with render-collapse
 //   beyond N visible levels (N=4 desktop, N=2 mobile); a top-level composer +
-//   per-row reply composers (optimistic); delete via a focus-trapped Dialog; a
-//   bottom "Load more" control for the next page. Body is PLAIN TEXT (escaped +
-//   line breaks preserved, NO markdown). Tombstones render "[deleted]".
+//   per-row reply composers (optimistic); inline edit (author/owner/admin);
+//   delete via a focus-trapped Dialog; a bottom "Load more" control for the next
+//   page. Body is PLAIN TEXT (escaped + line breaks preserved, NO markdown).
+//   Tombstones render "[deleted]".
 // Constraints: reads are public; writes require auth (composer redirects
-//   signed-out). The client delete gate (author/owner/admin) is UX only — the
-//   server is authoritative. ids stay STRINGS.
+//   signed-out). The client edit/delete gate (author/owner/admin) is UX only —
+//   the server is authoritative. ids stay STRINGS.
 
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useComments } from '@/hooks/useComments.query.client';
 import { useCreateComment } from '@/hooks/useCreateComment.query.client';
 import { useDeleteComment } from '@/hooks/useDeleteComment.query.client';
+import { useUpdateComment } from '@/hooks/useUpdateComment.query.client';
 import { useMe } from '@/hooks/useMe.query.client';
 import { useIsMobile } from '@/hooks/useIsMobile.hook';
 import { buildRenderRows } from '@/utils/commentTree.util';
@@ -49,8 +51,10 @@ export const CommentsSection: React.FC<Props> = ({
     const { data: me } = useMe();
     const createComment = useCreateComment(postId);
     const deleteComment = useDeleteComment(postId);
+    const updateComment = useUpdateComment(postId);
 
     const [replyOpenId, setReplyOpenId] = useState<string | null>(null);
+    const [editOpenId, setEditOpenId] = useState<string | null>(null);
     const [expanded, setExpanded] = useState<ReadonlySet<string>>(
         () => new Set()
     );
@@ -62,7 +66,8 @@ export const CommentsSection: React.FC<Props> = ({
         [list, maxDepth, expanded]
     );
 
-    const canDelete = (comment: TComment): boolean => {
+    // Edit/delete share one gate: comment author OR post owner OR admin.
+    const canModify = (comment: TComment): boolean => {
         if (!me) return false;
         if (me.isAdmin) return true;
         if (me.username !== null && me.username === ownerUsername) return true;
@@ -114,9 +119,11 @@ export const CommentsSection: React.FC<Props> = ({
                                 comment={row.comment}
                                 indent={row.indent}
                                 hasHiddenChildren={row.hasHiddenChildren}
-                                canDelete={canDelete(row.comment)}
+                                canDelete={canModify(row.comment)}
+                                canEdit={canModify(row.comment)}
                                 isReplyOpen={replyOpenId === row.comment.id}
                                 isReplyPending={createComment.isPending}
+                                isEditOpen={editOpenId === row.comment.id}
                                 onToggleReply={() =>
                                     setReplyOpenId((prev) =>
                                         prev === row.comment.id
@@ -130,6 +137,20 @@ export const CommentsSection: React.FC<Props> = ({
                                         parentId: row.comment.id,
                                     });
                                     setReplyOpenId(null);
+                                }}
+                                onToggleEdit={() =>
+                                    setEditOpenId((prev) =>
+                                        prev === row.comment.id
+                                            ? null
+                                            : row.comment.id
+                                    )
+                                }
+                                onSubmitEdit={(body) => {
+                                    updateComment.mutate({
+                                        commentId: row.comment.id,
+                                        body,
+                                    });
+                                    setEditOpenId(null);
                                 }}
                                 onDelete={() =>
                                     deleteComment.mutate({

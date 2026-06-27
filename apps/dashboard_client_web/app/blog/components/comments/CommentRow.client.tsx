@@ -4,8 +4,9 @@
 // Purpose: render one comment indented by its clamped level; plain-text body
 //   (escaped by React + line breaks preserved via whitespace-pre-wrap, NO
 //   markdown); tombstones show "[deleted]" styling with no affordances; live
-//   rows show Reply (any signed-in viewer) + Delete (author/owner/admin) and a
-//   "continue thread →" toggle when the subtree is collapsed.
+//   rows show Reply (any signed-in viewer) + Edit/Delete (author/owner/admin), an
+//   inline edit composer, an "(edited)" hint, and a "continue thread →" toggle
+//   when the subtree is collapsed.
 // Constraints: presentational + event callbacks only; auth/mutation live in the
 //   parent island. ids stay STRINGS.
 
@@ -20,10 +21,14 @@ type Props = {
     indent: number;
     hasHiddenChildren: boolean;
     canDelete: boolean;
+    canEdit: boolean;
     isReplyOpen: boolean;
     isReplyPending: boolean;
+    isEditOpen: boolean;
     onToggleReply: () => void;
     onSubmitReply: (body: string) => void;
+    onToggleEdit: () => void;
+    onSubmitEdit: (body: string) => void;
     onDelete: () => void;
     onContinueThread: () => void;
 };
@@ -41,15 +46,21 @@ export const CommentRow: React.FC<Props> = ({
     indent,
     hasHiddenChildren,
     canDelete,
+    canEdit,
     isReplyOpen,
     isReplyPending,
+    isEditOpen,
     onToggleReply,
     onSubmitReply,
+    onToggleEdit,
+    onSubmitEdit,
     onDelete,
     onContinueThread,
 }) => {
     const t = useTranslations('blog');
     const author = comment.authorName ?? '';
+    const isEdited =
+        !comment.isDeleted && comment.updatedAt !== comment.createdAt;
 
     return (
         <li
@@ -63,17 +74,37 @@ export const CommentRow: React.FC<Props> = ({
                     <span className="font-semibold">
                         {comment.isDeleted ? t('comments.deleted') : author}
                     </span>
+                    {isEdited ? (
+                        <span className="text-primary/40">
+                            {t('comments.edited')}
+                        </span>
+                    ) : null}
                 </div>
-                <p
-                    className={cn(
-                        'whitespace-pre-wrap break-words text-sm',
-                        comment.isDeleted && 'italic text-primary/40'
-                    )}
-                >
-                    {comment.body}
-                </p>
 
-                {!comment.isDeleted ? (
+                {isEditOpen && !comment.isDeleted ? (
+                    <div className="pt-1">
+                        <CommentComposer
+                            onSubmit={onSubmitEdit}
+                            isPending={false}
+                            placeholder={t('comments.composerPlaceholder')}
+                            initialBody={comment.body}
+                            submitLabel={t('comments.save')}
+                            onCancel={onToggleEdit}
+                            autoFocus
+                        />
+                    </div>
+                ) : (
+                    <p
+                        className={cn(
+                            'whitespace-pre-wrap break-words text-sm',
+                            comment.isDeleted && 'italic text-primary/40'
+                        )}
+                    >
+                        {comment.body}
+                    </p>
+                )}
+
+                {!comment.isDeleted && !isEditOpen ? (
                     <div className="flex flex-wrap items-center gap-3 pt-1">
                         <button
                             type="button"
@@ -83,6 +114,15 @@ export const CommentRow: React.FC<Props> = ({
                         >
                             {t('comments.reply')}
                         </button>
+                        {canEdit ? (
+                            <button
+                                type="button"
+                                onClick={onToggleEdit}
+                                className="text-xs text-primary/70 hover:text-primary"
+                            >
+                                {t('comments.edit')}
+                            </button>
+                        ) : null}
                         {canDelete ? (
                             <CommentDeleteDialog
                                 onConfirm={onDelete}

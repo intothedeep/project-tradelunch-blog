@@ -1,9 +1,11 @@
 'use client';
 
-// CommentComposer.client.tsx — IME-safe plain-text comment/reply composer.
+// CommentComposer.client.tsx — IME-safe plain-text comment/reply/edit composer.
 // Purpose: a bare textarea wired to useComposition so Enter-to-submit is gated
 //   on IME composition (Korean/Japanese): pressing Enter to COMMIT a Hangul
 //   syllable must NOT submit a half-composed comment. Shift+Enter = newline.
+//   Edit mode (initialBody provided) seeds the field and does NOT auto-clear on
+//   submit — the caller closes the editor.
 // Constraints: signed-out submit → /sign-in?redirect_url=<path>. Body is PLAIN
 //   TEXT (never markdown). Submit is disabled while empty/whitespace or pending.
 
@@ -21,6 +23,8 @@ type Props = {
     replyingTo?: string;
     onCancel?: () => void;
     autoFocus?: boolean;
+    initialBody?: string;
+    submitLabel?: string;
 };
 
 export const CommentComposer: React.FC<Props> = ({
@@ -30,6 +34,8 @@ export const CommentComposer: React.FC<Props> = ({
     replyingTo,
     onCancel,
     autoFocus,
+    initialBody,
+    submitLabel,
 }) => {
     const t = useTranslations('blog');
     const { isLoaded, isSignedIn } = useAuth();
@@ -37,7 +43,8 @@ export const CommentComposer: React.FC<Props> = ({
     const pathname = usePathname();
     const composition = useComposition();
     const ref = useRef<HTMLTextAreaElement>(null);
-    const [body, setBody] = useState('');
+    const isEdit = initialBody !== undefined;
+    const [body, setBody] = useState(initialBody ?? '');
 
     const canSubmit = body.trim().length > 0 && !isPending;
 
@@ -51,7 +58,7 @@ export const CommentComposer: React.FC<Props> = ({
         }
         if (!canSubmit) return;
         onSubmit(body.trim());
-        setBody('');
+        if (!isEdit) setBody('');
     };
 
     return (
@@ -97,7 +104,11 @@ export const CommentComposer: React.FC<Props> = ({
                         'disabled:cursor-not-allowed disabled:opacity-50'
                     )}
                 >
-                    {isPending ? t('comments.posting') : t('comments.post')}
+                    {isPending
+                        ? isEdit
+                            ? t('comments.saving')
+                            : t('comments.posting')
+                        : (submitLabel ?? t('comments.post'))}
                 </button>
                 {onCancel ? (
                     <button
