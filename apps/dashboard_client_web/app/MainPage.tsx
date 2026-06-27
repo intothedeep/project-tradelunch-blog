@@ -12,6 +12,7 @@ import {
 
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { ExternalLink, GitFork } from 'lucide-react';
 
 import { ScrollToTopButton } from '@/app/ScrollToTop';
 
@@ -23,12 +24,14 @@ const TerminalProfile = () => {
 
     const experienceRef = useRef(null);
     const projectsRef = useRef(null);
+    const contributionsRef = useRef(null);
     const skillsRef = useRef(null);
     const educationRef = useRef(null);
 
     const sectionRefs = {
         experience: experienceRef,
         projects: projectsRef,
+        contributions: contributionsRef,
         skills: skillsRef,
         education: educationRef,
     };
@@ -59,13 +62,14 @@ const TerminalProfile = () => {
 
     const experiences = [
         {
-            title: 'Graduate Research Assistant',
+            title: 'Graduate Assistant',
             company: 'University of Central Missouri',
             location: 'Warrensburg, Missouri, USA',
             period: '01/2026–Current',
             achievements: [
-                'Researching on Performance Optimization and Data Integrity for Distributed Ledger System with Adaptive Sharding and Merkle Tree',
-                'Proactive Anomaly Detection in Sharded Blockchains using AI',
+                'Built data pipelines to collect and process weather, cryptocurrency, and prediction market (Kalshi) data from external APIs, stored as time-series in ClickHouse',
+                'Deployed hybrid k3s infrastructure across cloud and local instances via Tailscale VPN',
+                'Applied machine learning and deep learning to predictive modeling, feature engineering, and statistical analysis for forecasting',
             ],
         },
         {
@@ -103,16 +107,36 @@ const TerminalProfile = () => {
             desc: 'Data pipelines collecting weather, crypto, and prediction-market (Kalshi) data into ClickHouse; hybrid k3s across cloud/local via Tailscale VPN; ML/DL forecasting.',
         },
         {
-            name: 'OAuth2 Auth Server',
-            tech: ['Java', 'Spring Boot', 'Spring Security'],
-            period: '07/2025–Current',
-            desc: 'JWT-based authentication/authorization for multiple internal services',
-        },
-        {
             name: 'MapReduce Infrastructure',
             tech: ['C++', 'gRPC', 'protobuf'],
             period: '11/2024',
             desc: 'Distributed MapReduce based on Dean & Ghemawat paper',
+        },
+    ];
+
+    const contributions = [
+        {
+            name: 'KCDD Market — Code for Kansas City',
+            tech: ['Civic Tech', 'Open Source'],
+            period: '2026–Current',
+            desc: 'Contributing features and improvements to a civic-tech marketplace platform serving the Kansas City community; developing in a working fork (kcdd-market_v2) toward an upstream merge into the official Code for KC repository, a Code for America brigade.',
+            links: [
+                {
+                    label: 'Fork',
+                    href: 'https://github.com/intothedeep/kcdd-market_v2',
+                    type: 'github' as const,
+                },
+                {
+                    label: 'Upstream',
+                    href: 'https://github.com/codeforkansascity/kcdd-market2',
+                    type: 'github' as const,
+                },
+                {
+                    label: 'Code for KC',
+                    href: 'https://codeforkc.org/',
+                    type: 'web' as const,
+                },
+            ],
         },
     ];
 
@@ -215,6 +239,7 @@ const TerminalProfile = () => {
     const navItems = [
         { id: 'experience', label: 'EXPERIENCE' },
         { id: 'projects', label: 'PROJECTS' },
+        { id: 'contributions', label: 'OPEN_SOURCE' },
         { id: 'skills', label: 'SKILLS' },
         { id: 'education', label: 'EDUCATION' },
     ];
@@ -316,7 +341,7 @@ const TerminalProfile = () => {
                 {/* Navigation */}
                 {!loading && (
                     <div className="sticky top-0 z-10 bg-background/95 backdrop-blur mb-10 pb-0">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                             {navItems.map((item) => (
                                 <button
                                     key={item.id}
@@ -427,6 +452,81 @@ const TerminalProfile = () => {
                                             </CardContent>
                                         </Card>
                                     ))}
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Open Source Contributions Section */}
+                        <div
+                            ref={contributionsRef}
+                            id="contributions"
+                            className="scroll-mt-32"
+                        >
+                            <Card className="bg-card">
+                                <CardHeader>
+                                    <CardTitle className="text-primary">
+                                        &gt; OPEN_SOURCE.json
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {contributions.map((proj, idx) => (
+                                        <Card
+                                            key={idx}
+                                            className="bg-secondary"
+                                        >
+                                            <CardHeader>
+                                                <CardTitle className="text-base">
+                                                    {proj.name}
+                                                </CardTitle>
+                                                <CardDescription>
+                                                    {proj.period}
+                                                </CardDescription>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="flex flex-wrap gap-2 mb-3">
+                                                    {proj.tech.map(
+                                                        (tech, i) => (
+                                                            <Badge
+                                                                key={i}
+                                                                variant="outline"
+                                                            >
+                                                                {tech}
+                                                            </Badge>
+                                                        )
+                                                    )}
+                                                </div>
+                                                <p className="text-sm">
+                                                    {proj.desc}
+                                                </p>
+                                                <div className="flex flex-wrap gap-3 mt-3">
+                                                    {proj.links.map(
+                                                        (link, i) => (
+                                                            <a
+                                                                key={i}
+                                                                href={link.href}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                                                            >
+                                                                {link.type ===
+                                                                'github' ? (
+                                                                    <GitFork className="h-3 w-3" />
+                                                                ) : (
+                                                                    <ExternalLink className="h-3 w-3" />
+                                                                )}
+                                                                {link.label}
+                                                            </a>
+                                                        )
+                                                    )}
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                    <p className="text-xs text-muted-foreground">
+                                        &gt; Building open source civic-tech —
+                                        writing code that gives back to the
+                                        community.
+                                    </p>
                                 </CardContent>
                             </Card>
                         </div>
