@@ -1,6 +1,7 @@
 import { Router } from "express";
 import home from "./home";
 import posts from "./posts";
+import likes from "./likes";
 import dashboard from "./dashboard";
 import users from "./users";
 import admin from "./admin";
@@ -10,6 +11,10 @@ export const router = Router();
 
 router.use("/", home);
 router.use("/api/posts", posts);
+// Likes nest under a post (POST /api/posts/:postId/like). Mounted after the
+// posts router so the posts read routes match first; the like toggle is the
+// only POST handler here.
+router.use("/api/posts", likes);
 router.use("/api/dashboard", dashboard);
 router.use("/api/users", users);
 router.use("/api/admin", admin);
