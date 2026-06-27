@@ -1,0 +1,27 @@
+name: Supabase Keepalive
+# Supabase free-tier pauses a project after ~7 days with no DATABASE activity
+# (dashboard visits / cached API calls do NOT count). This runs a real
+# `SELECT 1` against Postgres twice a week to keep the project active.
+on:
+  schedule:
+    # Mon & Thu at 09:00 UTC — well inside the ~7-day inactivity window.
+    - cron: '0 9 * * 1,4'
+  workflow_dispatch: {} # allow manual trigger from the Actions tab
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping database (SELECT 1)
+        env:
+          # Set this repo secret to Supabase POSTGRES_URL (the pooled URI).
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # require = encrypt without cert verification — matches how the app's
+          # pg Pool treats Supabase's self-signed chain (rejectUnauthorized:false).
+          PGSSLMODE: require
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL secret is not set"
+            exit 1
+          fi
+          psql "$DATABASE_URL" -tAc 'SELECT 1;'
+          echo "Supabase keepalive ping OK"
