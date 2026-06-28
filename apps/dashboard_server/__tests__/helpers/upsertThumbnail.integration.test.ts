@@ -26,7 +26,7 @@ const urlFor = (n: string) =>
 const tag = `thumb_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 const clerk = `clerk_thumb_${tag}`;
 
-async function liveThumbCount(postId: number): Promise<number> {
+async function liveThumbCount(postId: string): Promise<number> {
     const { rows } = await pool.query<{ c: string }>(
         `SELECT count(*)::text AS c FROM files
           WHERE post_id = $1 AND is_thumbnail = true AND deleted_at IS NULL`,
@@ -38,7 +38,8 @@ async function liveThumbCount(postId: number): Promise<number> {
 describe('upsertThumbnail (integration)', () => {
     let reachable = false;
     let userId = 0;
-    let postId = 0;
+    // BIGINT post id kept as a STRING (Snowflake precision); never Number() it.
+    let postId = '';
 
     beforeAll(async () => {
         reachable = await isDbReachable();
@@ -56,7 +57,7 @@ describe('upsertThumbnail (integration)', () => {
             categoryId: null,
             status: 'public',
         });
-        postId = Number(post.id);
+        postId = post.id;
     });
 
     afterAll(async () => {

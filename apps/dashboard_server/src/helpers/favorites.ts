@@ -88,7 +88,7 @@ export interface TSavedPostsParams {
 // strings (node-pg int8 → string).
 export interface TSavedPostRow {
     id: string;
-    user_id: number;
+    user_id: string;
     username: string | null;
     slug: string;
     title: string;

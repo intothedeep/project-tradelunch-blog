@@ -3,7 +3,8 @@
 //             (status 'draft' or absent) accepts an empty/absent title stored as
 //             ''. A present title must be a string ≤255 chars (trimmed). status
 //             (when present) is a known post_status_enum value; content/description
-//             are string|undefined; categoryId is number|null|undefined.
+//             are string|undefined; categoryId is a BIGINT id as a numeric STRING
+//             (or null/undefined) — never a JS number (Snowflake precision).
 // Constraints: deterministic, zero side effects. Mirrors validateUsername's shape.
 import type { TPostInput, TPostStatus } from '@repo/types';
 
@@ -60,12 +61,14 @@ export function validatePostInput(body: unknown): TValidatePostInputResult {
         return { ok: false, reason: 'description must be a string' };
     }
 
+    // categoryId is a BIGINT id carried as a numeric STRING (never a JS number —
+    // precision past 2^53). Accept a digit-string or null; reject anything else.
     if (
         categoryId !== undefined &&
         categoryId !== null &&
-        typeof categoryId !== 'number'
+        !(typeof categoryId === 'string' && /^\d+$/.test(categoryId))
     ) {
-        return { ok: false, reason: 'categoryId must be a number or null' };
+        return { ok: false, reason: 'categoryId must be a numeric string or null' };
     }
 
     if (slug !== undefined && typeof slug !== 'string') {
@@ -86,7 +89,7 @@ export function validatePostInput(body: unknown): TValidatePostInputResult {
         ...(content !== undefined ? { content } : {}),
         ...(description !== undefined ? { description } : {}),
         ...(categoryId !== undefined
-            ? { categoryId: categoryId as number | null }
+            ? { categoryId: categoryId as string | null }
             : {}),
         ...(status !== undefined ? { status: status as TPostStatus } : {}),
         ...(slug !== undefined ? { slug } : {}),

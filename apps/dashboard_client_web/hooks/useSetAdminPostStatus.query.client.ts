@@ -12,7 +12,8 @@ import { adminPostsQueryKey } from '@/hooks/useAdminPosts.query.client';
 import type { TPostStatus } from '@repo/types';
 
 export interface TSetAdminPostStatusVars {
-    postId: number;
+    // BIGINT post id as a STRING (Snowflake precision); never Number() it.
+    postId: string;
     status: TPostStatus;
 }
 

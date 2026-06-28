@@ -43,7 +43,7 @@ router.get(
             const rawCursor =
                 typeof req.query.cursor === 'string' ? req.query.cursor : '';
             const cursorParam =
-                /^\d+$/.test(rawCursor) && Number(rawCursor) > 0
+                /^\d+$/.test(rawCursor) && rawCursor !== '0'
                     ? rawCursor
                     : '9223372036854775807';
             const limit = parseInt(req.query.limit || '10', 10);
@@ -186,7 +186,7 @@ router.get(
             const rawCursor =
                 typeof req.query.cursor === 'string' ? req.query.cursor : '';
             const cursorParam =
-                /^\d+$/.test(rawCursor) && Number(rawCursor) > 0
+                /^\d+$/.test(rawCursor) && rawCursor !== '0'
                     ? rawCursor
                     : '9223372036854775807';
             const limit = parseInt(req.query.limit || '10', 10);
@@ -616,7 +616,7 @@ router.get(
             const rawCursor =
                 typeof req.query.cursor === 'string' ? req.query.cursor : '';
             const cursorParam =
-                /^\d+$/.test(rawCursor) && Number(rawCursor) > 0
+                /^\d+$/.test(rawCursor) && rawCursor !== '0'
                     ? rawCursor
                     : '9223372036854775807';
             const limit = Math.min(parseInt(req.query.limit || '10', 10), 50);
@@ -650,9 +650,11 @@ router.get(
                 LIMIT $4
             `;
 
+            // categoryId is a BIGINT id — bind the raw STRING (node-pg casts text
+            // → int8); never parseInt it (precision past 2^53).
             const { rows } = await pool.query(postsQuery, [
                 username,
-                parseInt(categoryId, 10),
+                categoryId,
                 cursorParam,
                 fetchLimit,
             ]);

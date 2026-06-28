@@ -24,7 +24,8 @@ export type TCreatePostInput = {
     title: string;
     content: string | null;
     description: string | null;
-    categoryId: number | null;
+    // BIGINT category id as a STRING (node-pg casts text → int8); never Number().
+    categoryId: string | null;
     status: TPostStatus;
 };
 

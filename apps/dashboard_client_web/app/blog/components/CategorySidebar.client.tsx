@@ -27,11 +27,11 @@ interface CategorySidebarProps {
 export const CategorySidebar: React.FC<CategorySidebarProps> = ({
     categories,
 }) => {
-    const [selectedNode, setSelectedNode] = useState<number | null>(null);
+    const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
     const router = useRouter();
 
-    const handleNodeSelect = (id: number, node: TTreeNodeWithChildren) => {
+    const handleNodeSelect = (id: string, node: TTreeNodeWithChildren) => {
         setSelectedNode(id);
         // Handle navigation for posts
         if (node.type === ETreeNodeType.POST && node.slug) {

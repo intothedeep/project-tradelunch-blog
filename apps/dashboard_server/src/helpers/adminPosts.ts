@@ -15,7 +15,7 @@ import type { TAdminPostListItem, TPostStatus } from '@repo/types';
 
 type TDb = Pool | PoolClient;
 
-export type TAdminPostRow = Record<string, unknown> & { id: number };
+export type TAdminPostRow = Record<string, unknown> & { id: string };
 
 // Keyset start for the first page: a value above any real BIGINT post id so the
 // `p.id < $cursor` predicate selects the newest rows.
@@ -31,7 +31,7 @@ type TListResult = {
 
 type TRawListRow = {
     id: string;
-    user_id: number;
+    user_id: string;
     username: string | null;
     slug: string;
     title: string;
@@ -42,8 +42,8 @@ type TRawListRow = {
 
 function toItem(r: TRawListRow): TAdminPostListItem {
     return {
-        id: Number(r.id),
-        userId: Number(r.user_id),
+        id: r.id,
+        userId: r.user_id,
         username: r.username,
         slug: r.slug,
         title: r.title,
@@ -59,9 +59,7 @@ export async function listAllPosts(
 ): Promise<TListResult> {
     const fetchLimit = limit + 1;
     const startCursor =
-        cursor && /^\d+$/.test(cursor) && Number(cursor) > 0
-            ? cursor
-            : MAX_CURSOR;
+        cursor && /^\d+$/.test(cursor) && cursor !== '0' ? cursor : MAX_CURSOR;
 
     const { rows } = await db.query<TRawListRow>(
         `SELECT p.id, p.user_id, u.username, p.slug, p.title, p.status,
@@ -85,7 +83,7 @@ export async function listAllPosts(
 
 export async function setPostStatus(
     db: TDb,
-    postId: number,
+    postId: string,
     status: TPostStatus
 ): Promise<TAdminPostRow | null> {
     const { rows } = await db.query<TAdminPostRow>(
@@ -99,13 +97,13 @@ export async function setPostStatus(
 
 export async function adminSoftDeletePost(
     db: TDb,
-    postId: number
-): Promise<number | null> {
-    const { rows } = await db.query<{ id: number }>(
+    postId: string
+): Promise<string | null> {
+    const { rows } = await db.query<{ id: string }>(
         `UPDATE posts SET deleted_at = now()
          WHERE id = $1 AND deleted_at IS NULL
          RETURNING id`,
         [postId]
     );
-    return rows[0] ? Number(rows[0].id) : null;
+    return rows[0] ? rows[0].id : null;
 }

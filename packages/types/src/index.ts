@@ -14,11 +14,13 @@ export type ETreeNodeType = (typeof ETreeNodeType)[keyof typeof ETreeNodeType];
 
 export interface TCategoryTreeNode {
     type: typeof ETreeNodeType.CATEGORY;
-    id: number;
+    // Postgres BIGINT (int8) — carried as a STRING end-to-end; JS numbers lose
+    // precision past 2^53. Never Number()/parseInt these ids.
+    id: string;
     title: string;
     slug: null;
-    parent_id: number | null;
-    group_id: number | null;
+    parent_id: string | null;
+    group_id: string | null;
     level: number;
     priority: number;
     username: string;
@@ -31,15 +33,16 @@ export interface TCategoryTreeNode {
 
 export interface TPostTreeNode {
     type: typeof ETreeNodeType.POST;
-    id: number;
+    // BIGINT ids as STRINGS (Snowflake precision); never Number()/parseInt them.
+    id: string;
     title: string;
     slug: string;
-    parent_id: number;
+    parent_id: string;
     group_id: null;
     level: number;
     priority: number;
     username: string;
-    post_id: number;
+    post_id: string;
     description: string | null;
     created_at: string;
     updated_at: string;
@@ -73,7 +76,8 @@ export interface TPostInput {
     title: string;
     content?: string;
     description?: string;
-    categoryId?: number | null;
+    // BIGINT category id as a STRING (Snowflake precision); never Number() it.
+    categoryId?: string | null;
     status?: TPostStatus;
     slug?: string;
     // Author-chosen thumbnail. Absolute CDN URL from the image-sign step.
@@ -91,7 +95,7 @@ export interface TDraftSummary {
     title: string;
     description: string | null;
     status: TPostStatus;
-    categoryId: number | null;
+    categoryId: string | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -109,8 +113,9 @@ export interface TImageUploadResponse {
 // ---------------------------------------------------------------------------
 
 export interface TAdminPostListItem {
-    id: number;
-    userId: number;
+    // BIGINT ids as STRINGS (Snowflake precision); never Number()/parseInt them.
+    id: string;
+    userId: string;
     username: string | null;
     slug: string;
     title: string;
@@ -121,7 +126,7 @@ export interface TAdminPostListItem {
 
 export interface TAdminPostListResponse {
     items: TAdminPostListItem[];
-    nextCursor: string | number | null;
+    nextCursor: string | null;
     hasMore: boolean;
 }
 

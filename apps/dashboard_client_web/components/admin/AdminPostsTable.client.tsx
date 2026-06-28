@@ -38,9 +38,9 @@ function StatusBadge({ status }: { status: TAdminPostListItem['status'] }) {
 
 interface PostRowProps {
     post: TAdminPostListItem;
-    onUnpublish: (id: number) => void;
-    onRepublish: (id: number) => void;
-    onDelete: (id: number) => void;
+    onUnpublish: (id: string) => void;
+    onRepublish: (id: string) => void;
+    onDelete: (id: string) => void;
     isBusy: boolean;
 }
 

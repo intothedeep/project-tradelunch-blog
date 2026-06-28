@@ -26,7 +26,7 @@ router.get('/', requireAdmin, async (req: Request, res: Response) => {
         const rawCursor =
             typeof req.query.cursor === 'string' ? req.query.cursor : '';
         const cursor =
-            /^\d+$/.test(rawCursor) && Number(rawCursor) > 0 ? rawCursor : null;
+            /^\d+$/.test(rawCursor) && rawCursor !== '0' ? rawCursor : null;
 
         const rawLimit = parseInt(String(req.query.limit ?? ''), 10);
         const limit = Math.min(
@@ -47,8 +47,9 @@ router.get('/', requireAdmin, async (req: Request, res: Response) => {
 
 router.patch('/:postid/status', requireAdmin, async (req: Request, res: Response) => {
     try {
-        const postId = parseInt(String(req.params.postid), 10);
-        if (!Number.isInteger(postId)) {
+        // postId is a BIGINT — keep it a numeric STRING; never parseInt (precision).
+        const postId = String(req.params.postid);
+        if (!/^\d+$/.test(postId)) {
             res.status(400).json({ success: false, message: 'invalid post id' });
             return;
         }
@@ -76,8 +77,9 @@ router.patch('/:postid/status', requireAdmin, async (req: Request, res: Response
 
 router.delete('/:postid', requireAdmin, async (req: Request, res: Response) => {
     try {
-        const postId = parseInt(String(req.params.postid), 10);
-        if (!Number.isInteger(postId)) {
+        // postId is a BIGINT — keep it a numeric STRING; never parseInt (precision).
+        const postId = String(req.params.postid);
+        if (!/^\d+$/.test(postId)) {
             res.status(400).json({ success: false, message: 'invalid post id' });
             return;
         }

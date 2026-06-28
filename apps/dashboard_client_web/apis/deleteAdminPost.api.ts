@@ -8,7 +8,7 @@ import { toApiError } from '@/utils/apiError.util';
 
 export async function deleteAdminPost(
     token: string,
-    postId: number
+    postId: string
 ): Promise<void> {
     try {
         await axios_instance.delete<unknown, void>(
