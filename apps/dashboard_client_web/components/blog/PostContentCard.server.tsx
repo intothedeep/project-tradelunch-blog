@@ -27,17 +27,16 @@ export const PostContentCard = async ({
             )}
         >
             <CardHeader className={cn('p-3 pb-0 sm:p-4 sm:pb-0')}>
-                {/* Byline left; Like + Share + Save + owner Edit top-right. */}
+                {/* Byline left; owner Edit + Share + Save + Like top-right. */}
                 <div className="flex items-start gap-2">
                     <PostContentHeader
                         post={post}
                         hasBack={true}
                     />
                     <div className="ml-auto flex items-center gap-2 shrink-0">
-                        <LikeButton
+                        <OwnerEditButton
                             postId={post.id}
-                            initialLiked={post.viewerLiked ?? false}
-                            initialLikeCount={post.likeCount ?? 0}
+                            ownerUsername={ownerUsername}
                         />
                         <ShareButton
                             username={post.username}
@@ -45,9 +44,10 @@ export const PostContentCard = async ({
                             title={post.title}
                         />
                         <SaveButton postId={post.id} />
-                        <OwnerEditButton
+                        <LikeButton
                             postId={post.id}
-                            ownerUsername={ownerUsername}
+                            initialLiked={post.viewerLiked ?? false}
+                            initialLikeCount={post.likeCount ?? 0}
                         />
                     </div>
                 </div>
