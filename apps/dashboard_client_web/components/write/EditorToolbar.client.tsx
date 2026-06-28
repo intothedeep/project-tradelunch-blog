@@ -1,13 +1,15 @@
 // components/write/EditorToolbar.client.tsx
 // Purpose: presentational chrome for the authoring surface — title, status,
-// description, image-insert control, and the save/delete actions. Wraps the
-// editor body (textarea + preview grid) passed as children to preserve order.
+// labeled description, and the save/delete actions. Wraps the editor body
+// (metadata fields + textarea + preview grid) passed as children to preserve
+// order. Body images are added via paste/drop in the editor itself, so there is
+// no image-insert control here.
 // Constraints: client-only. Stateless; every value and callback arrives via
 // props. No persistence or upload orchestration here.
 
 'use client';
 
-import type { ChangeEvent, ReactNode, RefObject } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { TPostStatus } from '@repo/types';
@@ -21,11 +23,6 @@ type EditorToolbarProps = {
     onStatusChange: (value: TPostStatus) => void;
     description: string;
     onDescriptionChange: (value: string) => void;
-    onPickImage: (e: ChangeEvent<HTMLInputElement>) => void;
-    isUploading: boolean;
-    isStorageDisabled: boolean;
-    imageError: string | null;
-    fileInputRef: RefObject<HTMLInputElement | null>;
     onSave: () => void;
     isSaving: boolean;
     canSave: boolean;
@@ -44,11 +41,6 @@ export function EditorToolbar({
     onStatusChange,
     description,
     onDescriptionChange,
-    onPickImage,
-    isUploading,
-    isStorageDisabled,
-    imageError,
-    fileInputRef,
     onSave,
     isSaving,
     canSave,
@@ -100,48 +92,20 @@ export function EditorToolbar({
                 </p>
             )}
 
-            <input
-                aria-label={t('a11y.description')}
-                value={description}
-                onChange={(e) => onDescriptionChange(e.target.value)}
-                placeholder={t('editor.descriptionPlaceholder')}
-                className="mb-3 w-full border-2 border-primary/50 bg-transparent px-3 py-2 text-sm outline-none focus:border-primary"
-            />
-
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
-                <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading || isStorageDisabled}
-                    className={cn(
-                        'border-2 border-primary px-3 py-1 transition-colors',
-                        'hover:bg-primary hover:text-primary-foreground',
-                        'disabled:cursor-not-allowed disabled:opacity-50'
-                    )}
+            <div className="mb-3">
+                <label
+                    htmlFor="post-description"
+                    className="block text-[0.65rem] uppercase tracking-wider text-muted-foreground"
                 >
-                    {isUploading
-                        ? t('toolbar.uploading')
-                        : t('toolbar.insertImage')}
-                </button>
-                {isStorageDisabled && (
-                    <span className="text-muted-foreground">
-                        {t('toolbar.storageDisabled')}
-                    </span>
-                )}
-                {imageError && !isStorageDisabled && (
-                    <span
-                        role="alert"
-                        className="text-destructive"
-                    >
-                        {imageError}
-                    </span>
-                )}
+                    {t('editor.descriptionLabel')}
+                </label>
                 <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    onChange={onPickImage}
+                    id="post-description"
+                    aria-label={t('a11y.description')}
+                    value={description}
+                    onChange={(e) => onDescriptionChange(e.target.value)}
+                    placeholder={t('editor.descriptionPlaceholder')}
+                    className="mt-1 w-full border-2 border-primary/50 bg-transparent px-3 py-2 text-sm outline-none focus:border-primary"
                 />
             </div>
 

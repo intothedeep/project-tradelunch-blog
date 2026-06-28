@@ -14,7 +14,6 @@
         "yearsAgo": "{years}년 전"
     },
     "settings": {
-        "title": "글 설정",
         "slugHint": "비워두면 제목에서 자동 생성됩니다",
         "slugLabel": "슬러그",
         "slugPlaceholder": "제목에서-자동-생성됩니다",
@@ -30,7 +29,9 @@
         "viewLive": "실시간 보기 →",
         "titlePlaceholder": "제목",
         "descriptionPlaceholder": "설명 (선택)",
+        "descriptionLabel": "설명",
         "contentPlaceholder": "# 마크다운으로 작성하세요",
+        "imageHint": "이미지를 붙여넣거나 드래그하여 업로드하세요",
         "deleteConfirm": "이 글을 삭제할까요?",
         "notFound": "> 글을 찾을 수 없습니다",
         "tabWrite": "작성",
@@ -43,7 +44,6 @@
     },
     "toolbar": {
         "titleRequired": "저장하려면 제목이 필요합니다",
-        "insertImage": "이미지 삽입",
         "uploading": "업로드 중...",
         "save": "저장",
         "saving": "저장 중...",

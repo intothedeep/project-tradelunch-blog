@@ -14,7 +14,6 @@
         "yearsAgo": "{years}y ago"
     },
     "settings": {
-        "title": "POST SETTINGS",
         "slugHint": "empty = auto-generated from title",
         "slugLabel": "slug",
         "slugPlaceholder": "auto-generated-from-title",
@@ -30,7 +29,9 @@
         "viewLive": "VIEW LIVE →",
         "titlePlaceholder": "TITLE",
         "descriptionPlaceholder": "DESCRIPTION (optional)",
+        "descriptionLabel": "description",
         "contentPlaceholder": "# write markdown here",
+        "imageHint": "Paste or drop an image to upload",
         "deleteConfirm": "Delete this post?",
         "notFound": "> post not found",
         "tabWrite": "write",
@@ -43,7 +44,6 @@
     },
     "toolbar": {
         "titleRequired": "Title required to save",
-        "insertImage": "INSERT IMAGE",
         "uploading": "UPLOADING...",
         "save": "SAVE",
         "saving": "SAVING...",
