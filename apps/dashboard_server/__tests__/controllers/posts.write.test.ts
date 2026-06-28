@@ -34,7 +34,7 @@ describe('writePost owner-scoping (integration)', () => {
     let reachable = false;
     let userA = 0;
     let userB = 0;
-    let postOfB = 0;
+    let postOfB = ''; // post id is a BIGINT string; never Number() it
 
     beforeAll(async () => {
         reachable = await isDbReachable();
@@ -58,7 +58,7 @@ describe('writePost owner-scoping (integration)', () => {
             categoryId: null,
             status: 'public',
         });
-        postOfB = Number(post.id);
+        postOfB = post.id;
     });
 
     afterAll(async () => {

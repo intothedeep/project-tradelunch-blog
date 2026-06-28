@@ -60,7 +60,7 @@ export function parseThumbnailUrl(
 export async function upsertThumbnail(
     db: PoolClient,
     userId: number,
-    postId: number,
+    postId: string,
     thumbnailUrl: string | null,
     cfg: TThumbnailConfig
 ): Promise<void> {

@@ -12,7 +12,7 @@ import { myDraftsQueryKey } from '@/hooks/useMyDrafts.query.client';
 import type { TPostInput, TDraftSummary } from '@repo/types';
 
 export interface TUpdatePostVars {
-    postId: number;
+    postId: string;
     input: Partial<TPostInput>;
 }
 

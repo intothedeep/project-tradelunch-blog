@@ -9,7 +9,7 @@ import type { TPostInput, TDraftSummary } from '@repo/types';
 
 export async function updatePost(
     token: string,
-    postId: number,
+    postId: string,
     input: Partial<TPostInput>
 ): Promise<TDraftSummary> {
     try {

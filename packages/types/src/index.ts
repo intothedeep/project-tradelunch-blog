@@ -83,8 +83,10 @@ export interface TPostInput {
 }
 
 // List item for GET /users/me/drafts.
+// id is a Postgres BIGINT, serialized as a string (JS numbers lose precision
+// past 2^53). Keep it a string end-to-end; never Number() it.
 export interface TDraftSummary {
-    id: number;
+    id: string;
     slug: string;
     title: string;
     description: string | null;

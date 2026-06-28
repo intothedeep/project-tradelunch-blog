@@ -70,8 +70,8 @@ describe('useDraftAutosave — UX0 regression', () => {
             status: 'public',
         };
 
-        // postId = 42  →  existing post, triggers updatePost path
-        renderHook(() => useDraftAutosave(42, input, true));
+        // postId = '42'  →  existing post, triggers updatePost path
+        renderHook(() => useDraftAutosave('42', input, true));
 
         // Fire the 2 s debounce and flush async work (mutateAsync promise).
         await act(async () => {
@@ -82,7 +82,7 @@ describe('useDraftAutosave — UX0 regression', () => {
 
         // Non-null assertion is safe: we just asserted the call exists above.
         const arg = mockUpdateMutateAsync.mock.calls[0]![0] as {
-            postId: number;
+            postId: string;
             input: Partial<TPostInput>;
         };
 
@@ -90,7 +90,7 @@ describe('useDraftAutosave — UX0 regression', () => {
         expect(arg.input.status).toBe('public');
         expect(arg.input.status).not.toBe('draft');
         // Sanity: correct post targeted.
-        expect(arg.postId).toBe(42);
+        expect(arg.postId).toBe('42');
     });
 
     // -----------------------------------------------------------------------

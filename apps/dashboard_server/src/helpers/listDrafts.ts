@@ -9,7 +9,7 @@ import type { TDraftSummary, TPostStatus } from '@repo/types';
 type TDb = Pool | PoolClient;
 
 type TDraftRow = {
-    id: number;
+    id: string; // BIGINT — pg returns it as a string; never Number() it.
     slug: string;
     title: string;
     description: string | null;
@@ -34,7 +34,7 @@ export async function listDrafts(
     );
 
     return rows.map((r) => ({
-        id: Number(r.id),
+        id: r.id,
         slug: r.slug,
         title: r.title,
         description: r.description,

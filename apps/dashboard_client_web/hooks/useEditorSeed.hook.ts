@@ -18,7 +18,7 @@ import { getPostById } from '@/apis/getPostById.api';
 import type { TPost } from '@/apis/blog.types';
 import type { TPostInput, TPostStatus } from '@repo/types';
 
-export const postByIdQueryKey = (postId: number | null) =>
+export const postByIdQueryKey = (postId: string | null) =>
     ['post', 'id', postId] as const;
 
 const EMPTY_INPUT: TPostInput = {
@@ -48,7 +48,7 @@ const toEditorInput = (post: TPost): TPostInput => ({
     slug: post.slug,
 });
 
-export function useEditorSeed(postId: number | null): EditorSeed {
+export function useEditorSeed(postId: string | null): EditorSeed {
     const isEdit = postId != null;
     const { getToken } = useAuth();
 

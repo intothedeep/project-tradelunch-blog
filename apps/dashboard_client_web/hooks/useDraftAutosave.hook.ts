@@ -47,7 +47,7 @@ const deriveStatus = (params: {
 };
 
 export function useDraftAutosave(
-    postId: number | null,
+    postId: string | null,
     input: TPostInput,
     enabled: boolean
 ) {
@@ -58,7 +58,7 @@ export function useDraftAutosave(
     const inputRef = useRef<TPostInput>(input);
     inputRef.current = input;
 
-    const postIdRef = useRef<number | null>(postId);
+    const postIdRef = useRef<string | null>(postId);
     postIdRef.current = postId;
 
     const creatingRef = useRef(false);

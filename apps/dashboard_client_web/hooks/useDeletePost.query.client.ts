@@ -14,8 +14,8 @@ export function useDeletePost() {
     const { getToken } = useAuth();
     const queryClient = useQueryClient();
 
-    return useMutation<void, Error, number>({
-        mutationFn: async (postId: number) => {
+    return useMutation<void, Error, string>({
+        mutationFn: async (postId: string) => {
             const token = await getToken();
             if (!token) throw new Error('Not authenticated');
             return deletePost(token, postId);

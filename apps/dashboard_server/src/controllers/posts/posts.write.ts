@@ -89,8 +89,10 @@ router.post('', requireAuth, async (req, res) => {
 
 router.patch('/:postid', requireAuth, async (req, res) => {
     try {
-        const postId = parseInt(String(req.params.postid), 10);
-        if (!Number.isInteger(postId)) {
+        // BIGINT id: keep it a string (never parseInt — JS numbers lose
+        // precision past 2^53 and would target the wrong row).
+        const postId = String(req.params.postid);
+        if (!/^\d+$/.test(postId)) {
             res.status(400).json({ success: false, message: 'invalid post id' });
             return;
         }
@@ -145,8 +147,9 @@ router.patch('/:postid', requireAuth, async (req, res) => {
 
 router.delete('/:postid', requireAuth, async (req, res) => {
     try {
-        const postId = parseInt(String(req.params.postid), 10);
-        if (!Number.isInteger(postId)) {
+        // BIGINT id: keep it a string (never parseInt — see PATCH above).
+        const postId = String(req.params.postid);
+        if (!/^\d+$/.test(postId)) {
             res.status(400).json({ success: false, message: 'invalid post id' });
             return;
         }

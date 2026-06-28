@@ -35,7 +35,7 @@ const ALLOWED_SEED_STATUS = new Set<TPostStatus>([
     'public',
 ]);
 
-export function MarkdownEditor({ postId }: { postId: number | null }) {
+export function MarkdownEditor({ postId }: { postId: string | null }) {
     const router = useRouter();
     const { user } = useUser();
     const seed = useEditorSeed(postId);

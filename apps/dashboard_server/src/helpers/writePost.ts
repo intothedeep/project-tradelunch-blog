@@ -15,7 +15,9 @@ import type { TPostInput, TPostStatus } from '@repo/types';
 
 type TDb = Pool | PoolClient;
 
-export type TPostRow = Record<string, unknown> & { id: number };
+// id is a Postgres BIGINT; node-pg returns it as a STRING to avoid the
+// precision loss of JS numbers (>2^53). Never coerce it to Number.
+export type TPostRow = Record<string, unknown> & { id: string };
 
 export type TCreatePostInput = {
     slug: string;
@@ -51,7 +53,7 @@ export async function createPost(
 export async function updatePost(
     db: TDb,
     userId: number,
-    postId: number,
+    postId: string,
     patch: TPostInput
 ): Promise<TPostRow | null> {
     const { rows } = await db.query<TPostRow>(
@@ -82,13 +84,13 @@ export async function updatePost(
 export async function softDeletePost(
     db: TDb,
     userId: number,
-    postId: number
-): Promise<number | null> {
-    const { rows } = await db.query<{ id: number }>(
+    postId: string
+): Promise<string | null> {
+    const { rows } = await db.query<{ id: string }>(
         `UPDATE posts SET deleted_at = now()
          WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
          RETURNING id`,
         [postId, userId]
     );
-    return rows[0] ? Number(rows[0].id) : null;
+    return rows[0] ? rows[0].id : null;
 }
