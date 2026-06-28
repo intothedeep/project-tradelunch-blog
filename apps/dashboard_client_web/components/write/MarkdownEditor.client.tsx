@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useUser } from '@clerk/nextjs';
 import { EditorPreview } from '@/components/write/EditorPreview.client';
+import { MdEditor } from '@/components/write/MdEditor.client';
 import { PostSettings } from '@/components/write/PostSettings.client';
 import { EditorToolbar } from '@/components/write/EditorToolbar.client';
 import { AutosaveIndicator } from '@/components/write/AutosaveIndicator.client';
@@ -60,7 +61,11 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
     // below md. CSS handles the breakpoint to avoid a JS-measured flash.
     const [viewMode, setViewMode] = useState<'write' | 'preview'>('write');
 
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    // Ref to the column wrapping the editor. The underlying markdown editor
+    // renders its own <textarea>; we reach it via querySelector for cursor-aware
+    // image insertion rather than depending on the (dynamic-import-unfriendly)
+    // component ref.
+    const editorContainerRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const image = useImageUpload();
@@ -104,7 +109,8 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
     useUnsavedGuard(isDirty);
 
     const insertAtCursor = (text: string) => {
-        const ta = textareaRef.current;
+        const ta =
+            editorContainerRef.current?.querySelector('textarea') ?? null;
         if (!ta) {
             setContent((c) => c + text);
             return;
@@ -268,20 +274,23 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                     <div
+                        ref={editorContainerRef}
                         className={cn(
                             viewMode === 'write' ? 'block' : 'hidden',
                             'md:block'
                         )}
                     >
-                        <textarea
-                            ref={textareaRef}
-                            aria-label={t('a11y.content')}
+                        <MdEditor
                             value={content}
-                            onChange={(e) => setContent(e.target.value)}
-                            onCompositionStart={composition.onCompositionStart}
-                            onCompositionEnd={composition.onCompositionEnd}
-                            placeholder={t('editor.contentPlaceholder')}
-                            className="min-h-[60vh] w-full resize-y border-2 border-primary/50 bg-transparent p-3 text-sm outline-none focus:border-primary"
+                            onChange={(v) => setContent(v ?? '')}
+                            height="60vh"
+                            textareaProps={{
+                                'aria-label': t('a11y.content'),
+                                placeholder: t('editor.contentPlaceholder'),
+                                onCompositionStart:
+                                    composition.onCompositionStart,
+                                onCompositionEnd: composition.onCompositionEnd,
+                            }}
                         />
                     </div>
                     <div

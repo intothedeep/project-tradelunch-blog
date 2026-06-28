@@ -33,6 +33,7 @@
         "@radix-ui/react-tooltip": "^1.2.10",
         "@repo/types": "workspace:*",
         "@tanstack/react-query": "^5.101.1",
+        "@uiw/react-md-editor": "4.1.1",
         "axios": "^1.18.1",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
