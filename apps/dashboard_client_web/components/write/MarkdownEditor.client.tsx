@@ -277,13 +277,17 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
                         ref={editorContainerRef}
                         className={cn(
                             viewMode === 'write' ? 'block' : 'hidden',
-                            'md:block'
+                            // Mobile: fixed 60vh (no sibling to match). md+: h-full
+                            // lets the grid row's stretch size the editor cell to
+                            // the preview cell's height, so MDEditor's height=100%
+                            // grows with the (taller) preview.
+                            'h-[60vh] md:block md:h-full'
                         )}
                     >
                         <MdEditor
                             value={content}
                             onChange={(v) => setContent(v ?? '')}
-                            height="60vh"
+                            height="100%"
                             textareaProps={{
                                 'aria-label': t('a11y.content'),
                                 placeholder: t('editor.contentPlaceholder'),
