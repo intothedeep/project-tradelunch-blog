@@ -29,7 +29,7 @@ export default function ChartVariantLayout({ snapshot, history }: Props) {
     }, []);
 
     return (
-        <div className="flex flex-col lg:flex-row lg:h-[calc(100dvh-66px)] lg:overflow-hidden bg-white dark:bg-[#131722]">
+        <div className="flex flex-col lg:flex-row lg:h-[calc(100dvh-42px)] lg:overflow-hidden bg-white dark:bg-[#131722]">
             <div className="lg:flex-[7] h-[500px] lg:h-full lg:overflow-hidden flex flex-col">
                 <ChartPanel history={history} />
             </div>

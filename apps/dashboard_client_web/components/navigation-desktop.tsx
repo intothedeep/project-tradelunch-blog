@@ -2,8 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { useTranslations } from 'next-intl';
+import {
+    FileText,
+    Home,
+    LayoutDashboard,
+    Newspaper,
+    SquarePen,
+    type LucideIcon,
+} from 'lucide-react';
 import { NavMenu } from '@/components/nav-menu.client';
 import { DEFAULT_BLOG_AUTHOR } from '@/utils/blog-author';
 
@@ -25,12 +34,96 @@ const useBlogUsername = (): string => {
     return user?.username ?? DEFAULT_BLOG_AUTHOR;
 };
 
+// Icon for each primary destination on the compact dashboard rail.
+const RAIL_ICON: Record<string, LucideIcon> = {
+    About: Home,
+    blog: Newspaper,
+    dashboard: LayoutDashboard,
+    resume: FileText,
+};
+
+type DashboardNavRailProps = {
+    links: NavLink[];
+    isSignedIn: boolean | undefined;
+    writeLabel: string;
+};
+
+// Compact 40px icon-only rail shown ONLY on /dashboard* so charts reclaim the
+// ~24px the full h-16 bar would otherwise eat. Navigation stays one click away
+// (icons + the NavMenu dropdown). Every other route keeps the full bar below.
+const DashboardNavRail = ({
+    links,
+    isSignedIn,
+    writeLabel,
+}: DashboardNavRailProps) => (
+    <nav className="hidden md:flex h-10 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-4">
+        {/* Left - Logo (shrunk) */}
+        <Link
+            href="/"
+            aria-label="Home"
+            className="flex items-center group"
+        >
+            <div className="w-7 h-7 border border-primary bg-secondary flex items-center justify-center transition-all group-hover:scale-110">
+                <span className="text-base leading-none">👨‍💻</span>
+            </div>
+        </Link>
+
+        {/* Right - Icon links, then the shared NavMenu dropdown */}
+        <div className="flex items-center gap-1">
+            <ul className="flex flex-row gap-0.5 items-center">
+                {links.map((link) => {
+                    const Icon = RAIL_ICON[link.title] ?? Home;
+                    return (
+                        <li key={link.title}>
+                            <Link
+                                href={link.href}
+                                title={link.title}
+                                aria-label={link.title}
+                                className="flex h-8 w-8 items-center justify-center border border-transparent hover:border-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                            >
+                                <Icon className="h-4 w-4" />
+                            </Link>
+                        </li>
+                    );
+                })}
+                {/* WRITE — signed-in only. Reserve slot to avoid CLS while Clerk resolves. */}
+                <li className="min-w-[2rem]">
+                    {isSignedIn && (
+                        <Link
+                            href="/write"
+                            title={writeLabel}
+                            aria-label={writeLabel}
+                            className="flex h-8 w-8 items-center justify-center border border-transparent hover:border-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                        >
+                            <SquarePen className="h-4 w-4" />
+                        </Link>
+                    )}
+                </li>
+            </ul>
+            <NavMenu links={links} />
+        </div>
+    </nav>
+);
+
 // Desktop Navigation with Terminal Style
 export const DesktopNavigation = () => {
     const blogUsername = useBlogUsername();
     const { isSignedIn } = useUser();
     const links = buildLinks(blogUsername);
     const t = useTranslations('write');
+    const pathname = usePathname();
+    const isDashboard = pathname?.startsWith('/dashboard') ?? false;
+
+    // On the dashboard, collapse the 64px bar to a compact icon rail (Option A).
+    if (isDashboard) {
+        return (
+            <DashboardNavRail
+                links={links}
+                isSignedIn={isSignedIn}
+                writeLabel={t('nav.writeHeader')}
+            />
+        );
+    }
 
     return (
         <nav className="hidden md:flex h-16 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-6">
