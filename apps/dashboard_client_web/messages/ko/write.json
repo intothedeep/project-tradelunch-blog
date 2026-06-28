@@ -22,7 +22,8 @@
         "thumbnailPick": "썸네일 선택",
         "thumbnailReplace": "썸네일 교체",
         "thumbnailUploading": "업로드 중...",
-        "thumbnailClear": "지우기"
+        "thumbnailClear": "지우기",
+        "sectionTitle": "글 설정"
     },
     "editor": {
         "publishConfirm": "이 글을 공개로 발행할까요? 모두에게 보입니다.",
@@ -88,5 +89,23 @@
         "myDrafts": "내 초안",
         "saved": "저장됨",
         "writeHeader": "글쓰기"
+    },
+    "category": {
+        "label": "카테고리",
+        "labelSub": "하위 카테고리",
+        "labelSubSub": "하위 하위 카테고리",
+        "none": "— 없음",
+        "add": "+ 추가",
+        "create": "\"{title}\" 만들기",
+        "searchPlaceholder": "검색 또는 생성…",
+        "publishRequired": "발행하려면 카테고리를 선택하세요."
+    },
+    "tags": {
+        "label": "태그",
+        "placeholder": "태그 추가…",
+        "remove": "{tag} 태그 제거",
+        "limitReached": "태그는 최대 20개까지 가능합니다.",
+        "duplicate": "이미 추가된 태그입니다.",
+        "tooLong": "태그는 50자 이하여야 합니다."
     }
 }

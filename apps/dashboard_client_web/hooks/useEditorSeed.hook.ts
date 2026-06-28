@@ -2,7 +2,7 @@
 // Purpose: produce the initial editor state for a route. For a new post it is
 // empty defaults; for an existing post BOTH metadata and the real body are
 // seeded from the owner-scoped by-id endpoint (token-authenticated), which
-// returns a draft/private post including its `content`.
+// returns a draft/private post including its `content`, `tags`, and thumbnail.
 // Constraints: client-only. The body is hydrated from getPostById with a Clerk
 // bearer token (never the anonymous public slug route, which 404s on a private
 // draft and used to silently empty the editor). If the post cannot be loaded
@@ -27,6 +27,7 @@ const EMPTY_INPUT: TPostInput = {
     description: '',
     status: 'draft',
     categoryId: null,
+    tags: [],
 };
 
 export interface EditorSeed {
@@ -39,12 +40,15 @@ export interface EditorSeed {
 }
 
 // Map an owner's snake_case post row into the camelCase editor input shape.
+// category_id is a STRING (BIGINT-safe) and is passed through untouched — never
+// Number() it. tags are the lowercase canonical set (empty when absent).
 const toEditorInput = (post: TPost): TPostInput => ({
     title: post.title ?? '',
     content: post.content ?? '',
     description: post.description ?? '',
     status: (post.status as TPostStatus | undefined) ?? 'draft',
     categoryId: post.category_id ?? null,
+    tags: post.tags ?? [],
     slug: post.slug,
 });
 

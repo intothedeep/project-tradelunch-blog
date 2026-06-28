@@ -22,7 +22,8 @@
         "thumbnailPick": "PICK THUMBNAIL",
         "thumbnailReplace": "REPLACE THUMBNAIL",
         "thumbnailUploading": "UPLOADING...",
-        "thumbnailClear": "CLEAR"
+        "thumbnailClear": "CLEAR",
+        "sectionTitle": "post settings"
     },
     "editor": {
         "publishConfirm": "이 글을 공개로 발행할까요? 모두에게 보입니다.",
@@ -88,5 +89,23 @@
         "myDrafts": "My drafts",
         "saved": "Saved",
         "writeHeader": "WRITE"
+    },
+    "category": {
+        "label": "category",
+        "labelSub": "sub-category",
+        "labelSubSub": "sub-sub-category",
+        "none": "— none",
+        "add": "+ add",
+        "create": "Create \"{title}\"",
+        "searchPlaceholder": "search or create…",
+        "publishRequired": "Select a category to publish."
+    },
+    "tags": {
+        "label": "tags",
+        "placeholder": "add a tag…",
+        "remove": "remove tag {tag}",
+        "limitReached": "Up to 20 tags.",
+        "duplicate": "Tag already added.",
+        "tooLong": "Tags must be 50 characters or fewer."
     }
 }

@@ -12,6 +12,9 @@ export const ETreeNodeType = {
 
 export type ETreeNodeType = (typeof ETreeNodeType)[keyof typeof ETreeNodeType];
 
+// BIGINT id fields are serialized by node-pg as STRINGS (JS numbers lose
+// precision past 2^53). Keep every id/parent/group/post id a string end-to-end;
+// never Number()/parseInt them.
 export interface TCategoryTreeNode {
     type: typeof ETreeNodeType.CATEGORY;
     // Postgres BIGINT (int8) — carried as a STRING end-to-end; JS numbers lose
@@ -64,6 +67,29 @@ export type TTreeNodeWithChildren = TTreeNode & {
 };
 
 // ---------------------------------------------------------------------------
+// Category write contract (Phase G — editor category selector).
+// A category is a node in a depth-1..3 tree; a post stores a SINGLE leaf id
+// (posts.category_id). All ids are STRINGS (BIGINT/snowflake-safe). Title is
+// stored/compared LOWERCASE (canonical).
+// ---------------------------------------------------------------------------
+
+// A single category node (camelCase API shape). groupId = root-ancestor id.
+export interface TCategoryNode {
+    id: string;
+    parentId: string | null;
+    groupId: string | null;
+    title: string;
+    level: number;
+    priority: number;
+}
+
+// POST /v1/api/categories body. parentId null/absent = a root (level 0).
+export interface TCreateCategoryInput {
+    title: string;
+    parentId?: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // D2 write-contract types (create/update post, drafts, image upload signing).
 // Request/response DTOs use camelCase (API boundary); DB-row read shapes above
 // stay snake_case. 'draft' is added to post_status_enum in a parallel migration.
@@ -76,8 +102,13 @@ export interface TPostInput {
     title: string;
     content?: string;
     description?: string;
-    // BIGINT category id as a STRING (Snowflake precision); never Number() it.
+    // SINGLE leaf category id, a STRING (BIGINT-safe; never Number() it).
+    // Tri-state on PATCH: undefined = leave untouched; null = clear (drafts only —
+    // publish requires a non-null category); numeric string = set.
     categoryId?: string | null;
+    // Tag set (lowercase canonical). undefined = leave untouched on PATCH; an
+    // array (including empty) = REPLACE the post's whole tag set.
+    tags?: string[];
     status?: TPostStatus;
     slug?: string;
     // Author-chosen thumbnail. Absolute CDN URL from the image-sign step.

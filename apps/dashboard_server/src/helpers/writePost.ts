@@ -6,9 +6,12 @@
 // Invariants:
 //   * Every mutation is bound to user_id = $caller AND deleted_at IS NULL, so a
 //     non-owner can never read, update, or delete another author's row.
-//   * updatePost uses COALESCE($n, column): a field can be changed or left
-//     untouched, but CANNOT be nulled out through this path. Clearing nullable
-//     columns (e.g. category_id, description) is intentionally unsupported here.
+//   * updatePost uses COALESCE($n, column) for most fields (change or leave
+//     untouched), EXCEPT category_id, which is TRI-STATE: a present key in the
+//     patch sets it (including to null = clear); an absent key leaves it. The
+//     validator only spreads categoryId when the request supplied the key, so
+//     ('categoryId' in patch) is the authoritative "key present" signal.
+//   * category_id is a BIGINT column; the id is bound as a STRING (never Number()-ed).
 // Side effects: a single parameterized SQL statement per call.
 import type { Pool, PoolClient } from 'pg';
 import type { TPostInput, TPostStatus } from '@repo/types';
@@ -24,7 +27,8 @@ export type TCreatePostInput = {
     title: string;
     content: string | null;
     description: string | null;
-    // BIGINT category id as a STRING (node-pg casts text → int8); never Number().
+    // Leaf category id as a STRING (BIGINT-safe) or null. Bound verbatim to the
+    // BIGINT column; never Number()-ed.
     categoryId: string | null;
     status: TPostStatus;
 };
@@ -61,12 +65,15 @@ export async function updatePost(
     patch: TPostInput,
     isAdmin = false
 ): Promise<TPostRow | null> {
+    // category_id is tri-state: only overwrite it when the request supplied the
+    // key. $10 = "key present" → set to $6 (which may be null = clear); else keep.
+    const categoryIdProvided = 'categoryId' in patch;
     const { rows } = await db.query<TPostRow>(
         `UPDATE posts SET
             title       = COALESCE($3, title),
             content     = COALESCE($4, content),
             description = COALESCE($5, description),
-            category_id = COALESCE($6, category_id),
+            category_id = CASE WHEN $10 THEN $6 ELSE category_id END,
             status      = COALESCE($7, status),
             slug        = COALESCE($8, slug),
             updated_at  = now()
@@ -82,6 +89,7 @@ export async function updatePost(
             patch.status ?? null,
             patch.slug ?? null,
             isAdmin,
+            categoryIdProvided,
         ]
     );
     return rows[0] ?? null;

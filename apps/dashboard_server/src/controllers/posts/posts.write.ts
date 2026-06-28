@@ -22,6 +22,7 @@ import {
     softDeletePost,
 } from '../../helpers/writePost';
 import { upsertThumbnail } from '../../helpers/writeThumbnail';
+import { syncPostTags } from '../../helpers/writePostTags';
 import { buildImagePath } from '../../helpers/imagePath';
 import { transformImage } from '../../helpers/transformImage';
 import { uploadImageToStorage } from '../../helpers/uploadImage';
@@ -106,6 +107,11 @@ router.post('', requireAuth, async (req, res) => {
                     { cdnBase: thumbnailCdnBase, bucket: SUPABASE_STORAGE_BUCKET }
                 );
             }
+            // Tag set: undefined = leave untouched; an array (incl. empty)
+            // replaces the post's whole tag set. Shares this transaction.
+            if (input.tags !== undefined) {
+                await syncPostTags(client, row.id, input.tags);
+            }
             await client.query('COMMIT');
         } catch (txError) {
             await client.query('ROLLBACK');
@@ -163,6 +169,11 @@ router.patch('/:postid', requireAuth, async (req, res) => {
                     input.thumbnailUrl,
                     { cdnBase: thumbnailCdnBase, bucket: SUPABASE_STORAGE_BUCKET }
                 );
+            }
+            // Tag set: undefined = leave untouched; an array (incl. empty)
+            // replaces the post's whole tag set. Shares this transaction.
+            if (input.tags !== undefined) {
+                await syncPostTags(client, row.id, input.tags);
             }
             await client.query('COMMIT');
         } catch (txError) {

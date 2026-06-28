@@ -21,6 +21,8 @@ import { useUser } from '@clerk/nextjs';
 import { EditorPreview } from '@/components/write/EditorPreview.client';
 import { MdEditor } from '@/components/write/MdEditor.client';
 import { PostSettings } from '@/components/write/PostSettings.client';
+import { CategoryCascader } from '@/components/write/CategoryCascader.client';
+import { TagInput } from '@/components/write/TagInput.client';
 import { EditorToolbar } from '@/components/write/EditorToolbar.client';
 import { AutosaveIndicator } from '@/components/write/AutosaveIndicator.client';
 import { useEditorSeed } from '@/hooks/useEditorSeed.hook';
@@ -59,6 +61,13 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
     // (the backend writes the files.is_thumbnail row); autosave deliberately
     // omits it (see draftInput below) so it stays a low-frequency, deliberate choice.
     const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+    // Single leaf category id (string; BIGINT-safe). Null = unset; required to
+    // publish (status !== 'draft'). Tags are the lowercase canonical set.
+    const [categoryId, setCategoryId] = useState<string | null>(null);
+    const [tags, setTags] = useState<string[]>([]);
+    // Inline error shown when a publish save is attempted with no category,
+    // surfaced client-side instead of round-tripping to the server rejection.
+    const [categoryError, setCategoryError] = useState<string | null>(null);
     // Slug of the most recent successful public save, used to surface a
     // "view live" link. Null until a public save lands.
     const [liveSlug, setLiveSlug] = useState<string | null>(null);
@@ -97,6 +106,8 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
             ALLOWED_SEED_STATUS.has(seededStatus) ? seededStatus : 'private'
         );
         setThumbnailUrl(seed.thumbnailUrl);
+        setCategoryId(seed.initial.categoryId ?? null);
+        setTags(seed.initial.tags ?? []);
         setIsSeeded(true);
     }, [isSeeded, seed.isLoading, seed.initial, seed.thumbnailUrl]);
 
@@ -108,6 +119,9 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
         content,
         description,
         status,
+        // Drafts preserve the category + tag choices (thumbnail stays save-only).
+        categoryId,
+        tags,
     };
     const autosave = useDraftAutosave(postId, draftInput, isSeeded);
 
@@ -191,6 +205,13 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
     const handleClearThumbnail = () => setThumbnailUrl(null);
 
     const handleSave = async () => {
+        // A non-draft (private/public) save requires a category — block locally
+        // and surface an inline hint rather than round-trip to the server reject.
+        if (status !== 'draft' && !categoryId) {
+            setCategoryError(t('category.publishRequired'));
+            return;
+        }
+        setCategoryError(null);
         // Publishing is irreversible-feeling for the author: confirm before a
         // draft/private post becomes world-readable. Other statuses save silently.
         if (
@@ -204,6 +225,8 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
             content,
             description,
             status,
+            categoryId,
+            tags,
             slug: slug.trim() || undefined,
             // Persist the current thumbnail choice on explicit Save: a string
             // sets/replaces it, null clears it. Backend writes the files row.
@@ -272,6 +295,32 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
                     isThumbnailUploading={thumbnail.isUploading}
                     isStorageDisabled={thumbnail.isStorageDisabled}
                     thumbnailError={thumbnail.error}
+                    categorySlot={
+                        <>
+                            <CategoryCascader
+                                username={user?.username ?? null}
+                                value={categoryId}
+                                onChange={(id) => {
+                                    setCategoryId(id);
+                                    if (id) setCategoryError(null);
+                                }}
+                            />
+                            {categoryError && (
+                                <p
+                                    role="alert"
+                                    className="mt-1 text-xs text-destructive"
+                                >
+                                    {categoryError}
+                                </p>
+                            )}
+                        </>
+                    }
+                    tagsSlot={
+                        <TagInput
+                            value={tags}
+                            onChange={setTags}
+                        />
+                    }
                 >
                     {status === 'public' && user?.username && liveSlug && (
                         <Link
