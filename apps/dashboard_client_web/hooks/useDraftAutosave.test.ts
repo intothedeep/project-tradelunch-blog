@@ -2,7 +2,7 @@
 // Purpose: UX0 regression guard — autosave for an EXISTING public post must
 // send status:'public' in the PATCH payload, never silently demote to 'draft'.
 // Strategy: mock useCreatePost, useUpdatePost, next/navigation; use fake timers
-// to deterministically fire the 2 s debounce without real I/O.
+// to deterministically fire the 5 s debounce without real I/O.
 
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -79,14 +79,14 @@ describe('useDraftAutosave — UX0 regression', () => {
         // Mounting an unchanged (seeded) post must NOT autosave — the snapshot
         // baseline suppresses redundant PATCHes.
         await act(async () => {
-            vi.advanceTimersByTime(2100);
+            vi.advanceTimersByTime(5100);
         });
         expect(mockUpdateMutateAsync).not.toHaveBeenCalled();
 
         // A real edit triggers the debounced PATCH.
         rerender({ inp: { ...input, content: 'Body content edited.' } });
         await act(async () => {
-            vi.advanceTimersByTime(2100);
+            vi.advanceTimersByTime(5100);
         });
 
         expect(mockUpdateMutateAsync).toHaveBeenCalledOnce();
@@ -118,7 +118,7 @@ describe('useDraftAutosave — UX0 regression', () => {
         renderHook(() => useDraftAutosave(null, input, true));
 
         await act(async () => {
-            vi.advanceTimersByTime(2100);
+            vi.advanceTimersByTime(5100);
         });
 
         expect(mockCreateMutateAsync).toHaveBeenCalledOnce();

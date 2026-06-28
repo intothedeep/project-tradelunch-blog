@@ -1,5 +1,5 @@
 // hooks/useDraftAutosave.hook.ts
-// Purpose: debounce editor state (~2s) and persist it as a draft. The first
+// Purpose: debounce editor state (~5s) and persist it as a draft. The first
 // save with no postId yet creates the post, replaces the URL with the new id,
 // and routes subsequent saves through PATCH on that id.
 // Constraints: client-only; guards the in-flight create so rapid edits never
@@ -17,7 +17,7 @@ import { useUpdatePost } from '@/hooks/useUpdatePost.query.client';
 import { debounce } from '@/utils/debounce.util';
 import type { TPostInput } from '@repo/types';
 
-const AUTOSAVE_DELAY_MS = 2000;
+const AUTOSAVE_DELAY_MS = 5000;
 
 export type TAutosaveStatus = 'idle' | 'unsaved' | 'saving' | 'saved' | 'error';
 
