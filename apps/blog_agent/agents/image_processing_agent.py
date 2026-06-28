@@ -108,9 +108,10 @@ class ImageProcessingAgent(BaseAgent):
         y = (target_size[1] - img.height) // 2
         canvas.paste(img, (x, y))
 
-        # Save result
-        out_path = output_path or image_path
-        canvas.save(out_path, "PNG")
+        # Save result as webp (q80, metadata stripped) with a .webp extension
+        # so the stored OG asset matches the body-image codec (Phase F parity).
+        out_path = output_path or str(Path(image_path).with_suffix(".webp"))
+        canvas.save(out_path, "WEBP", quality=80)
 
         self._log(
             f"Resized {Path(image_path).name}: {original_size} → {scaled_size} "

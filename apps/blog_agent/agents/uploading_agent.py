@@ -27,6 +27,7 @@ from schema import (
     UploadPayload,
     generate_slug_from_title,
 )
+from utils.image_transform import NotAnImageError, to_webp
 
 from .base import BaseAgent
 
@@ -190,8 +191,9 @@ class UploadingAgent(BaseAgent):
             local_path = img_processor.resize_for_og(local_path)
             self._log(f"Resized thumbnail for OG: {original_filename}")
 
-            # Thumbnail uses slug-based name: [prefix]/[slug].ext
-            stored_name = f"{slug}.{ext}"
+            # Thumbnail uses slug-based name (always webp after OG resize):
+            # [prefix]/[slug].webp
+            stored_name = f"{slug}.webp"
             s3_key = f"{s3_prefix}/{stored_name}"
 
             # Upload to S3 using db/s3 module
@@ -232,8 +234,9 @@ class UploadingAgent(BaseAgent):
             original_filename = Path(local_path).name
             ext = Path(local_path).suffix.lstrip(".")  # e.g., "png"
 
-            # Image uses slug-based name: [prefix]/[slug]-[index].ext
-            stored_name = f"{slug}-{idx}.{ext}"
+            # Image uses slug-based name (always webp after transform):
+            # [prefix]/[slug]-[index].webp
+            stored_name = f"{slug}-{idx}.webp"
             s3_key = f"{s3_prefix}/{stored_name}"
 
             # Upload to S3 using db/s3 module
@@ -299,23 +302,33 @@ class UploadingAgent(BaseAgent):
         # Read file content
         file_path = Path(local_path)
         if not file_path.exists():
-            # Return simulated URL if file doesn't exist (for testing)
-            s3_key = f"{user_id}/{folder_path}/{slug}/{slug}.{ext}"
+            # Return simulated URL if file doesn't exist (for testing).
+            # Stored ext is always webp for parity with the real upload path.
+            s3_key = f"{user_id}/{folder_path}/{slug}/{slug}.webp"
             return f"{config.CDN_ASSETS}/{config.SUPABASE_STORAGE_BUCKET}/{s3_key}"
 
         with open(file_path, "rb") as f:
             buffer = f.read()
 
-        # Create file metadata
+        # Compress at the upload boundary: resize -> webp q80 -> strip metadata.
+        # Non-image inputs raise NotAnImageError; log and propagate so the
+        # surrounding execute() handler reports a failed upload.
+        try:
+            buffer = to_webp(buffer)
+        except NotAnImageError as exc:
+            self._log(f"Skipping non-image file {file_path.name}: {exc}", "error")
+            raise
+
+        # Create file metadata (stored as webp regardless of source format)
         meta = FileMetadata(
             id=generate_id(),
             user_id=user_id,
             folder_path=folder_path,
             slug=slug,
             filename=file_path.name,
-            ext=ext,
+            ext="webp",
             buffer=buffer,
-            content_type=self._get_content_type(ext),
+            content_type="image/webp",
             is_thumbnail=is_thumbnail,
         )
 
@@ -610,7 +623,9 @@ class UploadingAgent(BaseAgent):
             original_filename = file_data.get("original_filename", Path(local_path).name)
             stored_name = file_data.get("stored_name", original_filename)
             s3_key = file_data.get("s3_key")  # S3 key path
-            ext = Path(local_path).suffix.lstrip(".")
+            # Derive ext from the stored (webp) name, not the original source,
+            # so the files row records the actual stored object/content-type.
+            ext = Path(stored_name).suffix.lstrip(".") or Path(local_path).suffix.lstrip(".")
 
             # Determine stored URI (CDN URL) - use stored_name (slug-based)
             if s3_url:
