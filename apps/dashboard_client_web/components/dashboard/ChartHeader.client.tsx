@@ -4,11 +4,12 @@
 // Shows ticker, current price, change, timeframe pill buttons, and indicator settings.
 
 import type { RefObject } from 'react';
-import { useAtom } from 'jotai';
-import { Settings } from 'lucide-react';
+import { useAtom, useSetAtom } from 'jotai';
+import { Menu, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatPrice } from '@/utils/chart-format';
 import { CHART_INTERVALS, selectedIntervalAtom } from '@/store/dashboard.atom';
+import { isMenuDrawerOpenAtom } from '@/store/menu.atom';
 
 interface Props {
     label: string;
@@ -31,12 +32,24 @@ export default function ChartHeader({
 }: Props) {
     const [selectedInterval, setSelectedInterval] =
         useAtom(selectedIntervalAtom);
+    const openMenu = useSetAtom(isMenuDrawerOpenAtom);
     const isPos = change >= 0;
     const changeColor = isPos ? 'text-[#26a69a]' : 'text-[#ef5350]';
     const changeSign = isPos ? '+' : '';
 
     return (
         <div className="flex items-center gap-4 px-3 py-2 bg-white dark:bg-[#1e222d] border-b border-[#e0e3eb] dark:border-[#2a2e39] flex-wrap">
+            {/* Menu (desktop only) — opens the shared MenuDrawer for site nav.
+                On mobile the global mobile bar + floating button handle nav. */}
+            <button
+                type="button"
+                onClick={() => openMenu(true)}
+                aria-label="Open navigation menu"
+                className="hidden md:inline-flex items-center justify-center w-6 h-6 rounded text-[#787b86] hover:text-[#131722] dark:hover:text-[#d1d4dc] hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
+            >
+                <Menu size={16} />
+            </button>
+
             <div className="flex items-baseline gap-2">
                 <span className="text-[#131722] dark:text-[#d1d4dc] font-bold text-base">
                     {label}

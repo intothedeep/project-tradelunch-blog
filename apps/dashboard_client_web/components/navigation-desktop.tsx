@@ -1,129 +1,36 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSetAtom } from 'jotai';
 import { useUser } from '@clerk/nextjs';
 import { useTranslations } from 'next-intl';
-import {
-    FileText,
-    Home,
-    LayoutDashboard,
-    Newspaper,
-    SquarePen,
-    type LucideIcon,
-} from 'lucide-react';
 import { NavMenu } from '@/components/nav-menu.client';
-import { DEFAULT_BLOG_AUTHOR } from '@/utils/blog-author';
+import { MenuDrawer } from '@/components/MenuDrawer.client';
+import { isMenuDrawerOpenAtom } from '@/store/menu.atom';
+import { useNavLinks } from '@/hooks/useNavLinks.hook';
 
-type NavLink = { title: string; href: string };
-
-// Build the nav links for a given blog author username.
-const buildLinks = (blogUsername: string): NavLink[] => [
-    { title: 'About', href: '/' },
-    { title: 'blog', href: `/blog/@${blogUsername}` },
-    { title: 'dashboard', href: '/dashboard' },
-    // { title: 'projects', href: '/projects' },
-    { title: 'resume', href: '/resume' },
-];
-
-// Resolve the blog author username from the (optionally signed-in) Clerk user,
-// falling back to the site default author.
-const useBlogUsername = (): string => {
-    const { user } = useUser();
-    return user?.username ?? DEFAULT_BLOG_AUTHOR;
+// Chart dashboard routes hide the top bar entirely so charts reclaim the full
+// navbar band; navigation there happens via the in-chart menu button that opens
+// the shared MenuDrawer. The preview grid eval routes keep the normal bar so
+// they never lose navigation.
+const isChartDashboard = (pathname: string | null): boolean => {
+    if (pathname === null || !pathname.startsWith('/dashboard')) return false;
+    return (
+        pathname !== '/dashboard/preview/cards' &&
+        pathname !== '/dashboard/preview/table'
+    );
 };
-
-// Icon for each primary destination on the compact dashboard rail.
-const RAIL_ICON: Record<string, LucideIcon> = {
-    About: Home,
-    blog: Newspaper,
-    dashboard: LayoutDashboard,
-    resume: FileText,
-};
-
-type DashboardNavRailProps = {
-    links: NavLink[];
-    isSignedIn: boolean | undefined;
-    writeLabel: string;
-};
-
-// Compact 40px icon-only rail shown ONLY on /dashboard* so charts reclaim the
-// ~24px the full h-16 bar would otherwise eat. Navigation stays one click away
-// (icons + the NavMenu dropdown). Every other route keeps the full bar below.
-const DashboardNavRail = ({
-    links,
-    isSignedIn,
-    writeLabel,
-}: DashboardNavRailProps) => (
-    <nav className="hidden md:flex h-10 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-4">
-        {/* Left - Logo (shrunk) */}
-        <Link
-            href="/"
-            aria-label="Home"
-            className="flex items-center group"
-        >
-            <div className="w-7 h-7 border border-primary bg-secondary flex items-center justify-center transition-all group-hover:scale-110">
-                <span className="text-base leading-none">👨‍💻</span>
-            </div>
-        </Link>
-
-        {/* Right - Icon links, then the shared NavMenu dropdown */}
-        <div className="flex items-center gap-1">
-            <ul className="flex flex-row gap-0.5 items-center">
-                {links.map((link) => {
-                    const Icon = RAIL_ICON[link.title] ?? Home;
-                    return (
-                        <li key={link.title}>
-                            <Link
-                                href={link.href}
-                                title={link.title}
-                                aria-label={link.title}
-                                className="flex h-8 w-8 items-center justify-center border border-transparent hover:border-primary hover:bg-primary hover:text-primary-foreground transition-colors"
-                            >
-                                <Icon className="h-4 w-4" />
-                            </Link>
-                        </li>
-                    );
-                })}
-                {/* WRITE — signed-in only. Reserve slot to avoid CLS while Clerk resolves. */}
-                <li className="min-w-[2rem]">
-                    {isSignedIn && (
-                        <Link
-                            href="/write"
-                            title={writeLabel}
-                            aria-label={writeLabel}
-                            className="flex h-8 w-8 items-center justify-center border border-transparent hover:border-primary hover:bg-primary hover:text-primary-foreground transition-colors"
-                        >
-                            <SquarePen className="h-4 w-4" />
-                        </Link>
-                    )}
-                </li>
-            </ul>
-            <NavMenu links={links} />
-        </div>
-    </nav>
-);
 
 // Desktop Navigation with Terminal Style
 export const DesktopNavigation = () => {
-    const blogUsername = useBlogUsername();
     const { isSignedIn } = useUser();
-    const links = buildLinks(blogUsername);
+    const links = useNavLinks();
     const t = useTranslations('write');
     const pathname = usePathname();
-    const isDashboard = pathname?.startsWith('/dashboard') ?? false;
 
-    // On the dashboard, collapse the 64px bar to a compact icon rail (Option A).
-    if (isDashboard) {
-        return (
-            <DashboardNavRail
-                links={links}
-                isSignedIn={isSignedIn}
-                writeLabel={t('nav.writeHeader')}
-            />
-        );
-    }
+    // On the chart dashboard the bar is removed; nav lives in the chart header.
+    if (isChartDashboard(pathname)) return null;
 
     return (
         <nav className="hidden md:flex h-16 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-6">
@@ -173,49 +80,10 @@ export const DesktopNavigation = () => {
     );
 };
 
-// Mobile Navigation with Bottom Drawer
+// Mobile Navigation: top bar + floating button that opens the shared MenuDrawer.
 export const MobileNavigation = () => {
-    const blogUsername = useBlogUsername();
-    const { isSignedIn } = useUser();
-    const links = buildLinks(blogUsername);
-    const t = useTranslations('write');
-
-    const [isOpen, setIsOpen] = useState(false);
-    const [touchStart, setTouchStart] = useState(0);
-    const [touchEnd, setTouchEnd] = useState(0);
-
-    // Close on escape key
-    useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') setIsOpen(false);
-        };
-
-        if (isOpen) {
-            document.addEventListener('keydown', handleEscape);
-            document.body.style.overflow = 'hidden';
-        }
-
-        return () => {
-            document.removeEventListener('keydown', handleEscape);
-            document.body.style.overflow = 'unset';
-        };
-    }, [isOpen]);
-
-    // Handle swipe down to close
-    const handleTouchStart = (e: React.TouchEvent) => {
-        setTouchStart(e.targetTouches[0]?.clientY ?? 0);
-    };
-
-    const handleTouchMove = (e: React.TouchEvent) => {
-        setTouchEnd(e.targetTouches[0]?.clientY ?? 0);
-    };
-
-    const handleTouchEnd = () => {
-        if (touchStart - touchEnd < -50) {
-            // Swiped down
-            setIsOpen(false);
-        }
-    };
+    const links = useNavLinks();
+    const openMenu = useSetAtom(isMenuDrawerOpenAtom);
 
     return (
         <>
@@ -240,7 +108,7 @@ export const MobileNavigation = () => {
 
             {/* Menu Button - Bottom Left */}
             <button
-                onClick={() => setIsOpen(true)}
+                onClick={() => openMenu(true)}
                 className="md:hidden fixed bottom-6 left-6 z-40 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-110 flex items-center justify-center border-2 border-primary"
                 aria-label="Open menu"
             >
@@ -275,126 +143,6 @@ export const MobileNavigation = () => {
                     ></line>
                 </svg>
             </button>
-
-            {/* Backdrop */}
-            {isOpen && (
-                <div
-                    className="fixed inset-0 bg-black/80 z-50 md:hidden animate-in fade-in"
-                    onClick={() => setIsOpen(false)}
-                />
-            )}
-
-            {/* Mobile Menu Drawer - Slides from Bottom */}
-            <div
-                className={`fixed bottom-0 left-0 right-0 bg-card border-t-2 border-primary z-50 md:hidden transition-transform duration-300 ease-out ${
-                    isOpen ? 'translate-y-0' : 'translate-y-full'
-                }`}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-            >
-                {/* Swipe Handle */}
-                <div className="flex justify-center pt-3 pb-2">
-                    <div className="w-12 h-1 bg-primary/50 rounded-full" />
-                </div>
-
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-primary/30">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 border-2 border-primary bg-secondary flex items-center justify-center">
-                            <span className="text-2xl">👨‍💻</span>
-                        </div>
-                        <span className="text-xl font-mono text-primary terminal-glow">
-                            MENU
-                        </span>
-                    </div>
-
-                    {/* Close Button */}
-                    <button
-                        onClick={() => setIsOpen(false)}
-                        className="w-10 h-10 flex items-center justify-center hover:bg-secondary transition-colors border border-primary"
-                        aria-label="Close menu"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        >
-                            <line
-                                x1="18"
-                                y1="6"
-                                x2="6"
-                                y2="18"
-                            ></line>
-                            <line
-                                x1="6"
-                                y1="6"
-                                x2="18"
-                                y2="18"
-                            ></line>
-                        </svg>
-                    </button>
-                </div>
-
-                {/* Navigation Links */}
-                <nav className="p-6 max-h-[70vh] overflow-y-auto">
-                    <ul className="space-y-2">
-                        {links.map((link, index) => (
-                            <li key={link.title}>
-                                <Link
-                                    href={link.href}
-                                    onClick={() => setIsOpen(false)}
-                                    className="block px-4 py-4 font-mono text-lg border-2 border-primary/30 hover:border-primary hover:bg-secondary transition-all"
-                                    style={{
-                                        animationDelay: `${index * 50}ms`,
-                                        animation: isOpen
-                                            ? 'slideInUp 0.3s ease-out forwards'
-                                            : 'none',
-                                    }}
-                                >
-                                    <span className="text-primary">&gt;</span>{' '}
-                                    {link.title.toUpperCase()}
-                                </Link>
-                            </li>
-                        ))}
-                        {/* WRITE — signed-in only */}
-                        {isSignedIn && (
-                            <li>
-                                <Link
-                                    href="/write"
-                                    onClick={() => setIsOpen(false)}
-                                    className="block px-4 py-4 font-mono text-lg border-2 border-primary/30 hover:border-primary hover:bg-secondary transition-all"
-                                    style={{
-                                        animation: isOpen
-                                            ? 'slideInUp 0.3s ease-out forwards'
-                                            : 'none',
-                                    }}
-                                >
-                                    <span className="text-primary">&gt;</span>{' '}
-                                    {t('nav.writeHeader')}
-                                </Link>
-                            </li>
-                        )}
-                    </ul>
-
-                    {/* Additional Info */}
-                    <div className="mt-6 p-4 border-2 border-primary/30 bg-secondary/50">
-                        <div className="text-sm font-mono text-muted-foreground space-y-1">
-                            {/* <p>&gt; 660-238-5036</p> */}
-                            <p>&gt; TIO.TAEK.LIM@GMAIL.COM</p>
-                            <p>&gt; GITHUB: tradelunch</p>
-                            <p>&gt; LINKEDIN: tiotaeklim</p>
-                            <p>&gt; WARRENSBURG, MO 64093 USA</p>
-                        </div>
-                    </div>
-                </nav>
-            </div>
         </>
     );
 };
@@ -405,6 +153,7 @@ export const Navigation = () => {
         <>
             <DesktopNavigation />
             <MobileNavigation />
+            <MenuDrawer />
         </>
     );
 };
