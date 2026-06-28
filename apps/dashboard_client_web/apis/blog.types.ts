@@ -57,7 +57,8 @@ export type TPost = {
     status?: string;
     slug?: string;
     stored_uri?: string;
-    user_id?: number;
+    // BIGINT ids as STRINGS (Snowflake precision); never Number()/parseInt them.
+    user_id?: string;
     category_id?: string;
     category?: string;
     created_at?: string;

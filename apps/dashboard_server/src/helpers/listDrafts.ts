@@ -14,7 +14,7 @@ type TDraftRow = {
     title: string;
     description: string | null;
     status: TPostStatus;
-    category_id: number | null;
+    category_id: string | null; // BIGINT — pg returns a string; never Number() it.
     created_at: string;
     updated_at: string;
 };
@@ -39,7 +39,7 @@ export async function listDrafts(
         title: r.title,
         description: r.description,
         status: r.status,
-        categoryId: r.category_id === null ? null : Number(r.category_id),
+        categoryId: r.category_id,
         createdAt: r.created_at,
         updatedAt: r.updated_at,
     }));

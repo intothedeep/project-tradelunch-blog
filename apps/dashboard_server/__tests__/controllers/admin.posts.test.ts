@@ -77,7 +77,8 @@ const clerkB = `clerk_b_${tag}`;
 describe('adminPosts non-owner-scoping (integration)', () => {
     let reachable = false;
     let userB = 0;
-    let postOfB = 0;
+    // BIGINT post id kept as a STRING (Snowflake precision); never Number() it.
+    let postOfB = '';
 
     beforeAll(async () => {
         reachable = await isDbReachable();
@@ -96,7 +97,7 @@ describe('adminPosts non-owner-scoping (integration)', () => {
             categoryId: null,
             status: 'public',
         });
-        postOfB = Number(post.id);
+        postOfB = post.id;
     });
 
     afterAll(async () => {

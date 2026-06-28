@@ -44,7 +44,7 @@ const toEditorInput = (post: TPost): TPostInput => ({
     content: post.content ?? '',
     description: post.description ?? '',
     status: (post.status as TPostStatus | undefined) ?? 'draft',
-    categoryId: post.category_id != null ? Number(post.category_id) : null,
+    categoryId: post.category_id ?? null,
     slug: post.slug,
 });
 

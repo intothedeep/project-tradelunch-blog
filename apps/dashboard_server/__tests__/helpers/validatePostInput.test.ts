@@ -11,7 +11,8 @@ describe('validatePostInput', () => {
             title: 'T',
             content: 'body',
             description: 'desc',
-            categoryId: 3,
+            // BIGINT category id as a numeric STRING (Snowflake precision).
+            categoryId: '3',
             status: 'draft',
             slug: 'my-slug',
         });
@@ -21,6 +22,19 @@ describe('validatePostInput', () => {
     it('accepts categoryId null', () => {
         const result = validatePostInput({ title: 'T', categoryId: null });
         expect(result.ok).toBe(true);
+    });
+
+    it('preserves a large BIGINT categoryId string without precision loss', () => {
+        const big = '9223372036854775807';
+        const result = validatePostInput({ title: 'T', categoryId: big });
+        expect(result).toEqual({ ok: true, value: { title: 'T', categoryId: big } });
+    });
+
+    it('rejects a numeric (non-string) categoryId', () => {
+        expect(validatePostInput({ title: 'T', categoryId: 3 })).toEqual({
+            ok: false,
+            reason: 'categoryId must be a numeric string or null',
+        });
     });
 
     it('accepts a draft with an empty title (stored as "")', () => {

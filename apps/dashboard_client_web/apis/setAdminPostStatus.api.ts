@@ -9,7 +9,7 @@ import type { TAdminPostStatusInput, TPostStatus } from '@repo/types';
 
 export async function setAdminPostStatus(
     token: string,
-    postId: number,
+    postId: string,
     status: TPostStatus
 ): Promise<void> {
     try {

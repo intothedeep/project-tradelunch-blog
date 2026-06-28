@@ -21,7 +21,7 @@ import { TreeNode } from '@/utils/tree.utils';
 export function buildCategoryTree(flatData: TTreeNode[]): TreeNode[] {
     if (!flatData.length) return [];
 
-    const nodeMap = new Map<number, TreeNode>();
+    const nodeMap = new Map<string, TreeNode>();
 
     flatData.forEach((node) => {
         nodeMap.set(node.id, {
@@ -71,8 +71,8 @@ export function buildCategoryTree(flatData: TTreeNode[]): TreeNode[] {
 interface CategoryTreeProps {
     nodes: TTreeNodeWithChildren[];
     level?: number;
-    selectedNode: number | null;
-    onSelectNode: (id: number, node: TTreeNodeWithChildren) => void;
+    selectedNode: string | null;
+    onSelectNode: (id: string, node: TTreeNodeWithChildren) => void;
 }
 
 export const CategoryTree: React.FC<CategoryTreeProps> = ({
@@ -81,11 +81,11 @@ export const CategoryTree: React.FC<CategoryTreeProps> = ({
     selectedNode,
     onSelectNode,
 }) => {
-    const [localExpanded, setLocalExpanded] = useState<Record<number, boolean>>(
+    const [localExpanded, setLocalExpanded] = useState<Record<string, boolean>>(
         {}
     );
 
-    const toggleExpand = (id: number, e: React.MouseEvent) => {
+    const toggleExpand = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         setLocalExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
     };
