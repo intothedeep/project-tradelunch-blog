@@ -1,16 +1,17 @@
 // hooks/useImageUpload.hook.ts
-// Purpose: sign + upload an editor image. Requests a Supabase signed-upload URL
-// from our API, then PUTs the raw bytes directly to Supabase Storage (NOT
-// through our API) and returns the resulting public URL.
-// Constraints: client-only. A 503 from the sign step means the storage bucket
-// is not configured (a per-user gate); upload is disabled gracefully in that
-// case rather than thrown.
+// Purpose: upload an editor image. Resizes the file in the browser, then POSTs
+// it (multipart) to the Express proxy, which persists to Supabase Storage and
+// returns the public URL.
+// Constraints: client-only. A 503 from the upload means the storage bucket is
+// not configured (a per-user gate); upload is disabled gracefully in that case
+// rather than thrown.
 
 'use client';
 
 import { useState, useCallback } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { signImageUpload } from '@/apis/signImageUpload.api';
+import { uploadImage } from '@/apis/uploadImage.api';
+import { resizeImage } from '@/utils/resizeImage';
 import { ApiError } from '@/utils/apiError.util';
 
 interface ImageUploadState {
@@ -34,19 +35,8 @@ export function useImageUpload(): ImageUploadState {
                 const token = await getToken();
                 if (!token) throw new Error('Not authenticated');
 
-                const { signedUrl, publicUrl } = await signImageUpload(token, {
-                    filename: file.name,
-                    contentType: file.type,
-                });
-
-                const res = await fetch(signedUrl, {
-                    method: 'PUT',
-                    body: file,
-                    headers: { 'Content-Type': file.type },
-                });
-                if (!res.ok) {
-                    throw new Error(`Upload failed: ${res.status}`);
-                }
+                const resized = await resizeImage(file);
+                const { publicUrl } = await uploadImage(token, resized);
 
                 return publicUrl;
             } catch (e) {
