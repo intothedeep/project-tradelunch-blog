@@ -38,7 +38,7 @@ export default function ChartHeader({
     const changeSign = isPos ? '+' : '';
 
     return (
-        <div className="flex items-center gap-4 px-3 py-2 bg-white dark:bg-[#1e222d] border-b border-[#e0e3eb] dark:border-[#2a2e39] flex-wrap">
+        <div className="flex items-center justify-center md:justify-start gap-4 px-3 py-2 bg-white dark:bg-[#1e222d] border-b border-[#e0e3eb] dark:border-[#2a2e39] flex-wrap">
             {/* Menu (desktop only) — opens the shared MenuDrawer for site nav.
                 On mobile the global mobile bar + floating button handle nav. */}
             <button
@@ -64,7 +64,7 @@ export default function ChartHeader({
                 </span>
             </div>
 
-            <div className="flex items-center gap-0.5 ml-auto">
+            <div className="flex items-center gap-0.5 md:ml-auto">
                 {CHART_INTERVALS.map((tf) => (
                     <button
                         key={tf}
