@@ -21,6 +21,7 @@ import { PostContentHeader } from '@/app/blog/components/PostContentHeader.serve
 import { ShareButton } from '@/app/blog/components/post-card-actions/ShareButton.client';
 import { SaveButton } from '@/app/blog/components/post-card-actions/SaveButton.client';
 import { LikeButton } from '@/app/blog/components/post-card-actions/LikeButton.client';
+import { PostActions } from '@/app/blog/components/post-card-actions/PostActions.client';
 
 interface RecentPostCardProps {
     post: TPost;
@@ -68,7 +69,7 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
                     link). */}
                 <div className="flex items-start justify-between gap-2">
                     <PostContentHeader post={post} />
-                    <div className="flex items-center gap-2 shrink-0">
+                    <PostActions>
                         <ShareButton
                             username={post.username}
                             slug={post.slug}
@@ -80,7 +81,7 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
                             initialLiked={post.viewerLiked ?? false}
                             initialLikeCount={post.likeCount ?? 0}
                         />
-                    </div>
+                    </PostActions>
                 </div>
             </CardHeader>
 

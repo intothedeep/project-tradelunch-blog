@@ -3,6 +3,7 @@ import { PostContentHeader } from '@/app/blog/components/PostContentHeader.serve
 import { LikeButton } from '@/app/blog/components/post-card-actions/LikeButton.client';
 import { SaveButton } from '@/app/blog/components/post-card-actions/SaveButton.client';
 import { ShareButton } from '@/app/blog/components/post-card-actions/ShareButton.client';
+import { PostActions } from '@/app/blog/components/post-card-actions/PostActions.client';
 import { Comments } from '@/app/blog/components/comments/Comments.server';
 import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer.server';
 import { OwnerEditButton } from '@/components/blog/OwnerEditButton.client';
@@ -33,7 +34,7 @@ export const PostContentCard = async ({
                         post={post}
                         hasBack={true}
                     />
-                    <div className="ml-auto flex items-center gap-2 shrink-0">
+                    <PostActions className="ml-auto">
                         <OwnerEditButton
                             postId={post.id}
                             ownerUsername={ownerUsername}
@@ -49,7 +50,7 @@ export const PostContentCard = async ({
                             initialLiked={post.viewerLiked ?? false}
                             initialLikeCount={post.likeCount ?? 0}
                         />
-                    </div>
+                    </PostActions>
                 </div>
             </CardHeader>
 
