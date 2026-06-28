@@ -24,6 +24,18 @@ export type TAutosaveStatus = 'idle' | 'unsaved' | 'saving' | 'saved' | 'error';
 const hasContent = (input: TPostInput): boolean =>
     Boolean(input.title?.trim() || input.content?.trim());
 
+// Stable serialization of the persistable fields. A save is skipped when this
+// equals the last-persisted snapshot, so an unchanged editor fires no request
+// (and the post-save re-render cannot spin an endless autosave loop).
+const snapshotOf = (i: TPostInput): string =>
+    JSON.stringify({
+        title: i.title ?? '',
+        content: i.content ?? '',
+        description: i.description ?? '',
+        status: i.status ?? 'draft',
+        slug: i.slug ?? '',
+    });
+
 // PATCH payload builder: drop `content` when empty so the server's COALESCE
 // preserves the stored body instead of clobbering it with ''.
 const toUpdatePayload = (input: TPostInput): Partial<TPostInput> => {
@@ -63,6 +75,11 @@ export function useDraftAutosave(
 
     const creatingRef = useRef(false);
 
+    // Serialized last-persisted payload. Skipping a save when the current payload
+    // matches it stops an unchanged editor from firing redundant PATCHes — and
+    // stops the post-save re-render from spinning an endless autosave loop.
+    const savedSnapshotRef = useRef<string | null>(null);
+
     // The only bespoke state: `dirty` tracks pending/debounced edits awaiting a
     // save; `lastSavedAt` stamps the most recent successful persist.
     const [dirty, setDirty] = useState(false);
@@ -92,6 +109,7 @@ export function useDraftAutosave(
             try {
                 const created = await createPost.mutateAsync(current);
                 postIdRef.current = created.id;
+                savedSnapshotRef.current = snapshotOf(current);
                 setLastSavedAt(Date.now());
                 setDirty(false);
                 router.replace(`/write/${created.id}`);
@@ -108,6 +126,7 @@ export function useDraftAutosave(
                 postId: id,
                 input: toUpdatePayload(current),
             });
+            savedSnapshotRef.current = snapshotOf(current);
             setLastSavedAt(Date.now());
             setDirty(false);
         } catch (error) {
@@ -128,6 +147,20 @@ export function useDraftAutosave(
         // existing post before its real body has hydrated.
         if (!enabled) return;
         if (!hasContent(input)) return;
+        const snap = snapshotOf(input);
+        // Establish the baseline the first time there is savable content. An
+        // existing post's seeded body is already persisted → record it and skip
+        // (no resave). A new post has nothing persisted yet → fall through so the
+        // first content creates it.
+        if (savedSnapshotRef.current === null) {
+            if (postIdRef.current != null) {
+                savedSnapshotRef.current = snap;
+                return;
+            }
+            savedSnapshotRef.current = '';
+        }
+        // Unchanged since the last successful save → no request, no render churn.
+        if (snap === savedSnapshotRef.current) return;
         setDirty(true);
         debouncedSave();
         return () => debouncedSave.cancel();

@@ -71,9 +71,20 @@ describe('useDraftAutosave — UX0 regression', () => {
         };
 
         // postId = '42'  →  existing post, triggers updatePost path
-        renderHook(() => useDraftAutosave('42', input, true));
+        const { rerender } = renderHook(
+            ({ inp }: { inp: TPostInput }) => useDraftAutosave('42', inp, true),
+            { initialProps: { inp: input } }
+        );
 
-        // Fire the 2 s debounce and flush async work (mutateAsync promise).
+        // Mounting an unchanged (seeded) post must NOT autosave — the snapshot
+        // baseline suppresses redundant PATCHes.
+        await act(async () => {
+            vi.advanceTimersByTime(2100);
+        });
+        expect(mockUpdateMutateAsync).not.toHaveBeenCalled();
+
+        // A real edit triggers the debounced PATCH.
+        rerender({ inp: { ...input, content: 'Body content edited.' } });
         await act(async () => {
             vi.advanceTimersByTime(2100);
         });
