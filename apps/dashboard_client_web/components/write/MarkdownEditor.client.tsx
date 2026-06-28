@@ -6,7 +6,14 @@
 
 'use client';
 
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import {
+    useEffect,
+    useRef,
+    useState,
+    type ChangeEvent,
+    type ClipboardEvent,
+    type DragEvent,
+} from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -66,7 +73,9 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
     // image insertion rather than depending on the (dynamic-import-unfriendly)
     // component ref.
     const editorContainerRef = useRef<HTMLDivElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    // Monotonic counter for unique upload placeholders, so concurrent uploads
+    // never collide on the same token when swapped for their final URL.
+    const uploadSeqRef = useRef(0);
 
     const image = useImageUpload();
     const thumbnail = useImageUpload();
@@ -129,12 +138,44 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
         });
     };
 
-    const handleImagePick = async (e: ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        e.target.value = '';
-        if (!file) return;
+    // Upload one image file via the shared pipeline (browser resize → Express
+    // proxy → Supabase) and swap an inserted placeholder for the final markdown.
+    // The placeholder keeps the editor responsive during the multi-second upload
+    // and pins the insertion point even if the caret moves meanwhile. A failed
+    // upload (null url) drops the placeholder; the error surfaces via image.error.
+    const uploadImageFile = async (file: File) => {
+        const token = `![uploading-${++uploadSeqRef.current}]()`;
+        insertAtCursor(token);
         const url = await image.upload(file);
-        if (url) insertAtCursor(`![${file.name}](${url})`);
+        setContent((c) =>
+            c.replace(token, url ? `![${file.name}](${url})` : '')
+        );
+    };
+
+    const pickImageFiles = (list: FileList | null | undefined): File[] =>
+        list ? Array.from(list).filter((f) => f.type.startsWith('image/')) : [];
+
+    // Intercept image paste/drop in the editor and route each file through our
+    // upload pipeline instead of letting the editor inline the raw file. Paste
+    // or drop with no image (plain text, etc.) falls through to default handling.
+    const handleImagePaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+        const files = pickImageFiles(e.clipboardData?.files);
+        if (files.length === 0) return;
+        e.preventDefault();
+        void files.reduce(
+            (chain, file) => chain.then(() => uploadImageFile(file)),
+            Promise.resolve()
+        );
+    };
+
+    const handleImageDrop = (e: DragEvent<HTMLTextAreaElement>) => {
+        const files = pickImageFiles(e.dataTransfer?.files);
+        if (files.length === 0) return;
+        e.preventDefault();
+        void files.reduce(
+            (chain, file) => chain.then(() => uploadImageFile(file)),
+            Promise.resolve()
+        );
     };
 
     // Reuse the existing image-upload pipeline for the thumbnail: a picked file
@@ -215,11 +256,6 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
                 onStatusChange={setStatus}
                 description={description}
                 onDescriptionChange={setDescription}
-                onPickImage={handleImagePick}
-                isUploading={image.isUploading}
-                isStorageDisabled={image.isStorageDisabled}
-                imageError={image.error}
-                fileInputRef={fileInputRef}
                 onSave={handleSave}
                 isSaving={isSaving}
                 canSave={!!title.trim()}
@@ -272,6 +308,32 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
                         </button>
                     ))}
                 </div>
+                <div
+                    className="mb-2 flex flex-wrap items-center gap-2 text-xs"
+                    aria-live="polite"
+                >
+                    <span className="text-[0.65rem] uppercase tracking-wider text-muted-foreground">
+                        {t('editor.imageHint')}
+                    </span>
+                    {image.isUploading && (
+                        <span className="text-muted-foreground">
+                            {t('toolbar.uploading')}
+                        </span>
+                    )}
+                    {image.isStorageDisabled && (
+                        <span className="text-muted-foreground">
+                            {t('toolbar.storageDisabled')}
+                        </span>
+                    )}
+                    {image.error && !image.isStorageDisabled && (
+                        <span
+                            role="alert"
+                            className="text-destructive"
+                        >
+                            {image.error}
+                        </span>
+                    )}
+                </div>
                 <div className="grid gap-4 md:grid-cols-2">
                     <div
                         ref={editorContainerRef}
@@ -294,6 +356,8 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
                                 onCompositionStart:
                                     composition.onCompositionStart,
                                 onCompositionEnd: composition.onCompositionEnd,
+                                onPaste: handleImagePaste,
+                                onDrop: handleImageDrop,
                             }}
                         />
                     </div>
