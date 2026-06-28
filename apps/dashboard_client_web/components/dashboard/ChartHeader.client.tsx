@@ -47,7 +47,7 @@ export default function ChartHeader({
                 aria-label="Open navigation menu"
                 className="hidden md:inline-flex items-center justify-center w-6 h-6 rounded text-[#787b86] hover:text-[#131722] dark:hover:text-[#d1d4dc] hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
             >
-                <Menu size={16} />
+                <Menu size={14} />
             </button>
 
             <div className="flex items-baseline gap-2">
