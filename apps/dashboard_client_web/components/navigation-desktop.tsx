@@ -84,27 +84,34 @@ export const DesktopNavigation = () => {
 export const MobileNavigation = () => {
     const links = useNavLinks();
     const openMenu = useSetAtom(isMenuDrawerOpenAtom);
+    const pathname = usePathname();
+
+    // On the chart dashboard the top bar is removed too (reclaim space); the
+    // floating button below still opens the drawer so nav stays reachable.
+    const showTopBar = !isChartDashboard(pathname);
 
     return (
         <>
             {/* Mobile Header Bar — logo left, theme + auth right */}
-            <nav className="md:hidden flex h-14 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-4">
-                <Link
-                    href="/"
-                    className="flex items-center gap-2"
-                >
-                    <div className="w-8 h-8 border-2 border-primary bg-secondary flex items-center justify-center">
-                        <span className="text-xl">👨‍💻</span>
-                    </div>
-                    <span className="text-lg font-mono text-primary terminal-glow">
-                        Taek Lim
-                    </span>
-                </Link>
-                <NavMenu
-                    links={links}
-                    showNavLinks
-                />
-            </nav>
+            {showTopBar && (
+                <nav className="md:hidden flex h-14 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-4">
+                    <Link
+                        href="/"
+                        className="flex items-center gap-2"
+                    >
+                        <div className="w-8 h-8 border-2 border-primary bg-secondary flex items-center justify-center">
+                            <span className="text-xl">👨‍💻</span>
+                        </div>
+                        <span className="text-lg font-mono text-primary terminal-glow">
+                            Taek Lim
+                        </span>
+                    </Link>
+                    <NavMenu
+                        links={links}
+                        showNavLinks
+                    />
+                </nav>
+            )}
 
             {/* Menu Button - Bottom Left */}
             <button
