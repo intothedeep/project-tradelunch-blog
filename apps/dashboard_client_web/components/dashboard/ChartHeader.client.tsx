@@ -39,17 +39,6 @@ export default function ChartHeader({
 
     return (
         <div className="flex items-center justify-center md:justify-start gap-4 px-3 py-2 bg-white dark:bg-[#1e222d] border-b border-[#e0e3eb] dark:border-[#2a2e39] flex-wrap">
-            {/* Menu (desktop only) — opens the shared MenuDrawer for site nav.
-                On mobile the global mobile bar + floating button handle nav. */}
-            <button
-                type="button"
-                onClick={() => openMenu(true)}
-                aria-label="Open navigation menu"
-                className="hidden md:inline-flex items-center justify-center w-6 h-6 rounded text-[#787b86] hover:text-[#131722] dark:hover:text-[#d1d4dc] hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
-            >
-                <Menu size={14} />
-            </button>
-
             <div className="flex items-baseline gap-2">
                 <span className="text-[#131722] dark:text-[#d1d4dc] font-bold text-base">
                     {label}
@@ -95,6 +84,16 @@ export default function ChartHeader({
                     )}
                 >
                     <Settings size={14} />
+                </button>
+                {/* Menu (desktop only) — opens the shared MenuDrawer for site nav.
+                    On mobile the global mobile bar + floating button handle nav. */}
+                <button
+                    type="button"
+                    onClick={() => openMenu(true)}
+                    aria-label="Open navigation menu"
+                    className="hidden md:inline-flex items-center justify-center w-6 h-6 rounded text-[#787b86] hover:text-[#131722] dark:hover:text-[#d1d4dc] hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
+                >
+                    <Menu size={14} />
                 </button>
             </div>
         </div>
