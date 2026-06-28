@@ -7,6 +7,7 @@ import dashboard from "./dashboard";
 import users from "./users";
 import admin from "./admin";
 import favorites from "./favorites";
+import categories from "./categories";
 
 export const router = Router();
 
@@ -25,6 +26,10 @@ router.use("/api/dashboard", dashboard);
 router.use("/api/users", users);
 router.use("/api/admin", admin);
 router.use("/api/favorites", favorites);
+// Category authoring (POST /api/categories) — owner-scoped create with
+// (user_id, parent_id, title) conflict scope. The category TREE read stays under
+// GET /api/posts/users/:username/categories.
+router.use("/api/categories", categories);
 // Viewer-likes list (GET /api/likes) — the caller's own liked ids, on its own
 // prefix so it never collides with the public feed at GET /api/posts.
 router.use("/api/likes", likesListRouter);
@@ -33,6 +38,5 @@ router.use("/api/likes", likesListRouter);
 // router.use("/chat", require("./chat"));
 // router.use("/products", require("./products"));
 // router.use("/cart", require("./cart"));
-// router.use("/api/categories", require("./categories"));
 
 export default router;

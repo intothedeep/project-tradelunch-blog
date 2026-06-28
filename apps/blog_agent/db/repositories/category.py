@@ -127,7 +127,7 @@ class CategoryRepository(BaseRepository[Category]):
         root_query = text("""
             INSERT INTO categories (id, group_id, title, user_id, level, parent_id)
             VALUES (:id, :id, :title, :user_id, 0, NULL)
-            ON CONFLICT (user_id, title) DO UPDATE SET
+            ON CONFLICT (user_id, parent_id, title) DO UPDATE SET
                 level = EXCLUDED.level,
                 group_id = EXCLUDED.group_id,
                 updated_at = CURRENT_TIMESTAMP
@@ -148,7 +148,7 @@ class CategoryRepository(BaseRepository[Category]):
         child_query = text("""
             INSERT INTO categories (id, group_id, parent_id, level, title, user_id)
             VALUES (:id, :group_id, :parent_id, :level, :title, :user_id)
-            ON CONFLICT (user_id, title) DO UPDATE SET
+            ON CONFLICT (user_id, parent_id, title) DO UPDATE SET
                 level = EXCLUDED.level,
                 parent_id = EXCLUDED.parent_id,
                 group_id = EXCLUDED.group_id,

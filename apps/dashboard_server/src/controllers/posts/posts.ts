@@ -323,6 +323,12 @@ router.get('/:postid', optionalAuth, async (req, res) => {
         const { rows: results } = await pool.query(
             `SELECT
                 p.*,
+                f.stored_uri,
+                (SELECT ARRAY_AGG(pt.tag_title)
+                 FROM post_tags pt
+                 WHERE pt.post_id = p.id
+                   AND pt.deleted_at IS NULL
+                ) AS tags,
                 (SELECT COUNT(*)
                  FROM post_likes pl
                  WHERE pl.post_id = p.id
@@ -335,6 +341,7 @@ router.get('/:postid', optionalAuth, async (req, res) => {
                   WHERE cc.post_id = p.id
                     AND cc.deleted_at IS NULL) AS "commentCount"
              FROM posts p
+             LEFT JOIN files f ON p.id = f.post_id AND f.is_thumbnail = true
              WHERE p.id = $1
                AND p.deleted_at IS NULL
                AND (p.status = 'public' OR p.user_id = $2)`,

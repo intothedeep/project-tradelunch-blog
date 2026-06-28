@@ -8,7 +8,7 @@ import {
 
 // utils/tree.utils.ts
 export const buildTree = (flatData: TTreeNode[]): TTreeNodeWithChildren[] => {
-    const map = new Map<number, TTreeNodeWithChildren>();
+    const map = new Map<string, TTreeNodeWithChildren>();
     const roots: TTreeNodeWithChildren[] = [];
 
     flatData.forEach((node) => {
