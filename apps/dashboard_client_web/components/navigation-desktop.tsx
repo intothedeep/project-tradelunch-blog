@@ -9,6 +9,7 @@ import { NavMenu } from '@/components/nav-menu.client';
 import { MenuDrawer } from '@/components/MenuDrawer.client';
 import { isMenuDrawerOpenAtom } from '@/store/menu.atom';
 import { useNavLinks } from '@/hooks/useNavLinks.hook';
+import { cn } from '@/lib/utils';
 
 // Chart dashboard routes hide the top bar entirely so charts reclaim the full
 // navbar band; navigation there happens via the in-chart menu button that opens
@@ -92,26 +93,30 @@ export const MobileNavigation = () => {
 
     return (
         <>
-            {/* Mobile Header Bar — logo left, theme + auth right */}
-            {showTopBar && (
-                <nav className="md:hidden flex h-14 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-4">
-                    <Link
-                        href="/"
-                        className="flex items-center gap-2"
-                    >
-                        <div className="w-8 h-8 border-2 border-primary bg-secondary flex items-center justify-center">
-                            <span className="text-xl">👨‍💻</span>
-                        </div>
-                        <span className="text-lg font-mono text-primary terminal-glow">
-                            Taek Lim
-                        </span>
-                    </Link>
-                    <NavMenu
-                        links={links}
-                        showNavLinks
-                    />
-                </nav>
-            )}
+            {/* Mobile Header Bar — logo left, theme + auth right.
+                Hidden entirely on the chart dashboard; shown on mobile elsewhere. */}
+            <nav
+                className={cn(
+                    'flex h-14 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-4',
+                    showTopBar ? 'md:hidden' : 'hidden'
+                )}
+            >
+                <Link
+                    href="/"
+                    className="flex items-center gap-2"
+                >
+                    <div className="w-8 h-8 border-2 border-primary bg-secondary flex items-center justify-center">
+                        <span className="text-xl">👨‍💻</span>
+                    </div>
+                    <span className="text-lg font-mono text-primary terminal-glow">
+                        Taek Lim
+                    </span>
+                </Link>
+                <NavMenu
+                    links={links}
+                    showNavLinks
+                />
+            </nav>
 
             {/* Menu Button - Bottom Left */}
             <button
