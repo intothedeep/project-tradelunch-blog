@@ -2,6 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm --filter @repo/types build && pnpm --filter dashboard_server check-types",
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": "node_modules/.pnpm/@img+sharp-*linux*/**"
+    }
+  },
   "rewrites": [
     { "source": "/(.*)", "destination": "/api" }
   ]

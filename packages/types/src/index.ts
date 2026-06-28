@@ -96,14 +96,10 @@ export interface TDraftSummary {
     updatedAt: string;
 }
 
-export interface TImageSignRequest {
-    filename: string;
-    contentType: string;
-}
-
-export interface TImageSignResponse {
-    signedUrl: string;
-    path: string;
+// Phase F: Express-proxied image upload. The browser POSTs multipart `file`;
+// the server resizes (sharp → webp) and uploads to Supabase Storage, returning
+// the absolute public URL. Supersedes the removed TImageSign{Request,Response}.
+export interface TImageUploadResponse {
     publicUrl: string;
 }
 

@@ -1,5 +1,5 @@
 // Purpose: owner-scoped authoring routes for posts (create / update / soft-delete)
-//          plus image-upload signing. All routes are gated by requireAuth and act
+//          plus image upload. All routes are gated by requireAuth and act
 //          ONLY on req.auth.userId — a client-supplied user_id is never trusted.
 // Invariants:
 //   * The author of a created post is req.auth.userId, always.
@@ -7,8 +7,11 @@
 //     so a non-owner gets 404 (never a cross-author mutation).
 //   * COALESCE update semantics (see helpers/writePost.ts): a PATCH can change a
 //     field or leave it untouched, but CANNOT null out an existing value.
-// Side effects: DB writes via the writePost helpers; one network call when signing.
+// Side effects: DB writes via the writePost helpers; sharp resize + one network
+//          upload to Supabase Storage on the image route.
 import { Router } from 'express';
+import type { NextFunction, Request, Response } from 'express';
+import multer from 'multer';
 import { pool } from '../../database';
 import { requireAuth } from '../../middlewares/requireAuth';
 import { validatePostInput } from '../../helpers/validatePostInput';
@@ -19,16 +22,47 @@ import {
     softDeletePost,
 } from '../../helpers/writePost';
 import { upsertThumbnail } from '../../helpers/writeThumbnail';
-import { signImageUpload } from '../../helpers/signImageUpload';
+import { buildImagePath } from '../../helpers/imagePath';
+import { transformImage } from '../../helpers/transformImage';
+import { uploadImageToStorage } from '../../helpers/uploadImage';
 import {
     SUPABASE_URL,
     SUPABASE_SECRET_KEY,
     SUPABASE_STORAGE_BUCKET,
     CDN_ASSETS,
 } from '../../config/env.schema';
-import type { TImageSignResponse, TPostStatus } from '@repo/types';
+import type { TImageUploadResponse, TPostStatus } from '@repo/types';
 
 export const router = Router();
+
+// In-memory upload: the buffer is handed straight to sharp, never to disk. The
+// 5MB route cap is the transport ceiling (Vercel's body limit is ~4.5MB; the
+// client pre-resizes below it). The authoritative size check is transformImage.
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 },
+});
+
+// Wrap upload.single so a multer LIMIT_FILE_SIZE maps to 413 instead of bubbling
+// to a generic 500. Other multer errors are 400 (malformed multipart).
+function uploadSingleFile(req: Request, res: Response, next: NextFunction): void {
+    upload.single('file')(req, res, (err: unknown) => {
+        if (err instanceof multer.MulterError) {
+            const status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
+            const message =
+                err.code === 'LIMIT_FILE_SIZE'
+                    ? 'file too large'
+                    : 'invalid upload';
+            res.status(status).json({ success: false, message });
+            return;
+        }
+        if (err) {
+            res.status(400).json({ success: false, message: 'invalid upload' });
+            return;
+        }
+        next();
+    });
+}
 
 // The base the thumbnail writer strips back off the stored URL. MUST mirror the
 // sign route's publicBase (below) so parseThumbnailUrl's prefix-strip is exact.
@@ -172,7 +206,9 @@ router.delete('/:postid', requireAuth, async (req, res) => {
     }
 });
 
-router.post('/images/sign', requireAuth, async (req, res) => {
+// Browser → Express (multipart) → sharp resize/normalize → server-to-server
+// upload to Supabase Storage. The browser never talks to Supabase directly.
+router.post('/images', requireAuth, uploadSingleFile, async (req, res) => {
     try {
         if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
             res.status(503).json({
@@ -182,15 +218,25 @@ router.post('/images/sign', requireAuth, async (req, res) => {
             return;
         }
 
-        const body = req.body as { filename?: unknown; contentType?: unknown };
-        if (
-            typeof body?.filename !== 'string' ||
-            typeof body?.contentType !== 'string'
-        ) {
-            res.status(400).json({
-                success: false,
-                message: 'filename and contentType are required',
-            });
+        if (!req.file) {
+            res.status(400).json({ success: false, message: 'file is required' });
+            return;
+        }
+
+        const transformed = await transformImage(req.file.buffer, {
+            longEdge: 1600,
+            quality: 80,
+            maxBytes: 3 * 1024 * 1024,
+        });
+        if (transformed.ok === false) {
+            if (transformed.reason === 'not_an_image') {
+                res.status(415).json({
+                    success: false,
+                    message: 'unsupported media type',
+                });
+                return;
+            }
+            res.status(413).json({ success: false, message: 'file too large' });
             return;
         }
 
@@ -198,35 +244,42 @@ router.post('/images/sign', requireAuth, async (req, res) => {
         const uniqueSuffix = `${Date.now()}-${Math.random()
             .toString(36)
             .slice(2, 8)}`;
+        const path = buildImagePath(
+            req.auth!.userId,
+            req.file.originalname || 'image',
+            uniqueSuffix,
+            'webp'
+        );
         const publicBase =
             CDN_ASSETS?.replace(/\/+$/, '') ||
             `${SUPABASE_URL}/storage/v1/object/public`;
 
-        const result = await signImageUpload(
+        const uploaded = await uploadImageToStorage(
             {
                 supabaseUrl: SUPABASE_URL,
                 secretKey: SUPABASE_SECRET_KEY,
-                publicBase,
                 bucket: SUPABASE_STORAGE_BUCKET,
+                publicBase,
             },
-            {
-                userId: req.auth!.userId,
-                filename: body.filename,
-                contentType: body.contentType,
-                uniqueSuffix,
-            }
+            path,
+            transformed.value.buffer,
+            'image/webp'
         );
-
-        if (result.ok === false) {
-            res.status(400).json({ success: false, message: result.reason });
+        if (uploaded.ok === false) {
+            res.status(502).json({
+                success: false,
+                message: 'storage upload failed',
+            });
             return;
         }
 
-        const payload: TImageSignResponse = result.value;
+        const payload: TImageUploadResponse = {
+            publicUrl: uploaded.value.publicUrl,
+        };
         res.status(200).json({ success: true, data: payload });
     } catch (error) {
-        console.error('POST /api/posts/images/sign error:', error);
-        res.status(500).json({ success: false, message: 'failed to sign upload' });
+        console.error('POST /api/posts/images error:', error);
+        res.status(500).json({ success: false, message: 'failed to upload image' });
     }
 });
 

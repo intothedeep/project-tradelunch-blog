@@ -13,7 +13,7 @@
 import type { PoolClient } from 'pg';
 
 // ext → mime, reused for the NOT NULL content_type column. Mirrors the image
-// allowlist in signImageUpload (the only ext values buildImagePath can emit).
+// allowlist in helpers/imagePath (the only ext values buildImagePath can emit).
 const EXT_TO_MIME: Record<string, string> = {
     png: 'image/png',
     jpg: 'image/jpeg',
