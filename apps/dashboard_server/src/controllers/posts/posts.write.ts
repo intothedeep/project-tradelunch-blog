@@ -112,7 +112,7 @@ router.patch('/:postid', requireAuth, async (req, res) => {
         let row;
         try {
             await client.query('BEGIN');
-            row = await updatePost(client, userId, postId, input);
+            row = await updatePost(client, userId, postId, input, req.auth!.isAdmin);
             if (!row) {
                 await client.query('ROLLBACK');
                 res.status(404).json({
@@ -154,7 +154,12 @@ router.delete('/:postid', requireAuth, async (req, res) => {
             return;
         }
 
-        const deletedId = await softDeletePost(pool, req.auth!.userId, postId);
+        const deletedId = await softDeletePost(
+            pool,
+            req.auth!.userId,
+            postId,
+            req.auth!.isAdmin
+        );
         if (deletedId === null) {
             res.status(404).json({ success: false, message: 'Post not found' });
             return;

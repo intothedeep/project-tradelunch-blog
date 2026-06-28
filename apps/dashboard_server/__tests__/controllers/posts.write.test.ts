@@ -29,12 +29,14 @@ async function isDbReachable(): Promise<boolean> {
 const tag = `pw_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 const clerkA = `clerk_a_${tag}`;
 const clerkB = `clerk_b_${tag}`;
+const clerkAdmin = `clerk_admin_${tag}`;
 
 describe('writePost owner-scoping (integration)', () => {
     let reachable = false;
     let userA = 0;
     let userB = 0;
     let postOfB = ''; // post id is a BIGINT string; never Number() it
+    let adminId = 0;
 
     beforeAll(async () => {
         reachable = await isDbReachable();
@@ -50,6 +52,12 @@ describe('writePost owner-scoping (integration)', () => {
         userA = Number(a.rows[0].id);
         userB = Number(b.rows[0].id);
 
+        const admin = await pool.query<{ id: number }>(
+            'INSERT INTO users (clerk_user_id, is_admin) VALUES ($1, true) RETURNING id',
+            [clerkAdmin]
+        );
+        adminId = Number(admin.rows[0].id);
+
         const post = await createPost(pool, userB, {
             slug: `owned-by-b-${tag}`,
             title: 'Owned by B',
@@ -64,10 +72,10 @@ describe('writePost owner-scoping (integration)', () => {
     afterAll(async () => {
         if (reachable) {
             await pool.query('DELETE FROM posts WHERE user_id = ANY($1)', [
-                [userA, userB],
+                [userA, userB, adminId],
             ]);
             await pool.query('DELETE FROM users WHERE clerk_user_id = ANY($1)', [
-                [clerkA, clerkB],
+                [clerkA, clerkB, clerkAdmin],
             ]);
         }
         await pool.end();
@@ -131,5 +139,41 @@ describe('writePost owner-scoping (integration)', () => {
 
         const deletedId = await softDeletePost(pool, userB, postOfB);
         expect(deletedId).toBe(postOfB);
+    });
+
+    it('an admin CAN update/soft-delete a post they do not own (owner-or-admin)', async () => {
+        if (!guard()) return;
+        const target = await createPost(pool, userA, {
+            slug: `admin-target-${tag}`,
+            title: 'Owned by A',
+            content: 'a',
+            description: null,
+            categoryId: null,
+            status: 'public',
+        });
+
+        // Non-owner WITHOUT admin is still denied.
+        const denied = await updatePost(
+            pool,
+            userB,
+            target.id,
+            { title: 'nope' },
+            false
+        );
+        expect(denied).toBeNull();
+
+        // Admin (not the owner) CAN update and soft-delete.
+        const updated = await updatePost(
+            pool,
+            adminId,
+            target.id,
+            { title: 'Edited by admin' },
+            true
+        );
+        expect(updated).not.toBeNull();
+        expect(updated!.title).toBe('Edited by admin');
+
+        const deletedId = await softDeletePost(pool, adminId, target.id, true);
+        expect(deletedId).toBe(target.id);
     });
 });

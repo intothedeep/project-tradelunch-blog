@@ -50,11 +50,15 @@ export async function createPost(
     return rows[0];
 }
 
+// Owner-or-admin scoping: a caller may mutate a post they own, OR any post when
+// isAdmin is true. Mirrors the comments edit/delete policy and the OwnerEditButton
+// affordance (which already shows for admins). Defaults to owner-only.
 export async function updatePost(
     db: TDb,
     userId: number,
     postId: string,
-    patch: TPostInput
+    patch: TPostInput,
+    isAdmin = false
 ): Promise<TPostRow | null> {
     const { rows } = await db.query<TPostRow>(
         `UPDATE posts SET
@@ -65,7 +69,7 @@ export async function updatePost(
             status      = COALESCE($7, status),
             slug        = COALESCE($8, slug),
             updated_at  = now()
-         WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
+         WHERE id = $1 AND (user_id = $2 OR $9) AND deleted_at IS NULL
          RETURNING *`,
         [
             postId,
@@ -76,6 +80,7 @@ export async function updatePost(
             patch.categoryId ?? null,
             patch.status ?? null,
             patch.slug ?? null,
+            isAdmin,
         ]
     );
     return rows[0] ?? null;
@@ -84,13 +89,14 @@ export async function updatePost(
 export async function softDeletePost(
     db: TDb,
     userId: number,
-    postId: string
+    postId: string,
+    isAdmin = false
 ): Promise<string | null> {
     const { rows } = await db.query<{ id: string }>(
         `UPDATE posts SET deleted_at = now()
-         WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
+         WHERE id = $1 AND (user_id = $2 OR $3) AND deleted_at IS NULL
          RETURNING id`,
-        [postId, userId]
+        [postId, userId, isAdmin]
     );
     return rows[0] ? rows[0].id : null;
 }
