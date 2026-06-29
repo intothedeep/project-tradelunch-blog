@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 
-import { loadMorePosts } from '@/app/actions/post.action';
+import { getFeed } from '@/apis/getPosts.fetch.server';
 import { RecentPostsListClient } from '@/app/blog/components/RecentPostsList.client';
 import { CDN_ASSETS } from '@/env.schema';
 import { serializeFacet } from '@/utils/filter-state';
@@ -24,11 +24,14 @@ export const RecentPostsList: React.FC<RecentPostsListProps> = async ({
     const t = await getTranslations('blog.filters');
     const { categories, tags } = filters;
 
-    const { posts, nextCursor, hasMore } = await loadMorePosts(
+    const { posts, nextCursor, hasMore } = await getFeed(
         undefined,
         10,
         username,
-        { categories, tags }
+        {
+            categories,
+            tags,
+        }
     );
 
     if (posts.length === 0) {
