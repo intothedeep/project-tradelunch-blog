@@ -27,13 +27,15 @@ export const UserContextRail = async ({ username }: { username: string }) => {
                 profile card and the category section. */}
             <RightRailToc />
 
-            <RailSection title={t('nav.category')}>
-                <CategoryErrorBoundary>
-                    <Suspense fallback={null}>
-                        <CategorySidebarWrapper username={username} />
-                    </Suspense>
-                </CategoryErrorBoundary>
-            </RailSection>
+            {/* Category renders as a persistent, self-titled Card (CategorySidebar
+                already mirrors the Table-of-Contents card style) — NOT wrapped in a
+                RailSection disclosure, so it reads like the TOC instead of an
+                accordion that hides the tree behind a collapse header. */}
+            <CategoryErrorBoundary>
+                <Suspense fallback={null}>
+                    <CategorySidebarWrapper username={username} />
+                </Suspense>
+            </CategoryErrorBoundary>
 
             <RailSection title={t('rail.popularTags')}>
                 <Suspense fallback={<TagCloudSkeleton />}>
