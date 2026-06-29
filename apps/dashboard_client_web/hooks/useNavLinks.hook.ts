@@ -7,8 +7,8 @@
 // Two link sets live here:
 //   - buildNavLinks / useNavLinks   → the legacy compact bar set (unchanged).
 //   - buildPrimaryNavLinks / usePrimaryNavLinks → the P4 PrimaryNav set
-//     (Home / About / Explore / Write / Saved / My blog). Pure builder is
-//     testable; the hook resolves Clerk username + auth state.
+//     (Home / About / Resume / Explore / Write / Saved / My blog). Pure builder
+//     is testable; the hook resolves Clerk username + auth state.
 
 import { useUser } from '@clerk/nextjs';
 
@@ -23,12 +23,11 @@ export type NavLink = {
     requiresAuth?: boolean;
 };
 
-// Pure: the header bar's compact link list. "About" now lives in the left-rail
-// primary nav, and "blog" is covered there by "My blog", so the header keeps
-// only the destinations unique to it: dashboard + resume (no username needed).
+// Pure: the header bar's compact link list. About / blog / resume now live in
+// the left-rail primary nav, so the header keeps only "dashboard" (the chart
+// app, which has no rail entry). No username needed.
 export const buildNavLinks = (): NavLink[] => [
     { title: 'dashboard', href: '/dashboard' },
-    { title: 'resume', href: '/resume' },
 ];
 
 // Pure: build the primary nav set consumed by the P4 PrimaryNav.
@@ -43,6 +42,12 @@ export const buildPrimaryNavLinks = (
             href: '/about',
             labelKey: 'nav.about',
             iconKey: 'about',
+        },
+        {
+            title: 'Resume',
+            href: '/resume',
+            labelKey: 'nav.resume',
+            iconKey: 'resume',
         },
         {
             title: 'Explore',

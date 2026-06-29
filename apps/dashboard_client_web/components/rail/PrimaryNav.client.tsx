@@ -13,6 +13,7 @@ import { useTranslations } from 'next-intl';
 import {
     Home,
     Info,
+    FileText,
     Compass,
     PenSquare,
     Bookmark,
@@ -25,6 +26,7 @@ import { usePrimaryNavLinks } from '@/hooks/useNavLinks.hook';
 const ICON_BY_KEY: Record<string, LucideIcon> = {
     home: Home,
     about: Info,
+    resume: FileText,
     explore: Compass,
     write: PenSquare,
     saved: Bookmark,
