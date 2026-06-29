@@ -1,0 +1,48 @@
+name: collector-daily
+
+# DAILY OHLC ingest + snapshot refresh (Phase I).
+# Mon-Fri 21:30 UTC (captures the US close directly; Sat is a market holiday and
+# dropped; incremental from_date back-fills any missed day on the next run).
+on:
+  schedule:
+    - cron: "30 21 * * 1-5"
+  workflow_dispatch: {}
+
+concurrency:
+  group: collector-daily
+  cancel-in-progress: true
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/stock_collector
+    steps:
+      - uses: actions/checkout@v4
+
+      # uv via the official installer (self-contained). Hardening TODO: pin to
+      # astral-sh/setup-uv@<commit-sha> (# v8.x) with enable-cache for warm caches.
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Sync deps
+        run: |
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          uv python install 3.12
+          uv sync
+
+      - name: Run daily collector
+        env:
+          # Supabase Supavisor SESSION pooler (IPv4). NOT direct db.<ref> (IPv6-only).
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: uv run python -m collector.entrypoints.run_daily
+
+      # Schedule failures are otherwise SILENT — open a tracking issue on failure.
+      - name: Notify on failure
+        if: failure()
+        run: |
+          curl -sS -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues" \
+            -d '{"title":"collector-daily failed (run ${{ github.run_id }})","body":"The daily Yahoo OHLC collector failed. See https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}","labels":["collector","ci-failure"]}'

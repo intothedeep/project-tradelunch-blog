@@ -413,3 +413,44 @@ CREATE TABLE IF NOT EXISTS comments (
 
 CREATE INDEX IF NOT EXISTS idx_comments_post_path ON comments(post_id, path);
 CREATE INDEX IF NOT EXISTS idx_comments_parent ON comments(parent_id);
+
+-- =============================================================================
+-- Phase I (Phase 2): sticky universe + weekly market-cap ranking series.
+-- Mirrors migrations 0011_tracked_symbols.sql + 0012_market_rankings.sql.
+-- =============================================================================
+
+-- tracked_symbols: STICKY universe — once ranked, collected forever. Soft-delete
+-- (deleted_at) only, manual admin only; weekly re-rank revives via ON CONFLICT.
+-- label is UNIQUE (protects the global market_history label namespace).
+CREATE TABLE IF NOT EXISTS tracked_symbols (
+    symbol          TEXT NOT NULL,
+    category        TEXT NOT NULL,
+    label           TEXT NOT NULL,
+    sector          TEXT NULL,
+    source          TEXT NOT NULL DEFAULT 'yahoo',
+    exchange        TEXT NULL,
+    first_ranked_at TIMESTAMPTZ NULL,
+    last_ranked_at  TIMESTAMPTZ NULL,
+    created_at      TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    deleted_at      TIMESTAMPTZ NULL,
+    CONSTRAINT tracked_symbols_pkey PRIMARY KEY (symbol),
+    CONSTRAINT tracked_symbols_label_key UNIQUE (label),
+    CONSTRAINT tracked_symbols_category_check CHECK (category IN ('fx', 'crypto', 'indices', 'rates', 'stocks'))
+);
+CREATE INDEX IF NOT EXISTS idx_tracked_symbols_category ON tracked_symbols(category) WHERE deleted_at IS NULL;
+
+-- market_rankings: append-only weekly time series; ALL tracked symbols per week.
+-- scope = 'global' (top-20) or 'sector' (top-10). Idempotent per (as_of,symbol,scope).
+CREATE TABLE IF NOT EXISTS market_rankings (
+    as_of       DATE NOT NULL,
+    symbol      TEXT NOT NULL,
+    scope       TEXT NOT NULL,
+    sector      TEXT NULL,
+    rank        INT NOT NULL,
+    market_cap  NUMERIC NULL,
+    created_at  TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT market_rankings_pkey PRIMARY KEY (as_of, symbol, scope),
+    CONSTRAINT market_rankings_scope_check CHECK (scope IN ('global', 'sector'))
+);
+CREATE INDEX IF NOT EXISTS idx_market_rankings_asof_scope ON market_rankings(as_of, scope, rank);

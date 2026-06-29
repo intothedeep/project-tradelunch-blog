@@ -1,0 +1,11 @@
+requests>=2.31
+python-dotenv>=1.0
+yfinance>=0.2.50
+curl_cffi>=0.7
+psycopg[binary]>=3.2
+PyYAML>=6.0
+pyarrow>=16.0
+
+[dev]
+pytest
+pytest-cov

@@ -1,0 +1,27 @@
+name: collector-keepalive
+
+# GitHub disables scheduled workflows after 60 days of repo inactivity. The
+# collector may go uncommitted for long stretches, so touch the repo via the API
+# twice a month to keep the daily/weekly crons enabled.
+# (Separate concern from Supabase's 7-day auto-pause, which the daily writes cover.)
+on:
+  schedule:
+    - cron: "0 12 1,15 * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: collector-keepalive
+  cancel-in-progress: true
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Touch repo (keep scheduled workflows enabled)
+        run: |
+          curl -sS -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/dispatches" \
+            -d '{"event_type":"collector-keepalive-ping"}' || true
+          echo "keepalive ping sent $(date -u)"

@@ -1,0 +1,28 @@
+Metadata-Version: 2.4
+Name: stock-collector
+Version: 0.1.0
+Summary: Yahoo OHLC daily collector + market-cap ranking for the tradelunch dashboard (market_snapshots/market_history)
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: requests>=2.31
+Requires-Dist: python-dotenv>=1.0
+Requires-Dist: yfinance>=0.2.50
+Requires-Dist: curl_cffi>=0.7
+Requires-Dist: psycopg[binary]>=3.2
+Requires-Dist: PyYAML>=6.0
+Requires-Dist: pyarrow>=16.0
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: pytest-cov; extra == "dev"
+
+# stock-collector
+
+Yahoo OHLC daily collector + market-cap ranking feeding the tradelunch dashboard
+(`market_snapshots` / `market_history`). Polyglot sibling app — NOT a pnpm
+workspace member. See repo `00.plan.md` / `00.tasks.md` Phase I.
+
+```sh
+uv sync --extra dev
+uv run pytest            # pure transform/ranking specs (stdlib-only, no network)
+uv run python -m collector.entrypoints.run_daily
+```

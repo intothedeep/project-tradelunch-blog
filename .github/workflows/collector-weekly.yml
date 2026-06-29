@@ -1,0 +1,45 @@
+name: collector-weekly
+
+# WEEKLY market-cap ranking + sticky-universe update (Phase I — Phase 2).
+# Sundays 06:00 UTC. No MASSIVE_API_KEY — candidate pool is Wikipedia/IWB-class
+# public sources (GitHub S&P500 CSV). Only DATABASE_URL is needed.
+on:
+  schedule:
+    - cron: "0 6 * * 0"
+  workflow_dispatch: {}
+
+concurrency:
+  group: collector-weekly
+  cancel-in-progress: true
+
+jobs:
+  rank:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/stock_collector
+    steps:
+      - uses: actions/checkout@v4
+
+      # uv via official installer. Hardening TODO: pin astral-sh/setup-uv@<sha> (# v8.x).
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Sync deps
+        run: |
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          uv python install 3.12
+          uv sync
+
+      - name: Run weekly ranking
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: uv run python -m collector.entrypoints.run_weekly
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          curl -sS -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues" \
+            -d '{"title":"collector-weekly failed (run ${{ github.run_id }})","body":"The weekly market-cap ranking failed. See https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}","labels":["collector","ci-failure"]}'
