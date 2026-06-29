@@ -13,6 +13,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import {
     buildToggleHref,
@@ -44,6 +45,7 @@ export const FilterChip: React.FC<Props> = ({
     count,
     className,
 }) => {
+    const t = useTranslations('blog.filters');
     const searchParams = useSearchParams();
     const current = parseFilterState({
         categories: searchParams.get('categories') ?? undefined,
@@ -51,11 +53,23 @@ export const FilterChip: React.FC<Props> = ({
         category_title: searchParams.get('category_title') ?? undefined,
     });
     const isActive = current[facet].includes(value.trim().toLowerCase());
+    // Accessible action name (overrides the bare label so SR users hear the
+    // filter action + facet, not just the title). Reuses the existing
+    // blog.filters.{add,remove}{Category,Tag} keys.
+    const actionKey = isActive
+        ? facet === 'categories'
+            ? 'removeCategory'
+            : 'removeTag'
+        : facet === 'categories'
+          ? 'addCategory'
+          : 'addTag';
+    const ariaLabel = t(actionKey, { value: label });
 
     return (
         <Link
             href={buildToggleHref(username, current, facet, value)}
             aria-current={isActive ? 'true' : undefined}
+            aria-label={ariaLabel}
             className={cn(BASE, isActive ? ACTIVE : INACTIVE, className)}
         >
             {isActive ? <span aria-hidden="true">✓</span> : null}

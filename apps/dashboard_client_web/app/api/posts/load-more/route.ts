@@ -28,13 +28,14 @@ export async function GET(req: Request) {
     // Multi-facet feed filter for the per-author feed: categories OR
     // (ancestor-inclusive), tags OR, cross-attribute AND — resolved server-side.
     // Carried through so paginated pages keep the same filter.
-    // Legacy single `category_title` is folded into `categories` (server-side
-    // safety net, mirroring the Express handler) so single-category pagination
-    // keeps working until the UI wave switches to plural params.
-    const categories = [
-        ...splitFacet(searchParams.get('categories')),
-        ...splitFacet(searchParams.get('category_title')),
-    ];
+    // Legacy single `category_title` is a FALLBACK for `categories` (precedence,
+    // mirroring `parseFilterState` + the Express `??` handler) so paginated pages
+    // resolve the same filter the initial SSR render did — plural wins when present.
+    const categoriesParam = splitFacet(searchParams.get('categories'));
+    const categories =
+        categoriesParam.length > 0
+            ? categoriesParam
+            : splitFacet(searchParams.get('category_title'));
     const tags = splitFacet(searchParams.get('tags'));
 
     try {

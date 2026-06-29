@@ -6,8 +6,9 @@
 //             serializeFacet(parseFilterState(x).<facet>) yields a canonical
 //             string that re-parses to the same set.
 // Constraints: zero side effects, no hidden state, no I/O. Legacy single
-//              `category_title` is merged into `categories`; the output NEVER
-//              emits `category_title`.
+//              `category_title` is a FALLBACK for `categories` (precedence,
+//              mirroring the Express `??` handler — plural wins when present);
+//              the output NEVER emits `category_title`.
 
 export const FILTER_MAX = 20;
 
@@ -49,11 +50,15 @@ export function parseFilterState(sp: {
     tags?: string;
     category_title?: string;
 }): TFilterState {
-    const legacy = canonicalizeRaw(sp.category_title);
-    const categories = canonicalize([
-        ...canonicalizeRaw(sp.categories),
-        ...legacy,
-    ]);
+    // Precedence (mirrors the Express `parseFeedFacet(categories) ??
+    // parseFeedFacet(category_title)`): the plural `categories` facet wins when
+    // it yields any value; the legacy single `category_title` is a fallback
+    // only — never merged. Keeps the SSR page and the API in lock-step.
+    const fromCategories = canonicalizeRaw(sp.categories);
+    const categories =
+        fromCategories.length > 0
+            ? fromCategories
+            : canonicalizeRaw(sp.category_title);
     const tags = canonicalizeRaw(sp.tags);
     return { categories, tags };
 }
