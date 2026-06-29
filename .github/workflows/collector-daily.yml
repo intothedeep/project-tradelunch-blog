@@ -36,7 +36,9 @@ jobs:
       - name: Run daily collector
         env:
           # Supabase Supavisor SESSION pooler (IPv4). NOT direct db.<ref> (IPv6-only).
+          # Either name works (collector or dashboard_server's); value = session pooler.
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
           # Phase-1.5 archive: writes local Parquet only when the repo VARIABLE is
           # set to 1/true (unset -> no-op, daily run unchanged). Flip once the
           # PRIVATE bucket exists (I1.5.1b).
@@ -50,7 +52,9 @@ jobs:
         continue-on-error: true
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          # service-role key: either name works (SUPABASE_SECRET_KEY = server's 2024+ name).
           SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           COLLECTOR_PARQUET_BUCKET: ${{ vars.COLLECTOR_PARQUET_BUCKET }}
         run: uv run python -m collector.entrypoints.upload_archive
 

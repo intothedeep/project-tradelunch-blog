@@ -35,7 +35,9 @@ jobs:
 
       - name: Run weekly ranking
         env:
+          # Session pooler (5432). Either name works; value = Supavisor session pooler.
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
         run: uv run python -m collector.entrypoints.run_weekly
 
       - name: Notify on failure

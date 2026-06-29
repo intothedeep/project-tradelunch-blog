@@ -25,13 +25,28 @@ YAHOO_RPM = int(os.getenv("YAHOO_RPM", "30"))
 
 
 def database_url() -> str | None:
-    """Supabase session-pooler DSN (read at call time). None when unset."""
-    return os.getenv("DATABASE_URL") or None
+    """Supabase SESSION-pooler DSN (read at call time). None when unset.
+
+    Accepts the collector's own ``DATABASE_URL`` or the dashboard_server app's
+    ``POSTGRES_URL_NON_POOLING`` (Vercel↔Supabase integration name) for naming
+    consistency. The VALUE must be the Supavisor SESSION pooler
+    (``aws-0-<region>.pooler.supabase.com:5432``) — NOT ``POSTGRES_URL`` (6543
+    transaction pooler; breaks the ``-c timezone=UTC`` session option) and NOT the
+    direct ``db.<ref>.supabase.co`` host (IPv6-only; fails on IPv4 GH runners).
+    """
+    return os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL_NON_POOLING") or None
 
 
 def supabase_storage() -> tuple[str | None, str | None]:
-    """(SUPABASE_URL, SUPABASE_SERVICE_ROLE) for the Phase-1.5 Parquet archive."""
-    return os.getenv("SUPABASE_URL") or None, os.getenv("SUPABASE_SERVICE_ROLE") or None
+    """(SUPABASE_URL, service-role key) for the Phase-1.5 Parquet archive.
+
+    The service-role key accepts the collector's ``SUPABASE_SERVICE_ROLE`` or the
+    dashboard_server app's ``SUPABASE_SECRET_KEY`` (Supabase 2024+ naming) — same
+    value, kept consistent across apps.
+    """
+    url = os.getenv("SUPABASE_URL") or None
+    role = os.getenv("SUPABASE_SERVICE_ROLE") or os.getenv("SUPABASE_SECRET_KEY") or None
+    return url, role
 
 
 def parquet_archive_enabled() -> bool:
