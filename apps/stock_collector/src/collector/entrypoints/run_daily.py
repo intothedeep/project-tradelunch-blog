@@ -17,15 +17,18 @@ from __future__ import annotations
 import argparse
 import sys
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 
-from collector.config.settings import database_url
+from collector.config.settings import database_url, parquet_archive_enabled, parquet_dir
 from collector.config.watchlist_loader import load_watchlist
 from collector.schema.rows import DEFAULT_INTERVAL, WatchlistEntry
-from collector.sink import db_sink
+from collector.sink import db_sink, parquet_sink
 from collector.sink.yahoo_fetch import fetch_daily
+from collector.transform.archive import to_parquet_records
 from collector.transform.ohlc import to_history_rows
 from collector.transform.snapshot import build_snapshot
 from collector.transform.universe_resolve import resolve_universe
+from lib.constants import PROVIDER_YAHOO, safe_symbol
 
 DEFAULT_BACKFILL_DAYS = 400  # ~252 trading bars on first run
 
@@ -37,10 +40,22 @@ def _from_date(entry: WatchlistEntry, latest: dict[str, date], backfill_days: in
     return date.today() - timedelta(days=backfill_days)
 
 
-def _ingest(conn, universe, backfill_days, limit) -> tuple[int, int, int]:
+def _archive(items: list[tuple[str, list]], base: Path) -> int:
+    """Write each symbol's candles to its per-year Parquet partition. Returns rows."""
+    total = 0
+    for symbol, candles in items:
+        ticker = safe_symbol(symbol)  # ^GSPC etc. carry path-unsafe chars
+        for year, records in to_parquet_records(symbol, candles).items():
+            parquet_sink.write_year(base, PROVIDER_YAHOO, ticker, year, records)
+            total += len(records)
+    return total
+
+
+def _ingest(conn, universe, backfill_days, limit, archive, base) -> tuple[int, int, int, int]:
     latest = db_sink.read_latest_bar(conn)
     targets = universe[:limit] if limit else universe
     all_rows = []
+    archive_items: list[tuple[str, list]] = []
     skipped = 0
     for e in targets:
         candles = fetch_daily(e.symbol, _from_date(e, latest, backfill_days))
@@ -49,7 +64,10 @@ def _ingest(conn, universe, backfill_days, limit) -> tuple[int, int, int]:
             skipped += 1
             continue
         all_rows.extend(rows)
+        if archive:
+            archive_items.append((e.symbol, candles))
     written = db_sink.load_history(conn, all_rows)
+    archived = _archive(archive_items, base) if archive else 0
 
     fetched_at = datetime.now(timezone.utc)
     snaps = []
@@ -59,7 +77,7 @@ def _ingest(conn, universe, backfill_days, limit) -> tuple[int, int, int]:
         if snap is not None:
             snaps.append(snap)
     snap_count = db_sink.refresh_snapshots(conn, snaps)
-    return written, snap_count, skipped
+    return written, snap_count, skipped, archived
 
 
 def _dry_run(universe, limit) -> int:
@@ -81,6 +99,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--limit", type=int, default=0, help="cap symbols (0=all)")
     parser.add_argument("--backfill-days", type=int, default=DEFAULT_BACKFILL_DAYS)
     parser.add_argument("--dry-run", action="store_true", help="fetch-only, no DB")
+    parser.add_argument(
+        "--archive", action="store_true", help="also write the Phase-1.5 Parquet archive"
+    )
     args = parser.parse_args(argv)
 
     entries = load_watchlist()
@@ -89,14 +110,18 @@ def main(argv: list[str] | None = None) -> int:
         universe = resolve_universe(entries, [])
         return _dry_run(universe, args.limit)
 
+    archive = args.archive or parquet_archive_enabled()
+    base = parquet_dir()
     conn = db_sink.connect()
     try:
         tracked = db_sink.read_tracked_symbols(conn)
         universe = resolve_universe(entries, tracked)
-        written, snaps, skipped = _ingest(conn, universe, args.backfill_days, args.limit)
+        written, snaps, skipped, archived = _ingest(
+            conn, universe, args.backfill_days, args.limit, archive, base
+        )
         print(
             f"[run_daily] universe={len(universe)} history_rows={written} "
-            f"snapshots={snaps} skipped={skipped}"
+            f"snapshots={snaps} skipped={skipped} archived={archived}"
         )
     finally:
         conn.close()

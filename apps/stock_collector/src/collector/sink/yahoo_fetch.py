@@ -23,6 +23,13 @@ _fetcher = build_fetcher()
 _COLS = ("Open", "High", "Low", "Close", "Volume")
 
 
+def _num(value: Any, default: float | None = None) -> float | None:
+    """NaN/None -> ``default``; else ``float(value)`` (NaN != NaN)."""
+    if value is None or value != value:  # noqa: PLR0124 (NaN check)
+        return default
+    return float(value)
+
+
 def _frame_to_candles(df: Any) -> list[dict[str, Any]]:
     if df is None or getattr(df, "empty", True):
         return []
@@ -33,44 +40,63 @@ def _frame_to_candles(df: Any) -> list[dict[str, Any]]:
         return []
     candles: list[dict[str, Any]] = []
     for rec in df.to_dict("records"):
+        close = rec["Close"]
+        # auto_adjust=False keeps "Adj Close"; actions add "Dividends"/"Stock Splits".
+        # OHLCV feeds market_history; the rest only the Parquet archive (Phase 1.5).
         candles.append(
             {
                 "date": rec[date_col],
                 "open": rec["Open"],
                 "high": rec["High"],
                 "low": rec["Low"],
-                "close": rec["Close"],
+                "close": close,
                 "volume": rec["Volume"],
+                "adj_close": _num(rec.get("Adj Close"), default=close),
+                "dividends": _num(rec.get("Dividends")),
+                "stock_splits": _num(rec.get("Stock Splits")),
             }
         )
     return candles
 
 
-def fetch_marketcap_sector(symbol: str) -> tuple[float | None, str | None]:
-    """Best-effort (market_cap, sector) for weekly ranking. (None, None) on error.
+def fetch_shares_outstanding(symbol: str) -> float | None:
+    """fast_info shares (CHEAP; monthly cache refresh). None on any error.
 
-    Uses fast_info for market cap (cheap) and .info for sector (1 call). Partial
-    results are fine — the caller records None and ranks it last / carries forward.
+    Feeds market_cap = shares x local close, avoiding the per-symbol .info call.
     """
     try:
         import yfinance as yf  # type: ignore[import-untyped]
 
         for_provider(PROVIDER_YAHOO).acquire()
-        ticker = yf.Ticker(symbol)
-        market_cap: float | None = None
-        sector: str | None = None
-        try:
-            fi = ticker.fast_info
-            market_cap = fi.get("market_cap") or fi.get("marketCap")  # type: ignore[union-attr]
-        except Exception:
-            pass
-        try:
-            sector = ticker.info.get("sector")  # type: ignore[union-attr]
-        except Exception:
-            pass
-        return (float(market_cap) if market_cap else None), sector
+        fi = yf.Ticker(symbol).fast_info
+        shares = fi.get("shares") or fi.get("shares_outstanding")  # type: ignore[union-attr]
+        return float(shares) if shares else None
     except Exception:
-        return None, None
+        return None
+
+
+def fetch_sector(symbol: str) -> str | None:
+    """`.info` sector (the EXPENSIVE, ban-prone call; quarterly cache only). None on error."""
+    try:
+        import yfinance as yf  # type: ignore[import-untyped]
+
+        for_provider(PROVIDER_YAHOO).acquire()
+        return yf.Ticker(symbol).info.get("sector")  # type: ignore[union-attr]
+    except Exception:
+        return None
+
+
+def fetch_market_cap(symbol: str) -> float | None:
+    """fast_info market cap — FALLBACK when no local close exists yet. None on error."""
+    try:
+        import yfinance as yf  # type: ignore[import-untyped]
+
+        for_provider(PROVIDER_YAHOO).acquire()
+        fi = yf.Ticker(symbol).fast_info
+        mc = fi.get("market_cap") or fi.get("marketCap")  # type: ignore[union-attr]
+        return float(mc) if mc else None
+    except Exception:
+        return None
 
 
 def fetch_daily(symbol: str, from_date: date, to_date: date | None = None) -> list[dict[str, Any]]:

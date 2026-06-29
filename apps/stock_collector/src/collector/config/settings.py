@@ -32,3 +32,18 @@ def database_url() -> str | None:
 def supabase_storage() -> tuple[str | None, str | None]:
     """(SUPABASE_URL, SUPABASE_SERVICE_ROLE) for the Phase-1.5 Parquet archive."""
     return os.getenv("SUPABASE_URL") or None, os.getenv("SUPABASE_SERVICE_ROLE") or None
+
+
+def parquet_archive_enabled() -> bool:
+    """Phase-1.5 local Parquet archive toggle (default OFF until the bucket exists)."""
+    return os.getenv("COLLECTOR_ARCHIVE_PARQUET", "").strip().lower() in ("1", "true", "yes")
+
+
+def parquet_dir() -> Path:
+    """Local Parquet archive root (gitignored; CI uploads it to Storage separately)."""
+    return Path(os.getenv("COLLECTOR_PARQUET_DIR", str(APP_ROOT / "data" / "parquet")))
+
+
+def parquet_bucket() -> str:
+    """PRIVATE Supabase Storage bucket for the Parquet archive (I1.5.1b, analytics-only)."""
+    return os.getenv("COLLECTOR_PARQUET_BUCKET", "market-archive")

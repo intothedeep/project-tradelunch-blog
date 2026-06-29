@@ -454,3 +454,25 @@ CREATE TABLE IF NOT EXISTS market_rankings (
     CONSTRAINT market_rankings_scope_check CHECK (scope IN ('global', 'sector'))
 );
 CREATE INDEX IF NOT EXISTS idx_market_rankings_asof_scope ON market_rankings(as_of, scope, rank);
+
+-- =============================================================================
+-- Phase I (I2.8): per-symbol fundamentals cache (shares + sector).
+-- Mirrors migration 0013_symbol_fundamentals.sql.
+-- =============================================================================
+
+-- symbol_fundamentals: caches shares_outstanding (monthly fast_info refresh) and
+-- sector (quarterly .info refresh) so the weekly rank derives market_cap =
+-- shares x local close WITHOUT a per-symbol .info call. market_cap is NOT stored
+-- (derived fresh each week from market_history). Soft-delete (deleted_at) only.
+CREATE TABLE IF NOT EXISTS symbol_fundamentals (
+    symbol              TEXT NOT NULL,
+    shares_outstanding  NUMERIC NULL,
+    sector              TEXT NULL,
+    shares_refreshed_at TIMESTAMPTZ NULL,
+    sector_refreshed_at TIMESTAMPTZ NULL,
+    source              TEXT NOT NULL DEFAULT 'yahoo',
+    created_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    deleted_at          TIMESTAMPTZ NULL,
+    CONSTRAINT symbol_fundamentals_pkey PRIMARY KEY (symbol)
+);

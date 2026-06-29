@@ -41,3 +41,13 @@ addopts = ["-v", "--disable-warnings"]
 [tool.black]
 line-length = 88
 target-version = ['py312']
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint.per-file-ignores]
+# Vendored SIMPLE COPY (I1.1) from the source trading repo — kept byte-faithful to
+# upstream, so its legacy import-after-docstring / unused-symbol style is allowed
+# here. The first-party collector.* modules are linted strictly (no ignores).
+"src/lib/*" = ["E402", "F841"]
+"src/yahoo_client/*" = ["E402", "F401"]

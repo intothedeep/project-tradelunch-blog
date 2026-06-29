@@ -22,6 +22,7 @@ import psycopg
 from collector.config.settings import database_url
 from collector.schema.rows import (
     DEFAULT_INTERVAL,
+    FundamentalsRow,
     HistoryRow,
     RankingRow,
     SnapshotRow,
@@ -196,3 +197,75 @@ def read_tracked_symbols(conn: psycopg.Connection) -> list[TrackedSymbol]:
             TrackedSymbol(symbol=s, category=cat, label=lb, sector=sec, source=src, exchange=ex)
             for (s, cat, lb, sec, src, ex) in cur.fetchall()
         ]
+
+
+# --- I2.8 fundamentals cache (shares + sector) ------------------------------
+
+_FUNDAMENTALS_UPSERT_SQL = """
+INSERT INTO symbol_fundamentals
+    (symbol, shares_outstanding, sector, shares_refreshed_at, sector_refreshed_at)
+VALUES (%s, %s, %s, %s, %s)
+ON CONFLICT (symbol) DO UPDATE SET
+    shares_outstanding =
+        COALESCE(EXCLUDED.shares_outstanding, symbol_fundamentals.shares_outstanding),
+    sector = COALESCE(EXCLUDED.sector, symbol_fundamentals.sector),
+    shares_refreshed_at =
+        COALESCE(EXCLUDED.shares_refreshed_at, symbol_fundamentals.shares_refreshed_at),
+    sector_refreshed_at =
+        COALESCE(EXCLUDED.sector_refreshed_at, symbol_fundamentals.sector_refreshed_at),
+    deleted_at = NULL,
+    updated_at = CURRENT_TIMESTAMP
+"""
+
+
+def read_fundamentals(conn: psycopg.Connection) -> dict[str, FundamentalsRow]:
+    """{symbol: FundamentalsRow} cache; table-guarded -> {} when absent (un-migrated)."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT to_regclass('public.symbol_fundamentals')")
+        if cur.fetchone()[0] is None:
+            return {}
+        cur.execute(
+            "SELECT symbol, shares_outstanding, sector, shares_refreshed_at, "
+            "sector_refreshed_at FROM symbol_fundamentals WHERE deleted_at IS NULL"
+        )
+        return {
+            sym: FundamentalsRow(
+                symbol=sym,
+                shares_outstanding=float(sh) if sh is not None else None,
+                sector=sec,
+                shares_refreshed_at=sra,
+                sector_refreshed_at=secra,
+            )
+            for (sym, sh, sec, sra, secra) in cur.fetchall()
+        }
+
+
+def read_latest_close(
+    conn: psycopg.Connection, symbols: Sequence[str], interval: str = DEFAULT_INTERVAL
+) -> dict[str, float]:
+    """{label: latest close} from market_history for the given symbols (label == symbol)."""
+    if not symbols:
+        return {}
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT h.label, h.close FROM market_history h "
+            "JOIN (SELECT label, MAX(bar_time) AS mx FROM market_history "
+            "      WHERE interval = %s AND label = ANY(%s) GROUP BY label) m "
+            "  ON h.label = m.label AND h.bar_time = m.mx AND h.interval = %s",
+            (interval, list(symbols), interval),
+        )
+        return {label: float(c) for label, c in cur.fetchall()}
+
+
+def upsert_fundamentals(conn: psycopg.Connection, rows: Sequence[FundamentalsRow]) -> int:
+    """COALESCE-merge cache rows; a clock advances only when its value was refetched."""
+    if not rows:
+        return 0
+    params = [
+        (r.symbol, r.shares_outstanding, r.sector, r.shares_refreshed_at, r.sector_refreshed_at)
+        for r in rows
+    ]
+    with conn.cursor() as cur:
+        cur.executemany(_FUNDAMENTALS_UPSERT_SQL, params)
+    conn.commit()
+    return len(params)

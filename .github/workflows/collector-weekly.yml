@@ -21,12 +21,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # uv via official installer. Hardening TODO: pin astral-sh/setup-uv@<sha> (# v8.x).
+      # uv via setup-uv, pinned to an immutable commit SHA (supply-chain hardening)
+      # with warm dependency cache keyed off apps/stock_collector/uv.lock.
       - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          enable-cache: true
+          working-directory: apps/stock_collector
       - name: Sync deps
         run: |
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           uv python install 3.12
           uv sync
 
