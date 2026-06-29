@@ -22,7 +22,7 @@ export const RecentPostsList: React.FC<RecentPostsListProps> = async ({
         undefined,
         10,
         username,
-        categoryTitle
+        categoryTitle ? { categories: [categoryTitle] } : undefined
     );
 
     if (posts.length === 0) {

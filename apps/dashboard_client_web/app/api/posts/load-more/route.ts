@@ -3,6 +3,17 @@ import { NextResponse } from 'next/server';
 import { getBlogPostsByUsername } from '@/apis/getPosts.api';
 import { getPostsByTag } from '@/apis/getPostsByTag.api';
 
+// Split a comma-joined facet param into a trimmed, empty-dropped string[].
+// Canonicalization (lowercase/dedupe/sort/cap) is the server's job — here we
+// only thread the raw selection through to the action.
+function splitFacet(raw: string | null): string[] {
+    if (!raw) return [];
+    return raw
+        .split(',')
+        .map((seg) => seg.trim())
+        .filter((seg) => seg.length > 0);
+}
+
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const cursor = searchParams.get('cursor') ?? undefined;
@@ -11,11 +22,20 @@ export async function GET(req: Request) {
     // homepage. A real username scopes to that author (/v1/api/posts/users/:u).
     const username = searchParams.get('username') ?? '';
     // Non-empty tag => global by-tag feed; takes precedence over username. cursor
-    // stays a STRING end-to-end (never Number()'d).
+    // stays a STRING end-to-end (never Number()'d). This is the singular
+    // /tags/[tag] branch — left untouched by the multi-facet filter.
     const tag = searchParams.get('tag') ?? '';
-    // Optional category-title filter for the per-author feed (categories are
-    // per-author); carried through so paginated pages keep the same filter.
-    const categoryTitle = searchParams.get('category_title') ?? undefined;
+    // Multi-facet feed filter for the per-author feed: categories OR
+    // (ancestor-inclusive), tags OR, cross-attribute AND — resolved server-side.
+    // Carried through so paginated pages keep the same filter.
+    // Legacy single `category_title` is folded into `categories` (server-side
+    // safety net, mirroring the Express handler) so single-category pagination
+    // keeps working until the UI wave switches to plural params.
+    const categories = [
+        ...splitFacet(searchParams.get('categories')),
+        ...splitFacet(searchParams.get('category_title')),
+    ];
+    const tags = splitFacet(searchParams.get('tags'));
 
     try {
         if (tag) {
@@ -23,12 +43,10 @@ export async function GET(req: Request) {
             return NextResponse.json(data);
         }
 
-        const data = await getBlogPostsByUsername(
-            cursor,
-            limit,
-            username,
-            categoryTitle
-        );
+        const data = await getBlogPostsByUsername(cursor, limit, username, {
+            categories,
+            tags,
+        });
         return NextResponse.json(data);
     } catch {
         return NextResponse.json(
