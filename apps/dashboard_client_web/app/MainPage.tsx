@@ -278,7 +278,18 @@ const TerminalProfile = () => {
                                     <span>TAEK LIM</span>
                                 </div>
 
-                                <pre className="hidden md:block text-xs md:text-sm text-primary scale-[0.6] md:scale-100 overflow-x-auto whitespace-pre">
+                                {/* ASCII banner: pin a system monospace stack
+                                    (NOT the inherited IBM Plex Mono — its
+                                    box-drawing glyphs leave gaps that break the
+                                    art). leading-none keeps the vertical bars
+                                    connected across lines. */}
+                                <pre
+                                    style={{
+                                        fontFamily:
+                                            'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                                    }}
+                                    className="hidden leading-none md:block text-xs md:text-sm text-primary scale-[0.6] md:scale-100 overflow-x-auto whitespace-pre"
+                                >
                                     {`╔═══════════════════════════════════════════════════════════════╗
 ║  ████████╗ █████╗ ███████╗██╗  ██╗    ██╗     ██╗███╗   ███╗  ║
 ║  ╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝    ██║     ██║████╗ ████║  ║

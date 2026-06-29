@@ -74,6 +74,20 @@ body {
     --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+   OPTIONAL: site-wide default font (DISABLED — uncomment to test).
+   `--font-mono` above only affects elements with the `font-mono` utility.
+   Preflight derives html's base font from `--font-sans`, so overriding it makes
+   EVERY route (global nav, /dashboard, /resume, /about, future pages) default
+   to IBM Plex Mono — not just the blog shell. Trade-off: the dashboard and any
+   sans-leaning UI also become monospace. Must stay in `@theme inline` so the
+   next/font runtime var resolves at point-of-use.
+   ──────────────────────────────────────────────────────────────────────────
+@theme inline {
+    --font-sans: var(--font-ibm-plex-mono), ui-sans-serif, system-ui, sans-serif;
+}
+*/
+
 @layer base {
     * {
         @apply border-border outline-ring/50;
