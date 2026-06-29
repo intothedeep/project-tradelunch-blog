@@ -6,8 +6,14 @@ import { getBlogPostsByUsername } from '@/apis/getPosts.api';
 export async function loadMorePosts(
     cursor: string | undefined,
     limit: number,
-    username: string
+    username: string,
+    categoryTitle?: string
 ) {
-    const data = await getBlogPostsByUsername(cursor, limit, username);
+    const data = await getBlogPostsByUsername(
+        cursor,
+        limit,
+        username,
+        categoryTitle
+    );
     return data;
 }

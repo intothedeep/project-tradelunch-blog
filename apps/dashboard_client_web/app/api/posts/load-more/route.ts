@@ -13,6 +13,9 @@ export async function GET(req: Request) {
     // Non-empty tag => global by-tag feed; takes precedence over username. cursor
     // stays a STRING end-to-end (never Number()'d).
     const tag = searchParams.get('tag') ?? '';
+    // Optional category-title filter for the per-author feed (categories are
+    // per-author); carried through so paginated pages keep the same filter.
+    const categoryTitle = searchParams.get('category_title') ?? undefined;
 
     try {
         if (tag) {
@@ -20,7 +23,12 @@ export async function GET(req: Request) {
             return NextResponse.json(data);
         }
 
-        const data = await getBlogPostsByUsername(cursor, limit, username);
+        const data = await getBlogPostsByUsername(
+            cursor,
+            limit,
+            username,
+            categoryTitle
+        );
         return NextResponse.json(data);
     } catch {
         return NextResponse.json(

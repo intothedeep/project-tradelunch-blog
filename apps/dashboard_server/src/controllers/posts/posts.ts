@@ -184,7 +184,7 @@ router.get(
             { username: string },
             {},
             {},
-            { cursor?: string; limit?: string }
+            { cursor?: string; limit?: string; category_title?: string }
         >,
         res
     ) => {
@@ -197,6 +197,18 @@ router.get(
                     ? rawCursor
                     : '9223372036854775807';
             const limit = parseInt(req.query.limit || '10', 10);
+
+            // Optional category filter. Matches by category TITLE (not id): a
+            // title can map to several categories under different parents
+            // (UNIQUE is (user_id, parent_id, title) since migration 0010), so
+            // filtering by title intentionally MERGES same-titled categories —
+            // "all posts under this category name" for THIS author. null = no
+            // filter. Bound as text; never trusted into SQL directly.
+            const categoryTitle =
+                typeof req.query.category_title === 'string' &&
+                req.query.category_title.length > 0
+                    ? req.query.category_title
+                    : null;
 
             // Fetch one extra row to determine if there are more posts
             const fetchLimit = limit + 1;
@@ -233,6 +245,10 @@ router.get(
                         AND (p.status = 'public' OR p.user_id = $4)
                         -- AND (f.deleted_at IS NULL OR f.deleted_at IS NOT NULL
                         AND p.id < $2
+                        -- Optional category-title filter ($5 null => no filter).
+                        -- LEFT JOIN means uncategorized posts have c.title NULL,
+                        -- so they are correctly excluded when a title is given.
+                        AND ($5::text IS NULL OR c.title = $5)
                 )
                 SELECT
                     id,
@@ -282,6 +298,7 @@ router.get(
                 cursorParam,
                 fetchLimit,
                 viewerId,
+                categoryTitle,
             ]);
 
             // Check if there are more posts

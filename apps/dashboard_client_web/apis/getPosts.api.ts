@@ -5,7 +5,10 @@ import axios_instance from '@/apis/axios_instance';
 export async function getBlogPostsByUsername(
     cursor: string | number = 0,
     limit: number = 10,
-    username: string = ''
+    username: string = '',
+    // Optional category-title filter — only meaningful for the per-author feed
+    // (categories are per-author); ignored for the all-authors global feed.
+    categoryTitle?: string
 ): Promise<TPaginatedResponse> {
     try {
         const url = username
@@ -13,7 +16,13 @@ export async function getBlogPostsByUsername(
             : `/v1/api/posts`;
 
         const response = await axios_instance.get<TPaginatedResponse>(url, {
-            params: { ...(cursor ? { cursor } : {}), limit },
+            params: {
+                ...(cursor ? { cursor } : {}),
+                limit,
+                ...(username && categoryTitle
+                    ? { category_title: categoryTitle }
+                    : {}),
+            },
             headers: {
                 // 'Cache-Control':
                 //     'no-store, no-cache, must-revalidate, proxy-revalidate',

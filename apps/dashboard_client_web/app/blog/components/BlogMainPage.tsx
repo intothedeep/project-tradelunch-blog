@@ -8,13 +8,20 @@ import { RecentPostsList } from '@/app/blog/components/RecentPostsList.server';
 
 interface Props {
     username: string;
+    categoryTitle?: string;
 }
 
-export const BlogMainPage: React.FC<Props> = async ({ username }) => {
+export const BlogMainPage: React.FC<Props> = async ({
+    username,
+    categoryTitle,
+}) => {
     return (
         <section className="relative w-full">
             <Suspense fallback={<div>Recent Posts Loading...</div>}>
-                <RecentPostsList username={username} />
+                <RecentPostsList
+                    username={username}
+                    categoryTitle={categoryTitle}
+                />
             </Suspense>
         </section>
     );

@@ -8,16 +8,21 @@ import { CDN_ASSETS } from '@/env.schema';
 interface RecentPostsListProps {
     // Author username (already stripped of any leading '@'). Required.
     username: string;
+    // Optional category-title filter (per-author). When set, only posts in a
+    // category with this exact title are listed.
+    categoryTitle?: string;
     cdnBaseUrl?: string;
 }
 
 export const RecentPostsList: React.FC<RecentPostsListProps> = async ({
     username,
+    categoryTitle,
 }) => {
     const { posts, nextCursor, hasMore } = await loadMorePosts(
         undefined,
         10,
-        username
+        username,
+        categoryTitle
     );
 
     if (posts.length === 0) {
@@ -33,6 +38,7 @@ export const RecentPostsList: React.FC<RecentPostsListProps> = async ({
     return (
         <RecentPostsListClient
             username={username}
+            categoryTitle={categoryTitle}
             initialPosts={posts}
             initialCursor={nextCursor}
             initialHasMore={hasMore}

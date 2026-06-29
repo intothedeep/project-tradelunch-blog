@@ -8,6 +8,7 @@ import { RecentPostCard } from '@/app/blog/components/RecentPostCard.client';
 
 type Props = {
     username: string;
+    categoryTitle?: string;
     initialPosts: TPost[];
     initialCursor: string | null;
     initialHasMore: boolean;
@@ -15,8 +16,14 @@ type Props = {
 };
 
 export const RecentPostsListClient: React.FC<Props> = (props) => {
-    const { username, initialPosts, initialCursor, initialHasMore, cdnURL } =
-        props;
+    const {
+        username,
+        categoryTitle,
+        initialPosts,
+        initialCursor,
+        initialHasMore,
+        cdnURL,
+    } = props;
 
     const [posts, setPosts] = useState(initialPosts);
     const [cursor, setCursor] = useState<string | null>(initialCursor);
@@ -34,8 +41,11 @@ export const RecentPostsListClient: React.FC<Props> = (props) => {
                 const [entry] = entries;
                 if (entry?.isIntersecting && cursor !== null) {
                     startTransition(async () => {
+                        const categoryParam = categoryTitle
+                            ? `&category_title=${encodeURIComponent(categoryTitle)}`
+                            : '';
                         const res = await fetch(
-                            `/api/posts/load-more?cursor=${cursor}&limit=10&username=${username}`
+                            `/api/posts/load-more?cursor=${cursor}&limit=10&username=${username}${categoryParam}`
                         );
 
                         const data = await res.json();
@@ -56,7 +66,7 @@ export const RecentPostsListClient: React.FC<Props> = (props) => {
             if (observerRef.current && currentRef)
                 observerRef.current.unobserve(currentRef);
         };
-    }, [cursor, hasMore, isPending, username]);
+    }, [cursor, hasMore, isPending, username, categoryTitle]);
 
     return (
         <div
