@@ -726,7 +726,7 @@ router.get('/users/:username/categories', async (req, res) => {
                         NULL AS description,
                         NULL::TIMESTAMP AS created_at,
                         NULL::TIMESTAMP AS updated_at,
-                        NULL::VARCHAR AS username,
+                        $1::VARCHAR AS username,
                         ct.path
                     FROM category_tree ct
 

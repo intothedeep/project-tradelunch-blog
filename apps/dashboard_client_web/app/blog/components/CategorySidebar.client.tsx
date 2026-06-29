@@ -31,17 +31,22 @@ export const CategorySidebar: React.FC<CategorySidebarProps> = ({
 
     const router = useRouter();
 
+    // Author handle: category nodes may carry a null username, so derive it
+    // once from whichever node in the flat tree has it (always a POST node).
+    const username: string =
+        categories.find((node) => Boolean(node.username))?.username ?? '';
+
     const handleNodeSelect = (id: string, node: TTreeNodeWithChildren) => {
         setSelectedNode(id);
         // Handle navigation for posts
         if (node.type === ETreeNodeType.POST && node.slug) {
-            router.push(`/blog/@${node.username}/${node.slug}`);
+            router.push(`/blog/@${node.username ?? username}/${node.slug}`);
             return;
         }
         // Category: filter the blog feed by this category title
-        if (node.type === ETreeNodeType.CATEGORY && node.title) {
+        if (node.type === ETreeNodeType.CATEGORY && node.title && username) {
             router.push(
-                `/blog/@${node.username}?category_title=${encodeURIComponent(node.title)}`
+                `/blog/@${username}?category_title=${encodeURIComponent(node.title)}`
             );
         }
     };
@@ -55,8 +60,6 @@ export const CategorySidebar: React.FC<CategorySidebarProps> = ({
     ).length;
 
     // Blog title: the author/username carried on any tree node.
-    const username: string =
-        categories.find((node) => Boolean(node.username))?.username ?? '';
     const blogTitle: string = username ? `@${username}` : 'Blog';
 
     return (
