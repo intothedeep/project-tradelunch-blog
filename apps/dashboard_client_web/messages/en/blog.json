@@ -3,6 +3,7 @@
     "nav": {
         "category": "CATEGORY",
         "home": "Home",
+        "allPosts": "All posts",
         "about": "About",
         "resume": "Resume",
         "explore": "Explore",

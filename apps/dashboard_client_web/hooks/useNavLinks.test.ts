@@ -19,11 +19,12 @@ describe('buildPrimaryNavLinks', () => {
         expect(myBlog?.href).toBe('/blog/@taeklim');
     });
 
-    it('marks Explore as disabled (deferred placeholder)', () => {
-        const explore = buildPrimaryNavLinks('taeklim').find(
-            (l) => l.href === '/explore'
+    it('emits an enabled "All posts" link to the aggregate feed', () => {
+        const allPosts = buildPrimaryNavLinks('taeklim').find(
+            (l) => l.href === '/blog'
         );
-        expect(explore?.disabled).toBe(true);
+        expect(allPosts?.title).toBe('All posts');
+        expect(allPosts?.disabled).toBeUndefined();
     });
 
     it.each([null, undefined, '', '   '])(

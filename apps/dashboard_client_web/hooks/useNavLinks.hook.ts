@@ -7,7 +7,7 @@
 // Two link sets live here:
 //   - buildNavLinks / useNavLinks   → the legacy compact bar set (unchanged).
 //   - buildPrimaryNavLinks / usePrimaryNavLinks → the P4 PrimaryNav set
-//     (Home / About / Resume / Explore / Write / Saved / My blog). Pure builder
+//     (Home / All posts / About / Resume / Write / Saved / My blog). Pure builder
 //     is testable; the hook resolves Clerk username + auth state.
 
 import { useUser } from '@clerk/nextjs';
@@ -38,6 +38,15 @@ export const buildPrimaryNavLinks = (
     const links: NavLink[] = [
         { title: 'Home', href: '/', labelKey: 'nav.home', iconKey: 'home' },
         {
+            // The all-authors aggregate feed. Reuses the former "Explore" slot
+            // (a future real Explore can return on its own key) since this IS
+            // the cross-author discovery surface while `/` is the owner's blog.
+            title: 'All posts',
+            href: '/blog',
+            labelKey: 'nav.allPosts',
+            iconKey: 'allPosts',
+        },
+        {
             title: 'About',
             href: '/about',
             labelKey: 'nav.about',
@@ -48,13 +57,6 @@ export const buildPrimaryNavLinks = (
             href: '/resume',
             labelKey: 'nav.resume',
             iconKey: 'resume',
-        },
-        {
-            title: 'Explore',
-            href: '/explore',
-            labelKey: 'nav.explore',
-            iconKey: 'explore',
-            disabled: true,
         },
         {
             title: 'Write',

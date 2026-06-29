@@ -1,6 +1,6 @@
 'use client';
 
-// Purpose: the left-rail primary navigation (Home / About / Resume / Explore /
+// Purpose: the left-rail primary navigation (Home / All posts / About / Resume /
 // Write / Saved / My blog). Links come from usePrimaryNavLinks (which gates auth
 // — Write/Saved/My blog hidden while signed out — and hides "My blog" when there
 // is no resolved username). Active route is derived
@@ -15,6 +15,7 @@ import {
     Home,
     Info,
     FileText,
+    Newspaper,
     Compass,
     PenSquare,
     Bookmark,
@@ -26,6 +27,7 @@ import { usePrimaryNavLinks } from '@/hooks/useNavLinks.hook';
 
 const ICON_BY_KEY: Record<string, LucideIcon> = {
     home: Home,
+    allPosts: Newspaper,
     about: Info,
     resume: FileText,
     explore: Compass,
@@ -35,9 +37,11 @@ const ICON_BY_KEY: Record<string, LucideIcon> = {
 };
 
 // Pure: a link is active when it is the exact path; for non-root links the
-// active state also covers nested sub-paths (e.g. /me/saved/...).
+// active state also covers nested sub-paths (e.g. /me/saved/...). The two
+// index-like routes ('/' and '/blog') match EXACT-only — otherwise '/blog'
+// would light up on every '/blog/@author' page (which startsWith('/blog/')).
 function isActivePath(pathname: string, href: string): boolean {
-    if (href === '/') return pathname === '/';
+    if (href === '/' || href === '/blog') return pathname === href;
     return pathname === href || pathname.startsWith(`${href}/`);
 }
 
