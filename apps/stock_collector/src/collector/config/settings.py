@@ -38,15 +38,15 @@ def database_url() -> str | None:
 
 
 def supabase_storage() -> tuple[str | None, str | None]:
-    """(SUPABASE_URL, service-role key) for the Phase-1.5 Parquet archive.
+    """(SUPABASE_URL, SUPABASE_SECRET_KEY) for the Phase-1.5 Parquet archive.
 
-    The service-role key accepts the collector's ``SUPABASE_SERVICE_ROLE`` or the
-    dashboard_server app's ``SUPABASE_SECRET_KEY`` (Supabase 2024+ naming) — same
-    value, kept consistent across apps.
+    ``SUPABASE_SECRET_KEY`` is the Supabase 2024+ secret API key (``sb_secret_…``)
+    — the current replacement for the legacy ``service_role`` JWT (being phased
+    out). Same server-side full-access role; matches the dashboard_server app.
     """
     url = os.getenv("SUPABASE_URL") or None
-    role = os.getenv("SUPABASE_SERVICE_ROLE") or os.getenv("SUPABASE_SECRET_KEY") or None
-    return url, role
+    secret_key = os.getenv("SUPABASE_SECRET_KEY") or None
+    return url, secret_key
 
 
 def parquet_archive_enabled() -> bool:

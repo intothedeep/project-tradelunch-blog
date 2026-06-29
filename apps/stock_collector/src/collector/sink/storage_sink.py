@@ -2,8 +2,8 @@
 
 Analytics archive ONLY (PRIVATE bucket), never serving. Uses the Storage REST
 API (``POST .../storage/v1/object/{bucket}/{path}`` with ``x-upsert: true``) and
-the service-role key. Object-upsert is eventually consistent (CDN-stale) — fine
-for a cold archive.
+the Supabase secret key (``sb_secret_…``). Object-upsert is eventually consistent
+(CDN-stale) — fine for a cold archive.
 
 Side effects: network (HTTP). Graceful: any non-2xx / network error -> False
 (the caller logs and continues; archive upload must never abort collection).
@@ -23,7 +23,7 @@ def object_key(base: Path, path: Path) -> str:
 
 def upload_object(
     base_url: str,
-    service_role: str,
+    secret_key: str,
     bucket: str,
     object_path: str,
     data: bytes,
@@ -33,7 +33,7 @@ def upload_object(
     """Upsert one object into ``bucket`` at ``object_path``. True on 2xx, else False."""
     url = f"{base_url.rstrip('/')}/storage/v1/object/{bucket}/{object_path}"
     headers = {
-        "Authorization": f"Bearer {service_role}",
+        "Authorization": f"Bearer {secret_key}",
         "Content-Type": "application/octet-stream",
         "x-upsert": "true",
     }

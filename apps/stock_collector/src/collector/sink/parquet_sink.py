@@ -9,7 +9,7 @@ Current-year file = READ-MERGE-REWRITE (no row upsert in Parquet): read existing
 write tmp -> atomic ``os.replace``. Past-year files are immutable.
 
 Side effects: local filesystem only (Storage upload is a separate CI step,
-USER-gated on SUPABASE_SERVICE_ROLE + a PRIVATE bucket).
+USER-gated on SUPABASE_SECRET_KEY + a PRIVATE bucket).
 """
 
 from __future__ import annotations

@@ -19,7 +19,7 @@ jobs:
       run:
         working-directory: apps/stock_collector
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       # uv via setup-uv, pinned to an immutable commit SHA (supply-chain hardening)
       # with warm dependency cache keyed off apps/stock_collector/uv.lock.
@@ -46,14 +46,13 @@ jobs:
         run: uv run python -m collector.entrypoints.run_daily
 
       # Best-effort: upserts the local Parquet archive to the PRIVATE Storage
-      # bucket. Skips when SUPABASE_URL/SERVICE_ROLE are unset; never fails the
+      # bucket. Skips when SUPABASE_URL/SECRET_KEY are unset; never fails the
       # collection job (continue-on-error + entrypoint returns 0).
       - name: Upload Parquet archive to Storage
         continue-on-error: true
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          # service-role key: either name works (SUPABASE_SECRET_KEY = server's 2024+ name).
-          SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
+          # Supabase 2024+ secret key (sb_secret_…) — server-side full access.
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           COLLECTOR_PARQUET_BUCKET: ${{ vars.COLLECTOR_PARQUET_BUCKET }}
         run: uv run python -m collector.entrypoints.upload_archive
