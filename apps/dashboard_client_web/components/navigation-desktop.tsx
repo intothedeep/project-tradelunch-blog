@@ -3,10 +3,9 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSetAtom } from 'jotai';
-import { useUser } from '@clerk/nextjs';
-import { useTranslations } from 'next-intl';
 import { NavMenu } from '@/components/nav-menu.client';
 import { MenuDrawer } from '@/components/MenuDrawer.client';
+import { TopBar } from '@/components/topbar/TopBar.client';
 import { isMenuDrawerOpenAtom } from '@/store/menu.atom';
 import { useNavLinks } from '@/hooks/useNavLinks.hook';
 import { cn } from '@/lib/utils';
@@ -23,62 +22,14 @@ const isChartDashboard = (pathname: string | null): boolean => {
     );
 };
 
-// Desktop Navigation with Terminal Style
+// Desktop Navigation: the single global top bar. Removed on the chart dashboard
+// (nav lives in the chart header there); rendered everywhere else.
 export const DesktopNavigation = () => {
-    const { isSignedIn } = useUser();
-    const links = useNavLinks();
-    const t = useTranslations('write');
     const pathname = usePathname();
 
-    // On the chart dashboard the bar is removed; nav lives in the chart header.
     if (isChartDashboard(pathname)) return null;
 
-    return (
-        <nav className="hidden md:flex h-16 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-6">
-            {/* Left - Logo */}
-            <Link
-                href="/"
-                className="flex items-center gap-3 group"
-            >
-                {/* Profile Icon */}
-                <div className="w-10 h-10 border-2 border-primary bg-secondary flex items-center justify-center transition-all group-hover:scale-110">
-                    <span className="text-2xl">👨‍💻</span>
-                </div>
-                {/* Name */}
-                <span className="text-2xl font-mono text-primary terminal-glow">
-                    Taek Lim
-                </span>
-            </Link>
-
-            {/* Right - Navigation Links, then Theme + Auth controls */}
-            <div className="flex items-center gap-4">
-                <ul className="flex flex-row gap-1 items-center">
-                    {links.map((link) => (
-                        <li key={link.title}>
-                            <Link
-                                href={link.href}
-                                className="px-4 py-2 font-mono text-sm hover:bg-primary hover:text-primary-foreground transition-colors border border-transparent hover:border-primary"
-                            >
-                                {link.title.toUpperCase()}
-                            </Link>
-                        </li>
-                    ))}
-                    {/* WRITE — signed-in only. Reserve a fixed-width slot to avoid CLS while Clerk resolves. */}
-                    <li className="min-w-[4.75rem]">
-                        {isSignedIn && (
-                            <Link
-                                href="/write"
-                                className="px-4 py-2 font-mono text-sm hover:bg-primary hover:text-primary-foreground transition-colors border border-transparent hover:border-primary"
-                            >
-                                {t('nav.writeHeader')}
-                            </Link>
-                        )}
-                    </li>
-                </ul>
-                <NavMenu links={links} />
-            </div>
-        </nav>
-    );
+    return <TopBar />;
 };
 
 // Mobile Navigation: top bar + floating button that opens the shared MenuDrawer.

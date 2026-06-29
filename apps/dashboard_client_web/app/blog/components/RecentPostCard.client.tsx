@@ -4,17 +4,20 @@
 // Invariants: the whole card is ONE navigation target (overlay stretched-link);
 //   interactive actions (Like live, Share live, Save live) are siblings at z-10
 //   so they never nest inside the anchor (valid HTML, no nested-interactive
-//   conflict).
+//   conflict). Tag chips are likewise SIBLINGS of the overlay anchor (they live
+//   in CardContent, not inside the overlay <a>) and are raised to z-10 so they
+//   are clickable Links to /tags/<tag> — no nested <a>.
 // Constraints: overlay link is omitted when username/slug is missing so the URL
 //   never serializes "@undefined". Live like count + viewer state come from the
 //   enriched feed read (L5).
 // Side effects: none (delegated to action components).
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Badge, badgeVariants } from '@/components/ui/badge';
 import Image from 'next/image';
 import Link from 'next/link';
 import clsx from 'clsx';
+import { Heart, MessageSquare } from 'lucide-react';
 import { TPost } from '@/apis/blog.types';
 import { cn } from '@/lib/utils';
 import { PostContentHeader } from '@/app/blog/components/PostContentHeader.server';
@@ -120,26 +123,41 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
                     </p>
                 )}
 
-                {/* Tag Badges */}
+                {/* Tag chips — Links to /tags/<tag>. Raised to z-10 (relative) so
+                    they sit above the overlay anchor and are clickable; they are
+                    siblings of that anchor, never nested. */}
                 <div
                     className={clsx(
-                        'flex items-center gap-1 flex-wrap border-t border-primary/30',
+                        'relative z-10 flex items-center gap-1 flex-wrap border-t border-primary/30',
                         'pt-3 mb-3',
                         post.tags?.length ? '' : 'hidden'
                     )}
                 >
                     {post.tags?.map((tag, idx) => (
-                        <Badge
+                        <Link
                             key={idx}
-                            variant="outline"
-                            className={clsx(
-                                'text-xs',
-                                'hover:text-muted-foreground transition-colors'
+                            href={`/tags/${encodeURIComponent(tag)}`}
+                            className={cn(
+                                badgeVariants({ variant: 'outline' }),
+                                'text-xs hover:bg-secondary hover:text-muted-foreground transition-colors'
                             )}
                         >
                             {tag}
-                        </Badge>
+                        </Link>
                     ))}
+                </div>
+
+                {/* Engagement counts (comments · likes). Plain display, no nav. */}
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1">
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        {post.commentCount ?? 0}
+                    </span>
+                    <span aria-hidden>·</span>
+                    <span className="inline-flex items-center gap-1">
+                        <Heart className="h-3.5 w-3.5" />
+                        {post.likeCount ?? 0}
+                    </span>
                 </div>
             </CardContent>
         </Card>

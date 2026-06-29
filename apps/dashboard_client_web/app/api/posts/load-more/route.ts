@@ -1,6 +1,7 @@
 // app/api/posts/load-more/route.ts
 import { NextResponse } from 'next/server';
 import { getBlogPostsByUsername } from '@/apis/getPosts.api';
+import { getPostsByTag } from '@/apis/getPostsByTag.api';
 
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
@@ -9,10 +10,17 @@ export async function GET(req: Request) {
     // Empty username => all-authors global feed (GET /v1/api/posts), used by the
     // homepage. A real username scopes to that author (/v1/api/posts/users/:u).
     const username = searchParams.get('username') ?? '';
+    // Non-empty tag => global by-tag feed; takes precedence over username. cursor
+    // stays a STRING end-to-end (never Number()'d).
+    const tag = searchParams.get('tag') ?? '';
 
     try {
-        const data = await getBlogPostsByUsername(cursor, limit, username);
+        if (tag) {
+            const data = await getPostsByTag(tag, cursor, limit);
+            return NextResponse.json(data);
+        }
 
+        const data = await getBlogPostsByUsername(cursor, limit, username);
         return NextResponse.json(data);
     } catch {
         return NextResponse.json(

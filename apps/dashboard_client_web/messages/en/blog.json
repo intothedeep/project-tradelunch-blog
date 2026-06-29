@@ -1,7 +1,34 @@
 {
     "ping": "pong",
     "nav": {
-        "category": "CATEGORY"
+        "category": "CATEGORY",
+        "home": "Home",
+        "explore": "Explore",
+        "write": "Write",
+        "saved": "Saved",
+        "myBlog": "My blog"
+    },
+    "rail": {
+        "popularTags": "Popular tags",
+        "tagsUnavailable": "Tags unavailable",
+        "noTags": "No tags yet",
+        "collapse": "Collapse sidebar",
+        "expand": "Expand sidebar",
+        "recentlyViewed": "Recently viewed",
+        "recentlyViewedEmpty": "No recently viewed posts yet.",
+        "savedTags": "Saved tags",
+        "savedTagsEmpty": "No saved tags yet.",
+        "unsaveTag": "Remove \"{tag}\"",
+        "aboutBlog": "Categories / About this blog"
+    },
+    "profile": {
+        "postCount": "{count, plural, =0 {No posts} one {# post} other {# posts}}",
+        "noPosts": "Hasn't published yet"
+    },
+    "tags": {
+        "emptyTitle": "No posts tagged \"{tag}\"",
+        "browsePopular": "Browse popular tags",
+        "jumpPlaceholder": "Jump to a tag…"
     },
     "comments": {
         "heading": "{count, plural, =0 {Comments} one {# Comment} other {# Comments}}",

@@ -8,6 +8,7 @@ import {
 import { Router, Request } from 'express';
 import { optionalAuth } from '../../middlewares/optionalAuth';
 import { clampTagLimit, listUserPopularTags } from '../../helpers/popularTags';
+import { getUserProfile } from '../../helpers/userProfile';
 import {
     normalizeCursor,
     clampFeedLimit,
@@ -333,6 +334,37 @@ router.get(
             res.status(500).json({
                 success: false,
                 message: 'Failed to fetch tags',
+            });
+        }
+    }
+);
+
+/**
+ * @api {get} /posts/users/:username/profile Lightweight author profile card
+ * @apiName GetUserProfile
+ * @apiGroup Posts
+ *
+ * Multi-segment static route — registered ABOVE /:postid (defensive). Returns
+ * { username, displayName, avatarUrl, postCount } (DISTINCT public slugs).
+ * Viewer-agnostic. 404 when the user does not exist / is deleted.
+ */
+router.get(
+    '/users/:username/profile',
+    async (req: Request<{ username: string }>, res) => {
+        try {
+            const { username } = req.params;
+            const profile = await getUserProfile(pool, username);
+            if (!profile) {
+                return res
+                    .status(404)
+                    .json({ success: false, message: 'User not found' });
+            }
+            res.json({ success: true, data: profile });
+        } catch (error) {
+            console.error('API Error fetching user profile:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to fetch profile',
             });
         }
     }

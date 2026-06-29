@@ -1,40 +1,87 @@
 'use client';
 
-// Purpose: shared slide-up modal menu (mobile + desktop dashboard).
-// Open state lives in isMenuDrawerOpenAtom, so any trigger opens the same menu.
-// Side effects (escape key, body scroll lock) are isolated to this component.
+// Purpose: shared slide-up modal menu (mobile + desktop dashboard). Open state
+// lives in isMenuDrawerOpenAtom so any trigger opens the same menu. At <md the
+// desktop left rail is hidden, so this drawer is where the PRIMARY nav (Home /
+// Write / Saved / My blog) stays reachable — its link source is
+// usePrimaryNavLinks (auth-gated; "My blog" hidden until onboarded).
+// Side effects (escape key, body scroll lock, focus trap) are isolated here.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useAtom } from 'jotai';
 import { useUser } from '@clerk/nextjs';
 import { useTranslations } from 'next-intl';
 import { isMenuDrawerOpenAtom } from '@/store/menu.atom';
-import { useNavLinks } from '@/hooks/useNavLinks.hook';
+import { usePrimaryNavLinks } from '@/hooks/useNavLinks.hook';
+
+const FOCUSABLE_SELECTOR =
+    'a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])';
 
 export function MenuDrawer() {
     const [isOpen, setIsOpen] = useAtom(isMenuDrawerOpenAtom);
     const { isSignedIn } = useUser();
-    const links = useNavLinks();
-    const t = useTranslations('write');
+    const links = usePrimaryNavLinks();
+    const t = useTranslations('blog');
+
+    const drawerRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLElement | null>(null);
 
     const [touchStart, setTouchStart] = useState(0);
     const [touchEnd, setTouchEnd] = useState(0);
 
-    // Close on Escape; lock body scroll while open.
+    // Only show auth-gated entries when signed in; never emit a clickable
+    // placeholder for disabled destinations.
+    const visibleLinks = links.filter(
+        (link) => !link.requiresAuth || isSignedIn
+    );
+
+    // Close on Escape; lock body scroll; trap Tab focus within the drawer; and
+    // restore focus to the trigger on close.
     useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') setIsOpen(false);
+        if (!isOpen) return;
+
+        triggerRef.current = document.activeElement as HTMLElement | null;
+        document.body.style.overflow = 'hidden';
+
+        const getFocusable = (): HTMLElement[] =>
+            Array.from(
+                drawerRef.current?.querySelectorAll<HTMLElement>(
+                    FOCUSABLE_SELECTOR
+                ) ?? []
+            );
+
+        getFocusable()[0]?.focus();
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setIsOpen(false);
+                return;
+            }
+            if (e.key !== 'Tab') return;
+
+            const focusable = getFocusable();
+            if (focusable.length === 0) return;
+
+            const first = focusable[0]!;
+            const last = focusable[focusable.length - 1]!;
+            const active = document.activeElement;
+
+            if (e.shiftKey && active === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && active === last) {
+                e.preventDefault();
+                first.focus();
+            }
         };
 
-        if (isOpen) {
-            document.addEventListener('keydown', handleEscape);
-            document.body.style.overflow = 'hidden';
-        }
+        document.addEventListener('keydown', handleKeyDown);
 
         return () => {
-            document.removeEventListener('keydown', handleEscape);
+            document.removeEventListener('keydown', handleKeyDown);
             document.body.style.overflow = 'unset';
+            triggerRef.current?.focus?.();
         };
     }, [isOpen, setIsOpen]);
 
@@ -61,6 +108,10 @@ export function MenuDrawer() {
 
             {/* Drawer - slides from bottom */}
             <div
+                ref={drawerRef}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Menu"
                 className={`fixed bottom-0 left-0 right-0 bg-card border-t-2 border-primary z-50 transition-transform duration-300 ease-out ${
                     isOpen ? 'translate-y-0' : 'translate-y-full'
                 }`}
@@ -117,45 +168,53 @@ export function MenuDrawer() {
                     </button>
                 </div>
 
-                {/* Navigation Links */}
+                {/* Navigation Links — primary nav set (reachable at <md). */}
                 <nav className="p-6 max-h-[70vh] overflow-y-auto">
                     <ul className="space-y-2">
-                        {links.map((link, index) => (
-                            <li key={link.title}>
-                                <Link
-                                    href={link.href}
-                                    onClick={() => setIsOpen(false)}
-                                    className="block px-4 py-4 font-mono text-lg border-2 border-primary/30 hover:border-primary hover:bg-secondary transition-all"
-                                    style={{
-                                        animationDelay: `${index * 50}ms`,
-                                        animation: isOpen
-                                            ? 'slideInUp 0.3s ease-out forwards'
-                                            : 'none',
-                                    }}
-                                >
-                                    <span className="text-primary">&gt;</span>{' '}
-                                    {link.title.toUpperCase()}
-                                </Link>
-                            </li>
-                        ))}
-                        {/* WRITE — signed-in only */}
-                        {isSignedIn && (
-                            <li>
-                                <Link
-                                    href="/write"
-                                    onClick={() => setIsOpen(false)}
-                                    className="block px-4 py-4 font-mono text-lg border-2 border-primary/30 hover:border-primary hover:bg-secondary transition-all"
-                                    style={{
-                                        animation: isOpen
-                                            ? 'slideInUp 0.3s ease-out forwards'
-                                            : 'none',
-                                    }}
-                                >
-                                    <span className="text-primary">&gt;</span>{' '}
-                                    {t('nav.writeHeader')}
-                                </Link>
-                            </li>
-                        )}
+                        {visibleLinks.map((link, index) => {
+                            const label = link.labelKey
+                                ? t(link.labelKey)
+                                : link.title;
+                            const itemStyle: React.CSSProperties = {
+                                animationDelay: `${index * 50}ms`,
+                                animation: isOpen
+                                    ? 'slideInUp 0.3s ease-out forwards'
+                                    : 'none',
+                            };
+
+                            if (link.disabled) {
+                                return (
+                                    <li key={link.href}>
+                                        <span
+                                            aria-disabled="true"
+                                            className="block px-4 py-4 font-mono text-lg border-2 border-primary/20 text-muted-foreground cursor-not-allowed"
+                                            style={itemStyle}
+                                        >
+                                            <span className="text-primary">
+                                                &gt;
+                                            </span>{' '}
+                                            {label.toUpperCase()}
+                                        </span>
+                                    </li>
+                                );
+                            }
+
+                            return (
+                                <li key={link.href}>
+                                    <Link
+                                        href={link.href}
+                                        onClick={() => setIsOpen(false)}
+                                        className="block px-4 py-4 font-mono text-lg border-2 border-primary/30 hover:border-primary hover:bg-secondary transition-all"
+                                        style={itemStyle}
+                                    >
+                                        <span className="text-primary">
+                                            &gt;
+                                        </span>{' '}
+                                        {label.toUpperCase()}
+                                    </Link>
+                                </li>
+                            );
+                        })}
                     </ul>
 
                     {/* Additional Info */}
