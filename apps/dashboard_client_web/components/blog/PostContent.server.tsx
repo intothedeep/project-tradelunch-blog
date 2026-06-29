@@ -3,7 +3,6 @@ import { Suspense } from 'react';
 import { PostContentCard } from '@/components/blog/PostContentCard.server';
 import { PostContentToc } from '@/components/blog/PostContentToc.server';
 import { PostCardSkeleton } from '@/components/blog/PostCardSkeleton';
-import { PostTocSkeleton } from '@/components/blog/PostTocSkeleton';
 
 export const PostContent = ({
     slug,
@@ -13,8 +12,8 @@ export const PostContent = ({
     ownerUsername: string;
 }) => {
     return (
-        <div className="flex gap-6">
-            {/* Main Content with Suspense */}
+        <div>
+            {/* Full-width reading column. */}
             <Suspense fallback={<PostCardSkeleton />}>
                 <PostContentCard
                     slug={slug}
@@ -22,8 +21,9 @@ export const PostContent = ({
                 />
             </Suspense>
 
-            {/* TOC Sidebar with Suspense */}
-            <Suspense fallback={<PostTocSkeleton />}>
+            {/* Invisible: publishes the post TOC to the right rail (RightRailToc),
+                between the profile card and the category section. */}
+            <Suspense fallback={null}>
                 <PostContentToc slug={slug} />
             </Suspense>
         </div>
