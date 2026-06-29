@@ -6,7 +6,6 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ScrollToTopButton } from '@/app/ScrollToTop';
 
 // Resume Image Page Component
 export const ResumePage = () => {
@@ -121,8 +120,6 @@ export const ResumePage = () => {
                     </CardContent>
                 </Card>
             </div>
-
-            <ScrollToTopButton />
         </div>
     );
 };

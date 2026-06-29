@@ -6,7 +6,6 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ScrollToTopButton } from '@/app/ScrollToTop';
 
 import clsx from 'clsx';
 import ResumeTOC from '@/app/resume/ResumeTOC.client';
@@ -104,8 +103,6 @@ export const ResumePage = () => {
                     </CardContent>
                 </Card>
             </div>
-
-            <ScrollToTopButton />
         </div>
     );
 };

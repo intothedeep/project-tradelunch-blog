@@ -14,8 +14,6 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ExternalLink, GitFork } from 'lucide-react';
 
-import { ScrollToTopButton } from '@/app/ScrollToTop';
-
 // Main Terminal Profile Component
 const TerminalProfile = () => {
     const [loading, setLoading] = useState(true);
@@ -663,8 +661,6 @@ const TerminalProfile = () => {
                     </CardContent>
                 </Card>
             </div>
-
-            <ScrollToTopButton />
         </div>
     );
 };

@@ -11,6 +11,7 @@ import { getLocale, getMessages } from 'next-intl/server';
 
 import '@/styles/globals.css';
 import CustomNavigation from '@/components/navigation-desktop';
+import { ScrollToTopButton } from '@/app/ScrollToTop';
 import { SITE_URL } from '@/env.schema';
 
 const ibmPlexMono = IBM_Plex_Mono({
@@ -141,6 +142,11 @@ export default async function RootLayout({
                                 </header> */}
 
                                 <div className="flex-1">{children}</div>
+
+                                {/* Global scroll-to-top affordance: appears on
+                                    every route once scrolled past the threshold
+                                    (self-hides on short pages). */}
+                                <ScrollToTopButton />
 
                                 {/* <footer>Main footer</footer> */}
                                 {/* <ClientTrailCursorCanvas /> */}

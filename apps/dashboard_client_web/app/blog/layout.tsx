@@ -1,5 +1,3 @@
-import { ScrollToTopButton } from '@/app/ScrollToTop';
-
 // Username-INDEPENDENT blog chrome. This layout sits ABOVE the [username]
 // segment so it cannot read params.username — username-dependent chrome
 // (category sidebar) lives in app/blog/[username]/layout.tsx and, for the
@@ -7,18 +5,11 @@ import { ScrollToTopButton } from '@/app/ScrollToTop';
 //
 // NOTE: no chrome wrapper here — the child BlogShell is the full-bleed shell
 // (its own min-h-screen + centered, padded main + the `font-mono` aesthetic),
-// exactly as on `/`. A wrapping `p-2 sm:p-4 md:p-8` here used to push the whole
-// shell in / add a top gap `/` lacked, and a `font-mono` div here applied mono
-// to `/blog/*` but NOT `/` (which never passes through this layout) — both made
-// the chrome inconsistent. The font now lives on BlogShell, shared by both. We
-// keep only the scroll-to-top affordance.
+// exactly as on `/`. The font now lives on BlogShell, shared by both. The
+// scroll-to-top affordance is now GLOBAL (mounted once in the root layout), so
+// this layout is a pure pass-through boundary kept for the segment hierarchy.
 export const BlogMainLayout = ({ children }: { children: React.ReactNode }) => {
-    return (
-        <>
-            {children}
-            <ScrollToTopButton />
-        </>
-    );
+    return <>{children}</>;
 };
 
 export default BlogMainLayout;
