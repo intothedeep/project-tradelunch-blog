@@ -73,6 +73,9 @@ interface CategoryTreeProps {
     level?: number;
     selectedNode: string | null;
     onSelectNode: (id: string, node: TTreeNodeWithChildren) => void;
+    // Lowercased category titles currently selected in the feed filter (filter
+    // mode only). Matching CATEGORY nodes get the active-chip highlight + ✓.
+    activeTitles?: string[];
 }
 
 export const CategoryTree: React.FC<CategoryTreeProps> = ({
@@ -80,6 +83,7 @@ export const CategoryTree: React.FC<CategoryTreeProps> = ({
     level = 0,
     selectedNode,
     onSelectNode,
+    activeTitles = [],
 }) => {
     const [localExpanded, setLocalExpanded] = useState<Record<string, boolean>>(
         {}
@@ -100,6 +104,10 @@ export const CategoryTree: React.FC<CategoryTreeProps> = ({
                 const hasChildren = node.children && node.children.length > 0;
                 const isPost = node.type === ETreeNodeType.POST;
                 const isSelected = selectedNode === node.id;
+                const isActiveFilter =
+                    !isPost &&
+                    typeof node.title === 'string' &&
+                    activeTitles.includes(node.title.toLowerCase());
 
                 return (
                     <div key={node.id}>
@@ -116,8 +124,13 @@ export const CategoryTree: React.FC<CategoryTreeProps> = ({
                                 'text-xs',
                                 'hover:bg-primary hover:text-primary-foreground transition-colors',
                                 'group',
-                                { 'bg-secondary text-foreground': isSelected }
+                                { 'bg-secondary text-foreground': isSelected },
+                                {
+                                    'text-primary font-semibold':
+                                        isActiveFilter,
+                                }
                             )}
+                            aria-current={isActiveFilter ? 'true' : undefined}
                         >
                             {/* Expand/Collapse Icon */}
                             {hasChildren && (
@@ -148,6 +161,9 @@ export const CategoryTree: React.FC<CategoryTreeProps> = ({
 
                             {/* Title */}
                             <span className="flex-1 text-left truncate text-xs">
+                                {isActiveFilter ? (
+                                    <span aria-hidden="true">✓ </span>
+                                ) : null}
                                 {node.title?.toLocaleUpperCase()}
                             </span>
 
@@ -175,6 +191,7 @@ export const CategoryTree: React.FC<CategoryTreeProps> = ({
                                 level={level + 1}
                                 selectedNode={selectedNode}
                                 onSelectNode={onSelectNode}
+                                activeTitles={activeTitles}
                             />
                         )}
                     </div>

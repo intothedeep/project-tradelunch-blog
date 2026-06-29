@@ -33,13 +33,19 @@ export const UserContextRail = async ({ username }: { username: string }) => {
                 accordion that hides the tree behind a collapse header. */}
             <CategoryErrorBoundary>
                 <Suspense fallback={null}>
-                    <CategorySidebarWrapper username={username} />
+                    <CategorySidebarWrapper
+                        username={username}
+                        mode="filter"
+                    />
                 </Suspense>
             </CategoryErrorBoundary>
 
             <RailSection title={t('rail.popularTagsUser', { username })}>
                 <Suspense fallback={<TagCloudSkeleton />}>
-                    <TagCloud username={username} />
+                    <TagCloud
+                        username={username}
+                        mode="filter"
+                    />
                 </Suspense>
             </RailSection>
         </div>

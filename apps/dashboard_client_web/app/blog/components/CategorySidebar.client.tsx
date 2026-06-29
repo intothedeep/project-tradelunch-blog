@@ -1,20 +1,15 @@
 'use client';
 
-// import {
-//     ETreeNodeType,
-//     TTreeNode,
-//     TTreeNodeWithChildren,
-// } from '@/apis/blog.types';
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     buildCategoryTree,
     CategoryTree,
 } from '@/app/blog/components/CategoryTree.client';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { ETreeNodeType, TTreeNode, TTreeNodeWithChildren } from '@repo/types';
+import { buildToggleHref, parseFilterState } from '@/utils/filter-state';
 
 // // ============================================================================
 // // CategorySidebar Component
@@ -22,14 +17,20 @@ import { ETreeNodeType, TTreeNode, TTreeNodeWithChildren } from '@repo/types';
 
 interface CategorySidebarProps {
     categories: TTreeNode[];
+    // 'filter' (desktop author rail, Phase 2-filter): clicking a category toggles
+    // the per-author `categories` facet instead of single-category navigation.
+    // Default 'nav' keeps the legacy `?category_title=` behavior.
+    mode?: 'nav' | 'filter';
 }
 
 export const CategorySidebar: React.FC<CategorySidebarProps> = ({
     categories,
+    mode = 'nav',
 }) => {
     const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     // Author handle: category nodes may carry a null username, so derive it
     // once from whichever node in the flat tree has it (always a POST node).
@@ -43,8 +44,20 @@ export const CategorySidebar: React.FC<CategorySidebarProps> = ({
             router.push(`/blog/@${node.username ?? username}/${node.slug}`);
             return;
         }
-        // Category: filter the blog feed by this category title
+        // Category: filter the blog feed by this category title.
         if (node.type === ETreeNodeType.CATEGORY && node.title && username) {
+            if (mode === 'filter') {
+                const current = parseFilterState({
+                    categories: searchParams.get('categories') ?? undefined,
+                    tags: searchParams.get('tags') ?? undefined,
+                    category_title:
+                        searchParams.get('category_title') ?? undefined,
+                });
+                router.push(
+                    buildToggleHref(username, current, 'categories', node.title)
+                );
+                return;
+            }
             router.push(
                 `/blog/@${username}?category_title=${encodeURIComponent(node.title)}`
             );
@@ -61,6 +74,16 @@ export const CategorySidebar: React.FC<CategorySidebarProps> = ({
 
     // Blog title: the author/username carried on any tree node.
     const blogTitle: string = username ? `@${username}` : 'Blog';
+
+    // Active categories from the URL (filter mode): drives the in-place highlight.
+    const activeCategories: string[] =
+        mode === 'filter'
+            ? parseFilterState({
+                  categories: searchParams.get('categories') ?? undefined,
+                  category_title:
+                      searchParams.get('category_title') ?? undefined,
+              }).categories
+            : [];
 
     return (
         <Card
@@ -88,6 +111,7 @@ export const CategorySidebar: React.FC<CategorySidebarProps> = ({
                     nodes={nodes}
                     selectedNode={selectedNode}
                     onSelectNode={handleNodeSelect}
+                    activeTitles={activeCategories}
                 />
             </CardContent>
         </Card>
