@@ -34,7 +34,10 @@ def connect() -> psycopg.Connection:
     dsn = database_url()
     if not dsn:
         raise RuntimeError("DATABASE_URL is not set")
-    return psycopg.connect(dsn)
+    # WHY: bar_time is TIMESTAMPTZ but we write bare dates, and the incremental
+    # cursor (MAX(bar_time)::date) + reader's UTC date derivation all assume a
+    # UTC session. Pin it so the invariant holds under any DATABASE_URL.
+    return psycopg.connect(dsn, options="-c timezone=UTC")
 
 
 # --- writes -----------------------------------------------------------------
