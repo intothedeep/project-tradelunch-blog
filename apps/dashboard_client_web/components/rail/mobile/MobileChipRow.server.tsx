@@ -22,7 +22,10 @@ export const MobileChipRow = async ({ chips }: { chips: TMobileChip[] }) => {
                 tabIndex={0}
                 aria-label={t('mobile.categoriesTags')}
                 className={cn(
-                    'flex gap-2 overflow-x-auto snap-x snap-proximity -mx-2 px-2',
+                    // No negative-margin bleed: the row stays INSIDE the content
+                    // column so chips clip at the content edge, not in the page
+                    // padding/gutter.
+                    'flex gap-2 overflow-x-auto snap-x snap-proximity',
                     '[&::-webkit-scrollbar]:hidden'
                 )}
             >
