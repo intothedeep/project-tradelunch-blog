@@ -12,13 +12,25 @@ export const ScrollToTopButton = ({ threshold = 300 }) => {
 
     useEffect(() => {
         lastScrollYRef.current = window.scrollY;
+        // Coalesce the high-frequency scroll stream to one update per animation
+        // frame (rAF). NOT debounce — debounce only fires after scrolling stops,
+        // which would defeat the direction gate. rAF keeps updates live while
+        // scrolling and smooths sub-frame jitter.
+        let isTicking = false;
 
-        const handleScroll = () => {
+        const update = () => {
             const currentY = window.scrollY;
             const isScrollingUp = currentY < lastScrollYRef.current;
             const isPastThreshold = currentY > threshold;
             setShowScrollTop(isScrollingUp && isPastThreshold);
             lastScrollYRef.current = currentY;
+            isTicking = false;
+        };
+
+        const handleScroll = () => {
+            if (isTicking) return;
+            isTicking = true;
+            window.requestAnimationFrame(update);
         };
 
         window.addEventListener('scroll', handleScroll, { passive: true });
