@@ -17,13 +17,19 @@ export const ScrollToTopButton = ({ threshold = 300 }) => {
         // which would defeat the direction gate. rAF keeps updates live while
         // scrolling and smooths sub-frame jitter.
         let isTicking = false;
+        // Ignore sub-pixel/inertia jitter: only re-evaluate direction once the
+        // delta exceeds a few pixels, so the button doesn't flicker on tiny
+        // trackpad/momentum wobble.
+        const DELTA = 4;
 
         const update = () => {
             const currentY = window.scrollY;
-            const isScrollingUp = currentY < lastScrollYRef.current;
-            const isPastThreshold = currentY > threshold;
-            setShowScrollTop(isScrollingUp && isPastThreshold);
-            lastScrollYRef.current = currentY;
+            if (Math.abs(currentY - lastScrollYRef.current) > DELTA) {
+                const isScrollingUp = currentY < lastScrollYRef.current;
+                const isPastThreshold = currentY > threshold;
+                setShowScrollTop(isScrollingUp && isPastThreshold);
+                lastScrollYRef.current = currentY;
+            }
             isTicking = false;
         };
 
