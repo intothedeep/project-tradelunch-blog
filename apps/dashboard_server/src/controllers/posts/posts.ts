@@ -364,7 +364,7 @@ router.get(
             } else {
                 res.setHeader(
                     'Cache-Control',
-                    'public, s-maxage=3600, stale-while-revalidate=86400'
+                    'public, s-maxage=60, stale-while-revalidate=86400'
                 );
             }
 
