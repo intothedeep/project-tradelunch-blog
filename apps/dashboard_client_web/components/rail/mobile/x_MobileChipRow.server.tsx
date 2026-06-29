@@ -8,7 +8,7 @@
 
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import type { TMobileChip } from '@/components/rail/mobile/getMobileChips.server';
+import type { TMobileChip } from '@/components/rail/mobile/x_getMobileChips.server';
 import { cn } from '@/lib/utils';
 
 export const MobileChipRow = async ({ chips }: { chips: TMobileChip[] }) => {
