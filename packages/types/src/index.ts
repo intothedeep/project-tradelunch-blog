@@ -292,6 +292,9 @@ export interface TFeedPost {
     category_id?: string | null;
     stored_uri?: string | null;
     category?: string | null;
+    // Full root→leaf category title path (e.g. ['투자','반도체','메모리']) for
+    // breadcrumb display; null when uncategorized or an ancestor is soft-deleted.
+    category_path?: string[] | null;
     date?: string;
     tags?: string[] | null;
     likeCount: number;

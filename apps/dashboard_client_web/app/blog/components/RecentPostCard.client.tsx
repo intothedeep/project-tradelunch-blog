@@ -49,6 +49,15 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
             ? `/blog/@${post.username}/${post.slug}`
             : null;
 
+    // Full category breadcrumb root→leaf; fall back to the single leaf title
+    // when the path is absent (uncategorized or a soft-deleted ancestor).
+    const categoryPath: string[] =
+        post.category_path && post.category_path.length > 0
+            ? post.category_path
+            : post.category
+              ? [post.category]
+              : [];
+
     return (
         <Card
             className={cn(
@@ -77,30 +86,49 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
                     {post.title?.toLocaleUpperCase()}
                 </h3>
 
-                {/* Category Badge — links to the author's feed filtered to this
-                    category title (/blog/@<user>?category_title=<title>) so it
-                    reads as a browseable action. Raised to z-10 (relative) so it
-                    sits above the card's overlay post link; sibling of that
-                    anchor, never nested. Plain badge when there is no category or
-                    no addressable author (nothing to filter to). */}
-                {post.category && post.username ? (
-                    <Link
-                        href={`/blog/@${post.username}?category_title=${encodeURIComponent(post.category)}`}
-                        aria-label={`View posts in ${post.category}`}
-                        className={cn(
-                            badgeVariants({ variant: 'outline' }),
-                            'relative z-10 mb-3 text-xs transition-colors hover:bg-primary hover:text-primary-foreground'
-                        )}
-                    >
-                        {post.category}
-                    </Link>
-                ) : (
-                    <Badge
-                        variant="outline"
-                        className="mb-3 text-xs"
-                    >
-                        {post.category}
-                    </Badge>
+                {/* Category breadcrumb — full root→leaf path. Each segment links
+                    to the author's feed filtered to that category title
+                    (?category_title=<title>), so any ancestor is browseable too.
+                    Raised to z-10 above the card's overlay post link (siblings,
+                    never nested). Plain text when there is no addressable author. */}
+                {categoryPath.length > 0 && (
+                    <div className="relative z-10 mb-3 flex flex-wrap items-center gap-1">
+                        {categoryPath.flatMap((seg, i) => {
+                            const chip = post.username ? (
+                                <Link
+                                    key={`seg-${i}`}
+                                    href={`/blog/@${post.username}?category_title=${encodeURIComponent(seg)}`}
+                                    aria-label={`View posts in ${seg}`}
+                                    className={cn(
+                                        badgeVariants({ variant: 'outline' }),
+                                        'text-xs transition-colors hover:bg-primary hover:text-primary-foreground'
+                                    )}
+                                >
+                                    {seg}
+                                </Link>
+                            ) : (
+                                <Badge
+                                    key={`seg-${i}`}
+                                    variant="outline"
+                                    className="text-xs"
+                                >
+                                    {seg}
+                                </Badge>
+                            );
+                            return i === 0
+                                ? [chip]
+                                : [
+                                      <span
+                                          key={`sep-${i}`}
+                                          aria-hidden
+                                          className="text-xs text-muted-foreground"
+                                      >
+                                          ›
+                                      </span>,
+                                      chip,
+                                  ];
+                        })}
+                    </div>
                 )}
 
                 {/* Image */}

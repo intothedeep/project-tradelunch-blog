@@ -17,6 +17,25 @@ import {
 
 export const router = Router();
 
+// Recursive CTE producing every category's FULL root→leaf title path as a
+// text[] (`path`), keyed by leaf id. Feed queries LEFT JOIN it on
+// posts.category_id to return `category_path` for breadcrumb display. A
+// soft-deleted ANCESTOR breaks the chain → that leaf gets no path row and
+// category_path is NULL (the card then falls back to the single `category`
+// title). Goes right after `WITH ` (it carries its own RECURSIVE keyword).
+// title is varchar(100); cast to text in BOTH terms so the recursive `path`
+// column is text[] in each (Postgres rejects varchar(100)[] vs varchar[] mix).
+const CATEGORY_PATH_CTE = `RECURSIVE cat_path AS (
+        SELECT id, parent_id, ARRAY[title::text] AS path
+        FROM categories
+        WHERE parent_id IS NULL AND deleted_at IS NULL
+        UNION ALL
+        SELECT c.id, c.parent_id, cp.path || c.title::text
+        FROM categories c
+        JOIN cat_path cp ON c.parent_id = cp.id
+        WHERE c.deleted_at IS NULL
+    )`;
+
 /**
  * @api {get} GET /posts
  * @apiName GetUserPosts
@@ -63,7 +82,8 @@ router.get(
             const viewerId = req.auth?.userId ?? -1;
 
             const postsQuery = `
-                WITH ranked_posts AS (
+                WITH ${CATEGORY_PATH_CTE},
+                ranked_posts AS (
                     SELECT
                         p.id,
                         p.user_id,
@@ -78,12 +98,14 @@ router.get(
                         p.category_id,
                         f.stored_uri,
                         c.title as category,
+                        cpath.path as category_path,
                         p.created_at as date,
                         ROW_NUMBER() OVER(PARTITION BY p.slug ORDER BY p.created_at DESC) as rn
                     FROM posts p
                     INNER JOIN users u ON p.user_id = u.id
                     LEFT JOIN files f ON p.id = f.post_id AND f.is_thumbnail = true
                     LEFT JOIN categories c ON c.id = p.category_id
+                    LEFT JOIN cat_path cpath ON cpath.id = p.category_id
 
                     WHERE
                         p.deleted_at IS NULL
@@ -106,6 +128,7 @@ router.get(
                     category_id,
                     stored_uri,
                     category,
+                    category_path,
                     date,
                     (SELECT ARRAY_AGG(pt.tag_title)
                      FROM post_tags pt
@@ -214,7 +237,8 @@ router.get(
             const fetchLimit = limit + 1;
 
             const postsQuery = `
-                WITH ranked_posts AS (
+                WITH ${CATEGORY_PATH_CTE},
+                ranked_posts AS (
                     SELECT
                         p.id,
                         p.user_id,
@@ -229,6 +253,7 @@ router.get(
                         p.created_at as date,
                         f.stored_uri,
                         c.title as category,
+                        cpath.path as category_path,
                         u.username,
                         u.display_name,
                         u.avatar_url,
@@ -238,6 +263,7 @@ router.get(
                         INNER JOIN users u ON p.user_id = u.id
                         LEFT JOIN files f ON p.id = f.post_id AND f.is_thumbnail = true
                         LEFT JOIN categories c ON p.category_id = c.id
+                        LEFT JOIN cat_path cpath ON cpath.id = p.category_id
                     WHERE
                         p.deleted_at IS NULL
                         AND u.username = $1
@@ -264,6 +290,7 @@ router.get(
                     category_id,
                     stored_uri,
                     category,
+                    category_path,
                     date,
                     display_name,
                     avatar_url,

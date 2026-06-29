@@ -19,6 +19,24 @@ const MAX_CURSOR = '9223372036854775807';
 const DEFAULT_FEED_LIMIT = 10;
 const MAX_FEED_LIMIT = 50;
 
+// Recursive CTE: each category's FULL root→leaf title path as a text[] (`path`),
+// keyed by leaf id. LEFT JOIN on posts.category_id to return `category_path` for
+// breadcrumb display (a soft-deleted ancestor breaks the chain → NULL path, card
+// falls back to the single `category`). Goes right after `WITH ` (carries its own
+// RECURSIVE keyword). Kept in lockstep with the same CTE in controllers/posts.
+// title is varchar(100); cast to text in BOTH terms so the recursive `path`
+// column is text[] in each (Postgres rejects varchar(100)[] vs varchar[] mix).
+const CATEGORY_PATH_CTE = `RECURSIVE cat_path AS (
+            SELECT id, parent_id, ARRAY[title::text] AS path
+            FROM categories
+            WHERE parent_id IS NULL AND deleted_at IS NULL
+            UNION ALL
+            SELECT c.id, c.parent_id, cp.path || c.title::text
+            FROM categories c
+            JOIN cat_path cp ON c.parent_id = cp.id
+            WHERE c.deleted_at IS NULL
+        )`;
+
 // Normalize a raw `cursor` query value to a positive-integer STRING. Anything
 // non-numeric (or '0') resets to the top sentinel. Never parses to a number —
 // the value is bound as text and Postgres casts text -> int8 (precision-safe).
@@ -46,7 +64,8 @@ function buildTagFeedQuery(scoped: boolean): string {
     const cursorParam = scoped ? '$3' : '$2';
     const limitParam = scoped ? '$4' : '$3';
     return `
-        WITH ranked_posts AS (
+        WITH ${CATEGORY_PATH_CTE},
+        ranked_posts AS (
             SELECT
                 p.id,
                 p.user_id,
@@ -61,6 +80,7 @@ function buildTagFeedQuery(scoped: boolean): string {
                 p.category_id,
                 f.stored_uri,
                 c.title AS category,
+                cpath.path AS category_path,
                 p.created_at AS date,
                 ROW_NUMBER() OVER(PARTITION BY p.slug ORDER BY p.created_at DESC) AS rn
             FROM posts p
@@ -71,6 +91,7 @@ function buildTagFeedQuery(scoped: boolean): string {
                 AND pt.deleted_at IS NULL
             LEFT JOIN files f ON p.id = f.post_id AND f.is_thumbnail = true
             LEFT JOIN categories c ON c.id = p.category_id
+            LEFT JOIN cat_path cpath ON cpath.id = p.category_id
             WHERE
                 p.deleted_at IS NULL
                 AND u.deleted_at IS NULL
@@ -91,6 +112,7 @@ function buildTagFeedQuery(scoped: boolean): string {
             category_id,
             stored_uri,
             category,
+            category_path,
             date,
             (SELECT ARRAY_AGG(pt.tag_title)
              FROM post_tags pt

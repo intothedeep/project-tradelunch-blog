@@ -91,3 +91,13 @@ describe('per-author feed category_title filter (wiring)', () => {
         expect(lastSql()).toContain('c.title = $5');
     });
 });
+
+describe('per-author feed returns the category_path breadcrumb (wiring)', () => {
+    it('SQL includes the recursive cat_path CTE and selects category_path', async () => {
+        await invokeFeed({});
+        const sql = lastSql();
+        expect(sql).toContain('RECURSIVE cat_path');
+        expect(sql).toContain('cpath.path');
+        expect(sql).toContain('category_path');
+    });
+});

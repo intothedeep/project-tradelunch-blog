@@ -61,6 +61,9 @@ export type TPost = {
     user_id?: string;
     category_id?: string;
     category?: string;
+    // Full root→leaf category title path (e.g. ['투자','반도체','메모리']) for the
+    // card breadcrumb; null/absent when uncategorized or an ancestor was deleted.
+    category_path?: string[] | null;
     created_at?: string;
     updated_at?: string;
     date?: string;
