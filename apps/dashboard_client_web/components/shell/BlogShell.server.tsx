@@ -39,7 +39,7 @@ export const BlogShell = async ({
     const isLeftRailCollapsed = cookieStore.get('railCollapsed')?.value === '1';
 
     return (
-        <div className="flex min-h-screen flex-col bg-background">
+        <div className="flex min-h-screen flex-col bg-background font-mono">
             {topbar ? (
                 <header className="sticky top-0 z-30 w-full border-b border-border bg-background">
                     {topbar}

@@ -55,6 +55,15 @@ body {
 }
 
 @theme inline {
+    /* Bind Tailwind's `font-mono` token to the IBM Plex Mono variable injected
+       on <html> by next/font (app/layout.tsx). MUST be `@theme inline` so the
+       runtime var resolves at point-of-use, not where the token is defined —
+       see the next/font + Tailwind v4 integration example. Without this,
+       `font-mono` falls back to the system monospace stack and the loaded IBM
+       Plex Mono never renders. */
+    --font-mono: var(--font-ibm-plex-mono), ui-monospace, SFMono-Regular, Menlo,
+        Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+
     --color-sidebar: var(--sidebar);
     --color-sidebar-foreground: var(--sidebar-foreground);
     --color-sidebar-primary: var(--sidebar-primary);
