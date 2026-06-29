@@ -7,6 +7,12 @@ import {
 
 import { Router, Request } from 'express';
 import { optionalAuth } from '../../middlewares/optionalAuth';
+import { clampTagLimit, listUserPopularTags } from '../../helpers/popularTags';
+import {
+    normalizeCursor,
+    clampFeedLimit,
+    listPostsByTag,
+} from '../../helpers/postsByTag';
 
 export const router = Router();
 
@@ -295,6 +301,109 @@ router.get(
             });
         } catch (error) {
             console.error('API Error fetching user posts:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to fetch posts',
+            });
+        }
+    }
+);
+
+/**
+ * @api {get} /posts/users/:username/tags Popular tags for one author
+ * @apiName GetUserPopularTags
+ * @apiGroup Posts
+ *
+ * Multi-segment static route — registered ABOVE /:postid (defensive; Express 5
+ * matches by segment count so /:postid cannot shadow it). Viewer-agnostic.
+ */
+router.get(
+    '/users/:username/tags',
+    async (
+        req: Request<{ username: string }, {}, {}, { limit?: string }>,
+        res
+    ) => {
+        try {
+            const { username } = req.params;
+            const limit = clampTagLimit(req.query.limit);
+            const tags = await listUserPopularTags(pool, username, limit);
+            res.json({ success: true, data: tags });
+        } catch (error) {
+            console.error('API Error fetching user popular tags:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to fetch tags',
+            });
+        }
+    }
+);
+
+/**
+ * @api {get} /posts/by-tag/:tag Global tag-filtered post feed
+ * @apiName GetPostsByTag
+ * @apiGroup Posts
+ *
+ * Keyset-paginated, slug-deduped (latest public revision per slug). Cursor is a
+ * STRING (BIGINT precision). Registered ABOVE /:postid. Viewer-agnostic.
+ */
+router.get(
+    '/by-tag/:tag',
+    async (
+        req: Request<
+            { tag: string },
+            {},
+            {},
+            { cursor?: string; limit?: string }
+        >,
+        res
+    ) => {
+        try {
+            const { tag } = req.params;
+            const cursor = normalizeCursor(req.query.cursor);
+            const limit = clampFeedLimit(req.query.limit);
+            const data = await listPostsByTag(pool, { tag, cursor, limit });
+            res.json({ success: true, data });
+        } catch (error) {
+            console.error('API Error fetching posts by tag:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to fetch posts',
+            });
+        }
+    }
+);
+
+/**
+ * @api {get} /posts/users/:username/by-tag/:tag Author-scoped tag feed
+ * @apiName GetUserPostsByTag
+ * @apiGroup Posts
+ *
+ * As /by-tag/:tag but scoped to one author. Registered ABOVE /:postid.
+ */
+router.get(
+    '/users/:username/by-tag/:tag',
+    async (
+        req: Request<
+            { username: string; tag: string },
+            {},
+            {},
+            { cursor?: string; limit?: string }
+        >,
+        res
+    ) => {
+        try {
+            const { username, tag } = req.params;
+            const cursor = normalizeCursor(req.query.cursor);
+            const limit = clampFeedLimit(req.query.limit);
+            const data = await listPostsByTag(pool, {
+                tag,
+                cursor,
+                limit,
+                username,
+            });
+            res.json({ success: true, data });
+        } catch (error) {
+            console.error('API Error fetching user posts by tag:', error);
             res.status(500).json({
                 success: false,
                 message: 'Failed to fetch posts',

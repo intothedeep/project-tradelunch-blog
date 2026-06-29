@@ -254,3 +254,56 @@ export interface TCommentCreateRequest {
 export interface TCommentUpdateRequest {
     body: string;
 }
+
+// ---------------------------------------------------------------------------
+// Tag read contract (Phase H — P0 backend tag read APIs).
+// Two read shapes: (1) popular-tag counts (global + per-user), (2) a tag-filtered
+// post feed reusing the public feed's read-row. All ids stay STRINGS (Snowflake
+// precision); never Number()/parseInt them — including the keyset cursor.
+//
+// NOTE: the public feed read-row (TPost in the CLIENT app's apis/blog.types.ts)
+// is NOT exported from @repo/types — and apps cannot be imported by packages
+// (dependency direction apps -> packages). To give the tag-feed RESPONSE a
+// shared contract without an illegal back-import, the canonical read-row is
+// introduced here as TFeedPost. (Flagged for architect: the client TPost should
+// later re-derive from this rather than stay a parallel definition.)
+// ---------------------------------------------------------------------------
+
+// GET /v1/api/tags and GET /v1/api/posts/users/:username/tags → TPopularTag[]
+// count is a live COUNT(*) of LIVE post_tags links on PUBLIC posts only.
+export interface TPopularTag {
+    tag: string;
+    count: number;
+}
+
+// Public feed read-row (snake_case DB columns + camelCase engagement counts),
+// mirroring what the global feed query selects. Snowflake ids are STRINGS.
+export interface TFeedPost {
+    id: string;
+    user_id?: string;
+    username?: string;
+    slug?: string;
+    title: string;
+    description?: string | null;
+    content?: string;
+    status?: string;
+    created_at?: string;
+    updated_at?: string;
+    category_id?: string | null;
+    stored_uri?: string | null;
+    category?: string | null;
+    date?: string;
+    tags?: string[] | null;
+    likeCount: number;
+    viewerLiked: boolean;
+    commentCount: number;
+}
+
+// GET /v1/api/posts/by-tag/:tag and .../users/:username/by-tag/:tag.
+// Keyset-paginated, slug-deduped (latest public revision per slug). nextCursor is
+// the last returned row's id as a STRING (null when exhausted).
+export interface TTagFeedResponse {
+    posts: TFeedPost[];
+    nextCursor: string | null;
+    hasMore: boolean;
+}
