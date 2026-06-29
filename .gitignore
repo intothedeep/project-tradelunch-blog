@@ -57,3 +57,5 @@ apps/stock_collector/*.csv
 apps/stock_collector/htmlcov/
 apps/stock_collector/.pytest_cache/
 apps/stock_collector/uv.lock
+apps/stock_collector/**/__pycache__/
+apps/stock_collector/**/*.pyc
