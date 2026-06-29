@@ -1,9 +1,12 @@
-// B — category-title filter on the per-author feed (GET /api/posts/users/:username).
+// B — category filter on the per-author feed (GET /api/posts/users/:username).
 //
-// The pool is mocked (no DB), so we assert the WIRING, not DB-level filtering:
-//   * a `category_title` query value is bound as the 5th SQL param ($5);
+// Phase 2-filter migrated the single `category_title` ($5 scalar, `= ANY(path)`)
+// to a multi-category text[] facet ($5, array overlap `&&`). Legacy
+// `category_title` is still accepted and FOLDED into the $5 array. The pool is
+// mocked (no DB), so we assert the WIRING, not DB-level filtering:
+//   * a `category_title` value is canonicalized to a text[] bound at $5;
 //   * absent/empty `category_title` binds null (=> the `$5 IS NULL` no-op);
-//   * the SQL actually references the $5 title predicate.
+//   * the SQL references the $5 path-overlap predicate.
 // optionalAuth is mocked so importing the posts router needs no Clerk/env.
 
 const mockQuery = jest.fn();
@@ -41,6 +44,9 @@ function userFeedHandler(): (req: unknown, res: unknown) => Promise<void> {
 
 function mockRes() {
     const res = {
+        setHeader() {
+            return res;
+        },
         status() {
             return res;
         },
@@ -69,10 +75,10 @@ function lastSql(): string {
 
 beforeEach(() => mockQuery.mockReset());
 
-describe('per-author feed category_title filter (wiring)', () => {
-    it('binds the category_title value as the 5th param ($5)', async () => {
+describe('per-author feed legacy category_title filter (wiring)', () => {
+    it('folds the legacy category_title into the $5 text[] facet', async () => {
         await invokeFeed({ category_title: 'jdbc' });
-        expect(lastParams()[4]).toBe('jdbc');
+        expect(lastParams()[4]).toEqual(['jdbc']);
     });
 
     it('binds null when category_title is absent', async () => {
@@ -85,12 +91,12 @@ describe('per-author feed category_title filter (wiring)', () => {
         expect(lastParams()[4]).toBeNull();
     });
 
-    it('the SQL references the $5 path predicate (ancestor-inclusive)', async () => {
+    it('the SQL references the $5 path-overlap predicate (ancestor-inclusive)', async () => {
         await invokeFeed({ category_title: 'jdbc' });
         expect(lastSql()).toContain('$5');
-        // Match the title ANYWHERE in the path (not just the leaf) so ancestor
-        // category clicks include descendant posts.
-        expect(lastSql()).toContain('$5 = ANY(cpath.path)');
+        // Match each title ANYWHERE in the path (not just the leaf) so ancestor
+        // category clicks include descendant posts — now via array overlap.
+        expect(lastSql()).toContain('cpath.path && $5::text[]');
     });
 });
 

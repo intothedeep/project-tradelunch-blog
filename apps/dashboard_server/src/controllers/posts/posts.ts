@@ -14,6 +14,7 @@ import {
     clampFeedLimit,
     listPostsByTag,
 } from '../../helpers/postsByTag';
+import { parseFeedFacet } from '../../helpers/parseFeedFacet';
 
 export const router = Router();
 
@@ -196,6 +197,11 @@ router.get(
  * @apiParam {String} username The username of the author.
  * @apiParam {Number} [cursor=0] Cursor for pagination (post ID to start from).
  * @apiParam {Number} [limit=10] Number of posts per page.
+ * @apiParam {String} [categories] Comma-joined category titles — OR within the
+ *   facet, ancestor-inclusive (matches any title in the category PATH).
+ * @apiParam {String} [tags] Comma-joined tag titles — OR within the facet.
+ * @apiParam {String} [category_title] Legacy single category title; folded into
+ *   `categories` when `categories` is absent.
  *
  * @apiSuccess {Boolean} success Indicates if the request was successful.
  * @apiSuccess {Object[]} posts List of the user's most recent posts for each slug.
@@ -210,7 +216,13 @@ router.get(
             { username: string },
             {},
             {},
-            { cursor?: string; limit?: string; category_title?: string }
+            {
+                cursor?: string;
+                limit?: string;
+                category_title?: string;
+                categories?: string;
+                tags?: string;
+            }
         >,
         res
     ) => {
@@ -224,17 +236,22 @@ router.get(
                     : '9223372036854775807';
             const limit = parseInt(req.query.limit || '10', 10);
 
-            // Optional category filter. Matches by category TITLE (not id): a
-            // title can map to several categories under different parents
+            // Multi-category filter ($5 text[]). OR within the facet via array
+            // overlap (&&) against the category PATH, so each title matches
+            // ANYWHERE in the path (ancestor-inclusive). Matches by TITLE (not
+            // id): a title can map to several categories under different parents
             // (UNIQUE is (user_id, parent_id, title) since migration 0010), so
-            // filtering by title intentionally MERGES same-titled categories —
-            // "all posts under this category name" for THIS author. null = no
-            // filter. Bound as text; never trusted into SQL directly.
-            const categoryTitle =
-                typeof req.query.category_title === 'string' &&
-                req.query.category_title.length > 0
-                    ? req.query.category_title
-                    : null;
+            // filtering by title intentionally MERGES same-titled categories.
+            // Legacy single `category_title` is folded in when `categories` is
+            // absent (server safety net). null = no filter (predicate skipped).
+            const categoriesArr =
+                parseFeedFacet(req.query.categories) ??
+                parseFeedFacet(req.query.category_title);
+
+            // Multi-tag filter ($6 text[]). OR within the facet via correlated
+            // EXISTS against post_tags. tag_title is canonical-lowercase
+            // (helpers/normalizeTags). null = no filter (predicate skipped).
+            const tagsArr = parseFeedFacet(req.query.tags);
 
             // Fetch one extra row to determine if there are more posts
             const fetchLimit = limit + 1;
@@ -274,12 +291,24 @@ router.get(
                         AND (p.status = 'public' OR p.user_id = $4)
                         -- AND (f.deleted_at IS NULL OR f.deleted_at IS NOT NULL
                         AND p.id < $2
-                        -- Optional category filter ($5 null => no filter). Match
-                        -- the title ANYWHERE in the category PATH, not just the
-                        -- leaf, so clicking an ANCESTOR (depth 1/2) returns posts
-                        -- in that category AND all its descendants. NULL path
-                        -- (uncategorized / broken chain) => excluded when filtering.
-                        AND ($5::text IS NULL OR $5 = ANY(cpath.path))
+                        -- Multi-category filter ($5 null => no filter). OR within
+                        -- the facet via array overlap (&&): a post matches when ANY
+                        -- selected title appears ANYWHERE in its category PATH (not
+                        -- just the leaf), so an ANCESTOR click includes descendant
+                        -- posts. NULL path (uncategorized / broken chain) =>
+                        -- excluded when filtering.
+                        AND ($5::text[] IS NULL OR cpath.path && $5::text[])
+                        -- Multi-tag filter ($6 null => no filter). OR within the
+                        -- facet via correlated EXISTS (kept as EXISTS, NOT a JOIN,
+                        -- so ROW_NUMBER PARTITION BY slug + the tag/category
+                        -- aggregates below stay intact). Cross-attribute is AND
+                        -- (this predicate is separate from the category one).
+                        AND ($6::text[] IS NULL OR EXISTS (
+                            SELECT 1 FROM post_tags pt
+                            WHERE pt.post_id = p.id
+                              AND pt.deleted_at IS NULL
+                              AND pt.tag_title = ANY($6)
+                        ))
                 )
                 SELECT
                     id,
@@ -325,12 +354,27 @@ router.get(
             // D2.3b: anon (viewerId -1, never matches) sees public only;
             // the owner sees their own drafts/private on their own profile.
             const viewerId = req.auth?.userId ?? -1;
+
+            // Cache (Option X — TTL/SWR). Authenticated context = an owner may
+            // see their own drafts via `OR p.user_id = $4`, so the response is
+            // per-viewer and MUST NOT be shared-cached. Anonymous (no resolved
+            // token => req.auth undefined) is viewer-agnostic and CDN-cacheable.
+            if (req.auth) {
+                res.setHeader('Cache-Control', 'private, no-store');
+            } else {
+                res.setHeader(
+                    'Cache-Control',
+                    'public, s-maxage=3600, stale-while-revalidate=86400'
+                );
+            }
+
             const { rows } = await pool.query(postsQuery, [
                 username,
                 cursorParam,
                 fetchLimit,
                 viewerId,
-                categoryTitle,
+                categoriesArr,
+                tagsArr,
             ]);
 
             // Check if there are more posts
