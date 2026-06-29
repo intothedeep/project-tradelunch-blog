@@ -40,6 +40,19 @@ const envSchema = z.object({
     // Dashboard data source switch. Absent env → 'mock' (live behavior unchanged).
     DASHBOARD_DATA_SOURCE: z.enum(['mock', 'backend']).default('mock'),
 
+    // Canonical public site origin (the deployed frontend domain). Single
+    // source for robots.ts / sitemap.ts absolute URLs (and share links).
+    // Unified here so consumers read ONE validated value instead of divergent
+    // inline `process.env.NEXT_PUBLIC_SITE_URL || '...'` fallbacks — robots.ts
+    // previously defaulted to a STALE 'tradelunch.com'. `.url().default().catch()`
+    // mirrors the other public hosts: an unset OR invalid Vercel env can never
+    // hard-fail the build (next.config.ts imports this at config-load time).
+    NEXT_PUBLIC_SITE_URL: z
+        .string()
+        .url()
+        .default('https://my.prettylog.com')
+        .catch('https://my.prettylog.com'),
+
     // Clerk publishable key. Optional so build stays green without it;
     // Clerk reads it at runtime (USER sets on Vercel).
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().optional(),
@@ -52,3 +65,4 @@ export const HOST_NAME = env.HOST_NAME;
 export const API_BASE = env.NEXT_PUBLIC_API_BASE;
 export const CDN_ASSETS = env.NEXT_PUBLIC_CDN_ASSETS;
 export const DASHBOARD_DATA_SOURCE = env.DASHBOARD_DATA_SOURCE;
+export const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
