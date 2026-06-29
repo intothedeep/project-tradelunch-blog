@@ -97,3 +97,17 @@ export type TPaginatedResponse = {
     nextCursor: string | null;
     hasMore: boolean;
 };
+
+// Minimal recently-VIEWED post summary persisted to localStorage by
+// hooks/useRecents.hook (Phase H H5.2). id is a full-precision Snowflake STRING
+// — NEVER Number()/parseInt it (dedup keys compare as strings). Counts are a
+// stale snapshot captured at view time (display-only; refreshed on next view).
+export type TRecentPost = {
+    id: string;
+    title: string;
+    slug?: string;
+    username?: string;
+    stored_uri?: string | null;
+    likeCount?: number;
+    commentCount?: number;
+};

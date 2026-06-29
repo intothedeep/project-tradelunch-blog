@@ -1,6 +1,6 @@
 import { CategoryErrorBoundary } from '@/app/blog/components/CategoryErrorboundary.client';
 import { CategorySidebarWrapper } from '@/app/blog/components/CategorySidebarWrapper.server';
-import { RightTechStackCard } from '@/app/blog/components/RightTechStackCard.client';
+import { RightTechStackCard } from '@/app/blog/components/x_RightTechStackCard.client';
 import { cn } from '@/lib/utils';
 
 // Username-dependent blog content shell: category sidebar (scoped to the

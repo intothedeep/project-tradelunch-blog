@@ -8,6 +8,7 @@ import users from "./users";
 import admin from "./admin";
 import favorites from "./favorites";
 import categories from "./categories";
+import tags from "./tags";
 
 export const router = Router();
 
@@ -30,6 +31,10 @@ router.use("/api/favorites", favorites);
 // (user_id, parent_id, title) conflict scope. The category TREE read stays under
 // GET /api/posts/users/:username/categories.
 router.use("/api/categories", categories);
+// Tag reads (GET /api/tags) — global popular tags on their OWN prefix so they
+// never collide with the posts feed. Per-user popular tags and the tag-filtered
+// post feeds live under /api/posts (posts-scoped, multi-segment paths).
+router.use("/api/tags", tags);
 // Viewer-likes list (GET /api/likes) — the caller's own liked ids, on its own
 // prefix so it never collides with the public feed at GET /api/posts.
 router.use("/api/likes", likesListRouter);
