@@ -26,6 +26,11 @@ export type BlogShellProps = {
     // P5; its sheet content + a11y focus-trap arrive in P5/P4. Kept here so P5
     // can plug in without changing this signature.
     userContextSheet?: React.ReactNode;
+    // <lg top-of-feed context header (author chip + category/tag chip row),
+    // rendered as the FIRST child inside the content column so it inherits the
+    // max-w-3xl width + padding. Optional + backward-compatible: omitting it
+    // changes nothing. The `main`-always-renders invariant is preserved.
+    mobileTopContext?: React.ReactNode;
 };
 
 export const BlogShell = async ({
@@ -34,6 +39,7 @@ export const BlogShell = async ({
     main,
     rightRail,
     userContextSheet,
+    mobileTopContext,
 }: BlogShellProps) => {
     const cookieStore = await cookies();
     const isLeftRailCollapsed = cookieStore.get('railCollapsed')?.value === '1';
@@ -56,7 +62,14 @@ export const BlogShell = async ({
                 <main className="flex min-w-0 flex-1 justify-center">
                     {/* Single source of the content-column padding for BOTH `/`
                         and `/blog/[username]`: 8px on mobile, 16px from sm up. */}
-                    <div className="w-full max-w-3xl p-2 sm:p-4">{main}</div>
+                    <div className="w-full max-w-3xl p-2 sm:p-4">
+                        {mobileTopContext ? (
+                            <div className="mb-3 lg:hidden">
+                                {mobileTopContext}
+                            </div>
+                        ) : null}
+                        {main}
+                    </div>
                 </main>
 
                 {rightRail ? (
