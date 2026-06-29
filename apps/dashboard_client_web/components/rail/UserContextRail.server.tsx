@@ -12,6 +12,7 @@ import { UserProfileCard } from '@/components/rail/UserProfileCard.server';
 import { TagCloud } from '@/components/rail/TagCloud.server';
 import { TagCloudSkeleton } from '@/components/rail/TagCloud.skeleton';
 import { RailSection } from '@/components/rail/RailSection.client';
+import { RightRailToc } from '@/components/rail/RightRailToc.client';
 import { CategorySidebarWrapper } from '@/app/blog/components/CategorySidebarWrapper.server';
 import { CategoryErrorBoundary } from '@/app/blog/components/CategoryErrorboundary.client';
 
@@ -21,6 +22,10 @@ export const UserContextRail = async ({ username }: { username: string }) => {
     return (
         <div className="flex flex-col gap-4">
             <UserProfileCard username={username} />
+
+            {/* Post-detail TOC (empty/null on the author feed); sits between the
+                profile card and the category section. */}
+            <RightRailToc />
 
             <RailSection title={t('nav.category')}>
                 <CategoryErrorBoundary>

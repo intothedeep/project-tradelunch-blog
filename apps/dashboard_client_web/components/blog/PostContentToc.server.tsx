@@ -1,21 +1,13 @@
 import { getPostBySlug } from '@/apis/getPost.api';
-import { TableOfContents } from '@/components/blog/TableOfContents.client';
+import { TocPublisher } from '@/components/blog/TocPublisher.client';
 import { extractTocParsed } from '@/utils/markdown/extractTocParsed';
 
+// Server-extracts the post TOC and publishes it (invisible) into tocItemsAtom so
+// the right rail renders it between the profile card and the category section
+// (RightRailToc). Renders no visible column itself.
 export const PostContentToc = async ({ slug }: { slug: string }) => {
     const post = await getPostBySlug({ slug });
     const tocItems = await extractTocParsed(post.content || '');
 
-    if (tocItems.length === 0) return null;
-
-    return (
-        <aside className="hidden lg:block w-64 xl:w-72 shrink-0">
-            <div className="sticky top-4">
-                <TableOfContents
-                    items={tocItems}
-                    className="my-0"
-                />
-            </div>
-        </aside>
-    );
+    return <TocPublisher items={tocItems} />;
 };
