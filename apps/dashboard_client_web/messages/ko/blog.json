@@ -43,6 +43,8 @@
     },
     "rail": {
         "popularTags": "인기 태그",
+        "popularTagsGlobal": "전체 인기 태그",
+        "popularTagsUser": "@{username}님의 인기 태그",
         "tagsUnavailable": "태그를 불러올 수 없습니다",
         "noTags": "아직 태그가 없습니다",
         "collapse": "사이드바 접기",

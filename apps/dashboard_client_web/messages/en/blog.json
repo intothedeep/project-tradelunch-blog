@@ -12,6 +12,8 @@
     },
     "rail": {
         "popularTags": "Popular tags",
+        "popularTagsGlobal": "Global popular tags",
+        "popularTagsUser": "@{username}'s popular tags",
         "tagsUnavailable": "Tags unavailable",
         "noTags": "No tags yet",
         "collapse": "Collapse sidebar",

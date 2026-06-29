@@ -61,7 +61,7 @@ export const LeftRail = ({
             <PrimaryNav collapsed={isCollapsed} />
 
             {!isCollapsed && tagCloud ? (
-                <RailSection title={t('rail.popularTags')}>
+                <RailSection title={t('rail.popularTagsGlobal')}>
                     {tagCloud}
                 </RailSection>
             ) : null}
