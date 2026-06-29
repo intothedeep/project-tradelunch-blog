@@ -29,15 +29,20 @@ type Props = {
     children: React.ReactNode;
     className?: string;
     forceDropdown?: boolean;
+    // Always render the inline row, even on mobile (overrides the isMobile
+    // collapse). Used by the card engagement footer, which is a full-width row
+    // with room for every action — no need to hide them behind a "more" menu.
+    forceInline?: boolean;
 };
 
 export const PostActions: React.FC<Props> = ({
     children,
     className,
     forceDropdown = false,
+    forceInline = false,
 }) => {
     const isMobile = useIsMobile();
-    const collapsed = forceDropdown || isMobile;
+    const collapsed = forceInline ? false : forceDropdown || isMobile;
 
     if (!collapsed) {
         return (

@@ -25,14 +25,17 @@ export const router = Router();
 // title). Goes right after `WITH ` (it carries its own RECURSIVE keyword).
 // title is varchar(100); cast to text in BOTH terms so the recursive `path`
 // column is text[] in each (Postgres rejects varchar(100)[] vs varchar[] mix).
+// Root = parent_id NULL OR self-referencing (parent_id = id) — both conventions
+// exist (see CategoryTree.buildCategoryTree); the recursive `c.id <> c.parent_id`
+// guard stops a self-root from looping into itself.
 const CATEGORY_PATH_CTE = `RECURSIVE cat_path AS (
         SELECT id, parent_id, ARRAY[title::text] AS path
         FROM categories
-        WHERE parent_id IS NULL AND deleted_at IS NULL
+        WHERE (parent_id IS NULL OR parent_id = id) AND deleted_at IS NULL
         UNION ALL
         SELECT c.id, c.parent_id, cp.path || c.title::text
         FROM categories c
-        JOIN cat_path cp ON c.parent_id = cp.id
+        JOIN cat_path cp ON c.parent_id = cp.id AND c.id <> c.parent_id
         WHERE c.deleted_at IS NULL
     )`;
 
@@ -271,10 +274,12 @@ router.get(
                         AND (p.status = 'public' OR p.user_id = $4)
                         -- AND (f.deleted_at IS NULL OR f.deleted_at IS NOT NULL
                         AND p.id < $2
-                        -- Optional category-title filter ($5 null => no filter).
-                        -- LEFT JOIN means uncategorized posts have c.title NULL,
-                        -- so they are correctly excluded when a title is given.
-                        AND ($5::text IS NULL OR c.title = $5)
+                        -- Optional category filter ($5 null => no filter). Match
+                        -- the title ANYWHERE in the category PATH, not just the
+                        -- leaf, so clicking an ANCESTOR (depth 1/2) returns posts
+                        -- in that category AND all its descendants. NULL path
+                        -- (uncategorized / broken chain) => excluded when filtering.
+                        AND ($5::text IS NULL OR $5 = ANY(cpath.path))
                 )
                 SELECT
                     id,

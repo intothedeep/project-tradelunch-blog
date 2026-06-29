@@ -85,10 +85,12 @@ describe('per-author feed category_title filter (wiring)', () => {
         expect(lastParams()[4]).toBeNull();
     });
 
-    it('the SQL references the $5 title predicate', async () => {
+    it('the SQL references the $5 path predicate (ancestor-inclusive)', async () => {
         await invokeFeed({ category_title: 'jdbc' });
         expect(lastSql()).toContain('$5');
-        expect(lastSql()).toContain('c.title = $5');
+        // Match the title ANYWHERE in the path (not just the leaf) so ancestor
+        // category clicks include descendant posts.
+        expect(lastSql()).toContain('$5 = ANY(cpath.path)');
     });
 });
 

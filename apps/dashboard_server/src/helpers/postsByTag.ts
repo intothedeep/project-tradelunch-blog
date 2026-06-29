@@ -26,14 +26,17 @@ const MAX_FEED_LIMIT = 50;
 // RECURSIVE keyword). Kept in lockstep with the same CTE in controllers/posts.
 // title is varchar(100); cast to text in BOTH terms so the recursive `path`
 // column is text[] in each (Postgres rejects varchar(100)[] vs varchar[] mix).
+// Root = parent_id NULL OR self-referencing (parent_id = id); the recursive
+// `c.id <> c.parent_id` guard stops a self-root looping. Kept in lockstep with
+// the same CTE in controllers/posts.
 const CATEGORY_PATH_CTE = `RECURSIVE cat_path AS (
             SELECT id, parent_id, ARRAY[title::text] AS path
             FROM categories
-            WHERE parent_id IS NULL AND deleted_at IS NULL
+            WHERE (parent_id IS NULL OR parent_id = id) AND deleted_at IS NULL
             UNION ALL
             SELECT c.id, c.parent_id, cp.path || c.title::text
             FROM categories c
-            JOIN cat_path cp ON c.parent_id = cp.id
+            JOIN cat_path cp ON c.parent_id = cp.id AND c.id <> c.parent_id
             WHERE c.deleted_at IS NULL
         )`;
 

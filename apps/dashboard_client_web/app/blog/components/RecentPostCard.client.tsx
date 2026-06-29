@@ -214,7 +214,7 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
                             {post.commentCount ?? 0}
                         </span>
                     )}
-                    <PostActions>
+                    <PostActions forceInline>
                         <ShareButton
                             username={post.username}
                             slug={post.slug}
