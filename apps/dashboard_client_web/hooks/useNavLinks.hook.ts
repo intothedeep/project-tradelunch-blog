@@ -26,7 +26,7 @@ export type NavLink = {
 
 // Pure: build the legacy compact link list for a given blog author username.
 export const buildNavLinks = (blogUsername: string): NavLink[] => [
-    { title: 'About', href: '/' },
+    { title: 'About', href: '/about' },
     { title: 'blog', href: `/blog/@${blogUsername}` },
     { title: 'dashboard', href: '/dashboard' },
     { title: 'resume', href: '/resume' },
