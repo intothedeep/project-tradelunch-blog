@@ -11,6 +11,7 @@ import { getLocale, getMessages } from 'next-intl/server';
 
 import '@/styles/globals.css';
 import CustomNavigation from '@/components/navigation-desktop';
+import { SITE_URL } from '@/env.schema';
 
 const ibmPlexMono = IBM_Plex_Mono({
     weight: ['400', '500', '700'],
@@ -27,9 +28,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
     // Base for resolving relative metadata URLs (canonical, og) to absolute
     // production URLs. Matches the sitemap/robots site-url convention.
-    metadataBase: new URL(
-        process.env.NEXT_PUBLIC_SITE_URL || 'https://my.prettylog.com'
-    ),
+    metadataBase: new URL(SITE_URL),
     title: 'Taek Lim | Software Engineer & Fintech Developer',
     description:
         'Portfolio of Taek Lim — Software engineer specializing in fintech, databases, and full-stack development. Explore projects in trading systems, web apps, and data engineering.',

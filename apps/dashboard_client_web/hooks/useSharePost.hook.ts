@@ -1,16 +1,16 @@
 'use client';
 
 // Purpose: share a blog post via the Web Share API with a clipboard fallback.
-// Invariants: builds the canonical absolute post URL from NEXT_PUBLIC_SITE_URL.
+// Invariants: builds the canonical absolute post URL from the unified SITE_URL.
 // Constraints: no navigation, no throwing; user-cancel (AbortError) and any
 //   unsupported/denied path fail silently (no COPIED feedback on failure).
 // Side effects: navigator.share / navigator.clipboard.writeText + a transient
 //   `isCopied` flag that auto-resets.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { SITE_URL } from '@/env.schema';
 
 const COPIED_RESET_MS = 1500;
-const SITE_URL_FALLBACK = 'https://my.prettylog.com';
 
 type ShareInput = {
     username?: string;
@@ -25,9 +25,7 @@ type ShareApi = {
 };
 
 const buildPostUrl = (username: string, slug: string): string => {
-    const base = (
-        process.env.NEXT_PUBLIC_SITE_URL || SITE_URL_FALLBACK
-    ).replace(/\/+$/, '');
+    const base = SITE_URL.replace(/\/+$/, '');
     return `${base}/blog/@${username}/${slug}`;
 };
 
