@@ -130,18 +130,44 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
                     ))}
                 </div>
 
-                {/* Engagement footer: comment count (plain display, no nav) on
-                    the left; live actions (Share/Save/Like) on the right. The
-                    Like button already carries the aggregate like count, so no
-                    separate heart tally is shown here. Each action button keeps
-                    its own z-10 so it sits above the card's overlay nav link;
-                    the row itself stays un-raised so the empty space still
-                    navigates. */}
-                <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1">
-                        <MessageSquare className="h-3.5 w-3.5" />
-                        {post.commentCount ?? 0}
-                    </span>
+                {/* Engagement footer: all controls left-aligned in one row.
+                    The comment count is rendered as an action-styled control
+                    (a Link to the post → its comments) so it matches the
+                    Share/Save/Like buttons; like the others it sits at z-10
+                    above the card's overlay nav link. The Like button already
+                    carries the aggregate like count, so no separate heart tally
+                    is shown. When the post is not addressable (no username/slug)
+                    the count degrades to a plain, non-nav indicator. */}
+                <div className="flex items-center gap-2">
+                    {href ? (
+                        <Link
+                            href={href}
+                            aria-label={`${post.commentCount ?? 0} comments`}
+                            className={cn(
+                                'relative z-10',
+                                'flex items-center justify-center gap-2',
+                                'py-2 px-3',
+                                'transition-colors border border-primary/30',
+                                'text-xs font-semibold',
+                                'hover:border-primary hover:bg-primary hover:text-primary-foreground'
+                            )}
+                        >
+                            <MessageSquare size={16} />
+                            {post.commentCount ?? 0}
+                        </Link>
+                    ) : (
+                        <span
+                            className={cn(
+                                'flex items-center justify-center gap-2',
+                                'py-2 px-3',
+                                'border border-primary/30',
+                                'text-xs font-semibold text-muted-foreground'
+                            )}
+                        >
+                            <MessageSquare size={16} />
+                            {post.commentCount ?? 0}
+                        </span>
+                    )}
                     <PostActions>
                         <ShareButton
                             username={post.username}
