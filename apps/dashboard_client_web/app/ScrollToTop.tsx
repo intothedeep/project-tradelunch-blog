@@ -1,17 +1,27 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-// Reusable Scroll to Top Component
+// Reusable Scroll to Top Component.
+// Visibility keeps the BASE condition (scrolled past `threshold`) AND adds a
+// direction gate: show only while scrolling UP; hide while scrolling DOWN or
+// near the top — so it stays out of the way when reading downward.
 export const ScrollToTopButton = ({ threshold = 300 }) => {
     const [showScrollTop, setShowScrollTop] = useState(false);
+    const lastScrollYRef = useRef(0);
 
     useEffect(() => {
+        lastScrollYRef.current = window.scrollY;
+
         const handleScroll = () => {
-            setShowScrollTop(window.scrollY > threshold);
+            const currentY = window.scrollY;
+            const isScrollingUp = currentY < lastScrollYRef.current;
+            const isPastThreshold = currentY > threshold;
+            setShowScrollTop(isScrollingUp && isPastThreshold);
+            lastScrollYRef.current = currentY;
         };
 
-        window.addEventListener('scroll', handleScroll);
+        window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
     }, [threshold]);
 
