@@ -77,13 +77,30 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
                     {post.title?.toLocaleUpperCase()}
                 </h3>
 
-                {/* Category Badge */}
-                <Badge
-                    variant="outline"
-                    className="mb-3 text-xs"
-                >
-                    {post.category}
-                </Badge>
+                {/* Category Badge — links to the author's blog (where their
+                    category tree lives) so it reads as a browseable action.
+                    Raised to z-10 (relative) so it sits above the card's overlay
+                    post link; sibling of that anchor, never nested. Falls back to
+                    a plain badge when the post has no addressable author. */}
+                {post.username ? (
+                    <Link
+                        href={`/blog/@${post.username}`}
+                        aria-label={`Browse @${post.username}'s blog`}
+                        className={cn(
+                            badgeVariants({ variant: 'outline' }),
+                            'relative z-10 mb-3 text-xs transition-colors hover:bg-primary hover:text-primary-foreground'
+                        )}
+                    >
+                        {post.category}
+                    </Link>
+                ) : (
+                    <Badge
+                        variant="outline"
+                        className="mb-3 text-xs"
+                    >
+                        {post.category}
+                    </Badge>
+                )}
 
                 {/* Image */}
                 {imageUrl && (
