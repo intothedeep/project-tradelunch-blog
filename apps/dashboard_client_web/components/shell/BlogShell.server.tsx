@@ -54,7 +54,9 @@ export const BlogShell = async ({
                 ) : null}
 
                 <main className="flex min-w-0 flex-1 justify-center">
-                    <div className="w-full max-w-3xl p-4">{main}</div>
+                    {/* Single source of the content-column padding for BOTH `/`
+                        and `/blog/[username]`: 8px on mobile, 16px from sm up. */}
+                    <div className="w-full max-w-3xl p-2 sm:p-4">{main}</div>
                 </main>
 
                 {rightRail ? (

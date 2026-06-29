@@ -12,10 +12,11 @@ export const dynamic = 'force-dynamic';
 // Empty username selects the all-authors feed in getBlogPostsByUsername.
 const ALL_AUTHORS = '';
 
+// Render BlogMainPage DIRECTLY (no extra padded/centered wrapper) — identical to
+// /blog/[username]/page.tsx. BlogShell's <main> already centers + width-caps +
+// pads the column, so wrapping again here double-padded `/` relative to the
+// author feed. Keeping the structure `main > div > section` identical on both
+// routes is what makes the mobile content padding consistent.
 export default function Page() {
-    return (
-        <section className="mx-auto w-full max-w-3xl p-4">
-            <BlogMainPage username={ALL_AUTHORS} />
-        </section>
-    );
+    return <BlogMainPage username={ALL_AUTHORS} />;
 }
