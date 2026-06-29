@@ -40,9 +40,13 @@ export const PostContentHeader: React.FC<Props> = ({
                     )}
 
                     {username ? (
+                        // Author byline acts like an action: raised above the
+                        // card's overlay link (z-10) and given a clear hover
+                        // affordance so it reads as clickable → /blog/@<username>.
                         <Link
                             href={`/blog/@${username}`}
-                            className="relative z-10"
+                            aria-label={`View ${bylineLabel}'s blog`}
+                            className="relative z-10 font-semibold text-foreground underline-offset-2 transition-colors hover:text-primary hover:underline"
                         >
                             <span>{bylineLabel.toLocaleUpperCase()}</span>
                         </Link>
