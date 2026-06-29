@@ -223,6 +223,10 @@ Exactly three living root-level docs — do not create per-feature variants; fol
 Superseded/verbose source docs move to `_docs/` (gitignored, local-only archive) —
 never deleted, never committed.
 
+Completed phases/features are extracted from the three docs into `_docs/archive/` as stubs
+(title + status + one-line summary + link). Archiving, stub format, partially-done handling, the
+`01.status.md` line style, and the archive READ GUARD are defined in `.claude/rules/docs.md`.
+
 ---
 
 ### 13.2 Execution Discipline

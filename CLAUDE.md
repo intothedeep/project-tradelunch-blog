@@ -10,6 +10,7 @@ Read these before making changes — they override anything inferred from existi
 - `.claude/rules/nexjts.md` — Next.js + Turborepo conventions (directory layout, file naming suffixes, component boundaries)
 - `.claude/rules/typescript.md` — TS imports must be extensionless
 - `.claude/rules/python.md`, `.claude/rules/rust.md` — language-specific (only relevant if those stacks appear)
+- `.claude/rules/docs.md` — doc lifecycle: archiving completed work to `_docs/archive/` + the archive READ GUARD (do not read archives unless investigating history)
 
 ## Active Work
 
