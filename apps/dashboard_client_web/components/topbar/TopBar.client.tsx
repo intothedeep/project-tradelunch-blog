@@ -1,14 +1,14 @@
 'use client';
 
-// Purpose: the single global desktop top bar contents — logo, the legacy nav
-// links, tag SearchBar, CreateButton, and the shared theme/auth NavMenu.
+// Purpose: the single global desktop top bar contents — logo, the header nav
+// links (dashboard / resume), tag SearchBar, and the shared theme/auth NavMenu.
+// "Write" lives in the left-rail primary nav, so it is not duplicated here.
 // Mounted once by DesktopNavigation (which guards the chart-dashboard routes),
 // so there is exactly one bar on /, /blog/*, and /tags/*.
 
 import Link from 'next/link';
 import { NavMenu } from '@/components/nav-menu.client';
 import { SearchBar } from '@/components/topbar/SearchBar.client';
-import { CreateButton } from '@/components/topbar/CreateButton.client';
 import { useNavLinks } from '@/hooks/useNavLinks.hook';
 
 export const TopBar = () => {
@@ -42,10 +42,6 @@ export const TopBar = () => {
                             </Link>
                         </li>
                     ))}
-                    {/* WRITE — signed-in only. Reserve a fixed-width slot to avoid CLS while Clerk resolves. */}
-                    <li className="min-w-[4.75rem]">
-                        <CreateButton />
-                    </li>
                 </ul>
                 <SearchBar />
                 <NavMenu links={links} />

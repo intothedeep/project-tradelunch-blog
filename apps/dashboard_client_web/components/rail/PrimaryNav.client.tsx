@@ -12,6 +12,7 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
     Home,
+    Info,
     Compass,
     PenSquare,
     Bookmark,
@@ -23,6 +24,7 @@ import { usePrimaryNavLinks } from '@/hooks/useNavLinks.hook';
 
 const ICON_BY_KEY: Record<string, LucideIcon> = {
     home: Home,
+    about: Info,
     explore: Compass,
     write: PenSquare,
     saved: Bookmark,
