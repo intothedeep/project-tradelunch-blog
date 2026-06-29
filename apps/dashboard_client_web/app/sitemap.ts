@@ -13,6 +13,12 @@ import { SITE_URL } from '@/env.schema';
 //   - all auth/protected routes           → already blocked in robots.ts
 // NOTE: post URLs (/blog/@username/slug) are the canonical post pages and are
 // distinct from the deduped author-feed page — safe to include in full.
+// Without this, sitemap.ts is a build-time-cached static Route Handler:
+// getBlogPostsByUsername() resolves once at build, so posts published after
+// deploy never appear until the next build. ISR revalidation re-fetches
+// hourly so newly published posts get discovered without a redeploy.
+export const revalidate = 3600; // seconds
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const now = new Date();
 
