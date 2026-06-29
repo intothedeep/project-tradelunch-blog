@@ -11,6 +11,13 @@
         "saved": "Saved",
         "myBlog": "My blog"
     },
+    "toc": {
+        "heading": "Contents"
+    },
+    "mobile": {
+        "categoriesTags": "Categories & tags",
+        "moreLabel": "Scroll for more"
+    },
     "rail": {
         "popularTags": "Popular tags",
         "popularTagsGlobal": "Global popular tags",

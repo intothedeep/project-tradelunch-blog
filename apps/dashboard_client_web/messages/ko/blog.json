@@ -1,5 +1,12 @@
 {
     "ping": "퐁",
+    "toc": {
+        "heading": "목차"
+    },
+    "mobile": {
+        "categoriesTags": "카테고리 & 태그",
+        "moreLabel": "더 보기"
+    },
     "tags": {
         "emptyTitle": "\"{tag}\" 태그가 달린 게시물이 없습니다",
         "browsePopular": "인기 태그 둘러보기",
