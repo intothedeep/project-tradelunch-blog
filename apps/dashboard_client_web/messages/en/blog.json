@@ -67,5 +67,16 @@
         "deleteConfirmBody": "This can't be undone here.",
         "deleted": "[deleted]",
         "signInToComment": "Sign in to comment"
+    },
+    "filters": {
+        "applied": "Applied filters",
+        "categories": "Categories",
+        "tags": "Tags",
+        "clearAll": "Clear all",
+        "removeCategory": "Remove category {value}",
+        "removeTag": "Remove tag {value}",
+        "addCategory": "Filter by category {value}",
+        "addTag": "Filter by tag {value}",
+        "noPostsFor": "No posts match these filters."
     }
 }

@@ -67,5 +67,16 @@
     "profile": {
         "postCount": "{count, plural, =0 {게시물 없음} other {게시물 #개}}",
         "noPosts": "아직 게시한 글이 없습니다"
+    },
+    "filters": {
+        "applied": "적용된 필터",
+        "categories": "카테고리",
+        "tags": "태그",
+        "clearAll": "모두 지우기",
+        "removeCategory": "카테고리 {value} 제거",
+        "removeTag": "태그 {value} 제거",
+        "addCategory": "카테고리 {value}로 필터",
+        "addTag": "태그 {value}로 필터",
+        "noPostsFor": "이 필터에 맞는 글이 없습니다."
     }
 }
