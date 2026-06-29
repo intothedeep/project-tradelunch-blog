@@ -36,6 +36,13 @@ export const CategorySidebar: React.FC<CategorySidebarProps> = ({
         // Handle navigation for posts
         if (node.type === ETreeNodeType.POST && node.slug) {
             router.push(`/blog/@${node.username}/${node.slug}`);
+            return;
+        }
+        // Category: filter the blog feed by this category title
+        if (node.type === ETreeNodeType.CATEGORY && node.title) {
+            router.push(
+                `/blog/@${node.username}?category_title=${encodeURIComponent(node.title)}`
+            );
         }
     };
 
