@@ -17,7 +17,7 @@ import { Badge, badgeVariants } from '@/components/ui/badge';
 import Image from 'next/image';
 import Link from 'next/link';
 import clsx from 'clsx';
-import { Heart, MessageSquare } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import { TPost } from '@/apis/blog.types';
 import { cn } from '@/lib/utils';
 import { PostContentHeader } from '@/app/blog/components/PostContentHeader.server';
@@ -67,25 +67,8 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
             )}
 
             <CardHeader className={cn('p-3 pb-0 sm:p-4 sm:pb-0')}>
-                {/* Byline left; Share + Save + Like pinned top-right (z-10
-                    siblings so they never nest inside the card's overlay nav
-                    link). */}
-                <div className="flex items-start justify-between gap-2">
-                    <PostContentHeader post={post} />
-                    <PostActions>
-                        <ShareButton
-                            username={post.username}
-                            slug={post.slug}
-                            title={post.title}
-                        />
-                        <SaveButton postId={post.id} />
-                        <LikeButton
-                            postId={post.id}
-                            initialLiked={post.viewerLiked ?? false}
-                            initialLikeCount={post.likeCount ?? 0}
-                        />
-                    </PostActions>
-                </div>
+                {/* Byline only — actions moved to the engagement footer. */}
+                <PostContentHeader post={post} />
             </CardHeader>
 
             <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
@@ -147,17 +130,31 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
                     ))}
                 </div>
 
-                {/* Engagement counts (comments · likes). Plain display, no nav. */}
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                {/* Engagement footer: comment count (plain display, no nav) on
+                    the left; live actions (Share/Save/Like) on the right. The
+                    Like button already carries the aggregate like count, so no
+                    separate heart tally is shown here. Each action button keeps
+                    its own z-10 so it sits above the card's overlay nav link;
+                    the row itself stays un-raised so the empty space still
+                    navigates. */}
+                <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
                     <span className="inline-flex items-center gap-1">
                         <MessageSquare className="h-3.5 w-3.5" />
                         {post.commentCount ?? 0}
                     </span>
-                    <span aria-hidden>·</span>
-                    <span className="inline-flex items-center gap-1">
-                        <Heart className="h-3.5 w-3.5" />
-                        {post.likeCount ?? 0}
-                    </span>
+                    <PostActions>
+                        <ShareButton
+                            username={post.username}
+                            slug={post.slug}
+                            title={post.title}
+                        />
+                        <SaveButton postId={post.id} />
+                        <LikeButton
+                            postId={post.id}
+                            initialLiked={post.viewerLiked ?? false}
+                            initialLikeCount={post.likeCount ?? 0}
+                        />
+                    </PostActions>
                 </div>
             </CardContent>
         </Card>

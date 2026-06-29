@@ -51,7 +51,10 @@ export const PostContentCard = async ({
                         post={post}
                         hasBack={true}
                     />
-                    <PostActions className="ml-auto">
+                    <PostActions
+                        className="ml-auto"
+                        forceDropdown
+                    >
                         <OwnerEditButton
                             postId={post.id}
                             ownerUsername={ownerUsername}

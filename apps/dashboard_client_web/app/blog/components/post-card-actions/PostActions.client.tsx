@@ -3,14 +3,17 @@
 // Purpose: responsive container for a post's action buttons (Share/Save/Like/
 //   owner Edit). Inline horizontal row on desktop; collapsed into a single
 //   "more" dropdown on mobile (< md / 768px) to avoid header overflow.
+//   `forceDropdown` opts a caller into the collapsed dropdown at every viewport
+//   (used on the single-post header, which always prefers the compact menu).
 // Invariants: children are rendered EXACTLY ONCE (inline OR dropdown) so
 //   stateful actions like LikeButton keep a single state instance. Action
 //   buttons keep their own onClick — children are placed directly in the
 //   dropdown content, never wrapped in DropdownMenuItem (which would hijack
 //   the click).
 // Constraints: before hydration isMobile is false → desktop default renders,
-//   keeping SSR markup identical to the inline row. Trigger sits at z-10 so it
-//   stays above the card's overlay nav Link.
+//   keeping SSR markup identical to the inline row. When forceDropdown is set,
+//   SSR and client both render the dropdown, so markup stays consistent.
+//   Trigger sits at z-10 so it stays above the card's overlay nav Link.
 // Side effects: none beyond local dropdown open/close state (Radix).
 
 import { MoreHorizontal } from 'lucide-react';
@@ -25,12 +28,18 @@ import {
 type Props = {
     children: React.ReactNode;
     className?: string;
+    forceDropdown?: boolean;
 };
 
-export const PostActions: React.FC<Props> = ({ children, className }) => {
+export const PostActions: React.FC<Props> = ({
+    children,
+    className,
+    forceDropdown = false,
+}) => {
     const isMobile = useIsMobile();
+    const collapsed = forceDropdown || isMobile;
 
-    if (!isMobile) {
+    if (!collapsed) {
         return (
             <div className={cn('flex items-center gap-2 shrink-0', className)}>
                 {children}
