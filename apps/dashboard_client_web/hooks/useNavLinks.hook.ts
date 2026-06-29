@@ -90,10 +90,14 @@ export const buildPrimaryNavLinks = (
 // sites stay stable if it grows user-dependent again.
 export const useNavLinks = (): NavLink[] => buildNavLinks();
 
-// Resolve the P4 primary set. "My blog" resolves to the signed-in user's
-// `/blog/@<username>` and is hidden when there is no username (signed out /
-// not yet onboarded), so we never emit `/blog/@me` or `/blog/@undefined`.
+// Resolve the P4 primary set with auth gating applied (single source for every
+// consumer: left rail + mobile drawer). Auth-only entries (Write / Saved / My
+// blog) are dropped while signed out; "My blog" additionally resolves to the
+// signed-in user's `/blog/@<username>` and stays hidden without a username, so
+// we never emit `/blog/@me` or `/blog/@undefined`.
 export const usePrimaryNavLinks = (): NavLink[] => {
-    const { user } = useUser();
-    return buildPrimaryNavLinks(user?.username ?? null);
+    const { user, isSignedIn } = useUser();
+    return buildPrimaryNavLinks(user?.username ?? null).filter(
+        (link) => !link.requiresAuth || isSignedIn
+    );
 };

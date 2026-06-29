@@ -10,7 +10,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useAtom } from 'jotai';
-import { useUser } from '@clerk/nextjs';
 import { useTranslations } from 'next-intl';
 import { isMenuDrawerOpenAtom } from '@/store/menu.atom';
 import { usePrimaryNavLinks } from '@/hooks/useNavLinks.hook';
@@ -20,7 +19,6 @@ const FOCUSABLE_SELECTOR =
 
 export function MenuDrawer() {
     const [isOpen, setIsOpen] = useAtom(isMenuDrawerOpenAtom);
-    const { isSignedIn } = useUser();
     const links = usePrimaryNavLinks();
     const t = useTranslations('blog');
 
@@ -29,12 +27,6 @@ export function MenuDrawer() {
 
     const [touchStart, setTouchStart] = useState(0);
     const [touchEnd, setTouchEnd] = useState(0);
-
-    // Only show auth-gated entries when signed in; never emit a clickable
-    // placeholder for disabled destinations.
-    const visibleLinks = links.filter(
-        (link) => !link.requiresAuth || isSignedIn
-    );
 
     // Close on Escape; lock body scroll; trap Tab focus within the drawer; and
     // restore focus to the trigger on close.
@@ -171,7 +163,7 @@ export function MenuDrawer() {
                 {/* Navigation Links — primary nav set (reachable at <md). */}
                 <nav className="p-6 max-h-[70vh] overflow-y-auto">
                     <ul className="space-y-2">
-                        {visibleLinks.map((link, index) => {
+                        {links.map((link, index) => {
                             const label = link.labelKey
                                 ? t(link.labelKey)
                                 : link.title;

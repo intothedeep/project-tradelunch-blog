@@ -1,8 +1,9 @@
 'use client';
 
-// Purpose: the left-rail primary navigation (Home / Explore / Write / Saved /
-// My blog). Links come from usePrimaryNavLinks (which already gates auth +
-// hides "My blog" when there is no resolved username). Active route is derived
+// Purpose: the left-rail primary navigation (Home / About / Resume / Explore /
+// Write / Saved / My blog). Links come from usePrimaryNavLinks (which gates auth
+// — Write/Saved/My blog hidden while signed out — and hides "My blog" when there
+// is no resolved username). Active route is derived
 // from usePathname and exposed via aria-current="page". When `collapsed`, only
 // icons render (label moves to title/aria-label).
 // Side effects: none beyond reading the current pathname + Clerk user.
