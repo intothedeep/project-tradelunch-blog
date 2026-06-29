@@ -60,6 +60,9 @@ const tZeta = `${run}_z`;
 const tDraft = `${run}_draft`;
 const tPriv = `${run}_priv`;
 const tDel = `${run}_del`;
+// Tag shared by TWO public revisions of ONE slug — must count as 1 (per-slug),
+// not 2 (per-row), so the count matches the single card the tag feed renders.
+const tRev = `${run}_rev`;
 
 const onlyMine = (rows: { tag: string }[]) =>
     rows.filter((r) => r.tag.startsWith(run));
@@ -126,6 +129,10 @@ describe('popularTags (integration)', () => {
         await tombstoneLink(pA5, tA); // soft-deleted tA link must NOT inflate tA
         await makePost(userB, 'pb1', 'public', [tB, tZeta]);
         await makePost(userB, 'pb2', 'private', [tPriv]);
+        // Two PUBLIC revisions sharing ONE slug (`prev_${run}`) + tag tRev. The
+        // feed dedupes them to one card, so the count must be 1, not 2.
+        await makePost(userA, 'prev', 'public', [tRev]);
+        await makePost(userA, 'prev', 'public', [tRev]);
     });
 
     afterAll(async () => {
@@ -156,12 +163,13 @@ describe('popularTags (integration)', () => {
         return ready;
     };
 
-    it('H0.2 global: counts public live links, ordered count desc then tag asc', async () => {
+    it('H0.2 global: counts public live links (per-slug), ordered count desc then tag asc', async () => {
         if (!guard()) return;
         const mine = onlyMine(await listPopularTags(pool, 100));
         expect(mine).toEqual([
             { tag: tA, count: 2 },
             { tag: tB, count: 2 },
+            { tag: tRev, count: 1 }, // 2 revisions of one slug → counted once
             { tag: tZeta, count: 1 },
         ]);
     });
@@ -189,6 +197,7 @@ describe('popularTags (integration)', () => {
         expect(mine).toEqual([
             { tag: tA, count: 2 },
             { tag: tB, count: 1 },
+            { tag: tRev, count: 1 }, // 2 revisions of one slug → counted once
         ]);
     });
 

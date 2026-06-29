@@ -1,8 +1,11 @@
 // Purpose: read popular tags as (tag, count) pairs — globally and per-user.
-//          count is a live COUNT(*) of LIVE post_tags links on PUBLIC posts only.
+//          count is COUNT(DISTINCT slug) of LIVE post_tags links on PUBLIC posts.
 // Invariants:
 //   * Every query filters pt.deleted_at IS NULL (links are SOFT-deleted — see
 //     helpers/writePostTags.ts) so tombstoned links never inflate a count.
+//   * Count is per-SLUG, not per-row: the feed (helpers/postsByTag.ts) dedupes
+//     multiple public revisions of a slug to one card, so the count must too —
+//     otherwise count(N revisions) > the 1 card the tag page shows.
 //   * Only public, non-deleted posts of non-deleted authors are counted.
 //   * Viewer-agnostic: no auth personalization (safe for a shared cache).
 // Side effects: one parameterized SELECT per call (read-only).
@@ -30,9 +33,11 @@ export async function listPopularTags(
     limit: number
 ): Promise<TPopularTag[]> {
     const { rows } = await pool.query<TPopularTag>(
-        `SELECT pt.tag_title AS tag, COUNT(*)::int AS count
+        `SELECT pt.tag_title AS tag, COUNT(DISTINCT p.slug)::int AS count
          FROM post_tags pt
          JOIN posts p ON p.id = pt.post_id
+         JOIN users u ON p.user_id = u.id
+            AND u.deleted_at IS NULL
          WHERE pt.deleted_at IS NULL
            AND p.deleted_at IS NULL
            AND p.status = 'public'
@@ -51,7 +56,7 @@ export async function listUserPopularTags(
     limit: number
 ): Promise<TPopularTag[]> {
     const { rows } = await pool.query<TPopularTag>(
-        `SELECT pt.tag_title AS tag, COUNT(*)::int AS count
+        `SELECT pt.tag_title AS tag, COUNT(DISTINCT p.slug)::int AS count
          FROM post_tags pt
          JOIN posts p ON p.id = pt.post_id
          JOIN users u ON p.user_id = u.id

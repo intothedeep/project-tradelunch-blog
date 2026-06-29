@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { cn } from '@/lib/utils';
+import { LeftRailAside } from '@/components/shell/LeftRailAside.client';
 
 // Purpose: the multi-user blog layout shell. A SERVER component that arranges
 // four named slots into a responsive column layout and reads the
@@ -48,14 +48,9 @@ export const BlogShell = async ({
 
             <div className="flex w-full flex-1">
                 {leftRail ? (
-                    <aside
-                        className={cn(
-                            'hidden shrink-0 border-r border-border md:block',
-                            isLeftRailCollapsed ? 'w-14' : 'w-64'
-                        )}
-                    >
+                    <LeftRailAside initialCollapsed={isLeftRailCollapsed}>
                         {leftRail}
-                    </aside>
+                    </LeftRailAside>
                 ) : null}
 
                 <main className="flex min-w-0 flex-1 justify-center">
