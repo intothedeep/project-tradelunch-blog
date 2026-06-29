@@ -8,7 +8,6 @@ import { PostActions } from '@/app/blog/components/post-card-actions/PostActions
 import { Comments } from '@/app/blog/components/comments/Comments.server';
 import { RecordRecentView } from '@/app/blog/components/RecordRecentView.client';
 import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer.server';
-import { MobileToc } from '@/components/blog/MobileToc.client';
 import { OwnerEditButton } from '@/components/blog/OwnerEditButton.client';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { badgeVariants } from '@/components/ui/badge';
@@ -95,11 +94,6 @@ export const PostContentCard = async ({
             </CardHeader>
 
             <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                {/* In-article collapsible TOC — mobile only (>=lg uses the
-                    right-rail RightRailToc). Renders nothing when headless. */}
-                <div className="lg:hidden">
-                    <MobileToc />
-                </div>
                 <MarkdownRenderer content={post.content || ''} />
 
                 {/* Threaded comments (public read; write requires auth) */}
