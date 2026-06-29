@@ -32,7 +32,10 @@ def upload_object(
 ) -> bool:
     """Upsert one object into ``bucket`` at ``object_path``. True on 2xx, else False."""
     url = f"{base_url.rstrip('/')}/storage/v1/object/{bucket}/{object_path}"
+    # Supabase 2024+ keys (sb_secret_…) are NOT JWTs — the gateway needs the key in
+    # the `apikey` header (Bearer alone -> 400 "Invalid Compact JWS"). Send both.
     headers = {
+        "apikey": secret_key,
         "Authorization": f"Bearer {secret_key}",
         "Content-Type": "application/octet-stream",
         "x-upsert": "true",
