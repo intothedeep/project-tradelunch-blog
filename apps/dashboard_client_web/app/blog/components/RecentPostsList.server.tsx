@@ -1,6 +1,9 @@
+import { getTranslations } from 'next-intl/server';
+
 import { loadMorePosts } from '@/app/actions/post.action';
 import { RecentPostsListClient } from '@/app/blog/components/RecentPostsList.client';
 import { CDN_ASSETS } from '@/env.schema';
+import { serializeFacet } from '@/utils/filter-state';
 
 // ============================================================================
 // RecentPostsList Component
@@ -8,28 +11,33 @@ import { CDN_ASSETS } from '@/env.schema';
 interface RecentPostsListProps {
     // Author username (already stripped of any leading '@'). Required.
     username: string;
-    // Optional category-title filter (per-author). When set, only posts in a
-    // category with this exact title are listed.
-    categoryTitle?: string;
+    // Multi-facet feed filter (per-author): categories OR (ancestor-inclusive),
+    // tags OR, cross-attribute AND — resolved server-side.
+    filters: { categories: string[]; tags: string[] };
     cdnBaseUrl?: string;
 }
 
 export const RecentPostsList: React.FC<RecentPostsListProps> = async ({
     username,
-    categoryTitle,
+    filters,
 }) => {
+    const t = await getTranslations('blog.filters');
+    const { categories, tags } = filters;
+
     const { posts, nextCursor, hasMore } = await loadMorePosts(
         undefined,
         10,
         username,
-        categoryTitle ? { categories: [categoryTitle] } : undefined
+        { categories, tags }
     );
 
     if (posts.length === 0) {
+        const isFiltered = categories.length > 0 || tags.length > 0;
         return (
             <div className="text-center py-8 text-muted-foreground">
                 <p className="text-sm font-mono">
-                    <span className="animate-pulse">▋</span> No articles found
+                    <span className="animate-pulse">▋</span>{' '}
+                    {isFiltered ? t('noPostsFor') : 'No articles found'}
                 </p>
             </div>
         );
@@ -37,8 +45,11 @@ export const RecentPostsList: React.FC<RecentPostsListProps> = async ({
 
     return (
         <RecentPostsListClient
+            // Remount on any filter change so pagination resets (no stale rows).
+            key={`${serializeFacet(categories)}|${serializeFacet(tags)}`}
             username={username}
-            categoryTitle={categoryTitle}
+            categories={categories}
+            tags={tags}
             initialPosts={posts}
             initialCursor={nextCursor}
             initialHasMore={hasMore}

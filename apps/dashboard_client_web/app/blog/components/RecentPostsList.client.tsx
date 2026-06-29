@@ -5,10 +5,12 @@ import { cn } from '@/lib/utils';
 
 import { type TPost } from '@/apis/blog.types';
 import { RecentPostCard } from '@/app/blog/components/RecentPostCard.client';
+import { serializeFacet } from '@/utils/filter-state';
 
 type Props = {
     username: string;
-    categoryTitle?: string;
+    categories: string[];
+    tags: string[];
     initialPosts: TPost[];
     initialCursor: string | null;
     initialHasMore: boolean;
@@ -18,7 +20,8 @@ type Props = {
 export const RecentPostsListClient: React.FC<Props> = (props) => {
     const {
         username,
-        categoryTitle,
+        categories,
+        tags,
         initialPosts,
         initialCursor,
         initialHasMore,
@@ -33,6 +36,9 @@ export const RecentPostsListClient: React.FC<Props> = (props) => {
     const observerRef = useRef<IntersectionObserver | null>(null);
     const loadMoreRef = useRef<HTMLDivElement>(null);
 
+    const categoriesParam = serializeFacet(categories);
+    const tagsParam = serializeFacet(tags);
+
     useEffect(() => {
         if (!hasMore || isPending) return;
 
@@ -41,11 +47,14 @@ export const RecentPostsListClient: React.FC<Props> = (props) => {
                 const [entry] = entries;
                 if (entry?.isIntersecting && cursor !== null) {
                     startTransition(async () => {
-                        const categoryParam = categoryTitle
-                            ? `&category_title=${encodeURIComponent(categoryTitle)}`
-                            : '';
+                        const facetParams = [
+                            categoriesParam
+                                ? `&categories=${categoriesParam}`
+                                : '',
+                            tagsParam ? `&tags=${tagsParam}` : '',
+                        ].join('');
                         const res = await fetch(
-                            `/api/posts/load-more?cursor=${cursor}&limit=10&username=${username}${categoryParam}`
+                            `/api/posts/load-more?cursor=${cursor}&limit=10&username=${username}${facetParams}`
                         );
 
                         const data = await res.json();
@@ -66,7 +75,7 @@ export const RecentPostsListClient: React.FC<Props> = (props) => {
             if (observerRef.current && currentRef)
                 observerRef.current.unobserve(currentRef);
         };
-    }, [cursor, hasMore, isPending, username, categoryTitle]);
+    }, [cursor, hasMore, isPending, username, categoriesParam, tagsParam]);
 
     return (
         <div
