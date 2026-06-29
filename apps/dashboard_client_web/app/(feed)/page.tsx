@@ -1,5 +1,13 @@
+import type { Metadata } from 'next';
 import BlogMainPage from '@/app/blog/components/BlogMainPage';
 import { HOME_FEED_AUTHOR } from '@/utils/blog-author';
+
+// Home is the CANONICAL representative for the owner's feed. While single-user,
+// `/blog/@<owner>` is duplicate content of `/`, so it canonicalizes here (see
+// app/blog/[username]/page.tsx) — consolidating SEO signals onto the home URL.
+export const metadata: Metadata = {
+    alternates: { canonical: '/' },
+};
 
 // Root of my.prettylog.com. TEMPORARY single-user mode: the home feed focuses on
 // HOME_FEED_AUTHOR's blog (the owner) rather than the all-authors aggregate. The

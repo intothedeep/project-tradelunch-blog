@@ -25,6 +25,11 @@ const ibmPlexMono = IBM_Plex_Mono({
 // });
 
 export const metadata: Metadata = {
+    // Base for resolving relative metadata URLs (canonical, og) to absolute
+    // production URLs. Matches the sitemap/robots site-url convention.
+    metadataBase: new URL(
+        process.env.NEXT_PUBLIC_SITE_URL || 'https://my.prettylog.com'
+    ),
     title: 'Taek Lim | Software Engineer & Fintech Developer',
     description:
         'Portfolio of Taek Lim — Software engineer specializing in fintech, databases, and full-stack development. Explore projects in trading systems, web apps, and data engineering.',

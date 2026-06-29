@@ -1,9 +1,10 @@
 export const dynamic = 'force-dynamic';
 
+import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import BlogMainPage from '@/app/blog/components/BlogMainPage';
-import { stripUsernameAt } from '@/utils/blog-author';
+import { HOME_FEED_AUTHOR, stripUsernameAt } from '@/utils/blog-author';
 
 type PageProps = {
     params: Promise<{ username: string }>;
@@ -12,6 +13,21 @@ type PageProps = {
     // so the match intentionally merges same-titled categories).
     searchParams: Promise<{ category_title?: string }>;
 };
+
+// While `/` is the owner's blog, the owner's author page is duplicate content of
+// home → canonicalize it to `/`. Every other author self-canonicalizes (query
+// variants like ?category_title also fold onto the clean author URL).
+export async function generateMetadata({
+    params,
+}: PageProps): Promise<Metadata> {
+    const { username } = await params;
+    const author = stripUsernameAt(decodeURIComponent(username));
+    const canonical =
+        HOME_FEED_AUTHOR && author === HOME_FEED_AUTHOR
+            ? '/'
+            : `/blog/@${author}`;
+    return { alternates: { canonical } };
+}
 
 export default async function BlogPage({ params, searchParams }: PageProps) {
     const { username } = await params;
