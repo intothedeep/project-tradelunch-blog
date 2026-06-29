@@ -61,8 +61,8 @@ export const BlogShell = async ({
 
                 <main className="flex min-w-0 flex-1 justify-center">
                     {/* Single source of the content-column padding for BOTH `/`
-                        and `/blog/[username]`: 8px on mobile, 16px from sm up. */}
-                    <div className="w-full max-w-3xl p-2 sm:p-4">
+                        and `/blog/[username]`: 16px (1rem) on every breakpoint. */}
+                    <div className="w-full max-w-3xl p-4">
                         {mobileTopContext ? (
                             <div className="mb-3 lg:hidden">
                                 {mobileTopContext}
