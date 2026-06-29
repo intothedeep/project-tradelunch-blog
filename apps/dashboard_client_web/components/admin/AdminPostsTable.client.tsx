@@ -162,12 +162,14 @@ export function AdminPostsTable() {
                                     setStatus.mutate({
                                         postId: id,
                                         status: 'private',
+                                        username: post.username ?? '',
                                     })
                                 }
                                 onRepublish={(id) =>
                                     setStatus.mutate({
                                         postId: id,
                                         status: 'public',
+                                        username: post.username ?? '',
                                     })
                                 }
                                 onDelete={(id) => deletePost.mutate(id)}

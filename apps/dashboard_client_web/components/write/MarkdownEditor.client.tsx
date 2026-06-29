@@ -33,6 +33,7 @@ import { useComposition } from '@/hooks/useComposition.hook';
 import { useCreatePost } from '@/hooks/useCreatePost.query.client';
 import { useUpdatePost } from '@/hooks/useUpdatePost.query.client';
 import { useDeletePost } from '@/hooks/useDeletePost.query.client';
+import { setPostStatusAction } from '@/app/actions/postPublish.action';
 import { cn } from '@/lib/utils';
 import type { TPostInput, TPostStatus } from '@repo/types';
 
@@ -237,6 +238,13 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
                 ? await createPost.mutateAsync(input)
                 : await updatePost.mutateAsync({ postId, input });
         if (status === 'public') setLiveSlug(saved.slug);
+        // Publish-class save: the content PATCH above already persisted the new
+        // status, but the anonymous feed is tag-cached server-side. Re-assert the
+        // status through the Server Action so its updateTag() revalidates the
+        // cached feed (idempotent PATCH). Draft saves stay no-store — no revalidate.
+        if (status !== 'draft' && user?.username) {
+            await setPostStatusAction(saved.id, status, user.username);
+        }
         // router.replace is a soft URL swap in the App Router: it updates the
         // route without remounting this client tree, so the textarea keeps its
         // focus/caret. No manual focus restoration is needed here.
@@ -249,7 +257,10 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
             return;
         }
         if (!window.confirm(t('editor.deleteConfirm'))) return;
-        await deletePost.mutateAsync(postId);
+        await deletePost.mutateAsync({
+            postId,
+            username: user?.username ?? '',
+        });
         router.push('/blog');
     };
 
