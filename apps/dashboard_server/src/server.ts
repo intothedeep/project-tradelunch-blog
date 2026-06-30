@@ -1,6 +1,7 @@
 import express from 'express';
 import cors, { CorsOptions } from 'cors';
 import routers from './controllers';
+import { errorHandler } from './middlewares/errorHandler';
 import { ALLOWED_ORIGINS_LIST } from './config/env.schema';
 
 export const app = express();
@@ -52,3 +53,7 @@ app.use('/ping', (_, res) => {
 });
 
 app.use('/v1', routers);
+
+// Terminal global error handler — MUST stay last. Catches anything a route did
+// not handle (incl. Express-5 async rejections) → error_log (source='express').
+app.use(errorHandler);

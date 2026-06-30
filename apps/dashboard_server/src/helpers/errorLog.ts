@@ -50,6 +50,38 @@ export function normalizeErrorLog(body: unknown): TErrorLogRow {
     };
 }
 
+// Describe an unknown throw as a string: Error → message, string → itself,
+// anything else → best-effort JSON (circular/undefined fall back to String()).
+function describeThrown(value: unknown): string {
+    if (value instanceof Error) return value.message;
+    if (typeof value === 'string') return value;
+    try {
+        return JSON.stringify(value);
+    } catch {
+        return String(value);
+    }
+}
+
+// Shape a thrown Express runtime error into a bounded row (source='express').
+// Pure + total: extracts message/stack from an Error, coerces request context
+// to the same caps as the ingest path, never throws. `digest` is always null
+// (digest is a Next-only correlation key; Express errors have none).
+export function buildExpressErrorRow(
+    err: unknown,
+    path: string | undefined,
+    userAgent: string | undefined
+): TErrorLogRow {
+    const stack = err instanceof Error ? err.stack ?? null : null;
+    return {
+        digest: null,
+        message: toCappedStringOrNull(describeThrown(err), MESSAGE_MAX),
+        stack: toCappedStringOrNull(stack, STACK_MAX),
+        path: toCappedStringOrNull(path, PATH_MAX),
+        userAgent: toCappedStringOrNull(userAgent, USER_AGENT_MAX),
+        source: 'express',
+    };
+}
+
 // Persist a shaped row. One parameterized INSERT; no value is returned.
 export async function insertErrorLog(pool: Pool, row: TErrorLogRow): Promise<void> {
     await pool.query(
