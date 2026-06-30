@@ -82,7 +82,9 @@ def _ingest(
     fetched_at = datetime.now(timezone.utc)
     snaps = []
     for e in targets:
-        recent = db_sink.read_recent_history(conn, e.label, n=2)
+        # n=3 (not 2): if the trailing bar is a NaN-close gap bar that build_snapshot
+        # drops, a valid prev still survives so change is real, not forced to 0.
+        recent = db_sink.read_recent_history(conn, e.label, n=3)
         snap = build_snapshot(e, recent, fetched_at)
         if snap is not None:
             snaps.append(snap)

@@ -9,11 +9,18 @@ For ``stocks`` it also sets ``ticker`` (= label) and ``exchange`` (the reader
 returns these and the client union is non-null).
 
 Invariants: deterministic; no side effects. Returns ``None`` when there is not
-even one bar (nothing to snapshot — caller skips the symbol).
+even one usable bar (nothing to snapshot — caller skips the symbol).
+
+NaN guard: bars whose ``close`` is NaN (a not-yet-settled yfinance bar that
+slipped past an older ingest) are excluded before picking latest/prev, so the
+snapshot's NOT-NULL ``value``/``change`` columns can never be NaN. The upstream
+``ohlc`` transform already drops such bars on ingest; this defends the contract
+against any NaN already resident in ``market_history``.
 """
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from datetime import datetime
 
@@ -34,10 +41,11 @@ def build_snapshot(
 
     With a single bar, change is 0.0 (first observation). With <1 bar -> None.
     """
-    if not history:
+    usable = [h for h in history if not math.isnan(h.close)]
+    if not usable:
         return None
-    latest = history[-1]
-    prev = history[-2] if len(history) >= 2 else None
+    latest = usable[-1]
+    prev = usable[-2] if len(usable) >= 2 else None
 
     if prev is not None and prev.close != 0:
         change_absolute = latest.close - prev.close

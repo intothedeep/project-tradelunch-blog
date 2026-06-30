@@ -40,3 +40,19 @@ def test_duplicate_date_keeps_last():
 def test_datetime_and_volume_coercion():
     rows = to_history_rows("X", [_candle("2026-01-01", 1, 2, 0.5, 1.5, "50.0")])
     assert rows[0].volume == 50 and isinstance(rows[0].volume, int)
+
+
+def test_nan_close_bar_is_dropped():
+    # yfinance provisional bar: O/H/L filled, close=NaN. float('nan') does not
+    # raise, so without the guard this would persist a NaN close.
+    candles = [
+        _candle("2026-01-01", 1, 2, 0.5, 1.5, 50),
+        _candle("2026-01-02", 1, 2, 0.5, float("nan"), 60),
+    ]
+    rows = to_history_rows("KOSPI 200", candles)
+    assert [r.bar_time for r in rows] == [date(2026, 1, 1)]
+
+
+def test_nan_in_any_ohlc_field_is_dropped():
+    candles = [_candle("2026-01-01", float("nan"), 2, 0.5, 1.5, 50)]
+    assert to_history_rows("X", candles) == []

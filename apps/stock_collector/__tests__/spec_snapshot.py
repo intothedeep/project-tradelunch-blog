@@ -51,3 +51,23 @@ def test_single_bar_change_zero():
 
 def test_empty_history_returns_none():
     assert build_snapshot(WatchlistEntry("X", "X", "stocks", "US"), [], FETCHED) is None
+
+
+def test_trailing_nan_close_bar_excluded_change_is_real():
+    # A NaN-close gap bar resident in market_history must not become the snapshot
+    # value; latest/prev fall back to the last two valid bars.
+    hist = [
+        _hist("KOSPI 200", date(2026, 1, 1), 100.0),
+        _hist("KOSPI 200", date(2026, 1, 2), 110.0),
+        _hist("KOSPI 200", date(2026, 1, 3), float("nan")),
+    ]
+    snap = build_snapshot(WatchlistEntry("^KS200", "KOSPI 200", "indices"), hist, FETCHED)
+    assert snap is not None
+    assert snap.value == 110.0
+    assert snap.as_of == date(2026, 1, 2)
+    assert snap.change_absolute == 10.0
+
+
+def test_all_nan_history_returns_none():
+    hist = [_hist("X", date(2026, 1, 1), float("nan"))]
+    assert build_snapshot(WatchlistEntry("X", "X", "stocks", "US"), hist, FETCHED) is None
