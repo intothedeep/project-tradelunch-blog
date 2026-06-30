@@ -86,3 +86,26 @@ def sec_archive_enabled() -> bool:
 def sec_bucket() -> str:
     """PRIVATE Supabase Storage bucket for raw 13F info-table XML (archive-only)."""
     return os.getenv("COLLECTOR_SEC_BUCKET", "market-archive")
+
+
+def sec_parquet_archive_enabled() -> bool:
+    """Phase L15 13F Parquet cold-archive toggle (default OFF).
+
+    Separate from ``sec_archive_enabled`` (raw XML). Controls whether
+    run_monthly/run_backfill write holdings to local Parquet and upload to
+    Storage after each fund's DB upsert. Best-effort: upload failures never
+    abort collection. Enable via ``COLLECTOR_ARCHIVE_SEC_PARQUET=1``.
+    """
+    return os.getenv("COLLECTOR_ARCHIVE_SEC_PARQUET", "").strip().lower() in ("1", "true", "yes")
+
+
+def sec_parquet_dir() -> Path:
+    """Local 13F Parquet archive root (gitignored). Separate from OHLC parquet_dir."""
+    return Path(
+        os.getenv("COLLECTOR_SEC_PARQUET_DIR", str(APP_ROOT / "data" / "sec_parquet"))
+    )
+
+
+def sec_parquet_bucket() -> str:
+    """PRIVATE Supabase Storage bucket for 13F Parquet files (L15, analytics-only)."""
+    return os.getenv("COLLECTOR_SEC_PARQUET_BUCKET", "market-archive")

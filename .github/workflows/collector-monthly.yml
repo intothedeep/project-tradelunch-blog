@@ -1,12 +1,15 @@
-name: collector-monthly
+name: collector-13f
 
-# MONTHLY SEC 13F institutional-holdings collection (Phase J). 1st of each month
-# 07:00 UTC. 13F-HR is filed quarterly (<=45d after quarter-end); monthly is
-# idempotent (UPSERT), self-heals a missed month, and catches amendments.
+# WEEKLY SEC 13F institutional-holdings collection (L19: weekly cadence).
+# Monday 07:00 UTC. Real heavy work (infotable fetch+parse+upsert) fires only
+# in the 4 quarterly 13F deadline windows (Feb/May/Aug/Nov); the rest of the
+# year the L19 period-advance guard short-circuits to a cheap 1-GET no-op per
+# fund. Monthly (1st-of-month) cadence was replaced by weekly for faster pickup
+# of new filings near the 45-day SEC deadline.
 # SEC requires a descriptive User-Agent (SEC_USER_AGENT) or it 403s.
 on:
   schedule:
-    - cron: "0 7 1 * *"
+    - cron: "0 7 * * 1"
   workflow_dispatch: {}
 
 concurrency:
@@ -34,7 +37,7 @@ jobs:
           uv python install 3.12
           uv sync
 
-      - name: Run monthly 13F collection
+      - name: Run weekly 13F collection
         env:
           # Session pooler (5432). Either name works; value = Supavisor session pooler.
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -56,4 +59,4 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/issues" \
-            -d '{"title":"collector-monthly failed (run ${{ github.run_id }})","body":"The monthly SEC 13F collection failed. See https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}","labels":["collector","ci-failure"]}'
+            -d '{"title":"collector-13f failed (run ${{ github.run_id }})","body":"The weekly SEC 13F collection failed. See https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}","labels":["collector","ci-failure"]}'

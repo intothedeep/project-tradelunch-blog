@@ -1,6 +1,6 @@
 name: collector-prune
 
-# ANNUAL Parquet archive retention prune (Phase M).
+# ANNUAL Parquet archive retention prune (Phase M + L18).
 # Dec 30 07:00 UTC — runs once a year after the year's final trading session.
 # workflow_dispatch is the manual fallback: the prune is idempotent so a missed
 # annual run is fully recoverable by triggering manually.
@@ -8,7 +8,11 @@ name: collector-prune
 # SAFETY: dry-run by default. The scheduled annual run is ALWAYS dry-run. The
 # first REAL prune is a deliberate one-click USER action: trigger via
 # workflow_dispatch and UNCHECK "dry_run". Once trusted, lift the scheduled
-# gate by editing the run step below.
+# gate by editing the run steps below.
+#
+# Two prune jobs share this workflow (same 12/30 cadence):
+#   prune-ohlc  — Phase M: market_history bars (OHLC), archive-gated per label/year
+#   prune-13f   — Phase L L18: sec_holdings/sec_filings periods, archive-gated per CIK/year
 on:
   schedule:
     - cron: "0 7 30 12 *"
@@ -24,7 +28,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  prune:
+  prune-ohlc:
+    name: Prune OHLC market_history (Phase M)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -44,11 +49,12 @@ jobs:
           uv python install 3.12
           uv sync
 
-      # Scheduled runs are ALWAYS dry-run. A manual dispatch with dry_run
-      # UNCHECKED performs a real prune (deletes archive-verified cold bars).
-      # The prune itself also no-ops unless the archive is enabled + Storage
-      # reachable, so this gate is belt-and-suspenders.
-      - name: Run archive retention prune
+      # Mode B (gate lifted): the scheduled 12/30 run performs a REAL prune.
+      # A manual dispatch defaults to dry-run (preview); uncheck dry_run for a
+      # manual live prune. The prune still no-ops unless the archive is enabled
+      # + Storage reachable AND each label/year Parquet object is verified, so
+      # even the scheduled live run can only ever move archive-confirmed cold bars.
+      - name: Run OHLC archive retention prune
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
@@ -57,11 +63,11 @@ jobs:
           COLLECTOR_PARQUET_BUCKET: ${{ vars.COLLECTOR_PARQUET_BUCKET }}
           COLLECTOR_ARCHIVE_PARQUET: ${{ vars.COLLECTOR_ARCHIVE_PARQUET }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "false" ]; then
-            echo "::warning::LIVE prune (dry_run unchecked) — will delete archive-verified cold bars"
-            uv run python -m collector.entrypoints.prune_history
-          else
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
             uv run python -m collector.entrypoints.prune_history --dry-run
+          else
+            echo "::warning::LIVE prune — deletes archive-verified cold bars (scheduled run, or dry_run unchecked)"
+            uv run python -m collector.entrypoints.prune_history
           fi
 
       - name: Notify on failure
@@ -71,4 +77,50 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/issues" \
-            -d '{"title":"collector-prune failed (run ${{ github.run_id }})","body":"The annual Parquet archive retention prune failed. See https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}","labels":["collector","ci-failure"]}'
+            -d '{"title":"collector-prune (OHLC) failed (run ${{ github.run_id }})","body":"The annual OHLC archive retention prune failed. See https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}","labels":["collector","ci-failure"]}'
+
+  prune-13f:
+    name: Prune 13F sec_holdings/sec_filings (L18)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/stock_collector
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          enable-cache: true
+          working-directory: apps/stock_collector
+      - name: Sync deps
+        run: |
+          uv python install 3.12
+          uv sync
+
+      # Archive precondition: a period is hard-deleted ONLY if its Parquet
+      # object (sec13f/{cik}/{cik}_{YYYY}.parquet) is confirmed present.
+      # Scheduled runs are ALWAYS dry-run (same belt-and-suspenders pattern as OHLC).
+      - name: Run 13F archive retention prune
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          COLLECTOR_SEC_PARQUET_BUCKET: ${{ vars.COLLECTOR_SEC_PARQUET_BUCKET }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "false" ]; then
+            echo "::warning::LIVE 13F prune (dry_run unchecked) — will delete archive-verified old periods"
+            uv run python -m collector.entrypoints.prune_holdings
+          else
+            uv run python -m collector.entrypoints.prune_holdings --dry-run
+          fi
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          curl -sS -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues" \
+            -d '{"title":"collector-prune (13F) failed (run ${{ github.run_id }})","body":"The annual 13F archive retention prune failed. See https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}","labels":["collector","ci-failure"]}'

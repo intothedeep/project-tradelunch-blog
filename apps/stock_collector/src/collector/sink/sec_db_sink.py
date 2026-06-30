@@ -7,9 +7,15 @@ UPSERTs (``ON CONFLICT ... DO UPDATE``):
   * ``upsert_holdings`` -> sec_holdings ON CONFLICT(cik, accession, cusip, put_call, prn_type)
   * ``supersede_prior_filings`` -> soft-delete superseded same-period filings
     (strict-earlier filing_date guard; never downgrades a newer stored amendment)
+  * ``read_latest_period`` -> MAX(period_of_report) for cik (L19 period-advance guard)
+  * ``read_all_periods``   -> all distinct period_of_report for cik (L18 prune candidates)
+  * ``prune_period``       -> HARD-DELETE sec_holdings + sec_filings for (cik, period)
+    EXCEPTION: this is a SANCTIONED hard-delete on DERIVED + ARCHIVED operational rows
+    only (sec_holdings / sec_filings). It is NEVER applied to user-generated content.
+    Owner sign-off: Phase L L18. Archive precondition enforced in prune_holdings entrypoint.
 
 Connection management + insert_batch_log live in ``db_sink`` (callers pass conn).
-Side effects: DB writes. Soft-delete only (never hard-DELETE).
+Side effects: DB writes. Soft-delete only EXCEPT prune_period (see EXCEPTION above).
 """
 
 from __future__ import annotations
@@ -120,3 +126,88 @@ def supersede_prior_filings(
         )
     conn.commit()
     return n_holdings
+
+
+# --- L19 period-advance guard read -------------------------------------------
+
+
+def read_latest_period(conn: psycopg.Connection, cik: str) -> date | None:
+    """Return MAX(period_of_report) for cik in sec_holdings (active rows only).
+
+    Table-guarded: returns None if the table is absent or no rows exist for
+    this CIK. Used by run_monthly to skip the heavy infotable fetch when no
+    new quarter is available (L19 period-advance guard).
+
+    Pure read — no side effects.
+    """
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT MAX(period_of_report)
+                FROM sec_holdings
+                WHERE cik = %s AND deleted_at IS NULL
+                """,
+                (cik,),
+            )
+            row = cur.fetchone()
+            return row[0] if row and row[0] is not None else None
+    except psycopg.errors.UndefinedTable:
+        return None
+
+
+# --- L18 prune helpers -------------------------------------------------------
+
+
+def read_all_periods(conn: psycopg.Connection, cik: str) -> list[date]:
+    """Return all distinct period_of_report dates for cik in sec_filings
+    (active rows only, i.e. deleted_at IS NULL).
+
+    Used by prune_holdings to enumerate candidate periods for hard-delete.
+    Returns [] when no rows exist or table is absent.
+
+    Pure read — no side effects.
+    """
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT DISTINCT period_of_report
+                FROM sec_filings
+                WHERE cik = %s AND deleted_at IS NULL
+                ORDER BY period_of_report ASC
+                """,
+                (cik,),
+            )
+            return [row[0] for row in cur.fetchall()]
+    except psycopg.errors.UndefinedTable:
+        return []
+
+
+def prune_period(conn: psycopg.Connection, cik: str, period: date) -> tuple[int, int]:
+    """HARD-DELETE sec_holdings + sec_filings rows for (cik, period_of_report).
+
+    SANCTIONED EXCEPTION to the repo soft-delete rule — applies ONLY to derived +
+    archived 13F operational rows. Owner sign-off: Phase L L18.
+    Archive precondition (Parquet object-exists check) MUST be verified by the
+    caller (prune_holdings entrypoint) BEFORE calling this function.
+    NEVER call this on user-generated content.
+
+    Deletes holdings first (FK dependency), then filings. Both are parameterized.
+    Caller is responsible for conn.commit() after (allows batching or rollback).
+
+    Returns:
+        (n_holdings_deleted, n_filings_deleted)
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            "DELETE FROM sec_holdings WHERE cik = %s AND period_of_report = %s",
+            (cik, period),
+        )
+        n_holdings = cur.rowcount
+        cur.execute(
+            "DELETE FROM sec_filings WHERE cik = %s AND period_of_report = %s",
+            (cik, period),
+        )
+        n_filings = cur.rowcount
+    return n_holdings, n_filings

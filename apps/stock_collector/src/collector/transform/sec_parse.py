@@ -13,6 +13,13 @@ Invariants:
   * aggregate_holdings: aggregation key is (cusip, put_call, prn_type);
     shares and value_usd are summed within each group. Deterministic output
     order: sorted by (cusip, put_call, prn_type).
+  * all_13f: returns ALL 13F-HR / 13F-HR/A refs sorted ascending by
+    (period_of_report, filing_date, accession); optionally filtered by since.
+  * group_by_period: groups FilingRef list by period_of_report. Pure.
+  * merge_submission_pages: concatenates column arrays from the recent dict
+    and zero or more older page dicts into one merged recent dict, preserving
+    the column-dict shape expected by parse_submissions. Keys absent from one
+    source are padded with '' to maintain parallel-array invariant.
 
 Side effects: none.
 """
@@ -283,3 +290,93 @@ def aggregate_holdings(
         )
 
     return rows
+
+
+# --- Historical backfill helpers (Phase L) ------------------------------------
+
+
+def all_13f(
+    refs: list[FilingRef],
+    *,
+    since: Optional[date] = None,
+) -> list[FilingRef]:
+    """Return ALL 13F-HR / 13F-HR/A refs sorted ascending by
+    (period_of_report, filing_date, accession).
+
+    Unlike ``latest_13f`` which picks ONE best ref, this returns every ref so
+    the backfill can process each period (including amended filings). When
+    ``since`` is provided, only refs with ``period_of_report >= since`` are
+    kept (floor filter for the backfill window).
+
+    Pure — no I/O.
+    """
+    filtered = refs if since is None else [r for r in refs if r.period_of_report >= since]
+    return sorted(filtered, key=lambda r: (r.period_of_report, r.filing_date, r.accession))
+
+
+def group_by_period(refs: list[FilingRef]) -> dict[date, list[FilingRef]]:
+    """Group FilingRef list by period_of_report.
+
+    Returns a dict keyed by period_of_report; each value is the list of refs
+    for that period in insertion order. The caller picks the kept filing via
+    ``max(group, key=lambda r: (r.filing_date, r.accession))`` to get the
+    most recent amendment.
+
+    Pure — no I/O.
+    """
+    groups: dict[date, list[FilingRef]] = {}
+    for ref in refs:
+        groups.setdefault(ref.period_of_report, []).append(ref)
+    return groups
+
+
+def merge_submission_pages(
+    recent: dict[str, Any],
+    older: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Merge older submission page dicts into the ``recent`` column-dict shape.
+
+    SEC EDGAR pagination: ``submissions/CIK{cik}.json`` has a
+    ``filings.recent`` column dict (parallel arrays) plus an optional
+    ``filings.files`` list of overflow page names. Each overflow page has the
+    same column-dict shape as ``filings.recent``.
+
+    This function concatenates the parallel arrays from ``recent`` and each
+    page in ``older`` (in order), returning ONE merged dict of the same shape
+    so ``parse_submissions({"filings": {"recent": merged}})`` consumes the
+    full union without modification.
+
+    Column keys merged: accessionNumber, form, filingDate, reportDate,
+    primaryDocument, plus any other keys present in recent or any page.
+    Keys absent from a source are padded with '' for each row that source
+    contributes, preserving the parallel-array invariant across all columns.
+
+    Pure — no I/O.
+    """
+    if not older:
+        return recent
+
+    # Collect all column keys seen across recent + all pages (stable order)
+    all_keys: list[str] = list(recent.keys())
+    for page in older:
+        for k in page:
+            if k not in all_keys:
+                all_keys.append(k)
+
+    # Row counts per source: needed to pad keys absent from that source
+    recent_len = len(next(iter(recent.values()), []))
+    page_lens = [len(next(iter(page.values()), [])) for page in older]
+
+    merged: dict[str, Any] = {}
+    for key in all_keys:
+        # Start with recent's column, padding with '' if key is absent there
+        base: list[Any] = list(recent.get(key) or [""] * recent_len)
+        for page, page_len in zip(older, page_lens):
+            page_col = page.get(key)
+            if page_col:
+                base.extend(page_col)
+            else:
+                base.extend([""] * page_len)
+        merged[key] = base
+
+    return merged

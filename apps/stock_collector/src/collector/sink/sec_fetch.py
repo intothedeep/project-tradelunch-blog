@@ -14,6 +14,10 @@ Invariants:
     filename is non-predictable (43977.xml, form13fInfoTable.xml, etc.); filter
     .xml files that do NOT contain the primary-doc name segment, then pick the
     largest by byte size when multiple candidates exist.
+  * submission_page_names() reads the pagination overflow list from a submissions
+    dict (filings.files[].name). Returns [] when absent (single-page fund).
+  * fetch_submission_page() GETs one overflow page by name using the same session
+    + rate limiter as all other SEC calls.
 
 Side effects: network (SEC EDGAR — 3 GETs per fund per run).
 """
@@ -131,3 +135,31 @@ def fetch_infotable(cik: str, accession: str, name: str) -> bytes:
     )
     resp.raise_for_status()
     return resp.content
+
+
+def submission_page_names(subs: dict) -> list[str]:
+    """Return the list of overflow submission page filenames for a CIK.
+
+    SEC paginates older filings into separate JSON pages listed under
+    ``filings.files[].name``. When absent (single-page fund), returns [].
+    The caller fetches each page via ``fetch_submission_page`` and merges
+    them with ``merge_submission_pages`` before calling ``parse_submissions``.
+    """
+    files: list[dict] = subs.get("filings", {}).get("files", [])
+    return [item["name"] for item in files if isinstance(item.get("name"), str)]
+
+
+def fetch_submission_page(name: str) -> dict:
+    """GET one paginated submission overflow page by filename.
+
+    Endpoint: {SEC_DATA_BASE}/submissions/{name}
+    Uses the same module-level session + PROVIDER_SEC13F rate limiter as all
+    other SEC EDGAR calls. Raises on non-2xx status.
+    """
+    url = f"{SEC_DATA_BASE}/submissions/{name}"
+    resp = request_with_backoff(
+        lambda: _session.get(url, timeout=30),
+        limiter=for_provider(PROVIDER_SEC13F),
+    )
+    resp.raise_for_status()
+    return resp.json()
