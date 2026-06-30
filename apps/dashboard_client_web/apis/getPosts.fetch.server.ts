@@ -23,8 +23,16 @@ export async function getFeed(
     username: string,
     filters?: TPostFilters
 ): Promise<TPaginatedResponse> {
-    const { getToken } = await auth();
-    const token = await getToken();
+    // The public feed MUST NOT 500 if auth resolution fails. A resolved token
+    // ⇒ owner context (no-store); no token OR any auth failure ⇒ anonymous
+    // (cached). Never let Clerk hiccups take down the anonymous homepage.
+    let token: string | null = null;
+    try {
+        const { getToken } = await auth();
+        token = await getToken();
+    } catch {
+        token = null;
+    }
 
     const { path } = buildFeedQuery({
         cursor,
@@ -48,10 +56,12 @@ export async function getFeed(
     }
 
     // Anonymous: viewer-agnostic, tag-cached for revalidation on publish.
+    // NOTE: opt into caching via `next.revalidate` ALONE — do NOT also pass
+    // `cache:'force-cache'`; Next rejects the two together ("only one should be
+    // used"), which would throw during the server render.
     const tags = ['feed:global', `feed:${username || 'global'}`];
     return serverRequest<TPaginatedResponse>({
         path,
-        cache: 'force-cache',
         tags,
         revalidate: FEED_REVALIDATE_SECONDS,
         fallbackError,
