@@ -25,6 +25,13 @@ packages/
   @repo/{tailwind,eslint,typescript,jest}-config
 ```
 
+Per-app READMEs:
+
+- [`apps/dashboard_client_web`](./apps/dashboard_client_web/README.md) — Next.js client + SSR
+- [`apps/dashboard_server`](./apps/dashboard_server/README.md) — Express API
+- [`apps/blog_agent`](./apps/blog_agent/README.md) — markdown → Supabase publisher (Python)
+- [`apps/stock_collector`](./apps/stock_collector/README.md) — market-data collector (Python)
+
 Two product surfaces share the Next.js app:
 
 - **Blog / portfolio** — technical posts, infinite scroll, full Markdown + LaTeX
