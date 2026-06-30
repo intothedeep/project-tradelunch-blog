@@ -14,6 +14,8 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Any
 
+import yfinance as yf
+
 from lib.constants import PROVIDER_YAHOO
 from lib.rate_limit import for_provider
 from yahoo_client.download_consumer import build_fetcher
@@ -107,6 +109,23 @@ def fetch_daily(symbol: str, from_date: date, to_date: date | None = None) -> li
     try:
         for_provider(PROVIDER_YAHOO).acquire()
         df = _fetcher(symbol, from_date.isoformat(), end.isoformat(), "1d")
+    except Exception:
+        return []
+    return _frame_to_candles(df)
+
+
+def fetch_full(symbol: str) -> list[dict[str, Any]]:
+    """Fetch the COMPLETE daily history (yfinance ``period='max'``) for --full backfill.
+
+    WHY not ``fetch_daily(symbol, date(1970,1,1))``: Yahoo clamps an early start to
+    first-trade for EQUITIES (AAPL->1980, S&P->1970), but for CRYPTO an implausibly
+    early start DEGENERATES to ~1 month (BTC start=1970 -> 30 bars vs period='max'
+    -> 4305 from 2014). ``period='max'`` clamps to true inception across every asset
+    class. ``[]`` on any error (symbol skipped, run continues). Side effects: network.
+    """
+    try:
+        for_provider(PROVIDER_YAHOO).acquire()
+        df = yf.Ticker(symbol).history(period="max", interval="1d", auto_adjust=False)
     except Exception:
         return []
     return _frame_to_candles(df)

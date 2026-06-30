@@ -23,7 +23,7 @@ from collector.config.settings import database_url, parquet_archive_enabled, par
 from collector.config.watchlist_loader import load_watchlist
 from collector.schema.rows import DEFAULT_INTERVAL, WatchlistEntry
 from collector.sink import db_sink, parquet_sink
-from collector.sink.yahoo_fetch import fetch_daily
+from collector.sink.yahoo_fetch import fetch_daily, fetch_full
 from collector.transform.archive import to_parquet_records
 from collector.transform.ohlc import to_history_rows
 from collector.transform.snapshot import build_snapshot
@@ -33,17 +33,9 @@ from lib.constants import PROVIDER_YAHOO, safe_symbol
 DEFAULT_BACKFILL_DAYS = 400  # ~252 trading bars on first run
 
 
-def _from_date(
-    entry: WatchlistEntry,
-    latest: dict[str, date],
-    backfill_days: int,
-    full: bool = False,
-) -> date:
-    # --full forces inception (yfinance clamps to the symbol's first trade date),
-    # ignoring both the incremental cursor and backfill_days. ON CONFLICT makes
-    # the re-fetch idempotent.
-    if full:
-        return date(1970, 1, 1)
+def _from_date(entry: WatchlistEntry, latest: dict[str, date], backfill_days: int) -> date:
+    # Incremental: resume at max(bar_time)+1d, else backfill_days on first sight.
+    # (--full bypasses this entirely via yahoo_fetch.fetch_full / period='max'.)
     last = latest.get(entry.label)
     if last is not None:
         return last + timedelta(days=1)
@@ -70,7 +62,13 @@ def _ingest(
     archive_items: list[tuple[str, list]] = []
     skipped = 0
     for e in targets:
-        candles = fetch_daily(e.symbol, _from_date(e, latest, backfill_days, full))
+        # --full: period='max' (correct inception for ALL asset classes incl.
+        # crypto). Incremental otherwise. See yahoo_fetch.fetch_full for WHY.
+        candles = (
+            fetch_full(e.symbol)
+            if full
+            else fetch_daily(e.symbol, _from_date(e, latest, backfill_days))
+        )
         rows = to_history_rows(e.label, candles, interval=DEFAULT_INTERVAL)
         if not rows:
             skipped += 1
