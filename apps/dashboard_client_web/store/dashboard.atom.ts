@@ -34,6 +34,23 @@ export const selectedRangeAtom = atomWithStorage<ChartRange>(
     '6M'
 );
 
+// Maps the chart viewport range (UI) -> backend history fetch window
+// (1m|3m|6m|1y|5y|max). Indicators (e.g. MA200) need ~1y of daily bars, so every
+// range up to 1Y fetches '1y'; 5Y/All fetch more so the chart actually shows that
+// span. Ranges sharing a fetch window share the React Query key -> switching among
+// them never refetches.
+export const CHART_RANGE_TO_FETCH: Record<ChartRange, string> = {
+    '1D': '1y',
+    '5D': '1y',
+    '1M': '1y',
+    '3M': '1y',
+    '6M': '1y',
+    YTD: '1y',
+    '1Y': '1y',
+    '5Y': '5y',
+    All: 'max',
+};
+
 export type ChartInterval =
     | '1m'
     | '5m'

@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAtomValue } from 'jotai';
 import { useTheme } from 'next-themes';
 import {
+    CHART_RANGE_TO_FETCH,
     selectedIntervalAtom,
     selectedLabelAtom,
     selectedRangeAtom,
@@ -49,10 +50,13 @@ export default function ChartPanel({ className }: Props) {
         resolvedTheme === 'light' ? TV_LIGHT : TV_DARK;
 
     // History is always fetched at '1d'; W/M/intraday are derived client-side
-    // via generateIntervalCandles. Gated by mounted + selectedLabel.
+    // via generateIntervalCandles. The viewport range drives the fetch window so
+    // 5Y/All actually pull that span (everything up to 1Y stays at '1y'). Gated
+    // by mounted + selectedLabel.
     const historyQuery = useDashboardHistory({
         label: selectedLabel,
         interval: '1d',
+        range: CHART_RANGE_TO_FETCH[selectedRange],
         enabled: mounted,
     });
 

@@ -23,10 +23,14 @@ export const SNAPSHOT_POLL_MS = POLL_CRYPTO_MS;
 
 const HISTORY_STALE_MS = 5 * 60 * 1000;
 
+// Default lookback when a caller doesn't pick one — matches the backend default.
+// Allowed: 1m | 3m | 6m | 1y | 5y | max.
+export const DEFAULT_HISTORY_RANGE = '1y';
+
 export const dashboardQueryKeys = {
     snapshot: ['dashboard', 'snapshot'] as const,
-    history: (label: string, interval: string) =>
-        ['dashboard', 'history', label, interval] as const,
+    history: (label: string, interval: string, range: string) =>
+        ['dashboard', 'history', label, interval, range] as const,
 };
 
 export function useDashboardSnapshot() {
@@ -40,17 +44,19 @@ export function useDashboardSnapshot() {
 interface UseDashboardHistoryArgs {
     label: string | null;
     interval: string;
+    range?: string;
     enabled?: boolean;
 }
 
 export function useDashboardHistory({
     label,
     interval,
+    range = DEFAULT_HISTORY_RANGE,
     enabled = true,
 }: UseDashboardHistoryArgs) {
     return useQuery({
-        queryKey: dashboardQueryKeys.history(label ?? '', interval),
-        queryFn: () => getDashboardHistory(label as string, interval),
+        queryKey: dashboardQueryKeys.history(label ?? '', interval, range),
+        queryFn: () => getDashboardHistory(label as string, interval, range),
         enabled: enabled && label !== null,
         staleTime: HISTORY_STALE_MS,
     });

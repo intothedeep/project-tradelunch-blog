@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
 import { getDashboardSnapshot } from '@/app/actions/getDashboardSnapshot.action';
-import { MOCK_DASHBOARD_SNAPSHOT } from '@/apis/getDashboardSnapshot.mock.api';
 import ChartVariantLayout from '@/components/dashboard/ChartVariantLayout.client';
 
 export const metadata: Metadata = {
@@ -16,14 +15,30 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 // Cycle 3 (page conversion): /dashboard renders the adopted Variant C trading
-// dashboard. The snapshot is sourced through getDashboardSnapshot — gated by
-// DASHBOARD_DATA_SOURCE (default 'mock'), so flipping to 'backend' switches the
-// data with no code change. On any error we fall back to the mock snapshot so
-// the page always renders. History is now lazy, backend-sourced per selected
-// label, and gated by DASHBOARD_DATA_SOURCE via useDashboardHistory.
+// dashboard, sourced live from Express via getDashboardSnapshot (next.revalidate
+// 30min, in phase with the backend s-maxage). There is NO mock fallback — a
+// backend failure is forwarded to error_log (source='ssr') inside the action and
+// surfaced here as an explicit error state, so a broken backend stays visible
+// instead of being masked by stale mock data. History is lazy + backend-sourced
+// per selected label via useDashboardHistory.
 export default async function DashboardPage() {
     const result = await getDashboardSnapshot();
-    const snapshot = result.ok ? result.data : MOCK_DASHBOARD_SNAPSHOT;
 
-    return <ChartVariantLayout snapshot={snapshot} />;
+    if (!result.ok) {
+        return (
+            <main className="flex min-h-[60vh] items-center justify-center p-8">
+                <div className="text-center">
+                    <h1 className="text-lg font-semibold">
+                        Dashboard data is unavailable
+                    </h1>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                        The market backend could not be reached. Please try
+                        again shortly.
+                    </p>
+                </div>
+            </main>
+        );
+    }
+
+    return <ChartVariantLayout snapshot={result.data} />;
 }
