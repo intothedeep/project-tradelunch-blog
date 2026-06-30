@@ -21,11 +21,16 @@ interface CategorySidebarProps {
     // the per-author `categories` facet instead of single-category navigation.
     // Default 'nav' keeps the legacy `?category_title=` behavior.
     mode?: 'nav' | 'filter';
+    // `bare` drops the Card chrome (header/title) and renders only the tree, for
+    // nesting inside a labelled container — e.g. the mobile category accordion,
+    // where the Collapsible trigger already provides the heading.
+    bare?: boolean;
 }
 
 export const CategorySidebar: React.FC<CategorySidebarProps> = ({
     categories,
     mode = 'nav',
+    bare = false,
 }) => {
     const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
@@ -84,6 +89,21 @@ export const CategorySidebar: React.FC<CategorySidebarProps> = ({
                       searchParams.get('category_title') ?? undefined,
               }).categories
             : [];
+
+    // Bare: tree only (no Card), for the mobile accordion where the Collapsible
+    // trigger already labels the section.
+    if (bare) {
+        return (
+            <div className="px-1 pt-2 pb-1">
+                <CategoryTree
+                    nodes={nodes}
+                    selectedNode={selectedNode}
+                    onSelectNode={handleNodeSelect}
+                    activeTitles={activeCategories}
+                />
+            </div>
+        );
+    }
 
     return (
         <Card

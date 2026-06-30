@@ -8,11 +8,14 @@ type Props = {
     // 'filter' (desktop author rail): clicking a category toggles the per-author
     // `categories` facet. Default 'nav' keeps legacy single-category navigation.
     mode?: 'nav' | 'filter';
+    // `bare` drops the Card chrome — used by the mobile category accordion.
+    bare?: boolean;
 };
 
 export const CategorySidebarWrapper = async ({
     username,
     mode = 'nav',
+    bare = false,
 }: Props) => {
     const data: { categories: TTreeNodeWithChildren[] } =
         await getCategoriesByUsername(username);
@@ -21,6 +24,7 @@ export const CategorySidebarWrapper = async ({
         <CategorySidebar
             categories={data.categories ?? []}
             mode={mode}
+            bare={bare}
         />
     );
 };

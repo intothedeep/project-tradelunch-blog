@@ -4,12 +4,11 @@ import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 
 import BlogMainPage from '@/app/blog/components/BlogMainPage';
+import { CategorySidebarWrapper } from '@/app/blog/components/CategorySidebarWrapper.server';
 import { AppliedFilters } from '@/components/blog/filter/AppliedFilters.client';
 import { FilterChipRow } from '@/components/blog/filter/FilterChipRow.client';
-import {
-    getCategoryFilterItems,
-    getTagFilterItems,
-} from '@/components/blog/filter/getFilterItems.server';
+import { getTagFilterItems } from '@/components/blog/filter/getFilterItems.server';
+import { MobileCategory } from '@/components/blog/MobileCategory.client';
 import { HOME_FEED_AUTHOR, stripUsernameAt } from '@/utils/blog-author';
 import { parseFilterState } from '@/utils/filter-state';
 
@@ -48,23 +47,23 @@ export default async function BlogPage({ params, searchParams }: PageProps) {
     const filters = parseFilterState(sp);
 
     const t = await getTranslations('blog.filters');
-    const [categoryItems, tagItems] = await Promise.all([
-        getCategoryFilterItems(author),
-        getTagFilterItems(author),
-    ]);
+    const tagItems = await getTagFilterItems(author);
 
     return (
         <>
             <AppliedFilters username={author} />
 
-            {/* Mobile (<lg): horizontal chip rows. Desktop uses the rails. */}
+            {/* Mobile (<lg): the right rail (with its category tree) is hidden, so
+                surface categories as a collapsible accordion — mirroring the post
+                TOC ("Contents") on the detail page. Tags stay a chip row. */}
             <div className="mb-3 flex flex-col gap-2 lg:hidden">
-                <FilterChipRow
-                    username={author}
-                    facet="categories"
-                    items={categoryItems}
-                    ariaLabel={t('categories')}
-                />
+                <MobileCategory title={t('categories')}>
+                    <CategorySidebarWrapper
+                        username={author}
+                        mode="filter"
+                        bare
+                    />
+                </MobileCategory>
                 <FilterChipRow
                     username={author}
                     facet="tags"
