@@ -38,13 +38,23 @@ export const buildPrimaryNavLinks = (
     const links: NavLink[] = [
         { title: 'Home', href: '/', labelKey: 'nav.home', iconKey: 'home' },
         {
-            // The all-authors aggregate feed. Reuses the former "Explore" slot
-            // (a future real Explore can return on its own key) since this IS
-            // the cross-author discovery surface while `/` is the owner's blog.
+            // The all-authors aggregate feed. The cross-author discovery surface
+            // while `/` is the owner's blog.
             title: 'All posts',
             href: '/blog',
             labelKey: 'nav.allPosts',
             iconKey: 'allPosts',
+        },
+        {
+            // Real search/discovery surface (P6, DEFERRED). Shown DISABLED as a
+            // "coming soon" affordance — no `/explore` route exists yet, so the
+            // PrimaryNav renders it as a non-clickable, muted placeholder. Flip
+            // `disabled` off + add the route when P6 (search API + /explore) lands.
+            title: 'Explore',
+            href: '/explore',
+            labelKey: 'nav.explore',
+            iconKey: 'explore',
+            disabled: true,
         },
         {
             title: 'About',

@@ -149,3 +149,12 @@ Per `.claude/CLAUDE.md` "rm -rf" rule: never delete files directly. Rename with 
 ## Environment
 
 `.env`, `.env.local`, `.env.production`, `.env.example` exist per app and in `packages/axios`. Config precedence: env vars > config files > defaults. Zod is in `dashboard_client_web` deps but no `env.schema.ts` validator exists yet.
+
+### Database connection vars (Supabase)
+
+There is **no `DATABASE_URL` in the apps** — the apps read the Vercel↔Supabase integration vars:
+
+- `POSTGRES_URL` — **pooled** (transaction pooler, port `6543`) → runtime pg `Pool`.
+- `POSTGRES_URL_NON_POOLING` — **direct/session** (port `5432`) → migrations / direct queries.
+
+`dashboard_server` `src/config/env.schema.ts` resolves its internal `DATABASE_URL`/`DATABASE_URL_DIRECT` constants *from* those two (the constant name is legacy; the env var is `POSTGRES_URL*`). `DATABASE_URL` is used **only in GitHub Actions** (the `stock_collector` cron workflows), set as a secret to the Supabase **session pooler** (`...pooler.supabase.com:5432`) — never the IPv6-only direct host. The collector reads `DATABASE_URL` OR falls back to `POSTGRES_URL_NON_POOLING`.
