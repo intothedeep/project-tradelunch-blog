@@ -1,16 +1,11 @@
 name: collector-seed-archive
 
-# One-shot MANUAL seed of the Parquet archive with FULL Yahoo history, then upload
-# to the PRIVATE Storage bucket. Run once after enabling the archive (the daily
-# cron only captures go-forward bars; this backfills the rest). Re-runnable —
-# parquet_sink read-merge-rewrite de-dupes by date.
+# One-shot MANUAL seed of the Parquet archive with FULL Yahoo history (from each
+# symbol's inception via fetch_full / period='max'), then upload to the PRIVATE
+# Storage bucket. Run once after enabling the archive, and again after a ranking
+# adds new tickers. Re-runnable — parquet_sink read-merge-rewrite de-dupes by date.
 on:
-  workflow_dispatch:
-    inputs:
-      backfill_days:
-        description: "Days of history to seed"
-        default: "400"
-        required: false
+  workflow_dispatch: {}
 
 concurrency:
   group: collector-seed-archive
@@ -40,7 +35,7 @@ jobs:
           # Session pooler (5432) — only to read tracked_symbols; graceful if unset.
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
-        run: uv run python -m collector.entrypoints.seed_archive --backfill-days "${{ inputs.backfill_days }}"
+        run: uv run python -m collector.entrypoints.seed_archive
 
       - name: Upload Parquet archive to Storage
         env:
