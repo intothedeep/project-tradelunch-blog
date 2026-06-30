@@ -19,19 +19,21 @@ export function useChartPanelMenu(): ChartPanelMenuReturn {
     const menuRef = useRef<HTMLDivElement>(null);
 
     // lightweight-charts v5 schedules internal rAFs that can fire after
-    // chart.remove() during React strict-mode unmount cycles. The thrown
-    // "Object is disposed" comes from fancy-canvas reading sizes on a
-    // disposed canvas binding — there's no API to cancel that rAF from
-    // outside. Suppress at the window level for the lifetime of this panel.
+    // chart.remove() (strict-mode unmount, and — since history is fetched
+    // lazily — every candles-change teardown+rebuild). The thrown "Object is
+    // disposed" comes from fancy-canvas reading sizes on a disposed canvas
+    // binding; there's no API to cancel that rAF from outside, so suppress it
+    // at the window level for the lifetime of this panel.
+    //
+    // Match on the message ALONE — NOT on event.filename. In production the
+    // library is bundled into a hash-named chunk (e.g. 2cd7avmplo_3k.js), so a
+    // filename `.includes('lightweight-charts')` check never matches and the
+    // error leaks to the console. "Object is disposed" is specific enough to
+    // this library that a message-only match is safe.
     useEffect(() => {
         const onError = (event: ErrorEvent) => {
-            const msg = event.message ?? '';
-            const src = event.filename ?? '';
-            if (
-                msg.includes('Object is disposed') &&
-                (src.includes('fancy-canvas') ||
-                    src.includes('lightweight-charts'))
-            ) {
+            const msg = event.message || event.error?.message || '';
+            if (msg.includes('Object is disposed')) {
                 event.preventDefault();
                 event.stopImmediatePropagation();
             }
