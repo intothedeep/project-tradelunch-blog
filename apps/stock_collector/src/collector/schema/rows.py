@@ -61,6 +61,18 @@ class WatchlistEntry:
     exchange: Optional[str] = None
 
 
+@dataclass(frozen=True)
+class FundEntry:
+    """One 13F filer identity loaded from configs/funds.yaml.
+
+    ``cik`` is the SEC-native zero-padded 10-character string (digits only).
+    ``label`` is a globally unique human-readable name for the fund.
+    """
+
+    cik: str
+    label: str
+
+
 # --- Output rows (Phase 1) --------------------------------------------------
 
 
@@ -145,3 +157,55 @@ class FundamentalsRow:
     sector: Optional[str] = None
     shares_refreshed_at: Optional[datetime] = None
     sector_refreshed_at: Optional[datetime] = None
+
+
+# --- Output rows (Phase J — SEC 13F holdings) -------------------------------
+
+
+@dataclass(frozen=True)
+class FilingRow:
+    """One 13F filing header -> sec_filings (PK cik, accession).
+
+    ``cik`` is the source-native zero-padded 10-char string. ``period_of_report``
+    is the quarter-end (``reportDate`` from the submissions JSON), used as as_of.
+    ``value_units`` records the RAW unit of the info-table value column ('usd'
+    for periods >= 2022-12-31, else 'usd_thousands') so the USD normalization in
+    HoldingRow.value_usd stays auditable. ``form_type`` is '13F-HR' | '13F-HR/A'.
+    """
+
+    cik: str
+    accession: str
+    period_of_report: date
+    form_type: str
+    filer: Optional[str] = None
+    filing_date: Optional[date] = None
+    value_units: str = "usd"
+    source: str = "sec13f"
+
+
+@dataclass(frozen=True)
+class HoldingRow:
+    """One aggregated 13F position -> sec_holdings.
+
+    PK = (cik, accession, cusip, put_call, prn_type). Lines are aggregated across
+    ``otherManager`` in the pure transform (multi-manager funds repeat a security
+    once per sub-manager), so shares/value_usd are summed. ``cusip`` is source-
+    native; ``ticker`` is reserved (NULL until a licensed CUSIP->ticker mapping).
+    ``value_usd`` is normalized to whole USD; ``put_call`` is a NON-NULL sentinel
+    ('' | 'PUT' | 'CALL') because NULL would break ON CONFLICT. ``prn_type`` is
+    'SH' | 'PRN'.
+    """
+
+    cik: str
+    accession: str
+    period_of_report: date
+    cusip: str
+    name_of_issuer: str
+    value_usd: int
+    put_call: str = ""
+    prn_type: Optional[str] = None
+    title_of_class: Optional[str] = None
+    shares: Optional[int] = None
+    discretion: Optional[str] = None
+    ticker: Optional[str] = None
+    source: str = "sec13f"

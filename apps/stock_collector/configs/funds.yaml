@@ -1,0 +1,13 @@
+# Seed fund list for Phase J — SEC 13F collector.
+# Each entry: { cik, label }
+# CIK is the SEC-native zero-padded 10-character identifier (string).
+# Source: SEC EDGAR company search https://www.sec.gov/cgi-bin/browse-edgar
+# These are the authoritative CIKs for the listed institutional filers.
+
+funds:
+  - { cik: "0001067983", label: "Berkshire Hathaway" }
+  - { cik: "0001086364", label: "BlackRock" }            # BLACKROCK ADVISORS LLC (active 13F filer)
+  - { cik: "0000102909", label: "Vanguard Group" }
+  - { cik: "0000093751", label: "State Street" }
+  - { cik: "0001350694", label: "Bridgewater Associates" }   # Bridgewater Associates, LP
+  - { cik: "0001037389", label: "Renaissance Technologies" } # RENAISSANCE TECHNOLOGIES LLC
