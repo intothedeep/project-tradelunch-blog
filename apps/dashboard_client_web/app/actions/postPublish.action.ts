@@ -80,3 +80,18 @@ export async function setAdminPostStatusAction(
     });
     revalidateFeed(username);
 }
+
+export async function deleteAdminPostAction(
+    postId: string,
+    username: string
+): Promise<void> {
+    const token = await requireToken();
+    await serverRequest<void>({
+        path: `/v1/api/admin/posts/${postId}`,
+        method: 'DELETE',
+        token,
+        cache: 'no-store',
+        fallbackError: 'Failed to delete post',
+    });
+    revalidateFeed(username);
+}

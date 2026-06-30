@@ -24,8 +24,6 @@ export async function getCategoriesByUsername(
             { username: string }
         >(`/v1/api/posts/users/${username}/categories`);
 
-        console.log('>> getCategoriesByUsername: ', { response });
-
         // response.data is TCategoryTreeResponse, check success on data
         if (response.status !== 200) {
             throw new Error(`HTTP ${response.status}`);

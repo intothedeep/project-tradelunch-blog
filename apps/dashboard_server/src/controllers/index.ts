@@ -9,6 +9,7 @@ import admin from "./admin";
 import favorites from "./favorites";
 import categories from "./categories";
 import tags from "./tags";
+import errorLogs from "./errorLogs";
 
 export const router = Router();
 
@@ -38,6 +39,9 @@ router.use("/api/tags", tags);
 // Viewer-likes list (GET /api/likes) — the caller's own liked ids, on its own
 // prefix so it never collides with the public feed at GET /api/posts.
 router.use("/api/likes", likesListRouter);
+// Error-log ingest (POST /api/error-logs) — PUBLIC, called server-to-server by
+// the Next runtime (app/api/log-error), never by the browser. Its own prefix.
+router.use("/api/error-logs", errorLogs);
 // router.use("/accounts", require("./accounts"));
 // router.use("/auth", require("./auth"));
 // router.use("/chat", require("./chat"));

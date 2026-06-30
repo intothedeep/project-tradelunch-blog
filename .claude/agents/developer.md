@@ -2,7 +2,7 @@
 name: developer
 description: MUST BE USED for implementing features from tasks. No planning.
 tools: Read, Write, Bash
-model: opus
+model: sonnet
 ---
 
 You are a strict software developer.

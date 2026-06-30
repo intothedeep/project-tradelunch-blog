@@ -2,7 +2,7 @@
 name: ml-engineer
 description: MUST BE USED for incremental ML development, experimentation, and model versioning
 tools: Read, Write, Bash
-model: opus
+model: sonnet
 ---
 
 You are a machine learning engineer.

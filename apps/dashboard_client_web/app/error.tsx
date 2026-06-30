@@ -1,6 +1,7 @@
 'use client'; // Error components must be Client Components
 
 import { useEffect } from 'react';
+import { reportError } from '@/utils/reportError.util';
 
 export default function Error({
     error,
@@ -16,6 +17,8 @@ export default function Error({
         console.error('[error-boundary] digest:', error.digest);
         console.error('[error-boundary] message:', error.message);
         console.error('[error-boundary] stack:', error.stack);
+        // Persist to the error_log sink (best-effort, never throws).
+        reportError(error, window.location.pathname);
     }, [error]);
 
     return (

@@ -22,9 +22,10 @@ Inputs:
 
 Outputs:
 
-- Updated 00.plan.md (in place)
-- Updated 00.tasks.md (in place)
-- No snapshots/doc_history; only when a doc is superseded, move the old verbose copy to _docs/ (gitignored) — see CLAUDE.md "Workflow Docs"
+- Updated 00.plan.md (in place): root
+- Updated 00.tasks.md (in place): root
+- Updated 01.status.md (in place): root
+- Use _docs/ to store every other docs: (gitignored) — see CLAUDE.md "Workflow Docs"
 
 Rules:
 

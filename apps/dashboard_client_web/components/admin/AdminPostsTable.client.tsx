@@ -11,7 +11,7 @@ import { useMemo } from 'react';
 import { useMe } from '@/hooks/useMe.query.client';
 import { useAdminPosts } from '@/hooks/useAdminPosts.query.client';
 import { useSetAdminPostStatus } from '@/hooks/useSetAdminPostStatus.query.client';
-import { useDeleteAdminPost } from '@/hooks/useDeleteAdminPost.query.client';
+import { useDeleteAdminPostAction } from '@/hooks/useDeleteAdminPostAction.query.client';
 import { cn } from '@/lib/utils';
 import type { TAdminPostListItem } from '@repo/types';
 
@@ -40,7 +40,7 @@ interface PostRowProps {
     post: TAdminPostListItem;
     onUnpublish: (id: string) => void;
     onRepublish: (id: string) => void;
-    onDelete: (id: string) => void;
+    onDelete: (args: { postId: string; username: string }) => void;
     isBusy: boolean;
 }
 
@@ -86,7 +86,12 @@ function PostRow({
                     <button
                         type="button"
                         disabled={isBusy}
-                        onClick={() => onDelete(post.id)}
+                        onClick={() =>
+                            onDelete({
+                                postId: post.id,
+                                username: post.username ?? '',
+                            })
+                        }
                         className="rounded border border-red-300 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
                     >
                         Delete
@@ -103,7 +108,7 @@ export function AdminPostsTable() {
 
     const posts = useAdminPosts(isAdmin);
     const setStatus = useSetAdminPostStatus();
-    const deletePost = useDeleteAdminPost();
+    const deletePost = useDeleteAdminPostAction();
 
     const items = useMemo<TAdminPostListItem[]>(
         () => posts.data?.pages.flatMap((page) => page.items) ?? [],
@@ -172,7 +177,7 @@ export function AdminPostsTable() {
                                         username: post.username ?? '',
                                     })
                                 }
-                                onDelete={(id) => deletePost.mutate(id)}
+                                onDelete={(args) => deletePost.mutate(args)}
                             />
                         ))}
                     </tbody>
