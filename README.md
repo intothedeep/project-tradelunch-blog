@@ -13,7 +13,9 @@ pnpm + Turborepo monorepo, Node 24.
 ```
 apps/
   dashboard_client_web/   Next.js 16 App Router — blog + finance dashboard
-  dashboard_server/       Express 5 + Sequelize/pg — blog content backend (S3 + SSH tunnel)
+  dashboard_server/       Express 5 + pg Pool → Supabase Postgres — blog + dashboard API
+  blog_agent/             Python (uv) — markdown blog publisher → Supabase
+  stock_collector/        Python (uv) — Yahoo OHLC collector → market data (GitHub Actions cron)
 packages/
   @repo/ui                Shared React components
   @repo/axios             Shared axios client
@@ -62,6 +64,22 @@ pnpm format          # prettier write
 
 ---
 
+## Admin bootstrap
+
+There is **no admin-grant UI** by design — users are lazy-provisioned with `is_admin = false`.
+To promote the owner, run a **one-time** SQL statement in the Supabase SQL Editor *after* that
+account has signed up and completed onboarding (so the `users` row exists):
+
+```sql
+UPDATE users SET is_admin = true WHERE username = '<owner-username>';
+```
+
+Match by `username` or `clerk_user_id` — **never `email`** (lazy-provisioned users have a NULL
+`email`, so an email match silently updates zero rows). This single-owner bootstrap is intentionally
+manual; an env/config allowlist would be over-engineering for one admin.
+
+---
+
 ## Tech stack
 
-Next.js 16 · React 19 · TypeScript strict · Tailwind v4 · Radix UI · shadcn/ui · lucide-react · Jotai · TanStack Query v5 · next-intl · Express 5 · Sequelize · PostgreSQL · AWS S3 · pnpm 9 · Turborepo · PM2
+Next.js 16 · React 19 · TypeScript strict · Tailwind v4 · Radix UI · shadcn/ui · lucide-react · Jotai · TanStack Query v5 · next-intl · Clerk (auth) · Express 5 · pg Pool · Supabase (Postgres + Storage) · Python (uv) · Vercel · GitHub Actions · pnpm 9 · Turborepo · PM2
