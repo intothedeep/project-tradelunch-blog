@@ -76,3 +76,13 @@ def parquet_dir() -> Path:
 def parquet_bucket() -> str:
     """PRIVATE Supabase Storage bucket for the Parquet archive (I1.5.1b, analytics-only)."""
     return os.getenv("COLLECTOR_PARQUET_BUCKET", "market-archive")
+
+
+def sec_archive_enabled() -> bool:
+    """Phase J raw 13F info-table archive toggle (default OFF until the bucket exists)."""
+    return os.getenv("COLLECTOR_ARCHIVE_SEC", "").strip().lower() in ("1", "true", "yes")
+
+
+def sec_bucket() -> str:
+    """PRIVATE Supabase Storage bucket for raw 13F info-table XML (archive-only)."""
+    return os.getenv("COLLECTOR_SEC_BUCKET", "market-archive")

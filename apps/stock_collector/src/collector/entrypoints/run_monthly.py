@@ -19,9 +19,14 @@ import sys
 from datetime import datetime, timezone
 
 from collector.config.funds_loader import load_funds
-from collector.config.settings import database_url
+from collector.config.settings import (
+    database_url,
+    sec_archive_enabled,
+    sec_bucket,
+    supabase_storage,
+)
 from collector.schema.rows import FilingRow
-from collector.sink import db_sink, sec_db_sink
+from collector.sink import db_sink, sec_db_sink, storage_sink
 from collector.sink import sec_fetch
 from collector.transform.sec_parse import (
     aggregate_holdings,
@@ -90,6 +95,11 @@ def main(argv: list[str] | None = None) -> int:
     started_at = datetime.now(timezone.utc)
     conn = db_sink.connect()
     status, descr = "success", ""
+    # Best-effort raw 13F archive (default OFF). Resolved once; per-fund upload
+    # failures are swallowed by storage_sink (never abort collection).
+    archive_on = sec_archive_enabled()
+    archive_url, archive_key = supabase_storage() if archive_on else (None, None)
+    archive_bucket = sec_bucket()
     try:
         funds_ok = 0
         holdings_total = 0
@@ -113,6 +123,14 @@ def main(argv: list[str] | None = None) -> int:
                     continue
 
                 xml = sec_fetch.fetch_infotable(f.cik, ref.accession, name)
+                if archive_on and archive_url and archive_key:
+                    storage_sink.upload_object(
+                        archive_url,
+                        archive_key,
+                        archive_bucket,
+                        f"sec13f/{f.cik}/{ref.accession}/infotable.xml",
+                        xml,
+                    )
                 raws = parse_infotable(xml)
                 holdings = aggregate_holdings(
                     raws,
