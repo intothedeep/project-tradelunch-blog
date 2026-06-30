@@ -304,4 +304,8 @@ If complexity increases or boundaries are unclear:
 
 1. update folder or file name with x\_\* so an user can delete manually.
 
+## 19. jest and docs
+
+1. run them at the end once
+
 ## End of Rules
