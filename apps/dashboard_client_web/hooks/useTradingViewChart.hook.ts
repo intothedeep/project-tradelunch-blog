@@ -1,31 +1,27 @@
 'use client';
 
+// Purpose: Orchestrates a lightweight-charts v5 instance for the dashboard
+// chart panel. Delegates pure series/setup work to utils/chart-series and
+// utils/chart-setup; keeps all React state/ref management and the effect
+// teardown closure here.
+
 import { useEffect, useRef, useState, type RefObject } from 'react';
-import {
-    createChart,
-    createSeriesMarkers,
-    ColorType,
-    LineStyle,
-    CandlestickSeries,
-    LineSeries,
-    HistogramSeries,
-    type IChartApi,
-    type ISeriesApi,
-    type SeriesMarker,
-    type Time,
-} from 'lightweight-charts';
+import type { IChartApi, ISeriesApi, Time } from 'lightweight-charts';
 import type { IOHLCPoint } from '@/types/history';
 import type { ChartPalette } from '@/lib/chart-theme';
 import type { ChartRange } from '@/store/dashboard.atom';
-import { visibleStartIdx } from '@/utils/chart-format';
-import { MA_PERIODS } from '@/types/dashboard';
-import type { MAPeriod, IndicatorState } from '@/types/dashboard';
+import type { IndicatorState } from '@/types/dashboard';
 import {
-    IchimokuCloudPrimitive,
-    type CloudPoint,
-} from '@/lib/ichimokuCloud.plugin';
-import { computeRsiSignals } from '@/utils/computeRsiSignals';
-import { computeMacdSignals } from '@/utils/computeMacdSignals';
+    createTvChart,
+    applyPaneStretch,
+    applyVisibleRange,
+} from '@/utils/chart-setup';
+import {
+    buildCandleAndVolumeSeries,
+    buildMaSeries,
+    buildIchimoku,
+} from '@/utils/chart-series';
+import { buildRsiPane, buildMacdPane } from '@/utils/chart-panes';
 
 interface Params {
     containerRef: RefObject<HTMLDivElement | null>;
@@ -35,18 +31,6 @@ interface Params {
     selectedRange: ChartRange;
     enabled: boolean;
 }
-
-interface LinePoint {
-    time: Time;
-    value: number;
-}
-interface HistPoint {
-    time: Time;
-    value: number;
-    color: string;
-}
-
-const toTime = (t: string | number): Time => t as Time;
 
 export interface PaneRect {
     top: number;
@@ -101,346 +85,33 @@ export function useTradingViewChart({
         if (!container) return;
         if (candles.length === 0) return;
 
-        const chart = createChart(container, {
-            layout: {
-                background: { type: ColorType.Solid, color: palette.bg },
-                textColor: palette.textPrimary,
-            },
-            grid: {
-                vertLines: { color: palette.gridLine },
-                horzLines: { color: palette.gridLine },
-            },
-            rightPriceScale: { borderVisible: false },
-            leftPriceScale: { borderVisible: false },
-            timeScale: {
-                borderVisible: false,
-                timeVisible: typeof candles[0]?.time === 'number',
-                secondsVisible: false,
-            },
-            crosshair: {
-                mode: 1,
-                vertLine: {
-                    color: palette.textSecondary,
-                    labelBackgroundColor: palette.gridLine,
-                },
-                horzLine: {
-                    color: palette.textSecondary,
-                    labelBackgroundColor: palette.gridLine,
-                },
-            },
-            width: container.clientWidth,
-            height: container.clientHeight,
-        });
-
+        const chart = createTvChart(container, candles, palette);
         chartRef.current = chart;
-        const candleSeries = chart.addSeries(CandlestickSeries, {
-            upColor: palette.candleUp,
-            downColor: palette.candleDown,
-            borderVisible: false,
-            wickUpColor: palette.candleUp,
-            wickDownColor: palette.candleDown,
-            lastValueVisible: true,
-            priceLineVisible: true,
-        });
-        candleSeriesRef.current = candleSeries;
-        candleSeries.setData(
-            candles.map((c) => ({
-                time: toTime(c.time),
-                open: c.open,
-                high: c.high,
-                low: c.low,
-                close: c.close,
-            }))
+
+        const candleSeries = buildCandleAndVolumeSeries(
+            chart,
+            candles,
+            palette
         );
+        candleSeriesRef.current = candleSeries;
         setChartReady((n) => n + 1);
 
-        const maColors: Record<MAPeriod, string> = {
-            5: palette.ma5,
-            20: palette.ma20,
-            50: palette.ma50,
-            100: palette.ma100,
-            200: palette.ma200,
-        };
-        for (const period of MA_PERIODS) {
-            if (!maVisible[period]) continue;
-            const maSeries = chart.addSeries(LineSeries, {
-                color: maColors[period],
-                lineWidth: 1,
-                title: `MA${period}`,
-                lastValueVisible: true,
-                priceLineVisible: false,
-            });
-            const data: LinePoint[] = [];
-            for (let i = 0; i < candles.length; i++) {
-                const v = maArrays[period][i];
-                const c = candles[i];
-                if (v !== null && v !== undefined && c !== undefined)
-                    data.push({ time: toTime(c.time), value: v });
-            }
-            maSeries.setData(data);
-        }
-
-        const volumeSeries = chart.addSeries(HistogramSeries, {
-            priceFormat: { type: 'volume' },
-            priceScaleId: 'volume',
-            lastValueVisible: false,
-            priceLineVisible: false,
-        });
-        chart.priceScale('volume').applyOptions({
-            scaleMargins: { top: 0.7, bottom: 0 },
-        });
-        volumeSeries.setData(
-            candles.map((c) => ({
-                time: toTime(c.time),
-                value: c.volume,
-                color:
-                    c.close >= c.open ? palette.volumeUp : palette.volumeDown,
-            }))
-        );
+        buildMaSeries(chart, candles, palette, maArrays, maVisible);
 
         if (ichimokuVisible) {
-            const lines: Array<{
-                key: keyof typeof ichimoku;
-                color: string;
-                title: string;
-            }> = [
-                {
-                    key: 'tenkan',
-                    color: palette.ichimokuTenkan,
-                    title: 'Tenkan',
-                },
-                { key: 'kijun', color: palette.ichimokuKijun, title: 'Kijun' },
-                {
-                    key: 'senkouA',
-                    color: palette.ichimokuSpanA,
-                    title: 'Span A',
-                },
-                {
-                    key: 'senkouB',
-                    color: palette.ichimokuSpanB,
-                    title: 'Span B',
-                },
-                {
-                    key: 'chikou',
-                    color: palette.ichimokuChikou,
-                    title: 'Chikou',
-                },
-            ];
-            for (const { key, color, title } of lines) {
-                const series = chart.addSeries(LineSeries, {
-                    color,
-                    lineWidth: 1,
-                    title,
-                    lastValueVisible: false,
-                    priceLineVisible: false,
-                });
-                const arr = ichimoku[key];
-                const data: LinePoint[] = [];
-                for (let i = 0; i < candles.length; i++) {
-                    const v = arr[i];
-                    const c = candles[i];
-                    if (v !== null && v !== undefined && c !== undefined)
-                        data.push({ time: toTime(c.time), value: v });
-                }
-                series.setData(data);
-            }
-
-            const cloudPoints: CloudPoint[] = candles.map((c, i) => ({
-                time: toTime(c.time),
-                spanA: ichimoku.senkouA[i] ?? null,
-                spanB: ichimoku.senkouB[i] ?? null,
-            }));
-            const cloud = new IchimokuCloudPrimitive(
-                cloudPoints,
-                palette.ichimokuCloudUp,
-                palette.ichimokuCloudDown
-            );
-            candleSeries.attachPrimitive(cloud);
+            buildIchimoku(chart, candleSeries, candles, palette, ichimoku);
         }
 
         let nextPaneIdx = 1;
         if (rsiVisible) {
-            const rsiPaneIdx = nextPaneIdx++;
-            const rsiSeries = chart.addSeries(
-                LineSeries,
-                {
-                    color: palette.rsi,
-                    lineWidth: 1,
-                    title: 'RSI(14)',
-                    lastValueVisible: true,
-                    priceLineVisible: false,
-                },
-                rsiPaneIdx
-            );
-            const rsiData: LinePoint[] = [];
-            for (let i = 0; i < candles.length; i++) {
-                const v = rsiArr[i];
-                const c = candles[i];
-                if (v !== null && v !== undefined && c !== undefined)
-                    rsiData.push({ time: toTime(c.time), value: v });
-            }
-            rsiSeries.setData(rsiData);
-
-            const rsiMarkers: SeriesMarker<Time>[] = [];
-            for (const sig of computeRsiSignals(rsiArr)) {
-                const c = candles[sig.index];
-                if (!c) continue;
-                rsiMarkers.push({
-                    time: toTime(c.time),
-                    position: sig.type === 'buy' ? 'belowBar' : 'aboveBar',
-                    shape: sig.type === 'buy' ? 'arrowUp' : 'arrowDown',
-                    color:
-                        sig.type === 'buy'
-                            ? palette.candleUp
-                            : palette.candleDown,
-                    size: 0.6,
-                });
-            }
-            if (rsiMarkers.length > 0)
-                createSeriesMarkers(rsiSeries, rsiMarkers);
-
-            const firstTime = candles[0]?.time;
-            const lastTime = candles[candles.length - 1]?.time;
-            if (firstTime !== undefined && lastTime !== undefined) {
-                const overbought = chart.addSeries(
-                    LineSeries,
-                    {
-                        color: palette.rsiOverbought,
-                        lineWidth: 1,
-                        lineStyle: LineStyle.Dashed,
-                        lastValueVisible: false,
-                        priceLineVisible: false,
-                    },
-                    rsiPaneIdx
-                );
-                overbought.setData([
-                    { time: toTime(firstTime), value: 70 },
-                    { time: toTime(lastTime), value: 70 },
-                ]);
-                const oversold = chart.addSeries(
-                    LineSeries,
-                    {
-                        color: palette.rsiOversold,
-                        lineWidth: 1,
-                        lineStyle: LineStyle.Dashed,
-                        lastValueVisible: false,
-                        priceLineVisible: false,
-                    },
-                    rsiPaneIdx
-                );
-                oversold.setData([
-                    { time: toTime(firstTime), value: 30 },
-                    { time: toTime(lastTime), value: 30 },
-                ]);
-            }
+            buildRsiPane(chart, candles, palette, rsiArr, nextPaneIdx++);
         }
-
         if (macdVisible) {
-            const macdPaneIdx = nextPaneIdx++;
-            const macdLine = chart.addSeries(
-                LineSeries,
-                {
-                    color: palette.macd,
-                    lineWidth: 1,
-                    title: 'MACD',
-                    lastValueVisible: true,
-                    priceLineVisible: false,
-                },
-                macdPaneIdx
-            );
-            const macdData: LinePoint[] = [];
-            for (let i = 0; i < candles.length; i++) {
-                const v = macdResult.macd[i];
-                const c = candles[i];
-                if (v !== null && v !== undefined && c !== undefined)
-                    macdData.push({ time: toTime(c.time), value: v });
-            }
-            macdLine.setData(macdData);
-
-            const signalLine = chart.addSeries(
-                LineSeries,
-                {
-                    color: palette.macdSignal,
-                    lineWidth: 1,
-                    title: 'Signal',
-                    lastValueVisible: true,
-                    priceLineVisible: false,
-                },
-                macdPaneIdx
-            );
-            const signalData: LinePoint[] = [];
-            for (let i = 0; i < candles.length; i++) {
-                const v = macdResult.signal[i];
-                const c = candles[i];
-                if (v !== null && v !== undefined && c !== undefined)
-                    signalData.push({ time: toTime(c.time), value: v });
-            }
-            signalLine.setData(signalData);
-
-            const histSeries = chart.addSeries(
-                HistogramSeries,
-                {
-                    priceFormat: {
-                        type: 'price',
-                        precision: 4,
-                        minMove: 0.0001,
-                    },
-                    title: 'Hist',
-                    lastValueVisible: false,
-                    priceLineVisible: false,
-                },
-                macdPaneIdx
-            );
-            const histData: HistPoint[] = [];
-            for (let i = 0; i < candles.length; i++) {
-                const v = macdResult.histogram[i];
-                const c = candles[i];
-                if (v !== null && v !== undefined && c !== undefined) {
-                    histData.push({
-                        time: toTime(c.time),
-                        value: v,
-                        color:
-                            v >= 0 ? palette.macdHistUp : palette.macdHistDown,
-                    });
-                }
-            }
-            histSeries.setData(histData);
-
-            const macdMarkers: SeriesMarker<Time>[] = [];
-            for (const sig of computeMacdSignals(
-                macdResult.macd,
-                macdResult.signal
-            )) {
-                const c = candles[sig.index];
-                if (!c) continue;
-                macdMarkers.push({
-                    time: toTime(c.time),
-                    position: sig.type === 'buy' ? 'belowBar' : 'aboveBar',
-                    shape: sig.type === 'buy' ? 'arrowUp' : 'arrowDown',
-                    color:
-                        sig.type === 'buy'
-                            ? palette.candleUp
-                            : palette.candleDown,
-                    size: 0.6,
-                });
-            }
-            if (macdMarkers.length > 0)
-                createSeriesMarkers(macdLine, macdMarkers);
+            buildMacdPane(chart, candles, palette, macdResult, nextPaneIdx++);
         }
 
-        const panes = chart.panes();
-        if (panes.length > 1) {
-            panes[0]?.setStretchFactor(4);
-            for (let i = 1; i < panes.length; i++) {
-                panes[i]?.setStretchFactor(1);
-            }
-        }
-
-        const startIdx = visibleStartIdx(selectedRange, candles);
-        chart.timeScale().setVisibleLogicalRange({
-            from: startIdx,
-            to: candles.length - 1,
-        });
+        applyPaneStretch(chart);
+        applyVisibleRange(chart, selectedRange, candles);
 
         let disposed = false;
         const measurePanes = () => {
