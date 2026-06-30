@@ -1,0 +1,74 @@
+name: collector-prune
+
+# ANNUAL Parquet archive retention prune (Phase M).
+# Dec 30 07:00 UTC — runs once a year after the year's final trading session.
+# workflow_dispatch is the manual fallback: the prune is idempotent so a missed
+# annual run is fully recoverable by triggering manually.
+#
+# SAFETY: dry-run by default. The scheduled annual run is ALWAYS dry-run. The
+# first REAL prune is a deliberate one-click USER action: trigger via
+# workflow_dispatch and UNCHECK "dry_run". Once trusted, lift the scheduled
+# gate by editing the run step below.
+on:
+  schedule:
+    - cron: "0 7 30 12 *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (no deletes). UNCHECK for a REAL prune."
+        type: boolean
+        default: true
+
+concurrency:
+  group: collector-prune
+  cancel-in-progress: true
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/stock_collector
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      # uv via setup-uv, pinned to an immutable commit SHA (supply-chain hardening)
+      # with warm dependency cache keyed off apps/stock_collector/uv.lock.
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          enable-cache: true
+          working-directory: apps/stock_collector
+      - name: Sync deps
+        run: |
+          uv python install 3.12
+          uv sync
+
+      # Scheduled runs are ALWAYS dry-run. A manual dispatch with dry_run
+      # UNCHECKED performs a real prune (deletes archive-verified cold bars).
+      # The prune itself also no-ops unless the archive is enabled + Storage
+      # reachable, so this gate is belt-and-suspenders.
+      - name: Run archive retention prune
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          COLLECTOR_PARQUET_BUCKET: ${{ vars.COLLECTOR_PARQUET_BUCKET }}
+          COLLECTOR_ARCHIVE_PARQUET: ${{ vars.COLLECTOR_ARCHIVE_PARQUET }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "false" ]; then
+            echo "::warning::LIVE prune (dry_run unchecked) — will delete archive-verified cold bars"
+            uv run python -m collector.entrypoints.prune_history
+          else
+            uv run python -m collector.entrypoints.prune_history --dry-run
+          fi
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          curl -sS -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues" \
+            -d '{"title":"collector-prune failed (run ${{ github.run_id }})","body":"The annual Parquet archive retention prune failed. See https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}","labels":["collector","ci-failure"]}'

@@ -8,8 +8,13 @@ Reads:
   * ``read_latest_bar``       -> {label: max(bar_time)} for incremental from_date
   * ``read_recent_history``   -> last N bars for one label (snapshot build)
   * ``read_tracked_symbols``  -> active sticky universe (table-guarded -> [] if absent)
+Prune (Phase M):
+  * ``read_prune_candidates`` -> {label: (min_date, count)} bars older than cutoff
+  * ``delete_history_before`` -> hard-DELETE rows < cutoff for one label; caller commits
 
-Side effects: DB connection + writes. Soft-delete only (never hard-DELETE).
+Side effects: DB connection + writes. Soft-delete only (never hard-DELETE) EXCEPT
+for the explicit retention prune path (delete_history_before), which is guarded by
+Parquet object-existence checks in the caller before any row is deleted.
 """
 
 from __future__ import annotations
@@ -305,3 +310,51 @@ def upsert_fundamentals(conn: psycopg.Connection, rows: Sequence[FundamentalsRow
         cur.executemany(_FUNDAMENTALS_UPSERT_SQL, params)
     conn.commit()
     return len(params)
+
+
+# --- Phase M: retention prune -----------------------------------------------
+
+
+def read_prune_candidates(
+    conn: psycopg.Connection,
+    cutoff: date,
+    interval: str = DEFAULT_INTERVAL,
+) -> dict[str, tuple[date, int]]:
+    """{label: (min_bar_date, count)} for bars strictly older than ``cutoff``.
+
+    Only labels that have at least one bar before the cutoff are returned.
+    The caller uses (min_bar_date.year, cutoff) with prunable_years() to derive
+    which Parquet objects must exist before any deletion proceeds.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT label, MIN(bar_time)::date, COUNT(*) "
+            "FROM market_history "
+            "WHERE interval = %s AND bar_time < %s "
+            "GROUP BY label",
+            (interval, cutoff),
+        )
+        return {label: (min_date, int(cnt)) for label, min_date, cnt in cur.fetchall()}
+
+
+def delete_history_before(
+    conn: psycopg.Connection,
+    label: str,
+    cutoff: date,
+    interval: str = DEFAULT_INTERVAL,
+) -> int:
+    """Hard-DELETE market_history rows for ``label`` with bar_time strictly < ``cutoff``.
+
+    Returns the number of rows deleted (``cur.rowcount``). The caller is responsible
+    for committing after each label so partial progress is preserved on interruption.
+
+    Invariant: caller MUST verify all Parquet objects exist (via object_exists) before
+    calling this function — this is the sole hard-delete in the codebase and is only
+    safe when the archive is confirmed present.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            "DELETE FROM market_history WHERE label = %s AND interval = %s AND bar_time < %s",
+            (label, interval, cutoff),
+        )
+        return cur.rowcount

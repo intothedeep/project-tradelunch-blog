@@ -15,6 +15,8 @@ from pathlib import Path
 
 import requests
 
+__all__ = ["object_key", "upload_object", "object_exists"]
+
 
 def object_key(base: Path, path: Path) -> str:
     """POSIX object path relative to the archive root (pure)."""
@@ -42,6 +44,33 @@ def upload_object(
     }
     try:
         resp = requests.post(url, headers=headers, data=data, timeout=timeout)
+        return 200 <= resp.status_code < 300
+    except requests.RequestException:
+        return False
+
+
+def object_exists(
+    base_url: str,
+    secret_key: str,
+    bucket: str,
+    object_path: str,
+    *,
+    timeout: int = 30,
+) -> bool:
+    """Probe whether a Storage object exists. True only on 2xx; any exception or
+    non-2xx -> False (network-graceful; never raises).
+
+    Uses the same auth headers as ``upload_object`` (apikey + Bearer).
+    The Storage REST endpoint for a HEAD-check is:
+    ``{base_url}/storage/v1/object/{bucket}/{object_path}``.
+    """
+    url = f"{base_url.rstrip('/')}/storage/v1/object/{bucket}/{object_path}"
+    headers = {
+        "apikey": secret_key,
+        "Authorization": f"Bearer {secret_key}",
+    }
+    try:
+        resp = requests.head(url, headers=headers, timeout=timeout)
         return 200 <= resp.status_code < 300
     except requests.RequestException:
         return False
