@@ -256,7 +256,7 @@ const TerminalProfile = () => {
                                 className={clsx(
                                     'flex gap-1.5 flex-1',
                                     'flex-col',
-                                    'md:flex-row'
+                                    'lg:flex-row'
                                 )}
                             >
                                 <div
@@ -271,9 +271,10 @@ const TerminalProfile = () => {
                                         </span>
                                     </div>
                                 </div>
-                                {/* 모바일용 (2줄 텍스트) */}
-                                <div className="flex flex-col items-center justify-center text-primary text-3xl font-bold md:hidden leading-tight">
-                                    <span>TAEK LIM</span>
+                                {/* 모바일·태블릿용 (2줄 네임 블록) — ASCII는 lg+에서만 */}
+                                <div className="flex flex-col items-center justify-center text-primary text-3xl font-bold lg:hidden leading-tight">
+                                    <span>TAEK</span>
+                                    <span>LIM</span>
                                 </div>
 
                                 {/* ASCII banner: pin a system monospace stack
@@ -286,7 +287,7 @@ const TerminalProfile = () => {
                                         fontFamily:
                                             'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
                                     }}
-                                    className="hidden leading-none md:block text-xs lg:text-sm text-primary origin-left scale-[0.6] md:scale-[0.78] lg:scale-100 overflow-x-auto whitespace-pre"
+                                    className="hidden leading-none lg:block text-sm text-primary overflow-x-auto whitespace-pre"
                                 >
                                     {`╔═══════════════════════════════════════════════════════════════╗
 ║  ████████╗ █████╗ ███████╗██╗  ██╗    ██╗     ██╗███╗   ███╗  ║
