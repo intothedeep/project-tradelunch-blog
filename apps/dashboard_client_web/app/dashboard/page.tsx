@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import { getDashboardSnapshot } from '@/app/actions/getDashboardSnapshot.action';
 import { MOCK_DASHBOARD_SNAPSHOT } from '@/apis/getDashboardSnapshot.mock.api';
-import { MOCK_DASHBOARD_HISTORY } from '@/apis/getDashboardHistory.mock.api';
 import ChartVariantLayout from '@/components/dashboard/ChartVariantLayout.client';
 
 export const metadata: Metadata = {
@@ -14,15 +13,11 @@ export const metadata: Metadata = {
 // dashboard. The snapshot is sourced through getDashboardSnapshot — gated by
 // DASHBOARD_DATA_SOURCE (default 'mock'), so flipping to 'backend' switches the
 // data with no code change. On any error we fall back to the mock snapshot so
-// the page always renders. History remains the static mock map for now.
+// the page always renders. History is now lazy, backend-sourced per selected
+// label, and gated by DASHBOARD_DATA_SOURCE via useDashboardHistory.
 export default async function DashboardPage() {
     const result = await getDashboardSnapshot();
     const snapshot = result.ok ? result.data : MOCK_DASHBOARD_SNAPSHOT;
 
-    return (
-        <ChartVariantLayout
-            snapshot={snapshot}
-            history={MOCK_DASHBOARD_HISTORY}
-        />
-    );
+    return <ChartVariantLayout snapshot={snapshot} />;
 }

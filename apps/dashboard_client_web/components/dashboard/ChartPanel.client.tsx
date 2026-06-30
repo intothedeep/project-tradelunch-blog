@@ -9,7 +9,7 @@ import {
     selectedLabelAtom,
     selectedRangeAtom,
 } from '@/store/dashboard.atom';
-import type { IDashboardOHLCHistory, IOHLCPoint } from '@/types/history';
+import type { IOHLCPoint } from '@/types/history';
 import { computeMA } from '@/utils/computeMA';
 import { computeRSI } from '@/utils/computeRSI';
 import { computeMACD } from '@/utils/computeMACD';
@@ -24,14 +24,14 @@ import ChartLegend from '@/components/dashboard/ChartLegend.client';
 import ChartDrawToolbar from '@/components/dashboard/ChartDrawToolbar.client';
 import { useTradingViewChart } from '@/hooks/useTradingViewChart.hook';
 import { useChartDrawings } from '@/hooks/useChartDrawings.hook';
+import { useDashboardHistory } from '@/hooks/useDashboardSnapshot.query.client';
 import type { MAPeriod, MAVisibility, IndicatorState } from '@/types/dashboard';
 
 interface Props {
-    history: IDashboardOHLCHistory;
     className?: string;
 }
 
-export default function ChartPanel({ history, className }: Props) {
+export default function ChartPanel({ className }: Props) {
     const selectedLabel = useAtomValue(selectedLabelAtom);
     const selectedRange = useAtomValue(selectedRangeAtom);
     const selectedInterval = useAtomValue(selectedIntervalAtom);
@@ -95,15 +95,24 @@ export default function ChartPanel({ history, className }: Props) {
     const palette: ChartPalette =
         resolvedTheme === 'light' ? TV_LIGHT : TV_DARK;
 
+    // History is always fetched at '1d'; W/M/intraday are derived client-side
+    // via generateIntervalCandles. Gated by mounted + selectedLabel.
+    const historyQuery = useDashboardHistory({
+        label: selectedLabel,
+        interval: '1d',
+        enabled: mounted,
+    });
+
     const candles = useMemo<IOHLCPoint[]>(() => {
         if (selectedLabel === null) return [];
-        const baseDaily = history[selectedLabel] ?? [];
+        const res = historyQuery.data;
+        const baseDaily = res?.ok && res.data ? res.data.candles : [];
         return generateIntervalCandles(
             selectedLabel,
             selectedInterval,
             baseDaily
         );
-    }, [selectedLabel, selectedInterval, history]);
+    }, [selectedLabel, selectedInterval, historyQuery.data]);
 
     const maArrays = useMemo(
         () => ({
@@ -201,10 +210,29 @@ export default function ChartPanel({ history, className }: Props) {
         haloColor: palette.candleUp,
     });
 
-    if (selectedLabel === null || candles.length === 0) {
+    if (selectedLabel === null) {
         return (
             <div className="flex items-center justify-center h-full text-sm bg-white dark:bg-[#131722] text-[#787b86]">
                 Select an item from the watchlist
+            </div>
+        );
+    }
+
+    if (historyQuery.isPending) {
+        return (
+            <div className="flex items-center justify-center h-full text-sm bg-white dark:bg-[#131722] text-[#787b86]">
+                Loading chart…
+            </div>
+        );
+    }
+
+    // Label is selected but the backend returned no candles (error, unknown
+    // label, or a symbol Yahoo doesn't cover — e.g. KOSPI/KOSDAQ). Honest empty
+    // state rather than reusing the "select an item" copy.
+    if (candles.length === 0) {
+        return (
+            <div className="flex items-center justify-center h-full text-sm bg-white dark:bg-[#131722] text-[#787b86]">
+                No chart data available for {selectedLabel}
             </div>
         );
     }

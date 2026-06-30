@@ -1,5 +1,4 @@
 import { MOCK_DASHBOARD_SNAPSHOT } from '@/apis/getDashboardSnapshot.mock.api';
-import { MOCK_DASHBOARD_HISTORY } from '@/apis/getDashboardHistory.mock.api';
 import ChartVariantLayout from '@/components/dashboard/ChartVariantLayout.client';
 
 interface DashboardPageProps {
@@ -19,10 +18,5 @@ export async function generateMetadata({ params }: DashboardPageProps) {
 // Variant C dashboard. Mock data for now — swap for backend-backed server
 // actions in Group B.
 export default function DashboardPage() {
-    return (
-        <ChartVariantLayout
-            snapshot={MOCK_DASHBOARD_SNAPSHOT}
-            history={MOCK_DASHBOARD_HISTORY}
-        />
-    );
+    return <ChartVariantLayout snapshot={MOCK_DASHBOARD_SNAPSHOT} />;
 }
