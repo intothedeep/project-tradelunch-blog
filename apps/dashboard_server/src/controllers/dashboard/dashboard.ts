@@ -24,6 +24,29 @@ const CATEGORIES: readonly TCategory[] = [
     'stocks',
 ];
 
+// Edge-CDN cache policy (validated by system-architect). Data mutates once/day
+// at 21:30 UTC (collector cron), so both endpoints lean on s-maxage + a generous
+// stale-while-revalidate: callers never wait on origin, correctness is preserved
+// by the background refresh. NOTE: the SSR fetch wrapper sets next.revalidate to
+// the SAME ttl per endpoint, or the two cache layers expire out of phase.
+const SNAPSHOT_CACHE_CONTROL =
+    'public, s-maxage=1800, stale-while-revalidate=86400'; // 30min fresh / 24h stale
+const HISTORY_CACHE_CONTROL =
+    'public, s-maxage=43200, stale-while-revalidate=604800'; // 12h fresh / 7d stale
+
+// `range` -> lookback window in days. Whitelisted (no user value reaches SQL):
+// an unknown value falls back to '1y'; 'max' (null) drops the date filter.
+// Kept small + finite so the per-URL edge cache stays at ~labels × ranges keys.
+const RANGE_DAYS: Record<string, number | null> = {
+    '1m': 31,
+    '3m': 93,
+    '6m': 186,
+    '1y': 366,
+    '5y': 1830,
+    max: null,
+};
+const DEFAULT_RANGE = '1y';
+
 interface ISnapshotRow {
     category: TCategory;
     label: string;
@@ -117,6 +140,7 @@ router.get('/snapshot', async (_req, res) => {
              ORDER BY category, seq`
         );
 
+        res.set('Cache-Control', SNAPSHOT_CACHE_CONTROL);
         res.json({ success: true, data: toSnapshot(rows) });
     } catch (error) {
         console.error('API Error fetching dashboard snapshot:', error);
@@ -134,6 +158,9 @@ router.get('/snapshot', async (_req, res) => {
  *
  * @apiQuery {String} label    Item label (e.g. "Apple").
  * @apiQuery {String} [interval=1d] Candle interval.
+ * @apiQuery {String} [range=1y] Lookback window: 1m|3m|6m|1y|5y|max. Default 1y
+ *           keeps the chart payload light now that the DB holds full history;
+ *           pass range=max for the entire series on demand.
  *
  * @apiSuccess {Boolean} success
  * @apiSuccess {Object|null} data IItemOHLCHistory, or null for an unknown label.
@@ -141,29 +168,50 @@ router.get('/snapshot', async (_req, res) => {
 router.get(
     '/history',
     async (
-        req: Request<{}, {}, {}, { label?: string; interval?: string }>,
+        req: Request<
+            {},
+            {},
+            {},
+            { label?: string; interval?: string; range?: string }
+        >,
         res
     ) => {
         try {
             const label = req.query.label;
             const interval = req.query.interval || '1d';
+            const range = req.query.range || DEFAULT_RANGE;
 
             if (!label) {
                 return res.json({ success: true, data: null });
             }
 
+            // Whitelisted lookback -> a from-date param, or null for 'max'.
+            const days = range in RANGE_DAYS ? RANGE_DAYS[range] : RANGE_DAYS[DEFAULT_RANGE];
+            const fromDate =
+                days === null
+                    ? null
+                    : new Date(Date.now() - days * 86_400_000).toISOString();
+
+            const params: (string | null)[] = [label, interval];
+            let where = 'WHERE label = $1 AND interval = $2';
+            if (fromDate !== null) {
+                params.push(fromDate);
+                where += ' AND bar_time >= $3';
+            }
+
             const { rows } = await pool.query<IHistoryRow>(
                 `SELECT bar_time, open, high, low, close, volume
                  FROM market_history
-                 WHERE label = $1 AND interval = $2
+                 ${where}
                  ORDER BY bar_time ASC`,
-                [label, interval]
+                params
             );
 
             if (rows.length === 0) {
                 return res.json({ success: true, data: null });
             }
 
+            res.set('Cache-Control', HISTORY_CACHE_CONTROL);
             res.json({ success: true, data: toOHLCHistory(label, rows) });
         } catch (error) {
             console.error('API Error fetching dashboard history:', error);
