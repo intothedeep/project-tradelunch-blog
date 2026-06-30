@@ -122,6 +122,7 @@ def main(argv: list[str] | None = None) -> int:
 
     now = datetime.now(timezone.utc)
     conn = db_sink.connect()
+    status, descr = "success", ""
     try:
         observations = _observe(conn, candidates, args.limit, now)
         ranking_rows = rank(observations, date.today())
@@ -135,11 +136,25 @@ def main(argv: list[str] | None = None) -> int:
         ]
         n_rank = db_sink.insert_rankings(conn, ranking_rows)
         n_track = db_sink.upsert_tracked_symbols(conn, tracked, now)
-        print(
-            f"[run_weekly] candidates={len(candidates)} rankings={n_rank} "
-            f"tracked_upserted={n_track}"
+        descr = (
+            f"candidates={len(candidates)}|rankings={n_rank}"
+            f"|tracked_upserted={n_track}"
         )
+        print(f"[run_weekly] {descr}")
+    except Exception as exc:  # noqa: BLE001 — record the failure row, then re-raise
+        status = "failed"
+        descr = f"error={type(exc).__name__}: {exc}"
+        print(f"[run_weekly] FAILED {descr}")
+        raise
     finally:
+        db_sink.insert_batch_log(
+            conn,
+            job="collector-weekly",
+            status=status,
+            started_at=now,
+            finished_at=datetime.now(timezone.utc),
+            descr=descr,
+        )
         conn.close()
     return 0
 

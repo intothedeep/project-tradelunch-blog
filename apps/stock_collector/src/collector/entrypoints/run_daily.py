@@ -33,7 +33,17 @@ from lib.constants import PROVIDER_YAHOO, safe_symbol
 DEFAULT_BACKFILL_DAYS = 400  # ~252 trading bars on first run
 
 
-def _from_date(entry: WatchlistEntry, latest: dict[str, date], backfill_days: int) -> date:
+def _from_date(
+    entry: WatchlistEntry,
+    latest: dict[str, date],
+    backfill_days: int,
+    full: bool = False,
+) -> date:
+    # --full forces inception (yfinance clamps to the symbol's first trade date),
+    # ignoring both the incremental cursor and backfill_days. ON CONFLICT makes
+    # the re-fetch idempotent.
+    if full:
+        return date(1970, 1, 1)
     last = latest.get(entry.label)
     if last is not None:
         return last + timedelta(days=1)
@@ -51,14 +61,16 @@ def _archive(items: list[tuple[str, list]], base: Path) -> int:
     return total
 
 
-def _ingest(conn, universe, backfill_days, limit, archive, base) -> tuple[int, int, int, int]:
+def _ingest(
+    conn, universe, backfill_days, limit, archive, base, full=False
+) -> tuple[int, int, int, int]:
     latest = db_sink.read_latest_bar(conn)
     targets = universe[:limit] if limit else universe
     all_rows = []
     archive_items: list[tuple[str, list]] = []
     skipped = 0
     for e in targets:
-        candles = fetch_daily(e.symbol, _from_date(e, latest, backfill_days))
+        candles = fetch_daily(e.symbol, _from_date(e, latest, backfill_days, full))
         rows = to_history_rows(e.label, candles, interval=DEFAULT_INTERVAL)
         if not rows:
             skipped += 1
@@ -102,6 +114,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--archive", action="store_true", help="also write the Phase-1.5 Parquet archive"
     )
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help="backfill full history from inception (ignores cursor + backfill-days)",
+    )
     args = parser.parse_args(argv)
 
     entries = load_watchlist()
@@ -112,18 +129,34 @@ def main(argv: list[str] | None = None) -> int:
 
     archive = args.archive or parquet_archive_enabled()
     base = parquet_dir()
+    started_at = datetime.now(timezone.utc)
     conn = db_sink.connect()
+    status, descr = "success", ""
     try:
         tracked = db_sink.read_tracked_symbols(conn)
         universe = resolve_universe(entries, tracked)
         written, snaps, skipped, archived = _ingest(
-            conn, universe, args.backfill_days, args.limit, archive, base
+            conn, universe, args.backfill_days, args.limit, archive, base, args.full
         )
-        print(
-            f"[run_daily] universe={len(universe)} history_rows={written} "
-            f"snapshots={snaps} skipped={skipped} archived={archived}"
+        descr = (
+            f"universe={len(universe)}|history={written}|snapshots={snaps}"
+            f"|skipped={skipped}|archived={archived}|full={int(args.full)}"
         )
+        print(f"[run_daily] {descr}")
+    except Exception as exc:  # noqa: BLE001 — record the failure row, then re-raise
+        status = "failed"
+        descr = f"error={type(exc).__name__}: {exc}"
+        print(f"[run_daily] FAILED {descr}")
+        raise
     finally:
+        db_sink.insert_batch_log(
+            conn,
+            job="collector-daily",
+            status=status,
+            started_at=started_at,
+            finished_at=datetime.now(timezone.utc),
+            descr=descr,
+        )
         conn.close()
     return 0
 

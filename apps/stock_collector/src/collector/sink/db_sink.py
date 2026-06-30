@@ -98,6 +98,42 @@ def refresh_snapshots(conn: psycopg.Connection, snaps: Sequence[SnapshotRow]) ->
     return len(params)
 
 
+_BATCH_LOG_SQL = """
+INSERT INTO batch_log (job, status, resolved, started_at, finished_at, descr)
+VALUES (%s, %s, %s, %s, %s, %s)
+"""
+
+
+def insert_batch_log(
+    conn: psycopg.Connection,
+    *,
+    job: str,
+    status: str,
+    started_at: datetime,
+    finished_at: datetime,
+    descr: str,
+) -> bool:
+    """Best-effort: append ONE batch-run row. NEVER raises — a missing table
+    (migration 0015 not applied) or any insert error is swallowed so it can't
+    fail the collection job. ``success`` -> resolved=1, else 0 (open-failure
+    tracker). Rolls back first to clear any aborted tx from a failed run, so the
+    failure row itself still lands."""
+    resolved = 1 if status == "success" else 0
+    try:
+        conn.rollback()  # clear any aborted/in-progress tx -> clean insert
+        with conn.cursor() as cur:
+            cur.execute(
+                _BATCH_LOG_SQL,
+                (job, status, resolved, started_at, finished_at, descr),
+            )
+        conn.commit()
+        return True
+    except Exception as exc:  # noqa: BLE001 — op log, must never abort the job
+        conn.rollback()
+        print(f"[batch_log] skipped ({type(exc).__name__}: {exc})")
+        return False
+
+
 # --- reads ------------------------------------------------------------------
 
 
