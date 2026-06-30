@@ -18,7 +18,7 @@ All times are **UTC**. Cron format: `min hour day-of-month month day-of-week`.
 | `collector-daily.yml` | `30 21 * * 1-5` | Mon–Fri 21:30 | Yahoo daily OHLC ingest → `market_history` + `market_snapshots`; writes Parquet archive + uploads to Storage (when `COLLECTOR_ARCHIVE_PARQUET=1`). |
 | `collector-weekly.yml` | `0 6 * * 0` | Sun 06:00 | Market-cap ranking → `tracked_symbols` (sticky universe) + `market_rankings`. |
 | `collector-monthly.yml` | `0 7 1 * *` | 1st 07:00 | SEC EDGAR 13F holdings → `sec_filings` + `sec_holdings`. |
-| `collector-prune.yml` | `0 7 30 12 *` | Dec 30 07:00 | **Phase M** `market_history` 5yr retention prune. **Scheduled run is ALWAYS dry-run.** |
+| `collector-prune.yml` | `0 7 30 12 *` | Dec 30 07:00 | **Phase M** `market_history` 5yr retention prune (OHLC). **Scheduled run is LIVE** (mode B): it deletes archive-verified cold bars. A manual dispatch defaults to dry-run (preview); uncheck `dry_run` for a manual live prune. (Same workflow also runs an L18 13F prune job.) |
 | `collector-keepalive.yml` | `0 12 1,15 * *` | 1st & 15th 12:00 | Collector keepalive ping. |
 | `supabase-keepalive.yml` | `0 9 * * 1,4` | Mon & Thu 09:00 | DB write ping so Supabase free tier doesn't auto-pause (~7-day idle). |
 | `collector-seed-archive.yml` | — (manual) | `workflow_dispatch` only | One-shot FULL-history Parquet seed (inception via `fetch_full`) + Storage upload. Run after adding tickers. |

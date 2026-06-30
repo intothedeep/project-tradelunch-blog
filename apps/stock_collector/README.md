@@ -43,8 +43,9 @@ uv run pytest                                          # transform/ranking specs
 uv run python -m collector.entrypoints.run_daily       # daily OHLC + snapshots
 uv run python -m collector.entrypoints.run_weekly      # market-cap ranking
 uv run python -m collector.entrypoints.run_monthly     # SEC 13F holdings
-uv run python -m collector.entrypoints.seed_archive --backfill-days 365
+uv run python -m collector.entrypoints.seed_archive    # FULL history from inception → Parquet
 uv run python -m collector.entrypoints.upload_archive  # push Parquet archive to Storage
+uv run python -m collector.entrypoints.prune_history --dry-run  # 5yr OHLC retention (drop --dry-run to delete)
 ```
 
 ### `run_daily` flags
@@ -57,8 +58,10 @@ uv run python -m collector.entrypoints.upload_archive  # push Parquet archive to
 | `--archive` | also write the Parquet archive |
 | `--full` | full history from inception (ignores cursor + backfill-days; yfinance `period='max'`) |
 
-`run_weekly` / `run_monthly` accept `--limit` and `--dry-run`;
-`seed_archive` accepts `--backfill-days` and `--limit`.
+`run_weekly` / `run_monthly` / `prune_history` accept `--limit` and/or `--dry-run`;
+`seed_archive` always seeds FULL inception history (`--limit` caps symbols).
+`prune_history` deletes `market_history` bars older than 5 calendar years, but
+ONLY ones already in the Parquet archive (no-op if the archive is off/unreachable).
 
 ## Production schedule (GitHub Actions cron, UTC)
 
@@ -67,6 +70,9 @@ uv run python -m collector.entrypoints.upload_archive  # push Parquet archive to
 | `collector-daily` | `30 21 * * 1-5` (after US close) | `run_daily` → `upload_archive` |
 | `collector-weekly` | `0 6 * * 0` | `run_weekly` |
 | `collector-monthly` | `0 7 1 * *` | `run_monthly` |
-| `collector-seed-archive` | manual `workflow_dispatch` | `seed_archive --backfill-days <n>` → `upload_archive` |
+| `collector-prune` | `0 7 30 12 *` (Dec 30) | `prune_history` — 5yr OHLC retention; **scheduled run is LIVE** (deletes archive-verified cold bars), manual dispatch defaults to dry-run |
+| `collector-seed-archive` | manual `workflow_dispatch` | `seed_archive` (full inception) → `upload_archive` |
 
-Plus `collector-keepalive` / `supabase-keepalive` (idle keepalive pings).
+Plus `collector-keepalive` / `supabase-keepalive` (idle keepalive pings) and a
+Supabase `pg_cron` job (daily `error_log` 7-day purge). Full schedule reference:
+[`.github/CRON.md`](../../.github/CRON.md).
