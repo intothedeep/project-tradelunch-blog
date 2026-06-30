@@ -1,12 +1,14 @@
 import type { Metadata } from 'next';
 import { getFunds } from '@/app/actions/getFunds.action';
-import { getFundHoldings } from '@/app/actions/getFundHoldings.action';
+import { getFundRankFlow } from '@/app/actions/getFundRankFlow.action';
 import FundList from '@/components/funds/FundList';
-import HoldingsTable from '@/components/funds/HoldingsTable';
+import RankFlowTable from '@/components/funds/RankFlowTable';
+import FundsEmptyState from '@/components/funds/FundsEmptyState';
 
 export const metadata: Metadata = {
     title: 'Fund Holdings | Taek Lim',
-    description: 'SEC 13F holdings detail for a specific institutional filer.',
+    description:
+        'SEC 13F holdings rank-flow detail for a specific institutional filer.',
 };
 
 // Render per-request — holdings are DB-backed and updated monthly.
@@ -16,18 +18,19 @@ interface FundDetailPageProps {
     params: Promise<{ cik: string }>;
 }
 
-// /funds/[cik] — fund detail view with a fund rail and holdings table.
+// /funds/[cik] — fund detail view with rank-flow holdings grid.
 // States:
 //   backend error on funds list → explicit error block
-//   backend error on holdings   → explicit error block
-//   holdings data:null          → "Fund not found" state
-//   populated                   → FundList(activeCik) + HoldingsTable
+//   backend error on rankflow   → explicit error block
+//   rankflow data:null          → FundsEmptyState (unknown CIK)
+//   periods empty               → FundsEmptyState (no quarters yet)
+//   populated                   → FundList(activeCik) + RankFlowTable
 export default async function FundDetailPage({ params }: FundDetailPageProps) {
     const { cik } = await params;
 
-    const [fundsResult, holdingsResult] = await Promise.all([
+    const [fundsResult, rankFlowResult] = await Promise.all([
         getFunds(),
-        getFundHoldings(cik),
+        getFundRankFlow(cik),
     ]);
 
     if (!fundsResult.ok) {
@@ -46,7 +49,7 @@ export default async function FundDetailPage({ params }: FundDetailPageProps) {
         );
     }
 
-    if (!holdingsResult.ok) {
+    if (!rankFlowResult.ok) {
         return (
             <main className="flex min-h-[60vh] items-center justify-center p-8">
                 <div className="text-center">
@@ -62,7 +65,10 @@ export default async function FundDetailPage({ params }: FundDetailPageProps) {
         );
     }
 
-    if (holdingsResult.data === null) {
+    if (
+        rankFlowResult.data === null ||
+        rankFlowResult.data.periods.length === 0
+    ) {
         return (
             <main className="p-4 md:p-8 max-w-screen-xl mx-auto">
                 <div className="flex gap-8">
@@ -73,21 +79,18 @@ export default async function FundDetailPage({ params }: FundDetailPageProps) {
                         />
                     </aside>
                     <div className="flex min-h-[40vh] flex-1 items-center justify-center">
-                        <div className="text-center">
-                            <h1 className="text-lg font-semibold">
-                                Fund not found
-                            </h1>
-                            <p className="mt-2 text-sm text-muted-foreground">
-                                CIK {cik} is not in the holdings database.
-                            </p>
-                        </div>
+                        <FundsEmptyState />
                     </div>
                 </div>
             </main>
         );
     }
 
-    const { label, periodOfReport, holdings } = holdingsResult.data;
+    const { cik: fundCik, periods, rows } = rankFlowResult.data;
+    // periods.length > 0 is guaranteed by the guard above; safe to use ?. with fallback.
+    const latestPeriodOfReport = periods[0]?.periodOfReport ?? '';
+    const fundLabel =
+        fundsResult.data.find((f) => f.cik === fundCik)?.label ?? fundCik;
 
     return (
         <main className="p-4 md:p-8 max-w-screen-xl mx-auto">
@@ -101,14 +104,16 @@ export default async function FundDetailPage({ params }: FundDetailPageProps) {
                 <section className="flex-1 min-w-0">
                     <header className="mb-4">
                         <h1 className="text-2xl font-bold tracking-tight">
-                            {label}
+                            {fundLabel}
                         </h1>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Period of report: {periodOfReport} &middot;{' '}
-                            {holdings.length.toLocaleString()} holdings
+                            Latest period: {latestPeriodOfReport} &middot;{' '}
+                            {rows.length} tracked &middot; {periods.length}{' '}
+                            quarter
+                            {periods.length !== 1 ? 's' : ''}
                         </p>
                     </header>
-                    <HoldingsTable holdings={holdings} />
+                    <RankFlowTable data={rankFlowResult.data} />
                 </section>
             </div>
         </main>

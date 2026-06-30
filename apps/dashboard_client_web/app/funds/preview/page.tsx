@@ -1,16 +1,18 @@
 // app/funds/preview/page.tsx
 // Purpose: fixture-backed preview of the /funds layout — renders the REAL
-//   FundList + HoldingsTable components with mock data so the production
+//   FundList + RankFlowTable components with mock data so the production
 //   layout can be evaluated without a DB or running collector.
 //   Mirrors the dashboard /dashboard/preview/table pattern exactly.
 // No network calls, no DB access. Import mock data only.
 
 import FundList from '@/components/funds/FundList';
-import HoldingsTable from '@/components/funds/HoldingsTable';
-import { MOCK_FUNDS, PREVIEW_HOLDINGS } from '@/apis/getFunds.mock.api';
+import RankFlowTable from '@/components/funds/RankFlowTable';
+import { MOCK_FUNDS, MOCK_RANK_FLOW } from '@/apis/getFunds.mock.api';
 
 // Show Berkshire by default in the preview.
 const PREVIEW_CIK = '0001067983';
+
+const latestPeriod = MOCK_RANK_FLOW.periods[0]?.periodOfReport ?? '';
 
 export default function FundsPreviewPage() {
     return (
@@ -19,8 +21,8 @@ export default function FundsPreviewPage() {
                 Funds preview — fixture data
             </h1>
             <p className="mb-6 text-sm text-muted-foreground">
-                Rendered with mock 13F filings. Layout is identical to
-                production.
+                Rendered with mock 13F rank-flow filings (2 quarters). Layout is
+                identical to production.
             </p>
 
             <div className="flex gap-8">
@@ -33,16 +35,15 @@ export default function FundsPreviewPage() {
                 <section className="flex-1 min-w-0">
                     <header className="mb-4">
                         <h2 className="text-xl font-semibold">
-                            {PREVIEW_HOLDINGS.label}
+                            Berkshire Hathaway Inc.
                         </h2>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Period of report: {PREVIEW_HOLDINGS.periodOfReport}{' '}
-                            &middot;{' '}
-                            {PREVIEW_HOLDINGS.holdings.length.toLocaleString()}{' '}
-                            holdings
+                            Latest period: {latestPeriod} &middot;{' '}
+                            {MOCK_RANK_FLOW.rows.length} tracked &middot;{' '}
+                            {MOCK_RANK_FLOW.periods.length} quarters
                         </p>
                     </header>
-                    <HoldingsTable holdings={PREVIEW_HOLDINGS.holdings} />
+                    <RankFlowTable data={MOCK_RANK_FLOW} />
                 </section>
             </div>
         </main>
