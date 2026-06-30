@@ -20,8 +20,22 @@ APP_ROOT = Path(__file__).resolve().parents[3]
 
 WATCHLIST_PATH = Path(os.getenv("WATCHLIST_PATH", str(APP_ROOT / "configs" / "watchlist.yaml")))
 
+# SEC 13F fund registry (Phase J).
+FUNDS_PATH = Path(os.getenv("FUNDS_PATH", str(APP_ROOT / "configs" / "funds.yaml")))
+
 # Yahoo polite rate limit (requests/min) — token bucket in lib.rate_limit.
 YAHOO_RPM = int(os.getenv("YAHOO_RPM", "30"))
+
+
+def sec_user_agent() -> str:
+    """User-Agent for SEC EDGAR requests (Phase J).
+
+    SEC's fair-access policy REQUIRES a descriptive UA declaring a contact
+    ("Name email"); a missing/blank UA is the #1 cause of 403 + ~10-min IP
+    blocks. Override per-deploy via ``SEC_USER_AGENT``; the default carries a
+    real contact domain so dev smoke runs aren't blocked.
+    """
+    return os.getenv("SEC_USER_AGENT", "tradelunch-collector admin@prettylog.com")
 
 
 def database_url() -> str | None:
