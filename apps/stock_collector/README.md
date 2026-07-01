@@ -2,77 +2,138 @@
 
 Market-data collector feeding the tradelunch dashboard. Python, managed by
 **uv**. Polyglot sibling app — NOT a pnpm workspace member. See repo
-`00.plan.md` / `00.tasks.md` Phase I.
+`00.plan.md` / `00.tasks.md` (Phases I → N).
 
-## What it can do
+The dashboard NEVER calls Yahoo/SEC at request time — it reads only what this
+collector has already written to **Supabase Postgres**. This app is the sole
+writer of the market-data tables; batch jobs run on **GitHub Actions cron** and
+are idempotent (incremental cursor / `ON CONFLICT` / supersede), so a missed or
+re-run job self-heals.
 
-- **Daily** — fetch daily OHLC bars (Yahoo / yfinance) for the watchlist
-  (`configs/watchlist.yaml`, ≤42 labels + sticky-ranked symbols) and write
-  `market_history` (interval `1d`, incremental) + `market_snapshots` (latest
-  close + 1-day change). Optionally archive bars to Parquet on Supabase Storage.
-- **Weekly** — compute an S&P500-class market-cap ranking (global + per-sector)
-  → `market_rankings`, sticky `tracked_symbols` (top-20 global / top-10 sector),
-  and a `symbol_fundamentals` cache.
-- **Monthly** — collect SEC 13F institutional holdings (requires a descriptive
-  `SEC_USER_AGENT`, else SEC returns 403).
-- **Backfill** — seed full history from inception (`--full`) or N days back.
+## What it does (and why)
 
-Writes go to **Supabase Postgres**; no Yahoo call happens at dashboard request
-time (the dashboard reads pre-collected data).
+| Job | What it writes | Why |
+| --- | --- | --- |
+| **Daily** (`run_daily`) | Daily OHLC bars (Yahoo/yfinance) for the watchlist → `market_history` (interval `1d`, incremental) + `market_snapshots` (latest close + 1-day change). | The dashboard's price/series data. Incremental cursor keeps each run cheap; optional Parquet archive to Storage. |
+| **Weekly** (`run_weekly`) | S&P500-class market-cap ranking, global + per-sector → `market_rankings`; sticky `tracked_symbols` (global top-20 / sector top-10); `symbol_fundamentals` cache (shares/sector). | Powers the ranking views and keeps the watchlist self-expanding. Market cap is derived from cached `shares × close` to avoid a per-symbol `.info` call. |
+| **Weekly 13F** (`run_monthly`) | SEC EDGAR 13F institutional holdings → `sec_filings` + `sec_holdings`; supersedes earlier amendments for the same period. | Fund holdings / rank-flow views. **L19:** cron is weekly (Mon), but a period-advance guard makes it a cheap no-op except during the 4 quarterly 13F windows. |
+| **13F backfill** (`run_backfill`) | Historical 13F from `--since` (default ~2yr back) across all funds, per period. | One-shot seed of fund history. `--db-keep-quarters` decouples the long Parquet cold-archive from the short free-tier Postgres serving window. |
+| **Rankings archive** (`archive_rankings`) | `market_rankings` → `rankings/{YYYY}.parquet` on Storage. | Rankings are point-in-time and NON-reproducible (no shares-outstanding history). Wired into the weekly job so the current-year cold copy stays fresh — the precondition for the rankings prune. |
+| **OHLC/13F Parquet archive** (`seed_archive`, `upload_archive`) | Full inception history → Parquet on Supabase Storage. | Cold storage that the retention prunes verify against before any delete. |
+| **Retention prunes** | `prune_history` (OHLC 5yr), `prune_holdings` (13F 3yr), `prune_rankings` (10yr), `prune_logs` (`error_log` 7d / `batch_log` 90d). | Keep the free-tier Postgres lean. Domain prunes hard-delete ONLY after confirming the row's Parquet object exists in Storage (all-or-skip). |
+
+> **Soft-delete note:** the repo rule is tombstone-not-delete. The domain prunes
+> (`prune_history`/`prune_holdings`/`prune_rankings`) and log prunes
+> (`prune_logs`) are OWNER-SIGNED-OFF hard-delete exceptions, scoped STRICTLY to
+> derived + archived operational rows — never user-generated content. Every
+> domain prune requires an archive-object-exists check first.
 
 ## Setup
 
 ```sh
-uv sync --extra dev
+uv sync --extra dev          # create .venv + install (incl. pytest)
+cp .env.example .env         # then fill real values
 ```
 
-Env (copy `.env.example` → `.env`):
+Env (`.env`, loaded via python-dotenv — do NOT quote or leave empty):
 
-- `DATABASE_URL` — **required**, Supabase session pooler (IPv4, port 5432).
-  Falls back to `POSTGRES_URL_NON_POOLING`.
-- Optional Parquet archive: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE` /
-  `SUPABASE_SECRET_KEY`, `COLLECTOR_ARCHIVE_PARQUET`, `COLLECTOR_PARQUET_BUCKET`.
-- Monthly 13F: `SEC_USER_AGENT` (required), `COLLECTOR_ARCHIVE_SEC`,
-  `COLLECTOR_SEC_BUCKET`.
+- `DATABASE_URL` — **required**. Supabase **session** pooler (IPv4, port 5432,
+  `aws-0-<region>.pooler.supabase.com:5432`) — NOT the IPv6-only `db.<ref>`
+  host. Falls back to `POSTGRES_URL_NON_POOLING`.
+- **OHLC/rankings Parquet archive** (optional): `SUPABASE_URL`,
+  `SUPABASE_SECRET_KEY`, `COLLECTOR_ARCHIVE_PARQUET=1`,
+  `COLLECTOR_PARQUET_BUCKET` (default `market-archive`).
+- **13F**: `SEC_USER_AGENT` (descriptive UA, else SEC returns 403). 13F Parquet
+  archive is gated by `COLLECTOR_ARCHIVE_SEC_PARQUET=1` (or `--archive`),
+  bucket `COLLECTOR_SEC_BUCKET`.
+- **Provider tuning** (optional): `YAHOO_RPM` (default 30).
 
-## Run
+## Run — terminal (`uv`)
 
 ```sh
 uv run pytest                                          # transform/ranking specs (stdlib-only, no network)
 
-uv run python -m collector.entrypoints.run_daily       # daily OHLC + snapshots
-uv run python -m collector.entrypoints.run_weekly      # market-cap ranking
-uv run python -m collector.entrypoints.run_monthly     # SEC 13F holdings
-uv run python -m collector.entrypoints.seed_archive    # FULL history from inception → Parquet
-uv run python -m collector.entrypoints.upload_archive  # push Parquet archive to Storage
-uv run python -m collector.entrypoints.prune_history --dry-run  # 5yr OHLC retention (drop --dry-run to delete)
+# collection
+uv run python -m collector.entrypoints.run_daily      # daily OHLC + snapshots
+uv run python -m collector.entrypoints.run_weekly     # market-cap ranking + sticky universe
+uv run python -m collector.entrypoints.run_monthly    # weekly SEC 13F (period-advance guarded)
+uv run python -m collector.entrypoints.run_backfill --since 2024 --archive   # 13F historical backfill
+
+# archive (cold storage on Supabase Storage)
+uv run python -m collector.entrypoints.seed_archive       # FULL inception history → Parquet
+uv run python -m collector.entrypoints.upload_archive     # push local Parquet → Storage
+uv run python -m collector.entrypoints.archive_rankings   # market_rankings → rankings/{YYYY}.parquet
+
+# retention prunes (all default to --dry-run when run manually)
+uv run python -m collector.entrypoints.prune_history  --dry-run   # OHLC 5yr
+uv run python -m collector.entrypoints.prune_holdings --dry-run   # 13F 3yr
+uv run python -m collector.entrypoints.prune_rankings --dry-run   # rankings 10yr (0 candidates until ~2036)
+uv run python -m collector.entrypoints.prune_logs     --dry-run   # error_log 7d + batch_log 90d
 ```
 
-### `run_daily` flags
+### Common flags
 
-| Flag                    | Effect                                                                                |
-| ----------------------- | ------------------------------------------------------------------------------------- |
-| `--limit <int>`         | cap number of symbols (`0` = all)                                                     |
-| `--backfill-days <int>` | look back N days                                                                      |
-| `--dry-run`             | fetch only, no DB writes                                                              |
-| `--archive`             | also write the Parquet archive                                                        |
-| `--full`                | full history from inception (ignores cursor + backfill-days; yfinance `period='max'`) |
+| Flag | Applies to | Effect |
+| --- | --- | --- |
+| `--limit <int>` | most jobs | cap symbols/funds (`0` = all) |
+| `--dry-run` | all writers/prunes | fetch/count only, no DB writes |
+| `--archive` | `run_daily`, `run_backfill`, `run_monthly` | also write the Parquet archive |
+| `--backfill-days <int>` | `run_daily` | look back N days |
+| `--full` | `run_daily` | full history from inception (yfinance `period='max'`; ignores cursor) |
+| `--since <YYYY[-MM-DD]>` | `run_backfill` | earliest period (default ~2yr back) |
+| `--cik <int>` | `run_backfill`, `run_monthly`, `prune_holdings` | restrict to one fund |
+| `--db-keep-quarters <int>` | `run_backfill` | DB write window (default 12 = 3yr); older periods archive-only |
 
-`run_weekly` / `run_monthly` / `prune_history` accept `--limit` and/or `--dry-run`;
-`seed_archive` always seeds FULL inception history (`--limit` caps symbols).
-`prune_history` deletes `market_history` bars older than 5 calendar years, but
-ONLY ones already in the Parquet archive (no-op if the archive is off/unreachable).
+Domain prunes delete a period/year ONLY if its Parquet object is confirmed
+present in Storage (no-op if the archive is off/unreachable). `prune_logs` has
+no archive precondition (owner-approved no-tombstone log tables) and keeps
+`resolved=0` open `batch_log` failures at any age.
 
-## Production schedule (GitHub Actions cron, UTC)
+## Run — GitHub Actions (`gh` CLI)
 
-| Workflow                 | Cron                             | Command                                                                                                                                   |
-| ------------------------ | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `collector-daily`        | `30 21 * * 1-5` (after US close) | `run_daily` → `upload_archive`                                                                                                            |
-| `collector-weekly`       | `0 6 * * 0`                      | `run_weekly`                                                                                                                              |
-| `collector-monthly`      | `0 7 1 * *`                      | `run_monthly`                                                                                                                             |
-| `collector-prune`        | `0 7 30 12 *` (Dec 30)           | `prune_history` — 5yr OHLC retention; **scheduled run is LIVE** (deletes archive-verified cold bars), manual dispatch defaults to dry-run |
-| `collector-seed-archive` | manual `workflow_dispatch`       | `seed_archive` (full inception) → `upload_archive`                                                                                        |
+All batch jobs run on GitHub Actions cron and each exposes `workflow_dispatch`
+as a manual fallback.
 
-Plus `collector-keepalive` / `supabase-keepalive` (idle keepalive pings) and a
-Supabase `pg_cron` job (daily `error_log` 7-day purge). Full schedule reference:
-[`.github/CRON.md`](../../.github/CRON.md).
+```sh
+gh workflow list                                       # what exists + enabled state
+gh workflow run collector-weekly.yml                   # trigger manually
+
+# retention prunes: manual dispatch defaults to dry-run; opt into a LIVE delete
+gh workflow run collector-prune.yml                    # OHLC/13F/rankings — dry-run
+gh workflow run collector-prune.yml -f dry_run=false   # LIVE prune (USER gate)
+
+# one-shot 13F historical backfill
+gh workflow run collector-backfill.yml
+
+# inspect
+gh run list --workflow=collector-daily.yml --limit 10
+gh run watch <run-id>
+gh run view <run-id> --log
+gh variable list ; gh secret list                      # config the jobs read (names only)
+```
+
+Secrets the jobs read: `DATABASE_URL` (session pooler),
+`POSTGRES_URL_NON_POOLING`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`,
+`SEC_USER_AGENT`. Variables: `COLLECTOR_ARCHIVE_PARQUET` (`1`=on),
+`COLLECTOR_PARQUET_BUCKET`.
+
+## Production schedule (cron, UTC)
+
+| Workflow | Cron | Cadence | Runs |
+| --- | --- | --- | --- |
+| `collector-daily` | `30 21 * * 1-5` | Mon–Fri (after US close) | `run_daily` → `upload_archive` |
+| `collector-weekly` | `0 6 * * 0` | Sun | `run_weekly` → `archive_rankings` |
+| `collector-monthly` (`collector-13f`) | `0 7 * * 1` | Mon (weekly, L19) | `run_monthly` |
+| `collector-prune-logs` | `0 3 * * *` | Daily | `prune_logs` — **LIVE** (no archive gate) |
+| `collector-prune` | `0 7 30 12 *` | Dec 30 | OHLC 5yr **LIVE** + 13F + rankings prune (scheduled = dry-run) |
+| `collector-keepalive` | `0 12 1,15 * *` | 1st & 15th | idle keepalive ping |
+| `supabase-keepalive` | `0 9 * * 1,4` | Mon & Thu | DB write ping (free-tier auto-pause guard) |
+| `collector-backfill` | — | manual | `run_backfill` (13F history) |
+| `collector-seed-archive` | — | manual | `seed_archive` (full inception) → `upload_archive` |
+| `ci` | — | push / PR | build + typecheck + lint + tests |
+
+**No active Supabase `pg_cron` jobs** — `cron.job` is empty. The former
+`error_log_cleanup` pg_cron purge was retired 2026-06-30 (Phase N); `error_log`
+retention now lives on the self-observing `collector-prune-logs` workflow.
+
+Full schedule + inspection reference: [`.github/CRON.md`](../../.github/CRON.md).
