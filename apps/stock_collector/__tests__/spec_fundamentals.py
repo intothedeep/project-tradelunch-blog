@@ -35,9 +35,10 @@ def test_plan_refresh_missing_symbol_needs_both():
 
 
 def test_plan_refresh_warm_cache_skips_both():
+    # A fully-warm cache carries long_name too (post-backfill state).
     cached = {
         "AAA": FundamentalsRow(
-            "AAA", shares_outstanding=100.0, sector="Tech",
+            "AAA", shares_outstanding=100.0, sector="Tech", long_name="Alpha Inc",
             shares_refreshed_at=NOW - timedelta(days=5),
             sector_refreshed_at=NOW - timedelta(days=5),
         )
@@ -50,13 +51,27 @@ def test_plan_refresh_shares_stale_sector_fresh():
     # shares aged past 30d, sector still within 90d -> only shares refetched
     cached = {
         "AAA": FundamentalsRow(
-            "AAA", shares_outstanding=100.0, sector="Tech",
+            "AAA", shares_outstanding=100.0, sector="Tech", long_name="Alpha Inc",
             shares_refreshed_at=NOW - SHARES_MAX_AGE,
             sector_refreshed_at=NOW - timedelta(days=45),
         )
     }
     plan = plan_refresh(["AAA"], cached, NOW)
     assert plan.shares == ("AAA",) and plan.sector == ()
+
+
+def test_plan_refresh_missing_name_forces_info_refetch():
+    # sector clock fresh but long_name still NULL -> force the .info refetch
+    # (which carries the name) so a newly-added column backfills in one pass.
+    cached = {
+        "AAA": FundamentalsRow(
+            "AAA", shares_outstanding=100.0, sector="Tech", long_name=None,
+            shares_refreshed_at=NOW - timedelta(days=1),
+            sector_refreshed_at=NOW - timedelta(days=1),
+        )
+    }
+    plan = plan_refresh(["AAA"], cached, NOW)
+    assert plan.shares == () and plan.sector == ("AAA",)
 
 
 def test_plan_refresh_sector_quarterly_boundary():

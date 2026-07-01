@@ -88,6 +88,22 @@ def fetch_sector(symbol: str) -> str | None:
         return None
 
 
+def fetch_sector_and_name(symbol: str) -> tuple[str | None, str | None]:
+    """`.info` sector + company long name from ONE call (the EXPENSIVE, ban-prone
+    call; quarterly cache). Name shares the sector refresh clock — both change
+    rarely. Prefers ``longName``, falls back to ``shortName``. (None, None) on error.
+    """
+    try:
+        import yfinance as yf  # type: ignore[import-untyped]
+
+        for_provider(PROVIDER_YAHOO).acquire()
+        info = yf.Ticker(symbol).info  # type: ignore[union-attr]
+        name = info.get("longName") or info.get("shortName")
+        return info.get("sector"), name
+    except Exception:
+        return None, None
+
+
 def fetch_market_cap(symbol: str) -> float | None:
     """fast_info market cap — FALLBACK when no local close exists yet. None on error."""
     try:

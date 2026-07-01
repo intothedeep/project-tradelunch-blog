@@ -13,6 +13,9 @@ export const rankingEntrySchema = z.object({
     symbol: z.string(),
     sector: z.string().nullable(),
     marketCap: z.number().nullable(),
+    // Tolerant: an older backend (deploy-window race) omits name — default null
+    // instead of rejecting the row.
+    name: z.string().nullable().default(null),
 });
 
 export const rankingsSnapshotSchema = z.object({

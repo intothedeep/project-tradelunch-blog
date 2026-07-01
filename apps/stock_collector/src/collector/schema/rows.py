@@ -149,12 +149,14 @@ class FundamentalsRow:
     ``shares_outstanding`` is refreshed monthly (fast_info), ``sector`` quarterly
     (``.info``); each carries its own refresh clock so the upsert advances a clock
     only when that field was actually refetched (None = leave untouched).
-    market_cap is NEVER stored — derived fresh from shares x local close.
+    ``long_name`` (company name) rides the SAME ``.info`` call as ``sector`` and
+    shares its clock. market_cap is NEVER stored — derived fresh from shares x close.
     """
 
     symbol: str
     shares_outstanding: Optional[float] = None
     sector: Optional[str] = None
+    long_name: Optional[str] = None
     shares_refreshed_at: Optional[datetime] = None
     sector_refreshed_at: Optional[datetime] = None
 

@@ -48,8 +48,15 @@ export default function RankingsTable({ rows, scope }: RankingsTableProps) {
                         <TableCell className="text-muted-foreground tabular-nums">
                             {row.rank}
                         </TableCell>
-                        <TableCell className="font-medium font-mono">
-                            {row.symbol}
+                        <TableCell>
+                            <span className="block font-medium font-mono">
+                                {row.symbol}
+                            </span>
+                            {row.name && row.name !== row.symbol && (
+                                <span className="block truncate text-xs text-muted-foreground">
+                                    {row.name}
+                                </span>
+                            )}
                         </TableCell>
                         {showSector && (
                             <TableCell className="text-muted-foreground">

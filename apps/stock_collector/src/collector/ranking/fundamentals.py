@@ -51,6 +51,12 @@ def plan_refresh(
         f = cached.get(sym)
         if f is None or is_stale(f.shares_refreshed_at, now, SHARES_MAX_AGE):
             shares.append(sym)
-        if f is None or is_stale(f.sector_refreshed_at, now, SECTOR_MAX_AGE):
+        # The .info refetch (sector) also carries long_name — force it when the
+        # name is still missing so a newly-added column backfills in one pass.
+        if (
+            f is None
+            or is_stale(f.sector_refreshed_at, now, SECTOR_MAX_AGE)
+            or f.long_name is None
+        ):
             sector.append(sym)
     return RefreshPlan(tuple(shares), tuple(sector))

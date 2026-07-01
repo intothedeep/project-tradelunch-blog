@@ -32,6 +32,7 @@ from collector.sink.universe_fetch import fetch_sp500_symbols
 from collector.sink.yahoo_fetch import (
     fetch_market_cap,
     fetch_sector,
+    fetch_sector_and_name,
     fetch_shares_outstanding,
 )
 from collector.transform.mapping import resolve_exchange
@@ -52,16 +53,25 @@ def select_tracked_symbols(rows: list[RankingRow]) -> dict[str, RankingRow]:
 
 
 def _persist_refreshed(
-    conn, plan_shares, plan_sector, fresh_shares, fresh_sector, now
+    conn, plan_shares, plan_sector, fresh_shares, fresh_sector, fresh_name, now
 ) -> None:
-    """Upsert just the refetched fields; stamp a clock only when a value came back."""
+    """Upsert just the refetched fields; stamp a clock only when a value came back.
+
+    ``long_name`` rides the sector clock (same .info call), so the sector clock
+    advances when EITHER the sector OR the name came back.
+    """
     updates = [
         FundamentalsRow(
             symbol=sym,
             shares_outstanding=fresh_shares.get(sym),
             sector=fresh_sector.get(sym),
+            long_name=fresh_name.get(sym),
             shares_refreshed_at=now if fresh_shares.get(sym) is not None else None,
-            sector_refreshed_at=now if fresh_sector.get(sym) is not None else None,
+            sector_refreshed_at=(
+                now
+                if (fresh_sector.get(sym) is not None or fresh_name.get(sym) is not None)
+                else None
+            ),
         )
         for sym in set(plan_shares) | set(plan_sector)
     ]
@@ -76,8 +86,13 @@ def _observe(conn, symbols: list[str], limit: int, now: datetime) -> list[Market
     plan = plan_refresh(targets, cached, now)
 
     fresh_shares = {s: fetch_shares_outstanding(s) for s in plan.shares}
-    fresh_sector = {s: fetch_sector(s) for s in plan.sector}
-    _persist_refreshed(conn, plan.shares, plan.sector, fresh_shares, fresh_sector, now)
+    # One .info call per symbol yields both sector and company name.
+    fresh_info = {s: fetch_sector_and_name(s) for s in plan.sector}
+    fresh_sector = {s: v[0] for s, v in fresh_info.items()}
+    fresh_name = {s: v[1] for s, v in fresh_info.items()}
+    _persist_refreshed(
+        conn, plan.shares, plan.sector, fresh_shares, fresh_sector, fresh_name, now
+    )
 
     obs: list[MarketCapObs] = []
     for sym in targets:

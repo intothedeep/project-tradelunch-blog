@@ -11,6 +11,7 @@ export interface RankingEntry {
     symbol: string;
     sector: string | null;
     marketCap: number | null;
+    name: string | null; // company display name (may be absent / == symbol)
 }
 
 export interface RankingsSnapshot {

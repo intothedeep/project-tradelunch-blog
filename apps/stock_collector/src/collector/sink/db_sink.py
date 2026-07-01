@@ -248,7 +248,27 @@ def read_tracked_symbols(conn: psycopg.Connection) -> list[TrackedSymbol]:
 
 # --- I2.8 fundamentals cache (shares + sector) ------------------------------
 
+# Two variants so the run survives a DB where migration 0018 (long_name column)
+# has not been applied yet — column presence is probed at call time.
 _FUNDAMENTALS_UPSERT_SQL = """
+INSERT INTO symbol_fundamentals
+    (symbol, shares_outstanding, sector, long_name,
+     shares_refreshed_at, sector_refreshed_at)
+VALUES (%s, %s, %s, %s, %s, %s)
+ON CONFLICT (symbol) DO UPDATE SET
+    shares_outstanding =
+        COALESCE(EXCLUDED.shares_outstanding, symbol_fundamentals.shares_outstanding),
+    sector = COALESCE(EXCLUDED.sector, symbol_fundamentals.sector),
+    long_name = COALESCE(EXCLUDED.long_name, symbol_fundamentals.long_name),
+    shares_refreshed_at =
+        COALESCE(EXCLUDED.shares_refreshed_at, symbol_fundamentals.shares_refreshed_at),
+    sector_refreshed_at =
+        COALESCE(EXCLUDED.sector_refreshed_at, symbol_fundamentals.sector_refreshed_at),
+    deleted_at = NULL,
+    updated_at = CURRENT_TIMESTAMP
+"""
+
+_FUNDAMENTALS_UPSERT_SQL_NO_NAME = """
 INSERT INTO symbol_fundamentals
     (symbol, shares_outstanding, sector, shares_refreshed_at, sector_refreshed_at)
 VALUES (%s, %s, %s, %s, %s)
@@ -265,25 +285,42 @@ ON CONFLICT (symbol) DO UPDATE SET
 """
 
 
+def _has_long_name_column(cur: psycopg.Cursor) -> bool:
+    """True when migration 0018 (symbol_fundamentals.long_name) is applied."""
+    cur.execute(
+        "SELECT 1 FROM information_schema.columns "
+        "WHERE table_schema = 'public' AND table_name = 'symbol_fundamentals' "
+        "AND column_name = 'long_name'"
+    )
+    return cur.fetchone() is not None
+
+
 def read_fundamentals(conn: psycopg.Connection) -> dict[str, FundamentalsRow]:
-    """{symbol: FundamentalsRow} cache; table-guarded -> {} when absent (un-migrated)."""
+    """{symbol: FundamentalsRow} cache; table-guarded -> {} when absent (un-migrated).
+
+    Tolerant of a pre-0018 DB: selects long_name only when the column exists.
+    """
     with conn.cursor() as cur:
         cur.execute("SELECT to_regclass('public.symbol_fundamentals')")
         if cur.fetchone()[0] is None:
             return {}
+        # Whitelisted literal (one of two constants) — injection-safe.
+        name_col = "long_name" if _has_long_name_column(cur) else "NULL::text"
         cur.execute(
-            "SELECT symbol, shares_outstanding, sector, shares_refreshed_at, "
-            "sector_refreshed_at FROM symbol_fundamentals WHERE deleted_at IS NULL"
+            f"SELECT symbol, shares_outstanding, sector, {name_col}, "
+            "shares_refreshed_at, sector_refreshed_at "
+            "FROM symbol_fundamentals WHERE deleted_at IS NULL"
         )
         return {
             sym: FundamentalsRow(
                 symbol=sym,
                 shares_outstanding=float(sh) if sh is not None else None,
                 sector=sec,
+                long_name=name,
                 shares_refreshed_at=sra,
                 sector_refreshed_at=secra,
             )
-            for (sym, sh, sec, sra, secra) in cur.fetchall()
+            for (sym, sh, sec, name, sra, secra) in cur.fetchall()
         }
 
 
@@ -305,15 +342,39 @@ def read_latest_close(
 
 
 def upsert_fundamentals(conn: psycopg.Connection, rows: Sequence[FundamentalsRow]) -> int:
-    """COALESCE-merge cache rows; a clock advances only when its value was refetched."""
+    """COALESCE-merge cache rows; a clock advances only when its value was refetched.
+
+    Tolerant of a pre-0018 DB: writes long_name only when the column exists.
+    """
     if not rows:
         return 0
-    params = [
-        (r.symbol, r.shares_outstanding, r.sector, r.shares_refreshed_at, r.sector_refreshed_at)
-        for r in rows
-    ]
     with conn.cursor() as cur:
-        cur.executemany(_FUNDAMENTALS_UPSERT_SQL, params)
+        if _has_long_name_column(cur):
+            sql = _FUNDAMENTALS_UPSERT_SQL
+            params = [
+                (
+                    r.symbol,
+                    r.shares_outstanding,
+                    r.sector,
+                    r.long_name,
+                    r.shares_refreshed_at,
+                    r.sector_refreshed_at,
+                )
+                for r in rows
+            ]
+        else:
+            sql = _FUNDAMENTALS_UPSERT_SQL_NO_NAME
+            params = [
+                (
+                    r.symbol,
+                    r.shares_outstanding,
+                    r.sector,
+                    r.shares_refreshed_at,
+                    r.sector_refreshed_at,
+                )
+                for r in rows
+            ]
+        cur.executemany(sql, params)
     conn.commit()
     return len(params)
 

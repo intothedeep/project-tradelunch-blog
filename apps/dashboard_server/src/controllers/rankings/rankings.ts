@@ -36,6 +36,7 @@ interface IRankingRow {
     symbol: string;
     sector: string | null;
     market_cap: string | null; // NUMERIC → string (or null on carry-forward)
+    name: string | null; // company display name (symbol_fundamentals.long_name)
 }
 
 // Pure: single ranking DTO from a row.
@@ -45,7 +46,23 @@ function toEntry(r: IRankingRow) {
         symbol: r.symbol,
         sector: r.sector,
         marketCap: r.market_cap === null ? null : Number(r.market_cap),
+        name: r.name,
     };
+}
+
+// Guard: is migration 0018 (symbol_fundamentals.long_name) applied? When absent
+// the endpoint still serves rankings, just without the company name (name=null).
+// Keeps the endpoint alive across the deploy/migration ordering window.
+async function nameColumnPresent(): Promise<boolean> {
+    const { rows } = await pool.query<{ present: boolean }>(
+        `SELECT EXISTS (
+             SELECT 1 FROM information_schema.columns
+             WHERE table_schema = 'public'
+               AND table_name = 'symbol_fundamentals'
+               AND column_name = 'long_name'
+         ) AS present`
+    );
+    return rows[0]?.present ?? false;
 }
 
 // Pure: clamp a raw limit query param into [1, MAX_LIMIT] with a default.
@@ -127,6 +144,15 @@ router.get('/', async (req, res) => {
         const scope = req.query.scope === 'sector' ? 'sector' : 'global';
         const limit = clampLimit(req.query.limit);
 
+        // Enrich each row with the company name (symbol_fundamentals.long_name)
+        // only when 0018 is applied; otherwise select NULL so the shape is stable.
+        // These fragments are server-controlled literals — no user input.
+        const nameEnabled = await nameColumnPresent();
+        const nameSelect = nameEnabled ? 'sf.long_name' : 'NULL::text';
+        const nameJoin = nameEnabled
+            ? 'LEFT JOIN symbol_fundamentals sf ON sf.symbol = mr.symbol AND sf.deleted_at IS NULL'
+            : '';
+
         let entries: IRankingRow[] = [];
         let selectedSector: string | null = null;
 
@@ -141,10 +167,11 @@ router.get('/', async (req, res) => {
 
             if (selectedSector !== null) {
                 const { rows } = await pool.query<IRankingRow>(
-                    `SELECT rank, symbol, sector, market_cap
-                     FROM market_rankings
-                     WHERE as_of = $1::date AND scope = 'sector' AND sector = $2
-                     ORDER BY rank ASC
+                    `SELECT mr.rank, mr.symbol, mr.sector, mr.market_cap, ${nameSelect} AS name
+                     FROM market_rankings mr
+                     ${nameJoin}
+                     WHERE mr.as_of = $1::date AND mr.scope = 'sector' AND mr.sector = $2
+                     ORDER BY mr.rank ASC
                      LIMIT $3`,
                     [asOf, selectedSector, limit]
                 );
@@ -152,10 +179,11 @@ router.get('/', async (req, res) => {
             }
         } else {
             const { rows } = await pool.query<IRankingRow>(
-                `SELECT rank, symbol, sector, market_cap
-                 FROM market_rankings
-                 WHERE as_of = $1::date AND scope = 'global'
-                 ORDER BY rank ASC
+                `SELECT mr.rank, mr.symbol, mr.sector, mr.market_cap, ${nameSelect} AS name
+                 FROM market_rankings mr
+                 ${nameJoin}
+                 WHERE mr.as_of = $1::date AND mr.scope = 'global'
+                 ORDER BY mr.rank ASC
                  LIMIT $2`,
                 [asOf, limit]
             );
