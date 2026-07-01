@@ -72,8 +72,14 @@ Enforcement (three layers):
   words (filler, hedging, redundant context).
 - Format: `<date> <area>: <what changed> (<commit/ref>)`
 - No prose blocks, no multi-line entries.
-- The status log is NOT archived; it stays whole but stays terse. Existing
-  verbose lines are rewritten to this style in place (no information lost).
+- Terse-first: it stays whole and terse. Existing verbose lines are rewritten
+  to this style in place (no information lost).
+- **Periodic roll-off (added 2026-06-30):** when the log outgrows the active
+  cycle, the OLD settled lines (a completed era whose phases are already
+  archived) may be moved — not deleted — into
+  `_docs/archive/status.<range>.md`, leaving a one-line banner (§6-style) at
+  the top of the living log pointing to the archive. Only the active/current
+  cycle stays live. This is a MOVE (soft-delete safety, §7); never drop lines.
 
 ## 6. Living-doc banner
 
