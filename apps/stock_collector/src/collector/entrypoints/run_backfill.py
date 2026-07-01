@@ -22,7 +22,7 @@ Side effects: network (SEC EDGAR) + DB writes in non-dry mode.
 
 L16: After each (fund, period) holdings fetch, write holdings to local 13F
 Parquet and upload to Storage (best-effort, default OFF). Gated by
-``COLLECTOR_ARCHIVE_SEC_PARQUET=1`` or ``--archive`` flag. Archive failures
+``SHOULD_COLLECTOR_ARCHIVE_SEC_PARQUET=1`` or ``--archive`` flag. Archive failures
 log a warning and do NOT abort the backfill.
 
 L17: DB-window gate decouples archive window (--since) from DB window
@@ -129,7 +129,7 @@ def main(argv: list[str] | None = None) -> int:
                         help="fetch+parse+print; no DB writes")
     parser.add_argument(
         "--archive", action="store_true", default=False,
-        help="enable 13F Parquet cold-archive (overrides COLLECTOR_ARCHIVE_SEC_PARQUET)",
+        help="enable 13F Parquet cold-archive (overrides SHOULD_COLLECTOR_ARCHIVE_SEC_PARQUET)",
     )
     parser.add_argument(
         "--db-keep-quarters", type=int, default=_DEFAULT_DB_KEEP_QUARTERS,

@@ -41,11 +41,11 @@ Env (`.env`, loaded via python-dotenv — do NOT quote or leave empty):
   `aws-0-<region>.pooler.supabase.com:5432`) — NOT the IPv6-only `db.<ref>`
   host. Falls back to `POSTGRES_URL_NON_POOLING`.
 - **OHLC/rankings Parquet archive** (optional): `SUPABASE_URL`,
-  `SUPABASE_SECRET_KEY`, `COLLECTOR_ARCHIVE_PARQUET=1`,
-  `COLLECTOR_PARQUET_BUCKET` (default `market-archive`).
+  `SUPABASE_SECRET_KEY`, `SHOULD_COLLECTOR_MARKET_ARCHIVE_PARQUET=1`,
+  `COLLECTOR_MARKET_PARQUET_BUCKET` (default `market-archive`).
 - **13F**: `SEC_USER_AGENT` (descriptive UA, else SEC returns 403). 13F Parquet
-  cold archive is gated by `COLLECTOR_ARCHIVE_SEC_PARQUET=1` (or `--archive`),
-  bucket `COLLECTOR_SEC_PARQUET_BUCKET` (default `market-archive`). The separate
+  cold archive is gated by `SHOULD_COLLECTOR_ARCHIVE_SEC_PARQUET=1` (or `--archive`),
+  bucket `COLLECTOR_SEC_PARQUET_BUCKET` (default `sec-archive`, PRIVATE). The separate
   raw info-table XML archive uses `COLLECTOR_ARCHIVE_SEC` / `COLLECTOR_SEC_BUCKET`.
 - **Provider tuning** (optional): `YAHOO_RPM` (default 30).
 
@@ -118,8 +118,8 @@ gh variable list ; gh secret list                      # config the jobs read (n
 
 Secrets the jobs read: `DATABASE_URL` (session pooler),
 `POSTGRES_URL_NON_POOLING`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`,
-`SEC_USER_AGENT`. Variables: `COLLECTOR_ARCHIVE_PARQUET` (`1`=on),
-`COLLECTOR_PARQUET_BUCKET` (OHLC/rankings); `COLLECTOR_ARCHIVE_SEC_PARQUET`,
+`SEC_USER_AGENT`. Variables: `SHOULD_COLLECTOR_MARKET_ARCHIVE_PARQUET` (`1`=on),
+`COLLECTOR_MARKET_PARQUET_BUCKET` (OHLC/rankings); `SHOULD_COLLECTOR_ARCHIVE_SEC_PARQUET`,
 `COLLECTOR_SEC_PARQUET_BUCKET` (13F cold archive).
 
 ## Production schedule (cron, UTC)

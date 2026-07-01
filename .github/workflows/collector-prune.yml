@@ -62,8 +62,8 @@ jobs:
           POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-          COLLECTOR_PARQUET_BUCKET: ${{ vars.COLLECTOR_PARQUET_BUCKET }}
-          COLLECTOR_ARCHIVE_PARQUET: ${{ vars.COLLECTOR_ARCHIVE_PARQUET }}
+          COLLECTOR_MARKET_PARQUET_BUCKET: ${{ vars.COLLECTOR_MARKET_PARQUET_BUCKET }}
+          SHOULD_COLLECTOR_MARKET_ARCHIVE_PARQUET: ${{ vars.SHOULD_COLLECTOR_MARKET_ARCHIVE_PARQUET }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
             uv run python -m collector.entrypoints.prune_history --dry-run
@@ -159,7 +159,7 @@ jobs:
           POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-          COLLECTOR_PARQUET_BUCKET: ${{ vars.COLLECTOR_PARQUET_BUCKET }}
+          COLLECTOR_MARKET_PARQUET_BUCKET: ${{ vars.COLLECTOR_MARKET_PARQUET_BUCKET }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "false" ]; then
             echo "::warning::LIVE rankings prune (dry_run unchecked) — deletes archive-verified rows older than 10y"

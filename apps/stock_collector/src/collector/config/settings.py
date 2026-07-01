@@ -65,7 +65,7 @@ def supabase_storage() -> tuple[str | None, str | None]:
 
 def parquet_archive_enabled() -> bool:
     """Phase-1.5 local Parquet archive toggle (default OFF until the bucket exists)."""
-    return os.getenv("COLLECTOR_ARCHIVE_PARQUET", "").strip().lower() in ("1", "true", "yes")
+    return os.getenv("SHOULD_COLLECTOR_MARKET_ARCHIVE_PARQUET", "").strip().lower() in ("1", "true", "yes")
 
 
 def parquet_dir() -> Path:
@@ -75,7 +75,7 @@ def parquet_dir() -> Path:
 
 def parquet_bucket() -> str:
     """PRIVATE Supabase Storage bucket for the Parquet archive (I1.5.1b, analytics-only)."""
-    return os.getenv("COLLECTOR_PARQUET_BUCKET") or "market-archive"
+    return os.getenv("COLLECTOR_MARKET_PARQUET_BUCKET") or "market-archive"
 
 
 def sec_archive_enabled() -> bool:
@@ -94,9 +94,9 @@ def sec_parquet_archive_enabled() -> bool:
     Separate from ``sec_archive_enabled`` (raw XML). Controls whether
     run_monthly/run_backfill write holdings to local Parquet and upload to
     Storage after each fund's DB upsert. Best-effort: upload failures never
-    abort collection. Enable via ``COLLECTOR_ARCHIVE_SEC_PARQUET=1``.
+    abort collection. Enable via ``SHOULD_COLLECTOR_ARCHIVE_SEC_PARQUET=1``.
     """
-    return os.getenv("COLLECTOR_ARCHIVE_SEC_PARQUET", "").strip().lower() in ("1", "true", "yes")
+    return os.getenv("SHOULD_COLLECTOR_ARCHIVE_SEC_PARQUET", "").strip().lower() in ("1", "true", "yes")
 
 
 def sec_parquet_dir() -> Path:
@@ -108,4 +108,4 @@ def sec_parquet_dir() -> Path:
 
 def sec_parquet_bucket() -> str:
     """PRIVATE Supabase Storage bucket for 13F Parquet files (L15, analytics-only)."""
-    return os.getenv("COLLECTOR_SEC_PARQUET_BUCKET") or "market-archive"
+    return os.getenv("COLLECTOR_SEC_PARQUET_BUCKET") or "sec-archive"

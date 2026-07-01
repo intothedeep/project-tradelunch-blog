@@ -41,7 +41,7 @@ from collector.sink.storage_sink import object_exists
 from collector.transform.retention import prune_cutoff
 
 # Parquet key prefix for the (future) rankings cold-archive, within the shared
-# COLLECTOR_PARQUET_BUCKET. One object per calendar year: rankings/{YYYY}.parquet.
+# COLLECTOR_MARKET_PARQUET_BUCKET. One object per calendar year: rankings/{YYYY}.parquet.
 _RANKINGS_ARCHIVE_PREFIX = "rankings"
 
 

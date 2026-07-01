@@ -42,7 +42,7 @@ jobs:
           # Phase-1.5 archive: writes local Parquet only when the repo VARIABLE is
           # set to 1/true (unset -> no-op, daily run unchanged). Flip once the
           # PRIVATE bucket exists (I1.5.1b).
-          COLLECTOR_ARCHIVE_PARQUET: ${{ vars.COLLECTOR_ARCHIVE_PARQUET }}
+          SHOULD_COLLECTOR_MARKET_ARCHIVE_PARQUET: ${{ vars.SHOULD_COLLECTOR_MARKET_ARCHIVE_PARQUET }}
         run: uv run python -m collector.entrypoints.run_daily
 
       # Best-effort: upserts the local Parquet archive to the PRIVATE Storage
@@ -54,7 +54,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           # Supabase 2024+ secret key (sb_secret_…) — server-side full access.
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-          COLLECTOR_PARQUET_BUCKET: ${{ vars.COLLECTOR_PARQUET_BUCKET }}
+          COLLECTOR_MARKET_PARQUET_BUCKET: ${{ vars.COLLECTOR_MARKET_PARQUET_BUCKET }}
         run: uv run python -m collector.entrypoints.upload_archive
 
       # Schedule failures are otherwise SILENT — open a tracking issue on failure.

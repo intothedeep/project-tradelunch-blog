@@ -19,7 +19,7 @@ Side effects: network (SEC EDGAR — 1 GET baseline, 3 GETs when new quarter) +
 DB writes in non-dry mode.
 
 L16: After each fund's DB upsert, write holdings to local 13F Parquet and upload
-to Storage (best-effort, default OFF). Gated by ``COLLECTOR_ARCHIVE_SEC_PARQUET=1``
+to Storage (best-effort, default OFF). Gated by ``SHOULD_COLLECTOR_ARCHIVE_SEC_PARQUET=1``
 or ``--archive`` flag. Archive failures log a warning but never abort collection.
 """
 
@@ -78,7 +78,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dry-run", action="store_true", help="fetch+parse+print, no DB writes")
     parser.add_argument(
         "--archive", action="store_true", default=False,
-        help="enable 13F Parquet cold-archive (overrides COLLECTOR_ARCHIVE_SEC_PARQUET)",
+        help="enable 13F Parquet cold-archive (overrides SHOULD_COLLECTOR_ARCHIVE_SEC_PARQUET)",
     )
     args = parser.parse_args(argv)
 

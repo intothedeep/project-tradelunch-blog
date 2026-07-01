@@ -41,5 +41,5 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-          COLLECTOR_PARQUET_BUCKET: ${{ vars.COLLECTOR_PARQUET_BUCKET }}
+          COLLECTOR_MARKET_PARQUET_BUCKET: ${{ vars.COLLECTOR_MARKET_PARQUET_BUCKET }}
         run: uv run python -m collector.entrypoints.upload_archive
