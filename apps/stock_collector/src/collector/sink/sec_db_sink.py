@@ -7,6 +7,8 @@ UPSERTs (``ON CONFLICT ... DO UPDATE``):
   * ``upsert_holdings`` -> sec_holdings ON CONFLICT(cik, accession, cusip, put_call, prn_type)
   * ``supersede_prior_filings`` -> soft-delete superseded same-period filings
     (strict-earlier filing_date guard; never downgrades a newer stored amendment)
+  * ``supersede_period_others`` -> soft-delete by explicit keep_accessions list;
+    used by the NEW HOLDINGS reconciliation path. Idempotent.
   * ``read_latest_period`` -> MAX(period_of_report) for cik (L19 period-advance guard)
   * ``read_all_periods``   -> all distinct period_of_report for cik (L18 prune candidates)
   * ``prune_period``       -> HARD-DELETE sec_holdings + sec_filings for (cik, period)
@@ -123,6 +125,48 @@ def supersede_prior_filings(
               AND accession <> %s AND filing_date < %s
             """,
             (cik, period, keep_accession, keep_filing_date),
+        )
+    conn.commit()
+    return n_holdings
+
+
+def supersede_period_others(
+    conn: psycopg.Connection,
+    *,
+    cik: str,
+    period: date,
+    keep_accessions: list[str],
+) -> int:
+    """Soft-delete holdings + filings for (cik, period) NOT in keep_accessions.
+
+    Replaces the single-accession supersede_prior_filings for the NEW HOLDINGS
+    reconciliation path, where multiple accessions (base + addenda) are all live.
+
+    Idempotent: ``deleted_at IS NULL`` guard ensures repeated calls are no-ops.
+    Parameterized: keep_accessions is passed as a Postgres array literal.
+
+    Returns the number of holding rows tombstoned.
+    """
+    if not keep_accessions:
+        # Safety: if keep list is empty, do NOT delete everything — no-op.
+        return 0
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE sec_holdings SET deleted_at = now(), updated_at = CURRENT_TIMESTAMP
+            WHERE cik = %s AND period_of_report = %s AND deleted_at IS NULL
+              AND accession <> ALL(%s)
+            """,
+            (cik, period, keep_accessions),
+        )
+        n_holdings = cur.rowcount
+        cur.execute(
+            """
+            UPDATE sec_filings SET deleted_at = now(), updated_at = CURRENT_TIMESTAMP
+            WHERE cik = %s AND period_of_report = %s AND deleted_at IS NULL
+              AND accession <> ALL(%s)
+            """,
+            (cik, period, keep_accessions),
         )
     conn.commit()
     return n_holdings

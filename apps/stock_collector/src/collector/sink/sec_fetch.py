@@ -18,6 +18,8 @@ Invariants:
     dict (filings.files[].name). Returns [] when absent (single-page fund).
   * fetch_submission_page() GETs one overflow page by name using the same session
     + rate limiter as all other SEC calls.
+  * fetch_primary_doc() GETs the cover-page XML for a filing (used only for
+    13F-HR/A filings to read <amendmentType>).
 
 Side effects: network (SEC EDGAR — 3 GETs per fund per run).
 """
@@ -128,6 +130,28 @@ def fetch_infotable(cik: str, accession: str, name: str) -> bytes:
     url = (
         f"{SEC_EDGAR_BASE}/Archives/edgar/data"
         f"/{cik_int(cik)}/{accession_nodashes(accession)}/{name}"
+    )
+    resp = request_with_backoff(
+        lambda: _session.get(url, timeout=30),
+        limiter=for_provider(PROVIDER_SEC13F),
+    )
+    resp.raise_for_status()
+    return resp.content
+
+
+def fetch_primary_doc(cik: str, accession: str, primary_document_name: str) -> bytes:
+    """GET the cover-page XML bytes for a 13F-HR/A filing.
+
+    Used ONLY for amendment filings to read <amendmentType> via
+    parse_amendment_type(). Originals (13F-HR) do not carry <amendmentType>.
+
+    Endpoint: {SEC_EDGAR_BASE}/Archives/edgar/data/{cik_int}/{accession_nodashes}/{name}
+    Same session + PROVIDER_SEC13F rate limiter as all other SEC calls.
+    Returns raw bytes. Raises on non-2xx status.
+    """
+    url = (
+        f"{SEC_EDGAR_BASE}/Archives/edgar/data"
+        f"/{cik_int(cik)}/{accession_nodashes(accession)}/{primary_document_name}"
     )
     resp = request_with_backoff(
         lambda: _session.get(url, timeout=30),
