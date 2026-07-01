@@ -20,7 +20,10 @@ export const rankingsSnapshotSchema = z.object({
     scope: z.enum(['global', 'sector']),
     sector: z.string().nullable(),
     sectors: z.array(z.string()),
-    availableWeeks: z.array(z.string()),
+    // Tolerant: an older backend (deploy-window race, before this field shipped)
+    // omits availableWeeks — default to [] instead of rejecting the whole payload
+    // (which would render the page "unavailable"). Degrades to a disabled picker.
+    availableWeeks: z.array(z.string()).default([]),
     rows: z.array(rankingEntrySchema),
 });
 
