@@ -157,9 +157,7 @@ export async function listPostsByTag(
     const hasMore = rows.length > args.limit;
     const posts = hasMore ? rows.slice(0, args.limit) : rows;
     const nextCursor =
-        hasMore && posts.length > 0
-            ? String(posts[posts.length - 1].id)
-            : null;
+        hasMore && posts.length > 0 ? String(posts[posts.length - 1].id) : null;
 
     return { posts, nextCursor, hasMore };
 }

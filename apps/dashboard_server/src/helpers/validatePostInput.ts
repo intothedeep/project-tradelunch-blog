@@ -44,8 +44,16 @@ export function validatePostInput(body: unknown): TValidatePostInputResult {
         return { ok: false, reason: 'body must be an object' };
     }
 
-    const { title, content, description, categoryId, status, slug, thumbnailUrl, tags } =
-        body;
+    const {
+        title,
+        content,
+        description,
+        categoryId,
+        status,
+        slug,
+        thumbnailUrl,
+        tags,
+    } = body;
 
     if (status !== undefined && !VALID_STATUSES.has(status as TPostStatus)) {
         return { ok: false, reason: 'status is invalid' };
@@ -70,12 +78,18 @@ export function validatePostInput(body: unknown): TValidatePostInputResult {
     }
 
     if (categoryId !== undefined && !isValidCategoryId(categoryId)) {
-        return { ok: false, reason: 'categoryId must be a numeric string or null' };
+        return {
+            ok: false,
+            reason: 'categoryId must be a numeric string or null',
+        };
     }
 
     // Publish rule: a non-draft save requires a category (≥ depth 1). Mirrors the
     // title-required rule. A present null or an absent categoryId both fail.
-    if (!isDraftStatus(status) && (categoryId === undefined || categoryId === null)) {
+    if (
+        !isDraftStatus(status) &&
+        (categoryId === undefined || categoryId === null)
+    ) {
         return { ok: false, reason: 'categoryId is required to publish' };
     }
 

@@ -53,9 +53,9 @@
 //                     updated_at: '2025-01-01T00:00:00Z',
 //                 },
 //             ];
-            
+
 //             const tree = buildTree(flatData);
-            
+
 //             expect(tree).toHaveLength(1);
 //             expect(tree[0].title).toBe('Root');
 //             expect(tree[0].children).toHaveLength(1);
@@ -64,7 +64,7 @@
 //             expect(tree[0].children![0].children![0].title).toBe('Post 1');
 //         });
 //     });
-    
+
 //     describe('Type Guards', () => {
 //         it('isCategoryNode 정상 동작', () => {
 //             const node: TTreeNode = {
@@ -82,11 +82,11 @@
 //                 created_at: null,
 //                 updated_at: null,
 //             };
-            
+
 //             expect(isCategoryNode(node)).toBe(true);
 //             expect(isPostNode(node)).toBe(false);
 //         });
-        
+
 //         it('isPostNode 정상 동작', () => {
 //             const node: TTreeNode = {
 //                 type: ETreeNodeType.POST,
@@ -103,7 +103,7 @@
 //                 created_at: '2025-01-01T00:00:00Z',
 //                 updated_at: '2025-01-01T00:00:00Z',
 //             };
-            
+
 //             expect(isPostNode(node)).toBe(true);
 //             expect(isCategoryNode(node)).toBe(false);
 //         });

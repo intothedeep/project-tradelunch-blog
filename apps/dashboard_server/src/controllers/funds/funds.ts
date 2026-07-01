@@ -14,7 +14,8 @@ export const router = Router();
 // 13F filings are published monthly (quarterly as-of). Long TTL matches the
 // client SSR fetch revalidate=86400. stale-while-revalidate covers collector
 // latency on the first miss after a new filing is ingested.
-const FUNDS_CACHE_CONTROL = 'public, s-maxage=86400, stale-while-revalidate=604800';
+const FUNDS_CACHE_CONTROL =
+    'public, s-maxage=86400, stale-while-revalidate=604800';
 
 // Guard: probe whether migration 0017 has been applied.
 // Returns false if either table is missing; callers return empty data, not 500.
@@ -74,7 +75,12 @@ function toHolding(r: IHoldingRow) {
 }
 
 // Pure: fund holdings envelope from holdings rows + metadata.
-function toFundHoldings(cik: string, label: string, period: string, rows: IHoldingRow[]) {
+function toFundHoldings(
+    cik: string,
+    label: string,
+    period: string,
+    rows: IHoldingRow[]
+) {
     return {
         cik,
         label,
@@ -119,7 +125,10 @@ router.get('/', async (_req, res) => {
         res.json({ success: true, data: rows.map(toFund) });
     } catch (error) {
         console.error('API Error fetching fund list:', error);
-        res.status(500).json({ success: false, message: 'Failed to fetch fund list' });
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch fund list',
+        });
     }
 });
 
@@ -148,7 +157,8 @@ router.get('/:cik', async (req, res) => {
         // Validate optional period query param — only YYYY-MM-DD accepted.
         const rawPeriod = req.query.period;
         const period =
-            typeof rawPeriod === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rawPeriod)
+            typeof rawPeriod === 'string' &&
+            /^\d{4}-\d{2}-\d{2}$/.test(rawPeriod)
                 ? rawPeriod
                 : null;
 
@@ -193,12 +203,20 @@ router.get('/:cik', async (req, res) => {
 
         const firstRow = rows[0]!;
         const label = firstRow.filer ?? cik;
-        const periodOfReport = firstRow.period_of_report.toISOString().slice(0, 10);
+        const periodOfReport = firstRow.period_of_report
+            .toISOString()
+            .slice(0, 10);
 
         res.set('Cache-Control', FUNDS_CACHE_CONTROL);
-        res.json({ success: true, data: toFundHoldings(cik, label, periodOfReport, rows) });
+        res.json({
+            success: true,
+            data: toFundHoldings(cik, label, periodOfReport, rows),
+        });
     } catch (error) {
         console.error('API Error fetching fund holdings:', error);
-        res.status(500).json({ success: false, message: 'Failed to fetch fund holdings' });
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch fund holdings',
+        });
     }
 });

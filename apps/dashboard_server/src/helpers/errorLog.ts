@@ -36,10 +36,9 @@ function toCappedStringOrNull(value: unknown, max: number): string | null {
 // Shape an untrusted body into a bounded row. Non-object bodies yield an
 // all-null row with the default source — never throws.
 export function normalizeErrorLog(body: unknown): TErrorLogRow {
-    const input = (typeof body === 'object' && body !== null ? body : {}) as Record<
-        string,
-        unknown
-    >;
+    const input = (
+        typeof body === 'object' && body !== null ? body : {}
+    ) as Record<string, unknown>;
     return {
         digest: toCappedStringOrNull(input.digest, PATH_MAX),
         message: toCappedStringOrNull(input.message, MESSAGE_MAX),
@@ -71,7 +70,7 @@ export function buildExpressErrorRow(
     path: string | undefined,
     userAgent: string | undefined
 ): TErrorLogRow {
-    const stack = err instanceof Error ? err.stack ?? null : null;
+    const stack = err instanceof Error ? (err.stack ?? null) : null;
     return {
         digest: null,
         message: toCappedStringOrNull(describeThrown(err), MESSAGE_MAX),
@@ -83,10 +82,20 @@ export function buildExpressErrorRow(
 }
 
 // Persist a shaped row. One parameterized INSERT; no value is returned.
-export async function insertErrorLog(pool: Pool, row: TErrorLogRow): Promise<void> {
+export async function insertErrorLog(
+    pool: Pool,
+    row: TErrorLogRow
+): Promise<void> {
     await pool.query(
         `INSERT INTO error_log (digest, message, stack, path, user_agent, source)
          VALUES ($1, $2, $3, $4, $5, $6)`,
-        [row.digest, row.message, row.stack, row.path, row.userAgent, row.source]
+        [
+            row.digest,
+            row.message,
+            row.stack,
+            row.path,
+            row.userAgent,
+            row.source,
+        ]
     );
 }

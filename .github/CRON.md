@@ -5,7 +5,7 @@ often**, and the commands to run/inspect it. Two schedulers are in use:
 
 1. **GitHub Actions** — all collector batch jobs + keepalives + CI. (Python/uv,
    needs DB + Storage + network → can't be pg_cron.)
-2. **Supabase `pg_cron`** — pure-SQL housekeeping that lives *inside* Postgres.
+2. **Supabase `pg_cron`** — pure-SQL housekeeping that lives _inside_ Postgres.
 
 All times are **UTC**. Cron format: `min hour day-of-month month day-of-week`.
 
@@ -13,16 +13,17 @@ All times are **UTC**. Cron format: `min hour day-of-month month day-of-week`.
 
 ## 1. GitHub Actions (`.github/workflows/`)
 
-| Workflow | Cron (UTC) | Human cadence | What it does |
-|---|---|---|---|
-| `collector-daily.yml` | `30 21 * * 1-5` | Mon–Fri 21:30 | Yahoo daily OHLC ingest → `market_history` + `market_snapshots`; writes Parquet archive + uploads to Storage (when `COLLECTOR_ARCHIVE_PARQUET=1`). |
-| `collector-weekly.yml` | `0 6 * * 0` | Sun 06:00 | Market-cap ranking → `tracked_symbols` (sticky universe) + `market_rankings`. |
-| `collector-monthly.yml` | `0 7 1 * *` | 1st 07:00 | SEC EDGAR 13F holdings → `sec_filings` + `sec_holdings`. |
-| `collector-prune.yml` | `0 7 30 12 *` | Dec 30 07:00 | **Phase M** `market_history` 5yr retention prune (OHLC). **Scheduled run is LIVE** (mode B): it deletes archive-verified cold bars. A manual dispatch defaults to dry-run (preview); uncheck `dry_run` for a manual live prune. (Same workflow also runs an L18 13F prune job.) |
-| `collector-keepalive.yml` | `0 12 1,15 * *` | 1st & 15th 12:00 | Collector keepalive ping. |
-| `supabase-keepalive.yml` | `0 9 * * 1,4` | Mon & Thu 09:00 | DB write ping so Supabase free tier doesn't auto-pause (~7-day idle). |
-| `collector-seed-archive.yml` | — (manual) | `workflow_dispatch` only | One-shot FULL-history Parquet seed (inception via `fetch_full`) + Storage upload. Run after adding tickers. |
-| `ci.yml` | — | on push / PR | Build + typecheck + lint + tests. |
+| Workflow                     | Cron (UTC)      | Human cadence            | What it does                                                                                                                                                                                                                                                                    |
+| ---------------------------- | --------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `collector-daily.yml`        | `30 21 * * 1-5` | Mon–Fri 21:30            | Yahoo daily OHLC ingest → `market_history` + `market_snapshots`; writes Parquet archive + uploads to Storage (when `COLLECTOR_ARCHIVE_PARQUET=1`).                                                                                                                              |
+| `collector-weekly.yml`       | `0 6 * * 0`     | Sun 06:00                | Market-cap ranking → `tracked_symbols` (sticky universe) + `market_rankings`. **Phase N:** then best-effort `archive_rankings` writes `rankings/{YYYY}.parquet` → Storage (cold copy for the rankings prune).                                                                    |
+| `collector-monthly.yml`      | `0 7 1 * *`     | 1st 07:00                | SEC EDGAR 13F holdings → `sec_filings` + `sec_holdings`.                                                                                                                                                                                                                        |
+| `collector-prune.yml`        | `0 7 30 12 *`   | Dec 30 07:00             | **Phase M** `market_history` 5yr retention prune (OHLC). **Scheduled run is LIVE** (mode B): it deletes archive-verified cold bars. A manual dispatch defaults to dry-run (preview); uncheck `dry_run` for a manual live prune. Also runs an **L18** 13F prune job (scheduled dry-run) and a **Phase N** `prune-rankings` job (10yr, archive-verified, scheduled dry-run; 0 candidates until ~2036).            |
+| `collector-prune-logs.yml`   | `0 3 * * *`     | Daily 03:00              | **Phase N** log-retention TTL prune: `error_log` (7d) + `batch_log` (90d, keeps `resolved=0` open failures). **Scheduled run is LIVE** (no archive, low blast radius); a manual dispatch defaults to dry-run (count preview). Supersedes the pg_cron `error_log_cleanup` (§2).   |
+| `collector-keepalive.yml`    | `0 12 1,15 * *` | 1st & 15th 12:00         | Collector keepalive ping.                                                                                                                                                                                                                                                       |
+| `supabase-keepalive.yml`     | `0 9 * * 1,4`   | Mon & Thu 09:00          | DB write ping so Supabase free tier doesn't auto-pause (~7-day idle).                                                                                                                                                                                                           |
+| `collector-seed-archive.yml` | — (manual)      | `workflow_dispatch` only | One-shot FULL-history Parquet seed (inception via `fetch_full`) + Storage upload. Run after adding tickers.                                                                                                                                                                     |
+| `ci.yml`                     | —               | on push / PR             | Build + typecheck + lint + tests.                                                                                                                                                                                                                                               |
 
 ### Run / inspect (terminal, `gh` CLI)
 
@@ -58,7 +59,7 @@ gh workflow list
   `POSTGRES_URL_NON_POOLING`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SEC_USER_AGENT`.
 - **Variables** (`… → Variables`): `COLLECTOR_ARCHIVE_PARQUET` (`1` = on),
   `COLLECTOR_PARQUET_BUCKET` (`market-archive`).
-  - Inspect: `gh variable list` · `gh secret list` (names only).
+    - Inspect: `gh variable list` · `gh secret list` (names only).
 
 ---
 
@@ -67,9 +68,12 @@ gh workflow list
 `pg_cron` runs SQL on a schedule **inside Postgres** — no Python, no network, no
 Storage access. Used only for SQL housekeeping.
 
-| jobid | Cron (UTC) | Active | Command | Purpose |
-|---|---|---|---|---|
-| 1 | `0 3 * * *` | yes | `delete from error_log where created_at < now() - interval '7 days'` | Daily 03:00 — `error_log` 7-day retention (telemetry table, no tombstone needed). |
+**No active pg_cron jobs.** `cron.job` is empty. The former `error_log_cleanup`
+job (`0 3 * * *`, `error_log` 7-day purge) was **retired 2026-06-30** (Phase N)
+via `select cron.unschedule('error_log_cleanup')` — `error_log` retention now
+lives on the Phase-M machine (`collector-prune-logs.yml`, §1), which is
+self-observing (writes a `batch_log` row + opens a GitHub issue on failure). The
+`pg_cron` extension stays available for future SQL-only housekeeping.
 
 ### Inspect / manage (SQL — Supabase SQL Editor or `psql`)
 
@@ -99,12 +103,12 @@ select cron.unschedule('job-name');   -- or: select cron.unschedule(<jobid>);
 
 ## Quick "what runs when" (UTC week view)
 
-- **Daily 03:00** — pg_cron: error_log purge
+- **Daily 03:00** — collector-prune-logs (error_log 7d + batch_log 90d, LIVE) · pg_cron error_log purge (superseded, pending retirement)
 - **Mon–Fri 21:30** — collector-daily (OHLC)
-- **Sun 06:00** — collector-weekly (rankings)
+- **Sun 06:00** — collector-weekly (rankings + Parquet archive)
 - **Mon & Thu 09:00** — supabase-keepalive
 - **1st & 15th 12:00** — collector-keepalive
 - **1st 07:00** — collector-monthly (13F)
-- **Dec 30 07:00** — collector-prune (dry-run)
+- **Dec 30 07:00** — collector-prune (OHLC LIVE · 13F + rankings dry-run)
 
 Manual-only: `collector-seed-archive` (Parquet full seed), `ci` (push/PR).

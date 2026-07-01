@@ -95,16 +95,16 @@ describe('comments helper (Option C path / tombstone / auth) — integration', (
 
     afterAll(async () => {
         if (ready) {
-            await pool.query(
-                'DELETE FROM comments WHERE user_id = ANY($1)',
-                [[userA, userB, userC]]
-            );
+            await pool.query('DELETE FROM comments WHERE user_id = ANY($1)', [
+                [userA, userB, userC],
+            ]);
             await pool.query('DELETE FROM posts WHERE user_id = ANY($1)', [
                 [userA, userB, userC],
             ]);
-            await pool.query('DELETE FROM users WHERE clerk_user_id = ANY($1)', [
-                [clerkA, clerkB, clerkC],
-            ]);
+            await pool.query(
+                'DELETE FROM users WHERE clerk_user_id = ANY($1)',
+                [[clerkA, clerkB, clerkC]]
+            );
         }
         await pool.end();
     });
@@ -159,7 +159,13 @@ describe('comments helper (Option C path / tombstone / auth) — integration', (
     it('tombstone masks body but KEEPS the row + its children in path order', async () => {
         if (!guard()) return;
 
-        const parent = await createComment(pool, userA, postId, null, 'to delete');
+        const parent = await createComment(
+            pool,
+            userA,
+            postId,
+            null,
+            'to delete'
+        );
         const child = await createComment(
             pool,
             userA,
@@ -299,7 +305,13 @@ describe('comments helper (Option C path / tombstone / auth) — integration', (
     it('editing a soft-deleted comment is rejected (deleted)', async () => {
         if (!guard()) return;
 
-        const c = await createComment(pool, userA, postId, null, 'tombstone-edit');
+        const c = await createComment(
+            pool,
+            userA,
+            postId,
+            null,
+            'tombstone-edit'
+        );
         await softDeleteComment(pool, c.id, userA, false);
         await expect(
             updateComment(pool, c.id, userA, false, 'resurrect')
@@ -452,7 +464,13 @@ describe('comments helper (Option C path / tombstone / auth) — integration', (
         const tPostId = String(tPost.id);
 
         // Root 1: deleted, NO live descendant → excluded.
-        const dead = await createComment(pool, userA, tPostId, null, 'dead root');
+        const dead = await createComment(
+            pool,
+            userA,
+            tPostId,
+            null,
+            'dead root'
+        );
         await softDeleteComment(pool, dead.id, userA, false);
 
         // Root 2: deleted, but has a LIVE reply → still appears (masked).

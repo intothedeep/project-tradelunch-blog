@@ -11,11 +11,7 @@
 
 import { Router, Request } from 'express';
 import { pool } from '../../database';
-import {
-    ETreeNodeType,
-    TCategoryTreeResponse,
-    TTreeNode,
-} from '@repo/types';
+import { ETreeNodeType, TCategoryTreeResponse, TTreeNode } from '@repo/types';
 
 export function registerUserCategoriesRoutes(router: Router): void {
     // routes/posts.routes.ts
@@ -156,7 +152,10 @@ export function registerUserCategoriesRoutes(router: Router): void {
                     ORDER BY path;
             `;
 
-            const { rows: categories } = await pool.query<TTreeNode>(treeQuery, [username]);
+            const { rows: categories } = await pool.query<TTreeNode>(
+                treeQuery,
+                [username]
+            );
 
             const response: TCategoryTreeResponse = {
                 status: 200,
@@ -193,12 +192,17 @@ export function registerUserCategoriesRoutes(router: Router): void {
             try {
                 const { username, categoryId } = req.params;
                 const rawCursor =
-                    typeof req.query.cursor === 'string' ? req.query.cursor : '';
+                    typeof req.query.cursor === 'string'
+                        ? req.query.cursor
+                        : '';
                 const cursorParam =
                     /^\d+$/.test(rawCursor) && rawCursor !== '0'
                         ? rawCursor
                         : '9223372036854775807';
-                const limit = Math.min(parseInt(req.query.limit || '10', 10), 50);
+                const limit = Math.min(
+                    parseInt(req.query.limit || '10', 10),
+                    50
+                );
                 const fetchLimit = limit + 1;
 
                 const postsQuery = `
@@ -241,7 +245,9 @@ export function registerUserCategoriesRoutes(router: Router): void {
                 const hasMore = rows.length > limit;
                 const posts = hasMore ? rows.slice(0, limit) : rows;
                 const nextCursor =
-                    hasMore && posts.length > 0 ? posts[posts.length - 1].id : null;
+                    hasMore && posts.length > 0
+                        ? posts[posts.length - 1].id
+                        : null;
 
                 res.json({
                     success: true,

@@ -46,7 +46,11 @@ const upload = multer({
 
 // Wrap upload.single so a multer LIMIT_FILE_SIZE maps to 413 instead of bubbling
 // to a generic 500. Other multer errors are 400 (malformed multipart).
-function uploadSingleFile(req: Request, res: Response, next: NextFunction): void {
+function uploadSingleFile(
+    req: Request,
+    res: Response,
+    next: NextFunction
+): void {
     upload.single('file')(req, res, (err: unknown) => {
         if (err instanceof multer.MulterError) {
             const status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
@@ -104,7 +108,10 @@ router.post('', requireAuth, async (req, res) => {
                     userId,
                     row.id,
                     input.thumbnailUrl,
-                    { cdnBase: thumbnailCdnBase, bucket: SUPABASE_STORAGE_BUCKET }
+                    {
+                        cdnBase: thumbnailCdnBase,
+                        bucket: SUPABASE_STORAGE_BUCKET,
+                    }
                 );
             }
             // Tag set: undefined = leave untouched; an array (incl. empty)
@@ -123,7 +130,10 @@ router.post('', requireAuth, async (req, res) => {
         res.status(201).json({ success: true, data: row });
     } catch (error) {
         console.error('POST /api/posts error:', error);
-        res.status(500).json({ success: false, message: 'failed to create post' });
+        res.status(500).json({
+            success: false,
+            message: 'failed to create post',
+        });
     }
 });
 
@@ -133,7 +143,10 @@ router.patch('/:postid', requireAuth, async (req, res) => {
         // precision past 2^53 and would target the wrong row).
         const postId = String(req.params.postid);
         if (!/^\d+$/.test(postId)) {
-            res.status(400).json({ success: false, message: 'invalid post id' });
+            res.status(400).json({
+                success: false,
+                message: 'invalid post id',
+            });
             return;
         }
 
@@ -152,7 +165,13 @@ router.patch('/:postid', requireAuth, async (req, res) => {
         let row;
         try {
             await client.query('BEGIN');
-            row = await updatePost(client, userId, postId, input, req.auth!.isAdmin);
+            row = await updatePost(
+                client,
+                userId,
+                postId,
+                input,
+                req.auth!.isAdmin
+            );
             if (!row) {
                 await client.query('ROLLBACK');
                 res.status(404).json({
@@ -167,7 +186,10 @@ router.patch('/:postid', requireAuth, async (req, res) => {
                     userId,
                     row.id,
                     input.thumbnailUrl,
-                    { cdnBase: thumbnailCdnBase, bucket: SUPABASE_STORAGE_BUCKET }
+                    {
+                        cdnBase: thumbnailCdnBase,
+                        bucket: SUPABASE_STORAGE_BUCKET,
+                    }
                 );
             }
             // Tag set: undefined = leave untouched; an array (incl. empty)
@@ -186,7 +208,10 @@ router.patch('/:postid', requireAuth, async (req, res) => {
         res.json({ success: true, data: row });
     } catch (error) {
         console.error('PATCH /api/posts/:postid error:', error);
-        res.status(500).json({ success: false, message: 'failed to update post' });
+        res.status(500).json({
+            success: false,
+            message: 'failed to update post',
+        });
     }
 });
 
@@ -195,7 +220,10 @@ router.delete('/:postid', requireAuth, async (req, res) => {
         // BIGINT id: keep it a string (never parseInt — see PATCH above).
         const postId = String(req.params.postid);
         if (!/^\d+$/.test(postId)) {
-            res.status(400).json({ success: false, message: 'invalid post id' });
+            res.status(400).json({
+                success: false,
+                message: 'invalid post id',
+            });
             return;
         }
 
@@ -213,7 +241,10 @@ router.delete('/:postid', requireAuth, async (req, res) => {
         res.json({ success: true, data: { id: deletedId } });
     } catch (error) {
         console.error('DELETE /api/posts/:postid error:', error);
-        res.status(500).json({ success: false, message: 'failed to delete post' });
+        res.status(500).json({
+            success: false,
+            message: 'failed to delete post',
+        });
     }
 });
 
@@ -230,7 +261,10 @@ router.post('/images', requireAuth, uploadSingleFile, async (req, res) => {
         }
 
         if (!req.file) {
-            res.status(400).json({ success: false, message: 'file is required' });
+            res.status(400).json({
+                success: false,
+                message: 'file is required',
+            });
             return;
         }
 
@@ -290,7 +324,10 @@ router.post('/images', requireAuth, uploadSingleFile, async (req, res) => {
         res.status(200).json({ success: true, data: payload });
     } catch (error) {
         console.error('POST /api/posts/images error:', error);
-        res.status(500).json({ success: false, message: 'failed to upload image' });
+        res.status(500).json({
+            success: false,
+            message: 'failed to upload image',
+        });
     }
 });
 

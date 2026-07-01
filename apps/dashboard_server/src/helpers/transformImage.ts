@@ -20,7 +20,12 @@ export type TTransformOptions = {
 export type TTransformResult =
     | {
           ok: true;
-          value: { buffer: Buffer; width: number; height: number; bytes: number };
+          value: {
+              buffer: Buffer;
+              width: number;
+              height: number;
+              bytes: number;
+          };
       }
     | { ok: false; reason: 'not_an_image' | 'too_large' };
 

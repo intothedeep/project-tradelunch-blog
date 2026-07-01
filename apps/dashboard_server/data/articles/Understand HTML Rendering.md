@@ -1,27 +1,27 @@
 ---
-title: "HTML: Understand Html Rendering Process"
+title: 'HTML: Understand Html Rendering Process'
 date: 2025-04-13
 tags:
-  [
-    html,
-    browser,
-    software,
-    web,
-    application,
-    html,
-    css,
-    javascript,
-    rendering,
-    tree,
-    CSSom,
-    reflow,
-    repaint,
-    composite,
-    layer,
-    dom,
-    DOMTree,
-    rendering,
-  ]
+    [
+        html,
+        browser,
+        software,
+        web,
+        application,
+        html,
+        css,
+        javascript,
+        rendering,
+        tree,
+        CSSom,
+        reflow,
+        repaint,
+        composite,
+        layer,
+        dom,
+        DOMTree,
+        rendering,
+    ]
 series: Web
 draft: true
 ---

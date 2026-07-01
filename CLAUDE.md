@@ -109,6 +109,7 @@ i18n uses `next-intl` with config at `apps/dashboard_client_web/i18n.ts` (refere
 ### dashboard_server (Express)
 
 Layered MVC under `src/`:
+
 - `controllers/` → `helpers/` (services) → `lib/` (sequelize models, S3 client, SSH tunnel)
 - `middlewares/`, `utils/`, `config/` (env loading)
 - Tests in `__tests__/` mirror `src/` structure
@@ -126,10 +127,12 @@ fold new work into these:
   single line per change, never prose blocks (owned by engineer agent)
 
 Rules:
+
 - When starting non-trivial work, read all three first; update in place.
 - Do **not** spin up extra docs (`00.<feature>.plan.md`, `*.arch.md`, `00.migration.md`, etc.).
   A large sub-effort becomes a section/phase inside `00.plan.md` + `00.tasks.md`.
 - use `_docs/` (gitignored, local-only archive) — they are not deleted and not committed.
+- Update the documentation surgically.
 
 ## Naming Conventions (Quick Reference)
 
@@ -157,4 +160,4 @@ There is **no `DATABASE_URL` in the apps** — the apps read the Vercel↔Supaba
 - `POSTGRES_URL` — **pooled** (transaction pooler, port `6543`) → runtime pg `Pool`.
 - `POSTGRES_URL_NON_POOLING` — **direct/session** (port `5432`) → migrations / direct queries.
 
-`dashboard_server` `src/config/env.schema.ts` resolves its internal `DATABASE_URL`/`DATABASE_URL_DIRECT` constants *from* those two (the constant name is legacy; the env var is `POSTGRES_URL*`). `DATABASE_URL` is used **only in GitHub Actions** (the `stock_collector` cron workflows), set as a secret to the Supabase **session pooler** (`...pooler.supabase.com:5432`) — never the IPv6-only direct host. The collector reads `DATABASE_URL` OR falls back to `POSTGRES_URL_NON_POOLING`.
+`dashboard_server` `src/config/env.schema.ts` resolves its internal `DATABASE_URL`/`DATABASE_URL_DIRECT` constants _from_ those two (the constant name is legacy; the env var is `POSTGRES_URL*`). `DATABASE_URL` is used **only in GitHub Actions** (the `stock_collector` cron workflows), set as a secret to the Supabase **session pooler** (`...pooler.supabase.com:5432`) — never the IPv6-only direct host. The collector reads `DATABASE_URL` OR falls back to `POSTGRES_URL_NON_POOLING`.

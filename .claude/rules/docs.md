@@ -26,8 +26,9 @@ Stub shape:
 
 ```markdown
 ### Phase A — Deploy (Vercel + Supabase) — DONE (2026-06-26)
+
 > One-line summary of what shipped. <!-- ARCHIVE: history-only -->
-> Detail: [_docs/archive/plan.phase-A.md](./_docs/archive/plan.phase-A.md)
+> Detail: [\_docs/archive/plan.phase-A.md](./_docs/archive/plan.phase-A.md)
 ```
 
 Archive file naming: `<doc>.<phase-slug>.md`

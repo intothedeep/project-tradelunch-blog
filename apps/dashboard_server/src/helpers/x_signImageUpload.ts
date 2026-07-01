@@ -84,7 +84,10 @@ export async function signImageUpload(
     });
 
     if (!response.ok) {
-        return { ok: false, reason: `storage sign failed (${response.status})` };
+        return {
+            ok: false,
+            reason: `storage sign failed (${response.status})`,
+        };
     }
 
     const body = (await response.json()) as { url?: string };

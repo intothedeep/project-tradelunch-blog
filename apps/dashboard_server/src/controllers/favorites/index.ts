@@ -77,7 +77,10 @@ router.post('/:postId', requireAuth, async (req, res) => {
     try {
         const postId = String(req.params.postId);
         if (!isValidPostId(postId)) {
-            res.status(400).json({ success: false, message: 'invalid post id' });
+            res.status(400).json({
+                success: false,
+                message: 'invalid post id',
+            });
             return;
         }
 
@@ -102,7 +105,10 @@ router.delete('/:postId', requireAuth, async (req, res) => {
     try {
         const postId = String(req.params.postId);
         if (!isValidPostId(postId)) {
-            res.status(400).json({ success: false, message: 'invalid post id' });
+            res.status(400).json({
+                success: false,
+                message: 'invalid post id',
+            });
             return;
         }
 

@@ -40,9 +40,10 @@ describe('claimUsername (integration)', () => {
 
     afterAll(async () => {
         if (reachable) {
-            await pool.query('DELETE FROM users WHERE clerk_user_id = ANY($1)', [
-                [clerkA, clerkB],
-            ]);
+            await pool.query(
+                'DELETE FROM users WHERE clerk_user_id = ANY($1)',
+                [[clerkA, clerkB]]
+            );
         }
         await pool.end();
     });
@@ -72,7 +73,11 @@ describe('claimUsername (integration)', () => {
 
     it('the same user re-claiming conflicts (409 already set)', async () => {
         if (!guard()) return;
-        const result = await claimUsername(pool, userA, `${wantedName}_2`.slice(0, 30));
+        const result = await claimUsername(
+            pool,
+            userA,
+            `${wantedName}_2`.slice(0, 30)
+        );
         expect(result).toEqual({
             ok: false,
             status: 409,

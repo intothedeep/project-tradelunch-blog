@@ -42,10 +42,10 @@ describe('normalizeErrorLog', () => {
     });
 
     it('drops unknown fields', () => {
-        const row = normalizeErrorLog({ message: 'x', secret: 'leak' }) as Record<
-            string,
-            unknown
-        >;
+        const row = normalizeErrorLog({
+            message: 'x',
+            secret: 'leak',
+        }) as Record<string, unknown>;
         expect(row.secret).toBeUndefined();
     });
 
@@ -75,14 +75,18 @@ describe('buildExpressErrorRow', () => {
     });
 
     it('handles non-Error throws (string / object) with null stack', () => {
-        expect(buildExpressErrorRow('plain string', undefined, undefined)).toMatchObject({
+        expect(
+            buildExpressErrorRow('plain string', undefined, undefined)
+        ).toMatchObject({
             message: 'plain string',
             stack: null,
             path: null,
             userAgent: null,
             source: 'express',
         });
-        expect(buildExpressErrorRow({ code: 42 }, undefined, undefined)).toMatchObject({
+        expect(
+            buildExpressErrorRow({ code: 42 }, undefined, undefined)
+        ).toMatchObject({
             message: '{"code":42}',
             stack: null,
         });

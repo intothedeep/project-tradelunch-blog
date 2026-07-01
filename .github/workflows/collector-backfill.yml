@@ -7,6 +7,10 @@ name: collector-13f-backfill
 # keeps the latest quarter current going forward — this is only the initial fill.
 # Defaults to DRY-RUN; uncheck `dry_run` to actually write.
 # SEC requires a descriptive User-Agent (SEC_USER_AGENT) or it 403s.
+#
+# L17: db_keep_quarters decouples the Parquet archive window (since) from the
+# Postgres serving window. A `since=2013` run writes full history to Parquet but
+# only the recent keep window to DB. Default=12 (3 years).
 on:
   workflow_dispatch:
     inputs:
@@ -24,6 +28,10 @@ on:
         type: boolean
         required: false
         default: false
+      db_keep_quarters:
+        description: "DB write window in quarters (default 12 = 3 years). Periods older than this skip DB writes but still go to Parquet when archive=true."
+        required: false
+        default: "12"
 
 concurrency:
   group: collector-13f-backfill
@@ -67,7 +75,8 @@ jobs:
           uv run python -m collector.entrypoints.run_backfill \
             ${{ inputs.since != '' && format('--since {0}', inputs.since) || '' }} \
             ${{ inputs.dry_run && '--dry-run' || '' }} \
-            ${{ inputs.archive && '--archive' || '' }}
+            ${{ inputs.archive && '--archive' || '' }} \
+            --db-keep-quarters ${{ inputs.db_keep_quarters }}
 
       - name: Notify on failure
         if: failure()

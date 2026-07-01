@@ -1,5 +1,5 @@
 ---
-title: "algorithms"
+title: 'algorithms'
 tags: [algorithm]
 desc: test algorithm
 date: 2025-06-28 19:35:43

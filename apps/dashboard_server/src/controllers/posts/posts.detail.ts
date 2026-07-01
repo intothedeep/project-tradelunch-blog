@@ -69,7 +69,10 @@ export function registerDetailRoutes(router: Router): void {
 
             res.json({ success: true, data: post });
         } catch (error) {
-            console.error(`API Error fetching post ${req.params.postid}:`, error);
+            console.error(
+                `API Error fetching post ${req.params.postid}:`,
+                error
+            );
             res.status(500).json({
                 success: false,
                 message: 'Failed to fetch post',

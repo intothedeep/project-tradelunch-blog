@@ -11,10 +11,16 @@ Reads:
 Prune (Phase M):
   * ``read_prune_candidates`` -> {label: (min_date, count)} bars older than cutoff
   * ``delete_history_before`` -> hard-DELETE rows < cutoff for one label; caller commits
+Prune (Phase N — log TTL + rankings retention):
+  * ``delete_error_log_before`` / ``delete_batch_log_before`` -> sanctioned no-tombstone
+    TTL hard-DELETE on the two log tables (migrations 0014/0015 exception; no archive)
+  * ``read_rankings_prune_years`` / ``delete_rankings_before`` -> market_rankings
+    retention (domain data; caller archive-verifies first when enabled)
 
 Side effects: DB connection + writes. Soft-delete only (never hard-DELETE) EXCEPT
-for the explicit retention prune path (delete_history_before), which is guarded by
-Parquet object-existence checks in the caller before any row is deleted.
+the explicit retention prune paths (delete_history_before, and the Phase N deletes
+above), each guarded in the caller (Parquet object-existence for domain data; an
+owner-approved no-tombstone exception for the log tables) before any row is deleted.
 """
 
 from __future__ import annotations
@@ -357,4 +363,115 @@ def delete_history_before(
             "DELETE FROM market_history WHERE label = %s AND interval = %s AND bar_time < %s",
             (label, interval, cutoff),
         )
+        return cur.rowcount
+
+
+# --- Phase N: log TTL + rankings retention prune ----------------------------
+
+
+def count_error_log_before(conn: psycopg.Connection, cutoff: datetime) -> int:
+    """COUNT of error_log rows with created_at strictly < ``cutoff`` (dry-run preview)."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) FROM error_log WHERE created_at < %s", (cutoff,))
+        return int(cur.fetchone()[0])
+
+
+def delete_error_log_before(conn: psycopg.Connection, cutoff: datetime) -> int:
+    """Hard-DELETE error_log rows with created_at strictly < ``cutoff``.
+
+    Sanctioned no-tombstone TTL (migration 0014 owner exception): error_log is an
+    operational log with no ``deleted_at`` column, pruned purely by age. Caller
+    commits. Returns ``cur.rowcount``.
+    """
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM error_log WHERE created_at < %s", (cutoff,))
+        return cur.rowcount
+
+
+def count_batch_log_before(
+    conn: psycopg.Connection, cutoff: datetime, *, keep_open_failures: bool = True
+) -> int:
+    """COUNT of batch_log rows that delete_batch_log_before would remove (dry-run)."""
+    sql = "SELECT COUNT(*) FROM batch_log WHERE created_at < %s"
+    if keep_open_failures:
+        sql += " AND resolved = 1"
+    with conn.cursor() as cur:
+        cur.execute(sql, (cutoff,))
+        return int(cur.fetchone()[0])
+
+
+def delete_batch_log_before(
+    conn: psycopg.Connection, cutoff: datetime, *, keep_open_failures: bool = True
+) -> int:
+    """Hard-DELETE batch_log rows with created_at strictly < ``cutoff``.
+
+    Sanctioned no-tombstone TTL (migration 0015 owner exception). When
+    ``keep_open_failures`` is True (default), rows with ``resolved = 0`` are
+    RETAINED regardless of age — an unresolved failure must not be silently
+    pruned before anyone triages it. Caller commits. Returns ``cur.rowcount``.
+    """
+    sql = "DELETE FROM batch_log WHERE created_at < %s"
+    if keep_open_failures:
+        sql += " AND resolved = 1"
+    with conn.cursor() as cur:
+        cur.execute(sql, (cutoff,))
+        return cur.rowcount
+
+
+def read_rankings_years(conn: psycopg.Connection) -> list[int]:
+    """Distinct ``as_of`` years present in market_rankings, ascending.
+
+    Used by the archive writer (Phase N) to enumerate which year files to
+    (re)build before a retention prune can trust the cold Parquet copy.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT DISTINCT EXTRACT(YEAR FROM as_of)::int AS y "
+            "FROM market_rankings ORDER BY y"
+        )
+        return [int(row[0]) for row in cur.fetchall()]
+
+
+def read_rankings_by_year(conn: psycopg.Connection, year: int) -> list[dict]:
+    """All market_rankings rows whose ``as_of`` falls in ``year`` (archive source).
+
+    Returns plain dicts keyed by column name for rankings_parquet_sink.write_year.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT as_of, symbol, scope, sector, rank, market_cap "
+            "FROM market_rankings WHERE EXTRACT(YEAR FROM as_of) = %s "
+            "ORDER BY as_of, scope, rank",
+            (year,),
+        )
+        cols = ("as_of", "symbol", "scope", "sector", "rank", "market_cap")
+        return [dict(zip(cols, row)) for row in cur.fetchall()]
+
+
+def read_rankings_prune_years(conn: psycopg.Connection, cutoff: date) -> list[int]:
+    """Distinct ``as_of`` years strictly older than ``cutoff``, ascending.
+
+    Mirrors ``read_prune_candidates`` for market_rankings: the caller uses these
+    years to probe one Parquet object per year before any delete (when
+    archive-verify is enabled). Empty list when nothing is older than the cutoff.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT DISTINCT EXTRACT(YEAR FROM as_of)::int AS y "
+            "FROM market_rankings WHERE as_of < %s ORDER BY y",
+            (cutoff,),
+        )
+        return [int(row[0]) for row in cur.fetchall()]
+
+
+def delete_rankings_before(conn: psycopg.Connection, cutoff: date) -> int:
+    """Hard-DELETE market_rankings rows with ``as_of`` strictly < ``cutoff``.
+
+    market_rankings is DOMAIN data (not a log exception) and effectively
+    non-reproducible (no shares-outstanding history), so the caller MUST confirm
+    the Parquet archive first when verify is enabled — never a partial delete.
+    Caller commits. Returns ``cur.rowcount``.
+    """
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM market_rankings WHERE as_of < %s", (cutoff,))
         return cur.rowcount

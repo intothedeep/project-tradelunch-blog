@@ -27,6 +27,7 @@ docs/
 ```
 
 **Extraction Logic:**
+
 - **Path:** `docs/technology/ai/langchain-guide/`
 - **Categories:** `['technology', 'ai']` (excludes 'docs' root and article folder name)
 
@@ -35,17 +36,20 @@ docs/
 ### Example 1: Multi-level Hierarchy
 
 **Folder Path:**
+
 ```
 docs/technology/ai/langchain-guide/langchain-guide.md
 ```
 
 **Extracted:**
+
 ```python
 categories: ['technology', 'ai']
 # Category hierarchy: technology > ai
 ```
 
 **LLM Prompt:**
+
 ```
 Category Path: technology > ai
 ```
@@ -53,17 +57,20 @@ Category Path: technology > ai
 ### Example 2: Deep Hierarchy
 
 **Folder Path:**
+
 ```
 docs/programming/java/spring/jdbc/connection-pooling/connection-pooling.md
 ```
 
 **Extracted:**
+
 ```python
 categories: ['programming', 'java', 'spring', 'jdbc', 'connection-pooling']
 # Category hierarchy: programming > java > spring > jdbc > connection-pooling
 ```
 
 **LLM Prompt:**
+
 ```
 Category Path: programming > java > spring > jdbc > connection-pooling
 ```
@@ -71,17 +78,20 @@ Category Path: programming > java > spring > jdbc > connection-pooling
 ### Example 3: Single Level
 
 **Folder Path:**
+
 ```
 docs/tutorials/getting-started/getting-started.md
 ```
 
 **Extracted:**
+
 ```python
 categories: ['tutorials']
 # Category hierarchy: tutorials
 ```
 
 **LLM Prompt:**
+
 ```
 Category Path: tutorials
 ```
@@ -89,17 +99,20 @@ Category Path: tutorials
 ### Example 4: Root Level (No Categories)
 
 **Folder Path:**
+
 ```
 docs/introduction/introduction.md
 ```
 
 **Extracted:**
+
 ```python
 categories: []
 # Category hierarchy: (root)
 ```
 
 **LLM Prompt:**
+
 ```
 (No category path)
 ```
@@ -191,6 +204,7 @@ CREATE TABLE post_categories (
 ## Category Hierarchy Example
 
 ### Folder Structure
+
 ```
 docs/
   └── technology/
@@ -202,11 +216,13 @@ docs/
 ```
 
 ### Extracted Categories
+
 ```python
 categories: ['technology', 'ai', 'machine-learning', 'neural-networks', 'cnn-basics']
 ```
 
 ### Database Representation
+
 ```sql
 -- categories table
 | id | name              | parent_id | root_id | level |
@@ -235,6 +251,7 @@ categories: ['technology', 'ai', 'machine-learning', 'neural-networks', 'cnn-bas
 ## Usage in Agent Workflow
 
 ### 1. DocumentScannerAgent
+
 ```python
 scanner = DocumentScannerAgent()
 result = await scanner.run(task)
@@ -246,6 +263,7 @@ print(article["categories"])
 ```
 
 ### 2. ExtractingAgent
+
 ```python
 agent = ExtractingAgent()
 task = AgentTask.create(
@@ -260,6 +278,7 @@ print(result["data"]["categories"])
 ```
 
 ### 3. LLM Metadata Generation
+
 The categories are passed to the LLM for context:
 
 ```
@@ -272,6 +291,7 @@ Content preview:
 ```
 
 The LLM uses this category context to:
+
 - Generate more relevant tags
 - Create a better summary
 - Understand the topic domain
@@ -279,22 +299,29 @@ The LLM uses this category context to:
 ## Benefits
 
 ### 1. Automatic Organization
+
 No need to manually specify categories in frontmatter - they're derived from folder structure.
 
 ### 2. Hierarchical Structure
+
 Full path provides context at multiple levels (technology → ai → machine-learning).
 
 ### 3. Flexible Depth
+
 Supports any depth of category hierarchy (1 level to N levels).
 
 ### 4. Database Efficiency
+
 Can query by any level:
+
 - All 'technology' posts
 - All 'ai' posts under 'technology'
 - All 'machine-learning' posts under 'ai'
 
 ### 5. SEO Friendly
+
 Category paths create semantic URL structures:
+
 ```
 /technology/
 /technology/ai/
@@ -305,7 +332,9 @@ Category paths create semantic URL structures:
 ## Best Practices
 
 ### 1. Consistent Naming
+
 Use lowercase, hyphen-separated folder names:
+
 ```
 ✅ machine-learning/
 ❌ Machine Learning/
@@ -313,7 +342,9 @@ Use lowercase, hyphen-separated folder names:
 ```
 
 ### 2. Logical Hierarchy
+
 Organize from general to specific:
+
 ```
 technology/
   └── ai/
@@ -321,6 +352,7 @@ technology/
 ```
 
 Not:
+
 ```
 machine-learning/
   └── ai/
@@ -328,14 +360,18 @@ machine-learning/
 ```
 
 ### 3. Reasonable Depth
+
 Aim for 2-4 levels for usability:
+
 ```
 ✅ technology/ai/machine-learning/  (3 levels)
 ⚠️ technology/ai/ml/deep-learning/cnn/computer-vision/image-classification/  (7 levels - too deep!)
 ```
 
 ### 4. Meaningful Names
+
 Use descriptive, searchable category names:
+
 ```
 ✅ web-development/
 ❌ misc/

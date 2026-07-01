@@ -12,7 +12,11 @@
 import { Router, Request } from 'express';
 import { pool } from '../../database';
 import { optionalAuth } from '../../middlewares/optionalAuth';
-import { normalizeCursor, clampFeedLimit, listPostsByTag } from '../../helpers/postsByTag';
+import {
+    normalizeCursor,
+    clampFeedLimit,
+    listPostsByTag,
+} from '../../helpers/postsByTag';
 import { parseFeedFacet } from '../../helpers/parseFeedFacet';
 import { CATEGORY_PATH_CTE } from './posts.shared';
 
@@ -57,7 +61,9 @@ export function registerUserFeedRoutes(router: Router): void {
             try {
                 const { username } = req.params;
                 const rawCursor =
-                    typeof req.query.cursor === 'string' ? req.query.cursor : '';
+                    typeof req.query.cursor === 'string'
+                        ? req.query.cursor
+                        : '';
                 const cursorParam =
                     /^\d+$/.test(rawCursor) && rawCursor !== '0'
                         ? rawCursor
@@ -209,7 +215,9 @@ export function registerUserFeedRoutes(router: Router): void {
                 const hasMore = rows.length > limit;
                 const posts = hasMore ? rows.slice(0, limit) : rows;
                 const nextCursor =
-                    hasMore && posts.length > 0 ? posts[posts.length - 1].id : null;
+                    hasMore && posts.length > 0
+                        ? posts[posts.length - 1].id
+                        : null;
 
                 const data = {
                     posts,

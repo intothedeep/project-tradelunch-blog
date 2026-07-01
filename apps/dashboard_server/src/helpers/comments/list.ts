@@ -85,7 +85,11 @@ export async function listCommentPage(
     db: TDb,
     postId: string,
     opts: { cursor: string; limit: number }
-): Promise<{ comments: TComment[]; nextCursor: string | null; hasMore: boolean }> {
+): Promise<{
+    comments: TComment[];
+    nextCursor: string | null;
+    hasMore: boolean;
+}> {
     const { cursor, limit } = opts;
 
     // STAGE 1 — pick the page of root ids (newest-first, keyset on id < cursor).

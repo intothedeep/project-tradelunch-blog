@@ -101,9 +101,10 @@ describe('saved-posts list (integration)', () => {
             await pool.query('DELETE FROM posts WHERE user_id = ANY($1)', [
                 [userA, userB],
             ]);
-            await pool.query('DELETE FROM users WHERE clerk_user_id = ANY($1)', [
-                [clerkA, clerkB],
-            ]);
+            await pool.query(
+                'DELETE FROM users WHERE clerk_user_id = ANY($1)',
+                [[clerkA, clerkB]]
+            );
         }
         await pool.end();
     });

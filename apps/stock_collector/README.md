@@ -50,13 +50,13 @@ uv run python -m collector.entrypoints.prune_history --dry-run  # 5yr OHLC reten
 
 ### `run_daily` flags
 
-| Flag | Effect |
-|---|---|
-| `--limit <int>` | cap number of symbols (`0` = all) |
-| `--backfill-days <int>` | look back N days |
-| `--dry-run` | fetch only, no DB writes |
-| `--archive` | also write the Parquet archive |
-| `--full` | full history from inception (ignores cursor + backfill-days; yfinance `period='max'`) |
+| Flag                    | Effect                                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------- |
+| `--limit <int>`         | cap number of symbols (`0` = all)                                                     |
+| `--backfill-days <int>` | look back N days                                                                      |
+| `--dry-run`             | fetch only, no DB writes                                                              |
+| `--archive`             | also write the Parquet archive                                                        |
+| `--full`                | full history from inception (ignores cursor + backfill-days; yfinance `period='max'`) |
 
 `run_weekly` / `run_monthly` / `prune_history` accept `--limit` and/or `--dry-run`;
 `seed_archive` always seeds FULL inception history (`--limit` caps symbols).
@@ -65,13 +65,13 @@ ONLY ones already in the Parquet archive (no-op if the archive is off/unreachabl
 
 ## Production schedule (GitHub Actions cron, UTC)
 
-| Workflow | Cron | Command |
-|---|---|---|
-| `collector-daily` | `30 21 * * 1-5` (after US close) | `run_daily` → `upload_archive` |
-| `collector-weekly` | `0 6 * * 0` | `run_weekly` |
-| `collector-monthly` | `0 7 1 * *` | `run_monthly` |
-| `collector-prune` | `0 7 30 12 *` (Dec 30) | `prune_history` — 5yr OHLC retention; **scheduled run is LIVE** (deletes archive-verified cold bars), manual dispatch defaults to dry-run |
-| `collector-seed-archive` | manual `workflow_dispatch` | `seed_archive` (full inception) → `upload_archive` |
+| Workflow                 | Cron                             | Command                                                                                                                                   |
+| ------------------------ | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `collector-daily`        | `30 21 * * 1-5` (after US close) | `run_daily` → `upload_archive`                                                                                                            |
+| `collector-weekly`       | `0 6 * * 0`                      | `run_weekly`                                                                                                                              |
+| `collector-monthly`      | `0 7 1 * *`                      | `run_monthly`                                                                                                                             |
+| `collector-prune`        | `0 7 30 12 *` (Dec 30)           | `prune_history` — 5yr OHLC retention; **scheduled run is LIVE** (deletes archive-verified cold bars), manual dispatch defaults to dry-run |
+| `collector-seed-archive` | manual `workflow_dispatch`       | `seed_archive` (full inception) → `upload_archive`                                                                                        |
 
 Plus `collector-keepalive` / `supabase-keepalive` (idle keepalive pings) and a
 Supabase `pg_cron` job (daily `error_log` 7-day purge). Full schedule reference:

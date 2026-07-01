@@ -25,7 +25,7 @@ Outputs:
 - Updated 00.plan.md (in place): root
 - Updated 00.tasks.md (in place): root
 - Updated 01.status.md (in place): root
-- Use _docs/ to store every other docs: (gitignored) — see CLAUDE.md "Workflow Docs"
+- Use \_docs/ to store every other docs: (gitignored) — see CLAUDE.md "Workflow Docs"
 
 Rules:
 
@@ -34,6 +34,7 @@ Rules:
 - Keep scope fixed per phase
 - Break features into atomic tasks
 - Each task must be testable
+- Update the documentation surgically
 
 STRICT SEPARATION:
 

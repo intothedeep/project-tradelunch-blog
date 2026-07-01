@@ -1,8 +1,8 @@
-"""Spec: collector.transform.retention — prune_cutoff + prunable_years."""
+"""Spec: collector.transform.retention — prune_cutoff + prunable_years + age_cutoff."""
 
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 
-from collector.transform.retention import prune_cutoff, prunable_years
+from collector.transform.retention import age_cutoff, prune_cutoff, prunable_years
 
 
 # --- prune_cutoff -----------------------------------------------------------
@@ -58,3 +58,25 @@ def test_prunable_years_is_ascending():
     cutoff = date(2026, 1, 1)
     result = prunable_years(2018, cutoff)
     assert result == sorted(result)
+
+
+# --- age_cutoff -------------------------------------------------------------
+
+def test_age_cutoff_subtracts_days():
+    now = datetime(2026, 6, 30, 3, 0, tzinfo=timezone.utc)
+    assert age_cutoff(now, 7) == datetime(2026, 6, 23, 3, 0, tzinfo=timezone.utc)
+
+
+def test_age_cutoff_preserves_tzinfo():
+    now = datetime(2026, 6, 30, 3, 0, tzinfo=timezone.utc)
+    assert age_cutoff(now, 90).tzinfo == timezone.utc
+
+
+def test_age_cutoff_equals_now_minus_timedelta():
+    now = datetime(2026, 1, 1, 0, 0, tzinfo=timezone.utc)
+    assert age_cutoff(now, 90) == now - timedelta(days=90)
+
+
+def test_age_cutoff_zero_days_is_now():
+    now = datetime(2026, 6, 30, 12, 0, tzinfo=timezone.utc)
+    assert age_cutoff(now, 0) == now

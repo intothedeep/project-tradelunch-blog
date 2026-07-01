@@ -44,7 +44,10 @@ describe('normalizeCursor / clampFeedLimit (unit, no DB)', () => {
 
 async function isFeedReady(): Promise<boolean> {
     try {
-        const { rows } = await pool.query<{ a: string | null; b: string | null }>(
+        const { rows } = await pool.query<{
+            a: string | null;
+            b: string | null;
+        }>(
             `SELECT to_regclass('public.post_tags') AS a,
                     to_regclass('public.post_likes') AS b`
         );

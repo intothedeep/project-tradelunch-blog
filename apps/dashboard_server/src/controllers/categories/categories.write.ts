@@ -13,7 +13,10 @@ import { Router } from 'express';
 import { pool } from '../../database';
 import { requireAuth } from '../../middlewares/requireAuth';
 import { validateCategoryInput } from '../../helpers/validateCategoryInput';
-import { createCategory, CategoryParentError } from '../../helpers/writeCategory';
+import {
+    createCategory,
+    CategoryParentError,
+} from '../../helpers/writeCategory';
 
 export const router = Router();
 

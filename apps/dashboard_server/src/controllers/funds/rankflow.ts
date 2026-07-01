@@ -14,7 +14,8 @@ import { Router } from 'express';
 
 export const router = Router();
 
-const FUNDS_CACHE_CONTROL = 'public, s-maxage=86400, stale-while-revalidate=604800';
+const FUNDS_CACHE_CONTROL =
+    'public, s-maxage=86400, stale-while-revalidate=604800';
 
 // Reuses the same guard as funds.ts — probe whether migration 0017 applied.
 async function holdingsTablesPresent(): Promise<boolean> {
@@ -26,7 +27,12 @@ async function holdingsTablesPresent(): Promise<boolean> {
 }
 
 // Clamp a numeric query param to [min, max], falling back to defaultVal.
-function clampParam(raw: unknown, defaultVal: number, min: number, max: number): number {
+function clampParam(
+    raw: unknown,
+    defaultVal: number,
+    min: number,
+    max: number
+): number {
     const n = typeof raw === 'string' ? parseInt(raw, 10) : NaN;
     if (isNaN(n)) return defaultVal;
     return Math.min(Math.max(n, min), max);
@@ -83,13 +89,19 @@ function toPeriodDto(r: IRankflowPeriodRow): PeriodDto {
         periodOfReport: r.period_of_report.toISOString().slice(0, 10),
         totalValueUsd: Number(r.total_value_usd),
         remainingCount: Number(r.remaining_count),
-        remainingWeightPct: r.remaining_weight_pct === null ? 0 : Number(r.remaining_weight_pct),
+        remainingWeightPct:
+            r.remaining_weight_pct === null
+                ? 0
+                : Number(r.remaining_weight_pct),
     };
 }
 
 // Pure: aggregate flat cusip rows into RowDto[], one row per cusip.
 // periodKeys is the ordered set of periods (newest-first ISO strings).
-function toRowDtos(cusipRows: IRankflowCusipRow[], periodKeys: string[]): RowDto[] {
+function toRowDtos(
+    cusipRows: IRankflowCusipRow[],
+    periodKeys: string[]
+): RowDto[] {
     // Group by cusip; preserve insertion order (rows arrive cusip-sorted by label).
     const map = new Map<string, RowDto>();
     for (const r of cusipRows) {
@@ -297,6 +309,9 @@ ORDER  BY pt.period_of_report DESC
         res.json({ success: true, data });
     } catch (error) {
         console.error('API Error fetching rankflow:', error);
-        res.status(500).json({ success: false, message: 'Failed to fetch rankflow' });
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch rankflow',
+        });
     }
 });

@@ -26,8 +26,7 @@ export function validateUsername(raw: string): TValidateUsernameResult {
     if (!USERNAME_PATTERN.test(value)) {
         return {
             ok: false,
-            reason:
-                'username must be 3-30 characters of lowercase letters, numbers, or underscore',
+            reason: 'username must be 3-30 characters of lowercase letters, numbers, or underscore',
         };
     }
     if (RESERVED_USERNAMES.has(value)) {

@@ -24,10 +24,10 @@ Agents: `ProjectManager` (orchestrator) → `DocumentScanner`, `Extracting`,
 - Python 3.10+ and [`uv`](https://docs.astral.sh/uv/).
 - For the default `local` provider: [Ollama](https://ollama.com) running with the model.
 
-  ```sh
-  ollama serve
-  ollama pull qwen3:8b
-  ```
+    ```sh
+    ollama serve
+    ollama pull qwen3:8b
+    ```
 
 - Copy `.env.example` → `.env` and fill in: `LLM_PROVIDER`, `OLLAMA_*` (or
   `OPENAI_*` / `ANTHROPIC_*`), `SUPABASE_URL`, `SUPABASE_SECRET_KEY`,
@@ -66,11 +66,11 @@ uv run mypy agents configs db utils             # type-check
 
 ```markdown
 ---
-title: "Your Post Title"
+title: 'Your Post Title'
 userId: 1
-status: "public"   # 'public' | 'private' | 'follower'
-author: "Your Name"
-date: "2026-01-03"
+status: 'public' # 'public' | 'private' | 'follower'
+author: 'Your Name'
+date: '2026-01-03'
 ---
 
 # Your Post Title

@@ -26,7 +26,10 @@ describe('validatePostInput', () => {
     it('preserves a large BIGINT categoryId string without precision loss', () => {
         const big = '9223372036854775807';
         const result = validatePostInput({ title: 'T', categoryId: big });
-        expect(result).toEqual({ ok: true, value: { title: 'T', categoryId: big } });
+        expect(result).toEqual({
+            ok: true,
+            value: { title: 'T', categoryId: big },
+        });
     });
 
     it('rejects a numeric (non-string) categoryId', () => {
@@ -38,7 +41,7 @@ describe('validatePostInput', () => {
 
     it('rejects a non-numeric string categoryId', () => {
         expect(validatePostInput({ title: 'T', categoryId: 'abc' }).ok).toBe(
-            false,
+            false
         );
     });
 
@@ -52,18 +55,24 @@ describe('validatePostInput', () => {
 
     it('accepts a draft with an absent title (absent status treated as draft)', () => {
         expect(validatePostInput({}).ok).toBe(true);
-        expect(validatePostInput({ content: 'body-first draft' }).ok).toBe(true);
+        expect(validatePostInput({ content: 'body-first draft' }).ok).toBe(
+            true
+        );
     });
 
     it('rejects an empty/whitespace title when publishing (non-draft)', () => {
         expect(
-            validatePostInput({ title: '   ', status: 'public', categoryId: '5' }),
+            validatePostInput({
+                title: '   ',
+                status: 'public',
+                categoryId: '5',
+            })
         ).toEqual({
             ok: false,
             reason: 'title is required',
         });
         expect(
-            validatePostInput({ status: 'public', categoryId: '5' }).ok,
+            validatePostInput({ status: 'public', categoryId: '5' }).ok
         ).toBe(false);
     });
 
@@ -73,7 +82,11 @@ describe('validatePostInput', () => {
             reason: 'categoryId is required to publish',
         });
         expect(
-            validatePostInput({ title: 'T', status: 'public', categoryId: null }),
+            validatePostInput({
+                title: 'T',
+                status: 'public',
+                categoryId: null,
+            })
         ).toEqual({
             ok: false,
             reason: 'categoryId is required to publish',
@@ -95,21 +108,21 @@ describe('validatePostInput', () => {
     it('allows a null categoryId for a draft', () => {
         expect(
             validatePostInput({ title: 'T', status: 'draft', categoryId: null })
-                .ok,
+                .ok
         ).toBe(true);
     });
 
     it('rejects a title longer than 255 characters regardless of status', () => {
         expect(validatePostInput({ title: 'a'.repeat(256) }).ok).toBe(false);
         expect(
-            validatePostInput({ title: 'a'.repeat(256), status: 'draft' }).ok,
+            validatePostInput({ title: 'a'.repeat(256), status: 'draft' }).ok
         ).toBe(false);
         expect(
             validatePostInput({
                 title: 'a'.repeat(256),
                 status: 'public',
                 categoryId: '1',
-            }).ok,
+            }).ok
         ).toBe(false);
     });
 
@@ -163,8 +176,7 @@ describe('validatePostInput', () => {
     });
 
     it('accepts a string thumbnailUrl and threads it into value', () => {
-        const url =
-            'https://assets.prettylog.com/blog.prettylog/42/x-1.png';
+        const url = 'https://assets.prettylog.com/blog.prettylog/42/x-1.png';
         const result = validatePostInput({ title: 'T', thumbnailUrl: url });
         expect(result).toEqual({
             ok: true,

@@ -16,21 +16,18 @@ export const router = Router();
  * @apiSuccess {Boolean} success
  * @apiSuccess {Object[]} data TPopularTag[] — { tag, count }, count desc then tag asc.
  */
-router.get(
-    '',
-    async (req: Request<{}, {}, {}, { limit?: string }>, res) => {
-        try {
-            const limit = clampTagLimit(req.query.limit);
-            const tags = await listPopularTags(pool, limit);
-            res.json({ success: true, data: tags });
-        } catch (error) {
-            console.error('API Error fetching popular tags:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to fetch tags',
-            });
-        }
+router.get('', async (req: Request<{}, {}, {}, { limit?: string }>, res) => {
+    try {
+        const limit = clampTagLimit(req.query.limit);
+        const tags = await listPopularTags(pool, limit);
+        res.json({ success: true, data: tags });
+    } catch (error) {
+        console.error('API Error fetching popular tags:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch tags',
+        });
     }
-);
+});
 
 export default router;

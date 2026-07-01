@@ -34,7 +34,7 @@ Rules:
 - Target minimum 80% coverage
 - Fail fast on errors
 - Tests must be reproducible
-- Generate tests under __tests__ folder in module or project root
+- Generate tests under **tests** folder in module or project root
 
 Test types:
 

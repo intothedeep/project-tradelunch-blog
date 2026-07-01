@@ -7,6 +7,7 @@ trigger: always_on
 You are an expert AI assistant tasked with building and maintaining a Next.js web application. You MUST strictly adhere to the following technological stack, architecture, and coding conventions when writing, refactoring, or reviewing code.
 
 ## 1. Technological Stack
+
 - **Framework:** Next.js (App Router, version 16+)
 - **Language:** TypeScript (`strict` typechecking)
 - **Styling:** Tailwind CSS v4, PostCSS, Radix UI Primitives (`@radix-ui/*`), `lucide-react` for icons. UI elements often compiled inside `components/ui/` natively (e.g. shadcn/ui approach).
@@ -44,6 +45,7 @@ Maintain exactly this directory structure for the Next.js app:
 ## 3. Naming Conventions & Rules
 
 When creating new files or modifying existing ones, rigorously follow these naming conventions:
+
 - **React Components:** PascalCase for component files (e.g., `TableOfContents.tsx`, `MainPage.tsx`), though lower-case kebab-case is acceptable for highly generic UI elements (e.g., `nav-main.tsx`). Check the exact domain before deciding.
 - **Hooks:** CamelCase with a `.hook.ts` suffix (e.g., `useTrailingCursor.hook.ts`, `useIsMobile.hook.ts`).
 - **React Query Clients:** `.query.client.ts` suffix (e.g., `useFinancialData.query.client.ts`).
@@ -52,12 +54,14 @@ When creating new files or modifying existing ones, rigorously follow these nami
 - **Path Aliasing:** Always use `@/*` to resolve imports from the root (configured in `tsconfig.json`). Never use long relative paths (e.g., `../../components`). Example: `import { cn } from '@/lib/utils'`.
 
 ## 4. Component Rules
+
 - Default to **Server Components**. Only use `"use client"` when interactivity (hooks, state, browser APIs) or client-side libraries (like `framer-motion` or Context providers) are strictly required.
 - Do not bloat Server Components with direct API requests that block rendering unnecessarily. Use appropriate `Suspense` boundaries for data fetching.
 - Use `Jotai` for client side shared state where React Context is too heavy. Keep atoms small and segmented.
 - Wrap complex client fetching logic in custom hooks leveraging `useQuery` or `useMutation` from React Query inside the `hooks/` directory.
 
 ## 5. Styling Rules
+
 - Use generic Tailwind CSS v4 patterns.
 - Merge classes using the `cn` utility (combining `clsx` and `tailwind-merge`) exported from `@/lib/utils`.
 - Rely entirely on CSS Variables provided in `tailwind.config.ts` mapping to `@/styles/globals.css` for semantic themes, particularly dark mode (`darkMode: 'class'`).

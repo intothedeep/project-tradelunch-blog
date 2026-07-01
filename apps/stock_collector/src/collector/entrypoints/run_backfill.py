@@ -3,7 +3,8 @@
 Flow: for each fund in configs/funds.yaml -> fetch submissions (all pages) ->
 merge pages -> parse all 13F refs -> filter by since -> group by period ->
 for each period ascending: pick best amendment -> fetch + parse infotable ->
-upsert filing + holdings + supersede prior.
+[if period >= db_keep_cutoff] upsert filing + holdings + supersede prior ->
+[if --archive] write Parquet (ALL periods, regardless of DB gate).
 
 Partial-failure tolerant per (fund, period): each failure is caught, printed,
 counted, and the run continues. Top-level unexpected error sets status='failed'
@@ -12,12 +13,20 @@ and re-raises so the batch_log row still lands via the finally block.
 --since defaults to ~2 years ago (Jan 1 of year-2). Pass YYYY or YYYY-MM-DD
 to override. --cik restricts to a single fund.
 
+--db-keep-quarters (default 12 = 3 years): the DB write window. Periods older
+than db_keep_cutoff(today, keep_quarters) skip DB upserts but still go to the
+Parquet cold-archive when --archive is set. This decouples the full history
+archive from the free-tier Postgres serving window.
+
 Side effects: network (SEC EDGAR) + DB writes in non-dry mode.
 
-L16: After each (fund, period) DB upsert, write holdings to local 13F Parquet
-and upload to Storage (best-effort, default OFF). Gated by
+L16: After each (fund, period) holdings fetch, write holdings to local 13F
+Parquet and upload to Storage (best-effort, default OFF). Gated by
 ``COLLECTOR_ARCHIVE_SEC_PARQUET=1`` or ``--archive`` flag. Archive failures
 log a warning and do NOT abort the backfill.
+
+L17: DB-window gate decouples archive window (--since) from DB window
+(--db-keep-quarters). Parquet receives ALL periods; DB receives only recent.
 """
 
 from __future__ import annotations
@@ -39,6 +48,7 @@ from collector.sink import db_sink, sec_db_sink
 from collector.sink import sec_fetch
 from collector.sink import sec_parquet_sink, storage_sink
 from collector.sink.storage_sink import object_key
+from collector.transform.retention import db_keep_cutoff
 from collector.transform.sec_parse import (
     aggregate_holdings,
     all_13f,
@@ -48,6 +58,8 @@ from collector.transform.sec_parse import (
     parse_submissions,
     units_for_period,
 )
+
+_DEFAULT_DB_KEEP_QUARTERS = 12
 
 
 def _parse_since(value: str) -> date:
@@ -119,9 +131,21 @@ def main(argv: list[str] | None = None) -> int:
         "--archive", action="store_true", default=False,
         help="enable 13F Parquet cold-archive (overrides COLLECTOR_ARCHIVE_SEC_PARQUET)",
     )
+    parser.add_argument(
+        "--db-keep-quarters", type=int, default=_DEFAULT_DB_KEEP_QUARTERS,
+        metavar="N",
+        help=(
+            "DB write window in quarters (default 12 = 3 years). "
+            "Periods older than this cutoff skip DB upserts but still go to "
+            "Parquet when --archive is set."
+        ),
+    )
     args = parser.parse_args(argv)
 
     since: date = args.since if args.since is not None else _default_since()
+    # Inject today ONCE for determinism — never call date.today() inside the loop.
+    today: date = date.today()
+    cutoff: date = db_keep_cutoff(today, args.db_keep_quarters)
 
     funds = load_funds()
     if args.cik:
@@ -134,13 +158,14 @@ def main(argv: list[str] | None = None) -> int:
         funds = funds[: args.limit]
 
     if args.dry_run or not database_url():
-        return _run_dry(funds, since)
-    return _run_live(funds, since, archive=args.archive or sec_parquet_archive_enabled())
+        return _run_dry(funds, since, cutoff=cutoff, archive=args.archive or sec_parquet_archive_enabled())
+    return _run_live(funds, since, cutoff=cutoff, archive=args.archive or sec_parquet_archive_enabled())
 
 
-def _run_dry(funds: list, since: date) -> int:
-    """Dry-run path: no DB writes."""
-    funds_ok = skipped = failed_funds = periods_ok = failed_periods = holdings_total = 0
+def _run_dry(funds: list, since: date, *, cutoff: date, archive: bool = False) -> int:
+    """Dry-run path: no DB writes. Prints archive count and DB-window count per fund."""
+    funds_ok = skipped = failed_funds = 0
+    archive_periods_total = db_periods_total = failed_periods = holdings_total = 0
 
     for f in funds:
         try:
@@ -150,6 +175,7 @@ def _run_dry(funds: list, since: date) -> int:
                 skipped += 1
                 continue
             fund_ok = True
+            fund_archive = fund_db = 0
             for period, group in sorted(group_by_period(refs).items()):
                 keep = max(group, key=lambda r: (r.filing_date, r.accession))
                 try:
@@ -162,15 +188,25 @@ def _run_dry(funds: list, since: date) -> int:
                         continue
                     n = len(holdings)
                     holdings_total += n
-                    periods_ok += 1
+                    in_db_window = period >= cutoff
+                    fund_archive += 1
+                    archive_periods_total += 1
+                    if in_db_window:
+                        fund_db += 1
+                        db_periods_total += 1
                     print(
                         f"[dry-run] {f.label} ({f.cik}) period={period}"
                         f" accession={keep.accession} holdings={n}"
+                        f" archive=yes db={'yes' if in_db_window else 'no (cutoff=' + str(cutoff) + ')'}"
                     )
                 except Exception as exc:  # noqa: BLE001
                     failed_periods += 1
                     fund_ok = False
                     print(f"[dry-run] {f.label} ({f.cik}) period={period}: FAILED {exc}")
+            print(
+                f"[dry-run] {f.label} ({f.cik}): archive={fund_archive} periods"
+                f" db={fund_db} periods (cutoff={cutoff})"
+            )
             if fund_ok:
                 funds_ok += 1
         except Exception as exc:  # noqa: BLE001
@@ -178,15 +214,17 @@ def _run_dry(funds: list, since: date) -> int:
             print(f"[dry-run] {f.label} ({f.cik}): FAILED {type(exc).__name__}: {exc}")
 
     print(
-        f"[dry-run] done funds={len(funds)} ok={funds_ok} periods={periods_ok}"
+        f"[dry-run] done funds={len(funds)} ok={funds_ok}"
+        f" archive_periods={archive_periods_total} db_periods={db_periods_total}"
         f" holdings={holdings_total} skipped={skipped}"
         f" failed_funds={failed_funds} failed_periods={failed_periods}"
+        f" db_cutoff={cutoff}"
     )
     return 0
 
 
-def _run_live(funds: list, since: date, *, archive: bool = False) -> int:
-    """Live path: upsert to DB, optionally write 13F Parquet archive."""
+def _run_live(funds: list, since: date, *, cutoff: date, archive: bool = False) -> int:
+    """Live path: upsert to DB for periods >= cutoff; Parquet receives ALL periods."""
     started_at = datetime.now(timezone.utc)
     conn = db_sink.connect()
     status, descr = "success", ""
@@ -195,7 +233,8 @@ def _run_live(funds: list, since: date, *, archive: bool = False) -> int:
     parquet_bkt = sec_parquet_bucket()
 
     try:
-        funds_ok = skipped = failed_funds = periods_ok = failed_periods = holdings_total = 0
+        funds_ok = skipped = failed_funds = failed_periods = holdings_total = 0
+        archive_periods_total = db_periods_total = 0
 
         for f in funds:
             try:
@@ -217,31 +256,42 @@ def _run_live(funds: list, since: date, *, archive: bool = False) -> int:
                             )
                             continue
 
-                        filing = FilingRow(
-                            cik=f.cik, accession=keep.accession,
-                            period_of_report=period, form_type=keep.form_type,
-                            filer=f.label, filing_date=keep.filing_date,
-                            value_units=units_for_period(period),
-                        )
-                        sec_db_sink.upsert_filings(conn, [filing])
-                        sec_db_sink.upsert_holdings(conn, holdings)
-                        sec_db_sink.supersede_prior_filings(
-                            conn, cik=f.cik, period=period,
-                            keep_accession=keep.accession,
-                            keep_filing_date=keep.filing_date,
-                        )
+                        in_db_window = period >= cutoff
 
-                        # L16: best-effort 13F Parquet archive (after DB write)
+                        # DB upsert — only for periods within the keep window.
+                        if in_db_window:
+                            filing = FilingRow(
+                                cik=f.cik, accession=keep.accession,
+                                period_of_report=period, form_type=keep.form_type,
+                                filer=f.label, filing_date=keep.filing_date,
+                                value_units=units_for_period(period),
+                            )
+                            sec_db_sink.upsert_filings(conn, [filing])
+                            sec_db_sink.upsert_holdings(conn, holdings)
+                            sec_db_sink.supersede_prior_filings(
+                                conn, cik=f.cik, period=period,
+                                keep_accession=keep.accession,
+                                keep_filing_date=keep.filing_date,
+                            )
+                            db_periods_total += 1
+                        else:
+                            print(
+                                f"[run_backfill] {f.label} ({f.cik}) period={period}"
+                                f" accession={keep.accession}: archive-only (before cutoff={cutoff})"
+                            )
+
+                        # L16/L17: Parquet archive — ALL periods regardless of DB gate.
                         if archive:
                             _archive_parquet(
                                 holdings, f.cik, parquet_url, parquet_key, parquet_bkt
                             )
 
+                        archive_periods_total += 1
                         holdings_total += len(holdings)
-                        periods_ok += 1
                         print(
                             f"[run_backfill] {f.label} ({f.cik}) period={period}"
                             f" accession={keep.accession} holdings={len(holdings)}"
+                            f" db={'yes' if in_db_window else 'no'}"
                         )
                     except Exception as exc:  # noqa: BLE001
                         failed_periods += 1
@@ -258,9 +308,11 @@ def _run_live(funds: list, since: date, *, archive: bool = False) -> int:
         if failed_funds > 0 or failed_periods > 0:
             status = "failed"
         descr = (
-            f"funds={len(funds)} ok={funds_ok} periods={periods_ok}"
+            f"funds={len(funds)} ok={funds_ok}"
+            f" archive_periods={archive_periods_total} db_periods={db_periods_total}"
             f" holdings={holdings_total} skipped={skipped}"
-            f" failed_funds={failed_funds} failed_periods={failed_periods} since={since}"
+            f" failed_funds={failed_funds} failed_periods={failed_periods}"
+            f" since={since} db_cutoff={cutoff}"
         )
         print(f"[run_backfill] {descr}")
 

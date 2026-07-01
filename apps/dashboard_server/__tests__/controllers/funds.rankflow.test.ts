@@ -19,10 +19,18 @@ import { router as rankflowRouter } from '../../src/controllers/funds/rankflow';
 
 // ---- minimal express-like mock helpers ----
 
-type CapturedResponse = { status: number; payload: unknown; headers: Record<string, string> };
+type CapturedResponse = {
+    status: number;
+    payload: unknown;
+    headers: Record<string, string>;
+};
 
 function mockRes(): { res: CapturedResponse; handler: object } {
-    const captured: CapturedResponse = { status: 200, payload: undefined, headers: {} };
+    const captured: CapturedResponse = {
+        status: 200,
+        payload: undefined,
+        headers: {},
+    };
     const res = {
         status(code: number) {
             captured.status = code;
@@ -57,7 +65,9 @@ function routeByPath(
         .find((rt) => rt.path === path);
 }
 
-function lastHandle(route: AnyRoute): (req: unknown, res: unknown) => Promise<void> {
+function lastHandle(
+    route: AnyRoute
+): (req: unknown, res: unknown) => Promise<void> {
     return route.stack[route.stack.length - 1].handle as (
         req: unknown,
         res: unknown
@@ -193,9 +203,9 @@ describe('GET /:cik/rankflow — happy path', () => {
         expect(Array.isArray(data.rows)).toBe(true);
         expect(data.rows).toHaveLength(2);
 
-        const appleRow = (data.rows as Array<{ cusip: string; label: string; cells: object }>).find(
-            (r) => r.cusip === 'AAPL0001'
-        );
+        const appleRow = (
+            data.rows as Array<{ cusip: string; label: string; cells: object }>
+        ).find((r) => r.cusip === 'AAPL0001');
         expect(appleRow).toBeDefined();
         expect(appleRow!.label).toBe('Apple Inc.');
         expect(appleRow!.cells).toMatchObject({
@@ -229,7 +239,7 @@ describe('GET /:cik/rankflow — happy path', () => {
 
         // CUSIP_SQL call: params = [cik, quarters, k]
         const cusipCall = mockQuery.mock.calls[1] as [string, unknown[]];
-        expect(cusipCall[1][1]).toBe(40);  // clamped quarters max
+        expect(cusipCall[1][1]).toBe(40); // clamped quarters max
         expect(cusipCall[1][2]).toBe(200); // clamped k max
     });
 
@@ -241,7 +251,7 @@ describe('GET /:cik/rankflow — happy path', () => {
         await invokeRankflow({ cik: '1' });
 
         const cusipCall = mockQuery.mock.calls[1] as [string, unknown[]];
-        expect(cusipCall[1][1]).toBe(8);  // default quarters
+        expect(cusipCall[1][1]).toBe(8); // default quarters
         expect(cusipCall[1][2]).toBe(25); // default k
     });
 });

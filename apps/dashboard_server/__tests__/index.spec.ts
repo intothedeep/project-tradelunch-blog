@@ -1,3 +1,3 @@
-import { assert } from "console";
+import { assert } from 'console';
 
 assert(true);

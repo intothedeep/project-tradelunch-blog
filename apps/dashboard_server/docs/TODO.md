@@ -23,8 +23,8 @@
 - [ ] add a property to upload article to s3, database -> publish_ready
 - [ ] status: public, private, deleted, followers
 - [ ] images in the middle
-- [ ] update README.md 
-- [ ] automate detection when update happens in data folder 
+- [ ] update README.md
+- [ ] automate detection when update happens in data folder
 - [ ] SEO
     - [ ] header meta
     - [ ] sitemap
@@ -34,7 +34,6 @@
 - [ ] google analytics
 - [ ] google tag manager
 - [ ] google adsense
-
 
 - [ ] add react grid dashboard -> exchange rate, nasdaq, kospi, btc, silver, gold, china, london, usd, eur, jpy, cny, krw, thb, investment strategy
 
@@ -58,6 +57,3 @@
                 - [ ] saml
                 - [ ] own login page
                 - [ ] own signup page
-
-            
-        

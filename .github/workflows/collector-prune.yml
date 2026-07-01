@@ -10,9 +10,11 @@ name: collector-prune
 # workflow_dispatch and UNCHECK "dry_run". Once trusted, lift the scheduled
 # gate by editing the run steps below.
 #
-# Two prune jobs share this workflow (same 12/30 cadence):
-#   prune-ohlc  — Phase M: market_history bars (OHLC), archive-gated per label/year
-#   prune-13f   — Phase L L18: sec_holdings/sec_filings periods, archive-gated per CIK/year
+# Three prune jobs share this workflow (same 12/30 cadence):
+#   prune-ohlc      — Phase M: market_history bars (OHLC), archive-gated per label/year
+#   prune-13f       — Phase L L18: sec_holdings/sec_filings periods, archive-gated per CIK/year
+#   prune-rankings  — Phase N: market_rankings rows, 10yr window, archive-verified
+#                     (0 candidates until ~2036; weekly archive_rankings feeds the Parquet copy)
 on:
   schedule:
     - cron: "0 7 30 12 *"
@@ -124,3 +126,53 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/issues" \
             -d '{"title":"collector-prune (13F) failed (run ${{ github.run_id }})","body":"The annual 13F archive retention prune failed. See https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}","labels":["collector","ci-failure"]}'
+
+  prune-rankings:
+    name: Prune market_rankings (Phase N — dormant 10yr)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/stock_collector
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          enable-cache: true
+          working-directory: apps/stock_collector
+      - name: Sync deps
+        run: |
+          uv python install 3.12
+          uv sync
+
+      # Forward-looking safeguard: 10-year retention window (ML consult —
+      # non-reproducible point-in-time snapshot). The weekly series began
+      # recently, so there are ZERO candidates until ~2036. Scheduled runs are
+      # ALWAYS dry-run (same belt-and-suspenders as OHLC/13F). --verify-archive is
+      # ON (both branches): the weekly archive_rankings step writes
+      # rankings/{YYYY}.parquet, and a year is only ever deleted once that object
+      # is confirmed present in Storage.
+      - name: Run market_rankings retention prune
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          COLLECTOR_PARQUET_BUCKET: ${{ vars.COLLECTOR_PARQUET_BUCKET }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "false" ]; then
+            echo "::warning::LIVE rankings prune (dry_run unchecked) — deletes archive-verified rows older than 10y"
+            uv run python -m collector.entrypoints.prune_rankings --verify-archive
+          else
+            uv run python -m collector.entrypoints.prune_rankings --dry-run --verify-archive
+          fi
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          curl -sS -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues" \
+            -d '{"title":"collector-prune (rankings) failed (run ${{ github.run_id }})","body":"The annual market_rankings retention prune failed. See https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}","labels":["collector","ci-failure"]}'

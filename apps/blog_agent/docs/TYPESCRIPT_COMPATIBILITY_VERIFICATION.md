@@ -9,6 +9,7 @@ This document verifies that our Python implementation plan matches the TypeScrip
 ## TypeScript Reference Implementation
 
 ### Input/Output
+
 ```typescript
 // Input
 categories: ['java', 'spring', 'jdbc']
@@ -18,6 +19,7 @@ Returns: ID of most specific (leaf) category (e.g., 103 for 'jdbc')
 ```
 
 ### Logic Flow
+
 ```typescript
 1. Insert root: 'java'
    - id = auto-generated (e.g., 101)
@@ -41,6 +43,7 @@ Return: 103 (most specific category)
 ```
 
 ### Key Characteristics
+
 - **Root self-reference:** group_id equals root's own id
 - **Child linkage:** Each child references its immediate parent
 - **Shared group_id:** All children share the root's id as group_id
@@ -53,6 +56,7 @@ Return: 103 (most specific category)
 ## Python Implementation Plan
 
 ### Approach
+
 ```python
 async def _insert_categories(
     categories: List[str],  # ['java', 'spring', 'jdbc']
@@ -63,6 +67,7 @@ async def _insert_categories(
 ```
 
 ### Step 1: Insert Root Category
+
 ```python
 root_title = categories[0]  # 'java'
 
@@ -90,12 +95,14 @@ cursor.execute(update_query, (root_id, root_id))
 ```
 
 **TypeScript Equivalent:** ✅ MATCHES
+
 - Root gets auto-generated ID
 - group_id updated to self-reference
 - parent_id is NULL
 - level is 0
 
 ### Step 2: Insert Child Categories
+
 ```python
 parent_id = root_id  # Start with 101
 group_id = root_id   # All children share 101
@@ -127,17 +134,20 @@ return parent_id  # 103 (last child_id)
 ```
 
 **TypeScript Equivalent:** ✅ MATCHES
+
 - Each child references immediate parent
 - All children share root's group_id
 - Levels increment sequentially (1, 2, 3, ...)
 - Returns leaf category ID
 
 ### Step 3: Return Value
+
 ```python
 return parent_id  # Most specific (leaf) category ID
 ```
 
 **TypeScript Equivalent:** ✅ MATCHES
+
 - Returns ID of most specific category
 - Used to set posts.category_id
 
@@ -145,29 +155,31 @@ return parent_id  # Most specific (leaf) category ID
 
 ## Compatibility Matrix
 
-| Feature | TypeScript | Python Plan | Status |
-|---------|-----------|-------------|--------|
-| Root insertion | Auto-ID with group_id self-ref | Two-step: INSERT + UPDATE to self-ref | ✅ Compatible |
-| Child insertion | parent_id → immediate parent | parent_id → immediate parent | ✅ Identical |
-| group_id propagation | All children share root's ID | All children share root's ID | ✅ Identical |
-| Level calculation | Root=0, children=1+ | Root=0, children=1+ | ✅ Identical |
-| ON CONFLICT handling | UPDATE on duplicate title | UPDATE on duplicate title | ✅ Identical |
-| Return value | Leaf category ID | Leaf category ID | ✅ Identical |
-| Field names | title, group_id, parent_id | title, group_id, parent_id | ✅ Identical |
-| user_id tracking | Required field | Required field | ✅ Identical |
-| priority field | Default 100 | Default 100 | ✅ Identical |
+| Feature              | TypeScript                     | Python Plan                           | Status        |
+| -------------------- | ------------------------------ | ------------------------------------- | ------------- |
+| Root insertion       | Auto-ID with group_id self-ref | Two-step: INSERT + UPDATE to self-ref | ✅ Compatible |
+| Child insertion      | parent_id → immediate parent   | parent_id → immediate parent          | ✅ Identical  |
+| group_id propagation | All children share root's ID   | All children share root's ID          | ✅ Identical  |
+| Level calculation    | Root=0, children=1+            | Root=0, children=1+                   | ✅ Identical  |
+| ON CONFLICT handling | UPDATE on duplicate title      | UPDATE on duplicate title             | ✅ Identical  |
+| Return value         | Leaf category ID               | Leaf category ID                      | ✅ Identical  |
+| Field names          | title, group_id, parent_id     | title, group_id, parent_id            | ✅ Identical  |
+| user_id tracking     | Required field                 | Required field                        | ✅ Identical  |
+| priority field       | Default 100                    | Default 100                           | ✅ Identical  |
 
 ---
 
 ## Database State Comparison
 
 ### Input
+
 ```python
 categories = ['java', 'spring', 'jdbc']
 user_id = 2
 ```
 
 ### TypeScript Result
+
 ```sql
 | id  | title  | parent_id | group_id | level | user_id |
 |-----|--------|-----------|----------|-------|---------|
@@ -179,6 +191,7 @@ Returns: 103
 ```
 
 ### Python Result (Expected)
+
 ```sql
 | id  | title  | parent_id | group_id | level | user_id |
 |-----|--------|-----------|----------|-------|---------|
@@ -196,7 +209,9 @@ Returns: 103
 ## Edge Cases Verification
 
 ### Case 1: Single Category (Root Only)
+
 **TypeScript:**
+
 ```typescript
 categories = ['tutorials']
 → Insert 'tutorials' with id=201, group_id=201, level=0
@@ -204,6 +219,7 @@ categories = ['tutorials']
 ```
 
 **Python:**
+
 ```python
 categories = ['tutorials']
 → Insert root 'tutorials', get id=201
@@ -215,13 +231,16 @@ categories = ['tutorials']
 **Status:** ✅ Compatible
 
 ### Case 2: Empty Categories
+
 **TypeScript:**
+
 ```typescript
 categories = []
 → Return null/undefined
 ```
 
 **Python:**
+
 ```python
 categories = []
 → Return None
@@ -230,7 +249,9 @@ categories = []
 **Status:** ✅ Compatible
 
 ### Case 3: Duplicate Category Title
+
 **TypeScript:**
+
 ```typescript
 ON CONFLICT (title) DO UPDATE SET ...
 → Updates existing category with new parent/group/level
@@ -238,6 +259,7 @@ ON CONFLICT (title) DO UPDATE SET ...
 ```
 
 **Python:**
+
 ```python
 ON CONFLICT (title) DO UPDATE SET ...
 → Updates existing category with new parent/group/level
@@ -251,6 +273,7 @@ ON CONFLICT (title) DO UPDATE SET ...
 ## Key Differences (Non-Breaking)
 
 ### 1. Root Insertion Method
+
 **TypeScript:** May use single query with CTE or stored procedure
 **Python:** Two-step approach (INSERT with NULL, then UPDATE)
 
@@ -259,6 +282,7 @@ ON CONFLICT (title) DO UPDATE SET ...
 **Reason:** Python approach is clearer and easier to debug
 
 ### 2. ID Generation
+
 **TypeScript:** May use Snowflake IDs
 **Python:** PostgreSQL auto-increment
 
@@ -267,6 +291,7 @@ ON CONFLICT (title) DO UPDATE SET ...
 **Reason:** SQL schema uses GENERATED BY DEFAULT AS IDENTITY
 
 ### 3. Transaction Handling
+
 **TypeScript:** Implicit transaction
 **Python:** Explicit commit/rollback
 
@@ -279,12 +304,14 @@ ON CONFLICT (title) DO UPDATE SET ...
 ## Validation Checklist
 
 ### Schema Alignment
+
 - [x] Field names match (title, group_id, parent_id, level, user_id)
 - [x] Data types match (BIGINT, VARCHAR, INT)
 - [x] Constraints match (UNIQUE on title)
 - [x] Indexes match (parent_id, group_id, level, user_id)
 
 ### Logic Alignment
+
 - [x] Root insertion creates self-referencing group_id
 - [x] Children reference immediate parent
 - [x] Children share root's group_id
@@ -293,6 +320,7 @@ ON CONFLICT (title) DO UPDATE SET ...
 - [x] ON CONFLICT handles duplicates
 
 ### Edge Cases
+
 - [x] Empty list returns None
 - [x] Single category handled correctly
 - [x] Duplicate titles handled via ON CONFLICT

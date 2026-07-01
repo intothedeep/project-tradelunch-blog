@@ -69,7 +69,10 @@ postCommentsRouter.get('/:postId/comments', optionalAuth, async (req, res) => {
     try {
         const postId = String(req.params.postId);
         if (!isValidId(postId)) {
-            res.status(400).json({ success: false, message: 'invalid post id' });
+            res.status(400).json({
+                success: false,
+                message: 'invalid post id',
+            });
             return;
         }
 
@@ -99,83 +102,78 @@ postCommentsRouter.get('/:postId/comments', optionalAuth, async (req, res) => {
     }
 });
 
-postCommentsRouter.post(
-    '/:postId/comments',
-    requireAuth,
-    async (req, res) => {
-        try {
-            const postId = String(req.params.postId);
-            if (!isValidId(postId)) {
-                res.status(400).json({
-                    success: false,
-                    message: 'invalid post id',
-                });
-                return;
-            }
-
-            const input = req.body as TCommentCreateRequest;
-            const body =
-                typeof input.body === 'string' ? input.body.trim() : '';
-            if (body.length === 0) {
-                res.status(400).json({
-                    success: false,
-                    message: 'comment body is required',
-                });
-                return;
-            }
-            if (body.length > MAX_BODY_LENGTH) {
-                res.status(400).json({
-                    success: false,
-                    message: 'comment body is too long',
-                });
-                return;
-            }
-
-            const parentId =
-                typeof input.parentId === 'string' && input.parentId.length > 0
-                    ? input.parentId
-                    : null;
-            if (parentId !== null && !isValidId(parentId)) {
-                res.status(400).json({
-                    success: false,
-                    message: 'invalid parent id',
-                });
-                return;
-            }
-
-            const comment: TComment = await createComment(
-                pool,
-                req.auth!.userId,
-                postId,
-                parentId,
-                body
-            );
-            res.status(201).json({ success: true, data: comment });
-        } catch (error) {
-            // A reply to a deleted/foreign-post parent → 400 (client error).
-            if (error instanceof CommentParentError) {
-                res.status(400).json({
-                    success: false,
-                    message: error.message,
-                });
-                return;
-            }
-            // FK violation (23503) = post_id does not exist → 404, not a 500.
-            if ((error as { code?: string }).code === '23503') {
-                res.status(404).json({
-                    success: false,
-                    message: 'post not found',
-                });
-                return;
-            }
-            console.error('POST /api/posts/:postId/comments error:', error);
-            res.status(500).json({
+postCommentsRouter.post('/:postId/comments', requireAuth, async (req, res) => {
+    try {
+        const postId = String(req.params.postId);
+        if (!isValidId(postId)) {
+            res.status(400).json({
                 success: false,
-                message: 'failed to create comment',
+                message: 'invalid post id',
             });
+            return;
         }
+
+        const input = req.body as TCommentCreateRequest;
+        const body = typeof input.body === 'string' ? input.body.trim() : '';
+        if (body.length === 0) {
+            res.status(400).json({
+                success: false,
+                message: 'comment body is required',
+            });
+            return;
+        }
+        if (body.length > MAX_BODY_LENGTH) {
+            res.status(400).json({
+                success: false,
+                message: 'comment body is too long',
+            });
+            return;
+        }
+
+        const parentId =
+            typeof input.parentId === 'string' && input.parentId.length > 0
+                ? input.parentId
+                : null;
+        if (parentId !== null && !isValidId(parentId)) {
+            res.status(400).json({
+                success: false,
+                message: 'invalid parent id',
+            });
+            return;
+        }
+
+        const comment: TComment = await createComment(
+            pool,
+            req.auth!.userId,
+            postId,
+            parentId,
+            body
+        );
+        res.status(201).json({ success: true, data: comment });
+    } catch (error) {
+        // A reply to a deleted/foreign-post parent → 400 (client error).
+        if (error instanceof CommentParentError) {
+            res.status(400).json({
+                success: false,
+                message: error.message,
+            });
+            return;
+        }
+        // FK violation (23503) = post_id does not exist → 404, not a 500.
+        if ((error as { code?: string }).code === '23503') {
+            res.status(404).json({
+                success: false,
+                message: 'post not found',
+            });
+            return;
+        }
+        console.error('POST /api/posts/:postId/comments error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'failed to create comment',
+        });
     }
-);
+});
 
 // Routes keyed by a comment id directly: /api/comments/:commentId.
 export const commentsRouter = Router();

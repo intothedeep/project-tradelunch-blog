@@ -1,1 +1,1 @@
-export { router as default } from "./dashboard";
+export { router as default } from './dashboard';

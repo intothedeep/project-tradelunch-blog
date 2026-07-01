@@ -1,5 +1,5 @@
 ---
-title: "Post Title"
+title: 'Post Title'
 date: 2025-04-10
 tags: [engineering, system]
 series: My Dev Journey
@@ -31,6 +31,7 @@ Describe the context or challenge you faced
 - System overview
 
 ### 🗺️ Mermaid Diagram
+
 ```mermaid
 graph TD
   Client -->|Request| Server
@@ -38,11 +39,13 @@ graph TD
 ```
 
 ### 🧮 Math Expression (LaTeX)
+
 $$
 E = mc^2
 $$
 
 ## 💻 Sample Code
+
 ```language
 // your code here
 ```

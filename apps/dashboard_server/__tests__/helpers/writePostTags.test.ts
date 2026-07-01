@@ -33,7 +33,10 @@ const t1 = `react_${tag}`;
 const t2 = `node_${tag}`;
 const t3 = `ts_${tag}`;
 
-async function liveTitles(client: PoolClient, postId: string): Promise<string[]> {
+async function liveTitles(
+    client: PoolClient,
+    postId: string
+): Promise<string[]> {
     const { rows } = await client.query<{ tag_title: string }>(
         `SELECT tag_title FROM post_tags
          WHERE post_id = $1 AND deleted_at IS NULL

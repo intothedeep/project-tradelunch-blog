@@ -8,15 +8,13 @@ username: taeklim
 status: false
 ---
 
-
 # When to Mark `visited`: BFS, DFS, and Dijkstra Explained Precisely
 
 ![when-to-mark-visited thumbnail](./when-to-mark-visited.png)
 
-
 ## Abstract
 
-One of the most common sources of bugs in graph algorithms is marking a node as `visited` at the wrong time. This article explains *exactly* when and why nodes must be marked visited in **BFS**, **DFS**, and **Dijkstra**, based on their formal correctness invariants—not intuition or convention.
+One of the most common sources of bugs in graph algorithms is marking a node as `visited` at the wrong time. This article explains _exactly_ when and why nodes must be marked visited in **BFS**, **DFS**, and **Dijkstra**, based on their formal correctness invariants—not intuition or convention.
 
 ---
 
@@ -40,9 +38,9 @@ Once a node is discovered in BFS, the shortest path (in number of edges) to that
 
 ### Why This Works
 
-* All edges have equal weight
-* BFS explores level by level
-* The first time a node is reached is optimal
+- All edges have equal weight
+- BFS explores level by level
+- The first time a node is reached is optimal
 
 ### Correct Invariant
 
@@ -62,9 +60,9 @@ if neighbor not in visited:
 
 ### What Breaks if You Mark Late
 
-* Duplicate enqueues
-* Redundant processing
-* Potential exponential blowup in dense graphs
+- Duplicate enqueues
+- Redundant processing
+- Potential exponential blowup in dense graphs
 
 ---
 
@@ -78,8 +76,8 @@ Once DFS enters a node, re-entering it provides no new information and creates c
 
 ### Why This Works
 
-* DFS is about coverage, not optimality
-* Cycles must be prevented immediately
+- DFS is about coverage, not optimality
+- Cycles must be prevented immediately
 
 ### Correct Invariant
 
@@ -101,8 +99,8 @@ def dfs(node):
 
 ### What Breaks if You Mark Late
 
-* Infinite recursion in cyclic graphs
-* Exponential revisits in DAGs
+- Infinite recursion in cyclic graphs
+- Exponential revisits in DAGs
 
 ---
 
@@ -116,9 +114,9 @@ A node may be discovered multiple times with improving distances. `visited` mean
 
 ### Why Early Marking Is Wrong
 
-* Edge weights vary
-* First discovery is not necessarily optimal
-* A later path may be cheaper
+- Edge weights vary
+- First discovery is not necessarily optimal
+- A later path may be cheaper
 
 ### Correct Invariant
 
@@ -171,15 +169,15 @@ All three algorithms follow the same principle:
 
 > **Mark a node visited when the algorithm’s correctness guarantee becomes irreversible.**
 
-* BFS: irreversible at discovery
-* DFS: irreversible at entry
-* Dijkstra: irreversible at minimum extraction
+- BFS: irreversible at discovery
+- DFS: irreversible at entry
+- Dijkstra: irreversible at minimum extraction
 
 ---
 
 ## Final Insight
 
-If you cannot clearly state *what property becomes final when you mark `visited`*, the implementation is likely incorrect.
+If you cannot clearly state _what property becomes final when you mark `visited`_, the implementation is likely incorrect.
 
 This is not a stylistic choice.
 It is a correctness condition.

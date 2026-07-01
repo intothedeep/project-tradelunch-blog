@@ -6,6 +6,7 @@
 # AI Coding Assistant - System Behavior
 
 ## Mode: Technical Direct
+
 - Provide facts, code, and analysis only
 - No emotional language, motivation phrases, or conversational filler
 - No unsolicited suggestions or questions
@@ -14,6 +15,7 @@
 - Emoji permitted in generated documentation only, not in responses
 
 ## Response Structure
+
 1. Direct answer to query
 2. Code/implementation (if applicable)
 3. Confidence level (High/Medium/Low) if relevant
@@ -21,12 +23,14 @@
 5. End immediately after delivering information
 
 ## Knowledge Boundaries
+
 - If uncertain: State "Unknown: [specific gap]"
 - If partially known: "Known: X. Unknown: Y. Confidence: Z%"
 - Never fabricate or guess
 - Reference documentation when possible
 
 ## Code Standards
+
 - Functional programming preferred
 - SOLID principles enforced
 - Test-driven development (tests first)
@@ -36,11 +40,11 @@
 - Type hints required (Python/TypeScript)
 
 ## Documentation Requirements
+
 - Update context.md after every modification
 - Track dependencies explicitly
 - Document public interfaces
 - Note known issues and future work
-
 ```
 
 ---
@@ -51,37 +55,45 @@
 # Task: [Single Atomic Operation]
 
 ## Objective
+
 [One-sentence goal]
 
 ## Context
+
 - Module: [name]
 - Files: [paths]
 - Current state: See `/path/to/context.md`
 - Related modules: [list with dependencies]
 
 ## Requirements
+
 ### Functional
+
 - [Specific behavior 1]
 - [Specific behavior 2]
 
 ### Non-Functional
+
 - Performance: [metric and target]
 - Security: [specific concerns]
 - Compatibility: [versions, platforms]
 
 ## Constraints
+
 - No new dependencies without approval
 - Maintain backward compatibility with [version]
 - File size limit: 300 lines
 - Language: [Python 3.11 / TypeScript 5.0 / etc.]
 
 ## Deliverables
-- [ ] tests/test_[feature].py - Test suite
+
+- [ ] tests/test\_[feature].py - Test suite
 - [ ] src/[feature].py - Implementation
 - [ ] context.md - Updated module context
 - [ ] missing.md - Document incomplete tasks (if any)
 
 ## Success Criteria
+
 - All tests pass
 - Type checking passes
 - No linting errors
@@ -89,32 +101,37 @@
 - Documentation complete
 
 ## Optional: Provide Variations
+
 If multiple approaches exist, provide 3 variations:
+
 1. Performance-optimized
 2. Readability-focused
 3. Minimal-dependency
 
 For each variation include:
+
 - Trade-offs
 - When to use
 - Estimated complexity
-
 ```
 
 ---
 
 ## Context.md Template
 
-```markdown
+````markdown
 # Module: [name]
 
 ## Purpose
+
 [One-paragraph description of module responsibility]
 
 ## Location
+
 `/path/to/module`
 
 ## Public Interface
+
 ```[language]
 function_name(param: Type) -> ReturnType
   """Docstring summary"""
@@ -122,8 +139,8 @@ function_name(param: Type) -> ReturnType
 class ClassName:
   """Class purpose"""
   method_name(self, param: Type) -> ReturnType
-
 ```
+````
 
 ## Dependencies
 
@@ -187,7 +204,7 @@ option: setting
 
 - [Change description]
 
-```
+````
 
 ---
 
@@ -201,7 +218,7 @@ option: setting
 
 ## Architecture Overview
 
-```
+````
 
 [ASCII diagram or description of system components]
 
@@ -264,18 +281,18 @@ module3 --> module4
 
 project/
 ├── docs/
-│   ├── context/          # Module contexts
-│   ├── plan.md           # This file
-│   └── tasks.md          # Current sprint
+│ ├── context/ # Module contexts
+│ ├── plan.md # This file
+│ └── tasks.md # Current sprint
 ├── src/
-│   ├── module1/
-│   │   ├── context.md    # Symlink to docs/context/module1.md
-│   │   ├── **init**.py
-│   │   └── core.py
-│   └── module2/
+│ ├── module1/
+│ │ ├── context.md # Symlink to docs/context/module1.md
+│ │ ├── **init**.py
+│ │ └── core.py
+│ └── module2/
 ├── tests/
-│   ├── test_module1.py
-│   └── test_module2.py
+│ ├── test_module1.py
+│ └── test_module2.py
 ├── requirements.txt
 └── README.md
 
@@ -308,10 +325,13 @@ project/
 # Current Sprint Tasks
 
 ## Sprint Goal
+
 [What we're trying to achieve this sprint]
 
 ## In Progress
+
 ### Task 1: [Name]
+
 - **Assignee**: [Name/AI]
 - **Module**: [module name]
 - **Priority**: [High/Medium/Low]
@@ -319,30 +339,37 @@ project/
 - **Blockers**: [none/description]
 - **Context**: See `/docs/context/[module].md`
 - **Subtasks**:
-  - [ ] Write tests
-  - [ ] Implement feature
-  - [ ] Update context.md
-  - [ ] Code review
+    - [ ] Write tests
+    - [ ] Implement feature
+    - [ ] Update context.md
+    - [ ] Code review
 
 ## Backlog
+
 ### Task 2: [Name]
+
 - **Module**: [module name]
 - **Priority**: [High/Medium/Low]
 - **Dependencies**: [Task IDs that must complete first]
 - **Description**: [Brief explanation]
 
 ## Blocked
+
 ### Task 3: [Name]
+
 - **Blocked by**: [Issue description]
 - **Owner**: [Who's resolving blocker]
 - **Resolution ETA**: [date]
 
 ## Completed This Sprint
+
 - [x] Task 4: [Name] - Completed: [YYYY-MM-DD]
 - [x] Task 5: [Name] - Completed: [YYYY-MM-DD]
 
 ## Testing Checklist
+
 For each completed task:
+
 - [ ] Unit tests pass
 - [ ] Integration tests pass
 - [ ] Type checking passes
@@ -350,7 +377,6 @@ For each completed task:
 - [ ] Manual testing completed
 - [ ] Documentation updated
 - [ ] context.md updated
-
 ```
 
 ---
@@ -363,7 +389,9 @@ For each completed task:
 ## Module: [name]
 
 ### Incomplete Tasks
+
 #### Task: [Name]
+
 - **Reason**: [Why not completed]
 - **Impact**: [High/Medium/Low]
 - **Workaround**: [If exists]
@@ -371,26 +399,31 @@ For each completed task:
 - **Owner**: [Who should address this]
 
 ### Known Gaps
+
 #### Gap: [Description]
+
 - **Affected Components**: [list]
 - **User Impact**: [description]
 - **Priority**: [High/Medium/Low]
 - **Estimated Effort**: [hours/days]
 
 ### Technical Debt
+
 #### Debt: [Description]
+
 - **Location**: `/path/to/code`
 - **Problem**: [What's wrong]
 - **Refactor Plan**: [How to fix]
 - **Priority**: [High/Medium/Low]
 
 ### Future Enhancements
+
 #### Enhancement: [Name]
+
 - **Description**: [What it would do]
 - **Value**: [Why it's useful]
 - **Complexity**: [High/Medium/Low]
 - **Dependencies**: [What's needed first]
-
 ```
 
 ---
@@ -401,14 +434,17 @@ For each completed task:
 # Code Review Request
 
 ## Changes
+
 - Files modified: [list]
 - Lines changed: [+X -Y]
 - Module: [name]
 
 ## Purpose
+
 [Why these changes were made]
 
 ## Review Focus
+
 - [ ] Correctness: Logic is sound
 - [ ] Performance: No obvious bottlenecks
 - [ ] Security: No vulnerabilities introduced
@@ -417,17 +453,19 @@ For each completed task:
 - [ ] Documentation: Updated and accurate
 
 ## Specific Concerns
+
 [Any areas you want reviewer to pay special attention to]
 
 ## Testing Performed
+
 - [ ] Unit tests: [result]
 - [ ] Integration tests: [result]
 - [ ] Manual testing: [what was tested]
 - [ ] Edge cases: [list tested scenarios]
 
 ## Context
-See `/docs/context/[module].md` for module context
 
+See `/docs/context/[module].md` for module context
 ```
 
 ---
@@ -438,16 +476,18 @@ See `/docs/context/[module].md` for module context
 # Debug Request
 
 ## Problem
+
 [Specific error or unexpected behavior]
 
 ## Expected Behavior
+
 [What should happen]
 
 ## Actual Behavior
+
 [What is happening]
 
 ## Error Message
-
 ```
 
 [Full error message with stack trace]
@@ -487,36 +527,41 @@ See `/docs/context/[module].md` for module context
 # Refactor Request
 
 ## Target
+
 - File: `/path/to/file.py`
 - Function/Class: `name`
 - Lines: [range]
 
 ## Current Issues
+
 - [ ] Code smell: [description]
 - [ ] Performance: [bottleneck]
 - [ ] Maintainability: [what's hard to understand]
 - [ ] Duplication: [where]
 
 ## Goals
+
 - Improve: [specific aspect]
 - Maintain: [backward compatibility/behavior]
 - Constraints: [file size, performance requirements]
 
 ## Refactoring Approach
+
 [Preferred strategy if you have one, or leave blank for suggestions]
 
 ## Tests
+
 - Existing tests: `/tests/test_[name].py`
 - All tests must pass post-refactor
 - New tests needed: [if behavior changes]
 
 ## Success Criteria
+
 - [ ] Code is more readable
 - [ ] Performance is same or better
 - [ ] All tests pass
 - [ ] No new dependencies
 - [ ] context.md updated
-
 ```
 
 ---
@@ -527,15 +572,16 @@ See `/docs/context/[module].md` for module context
 # Performance Optimization Request
 
 ## Problem
+
 [Specific performance issue]
 
 ## Metrics
+
 - Current: [X ms/ops per second/memory usage]
 - Target: [Y ms/ops per second/memory usage]
 - Acceptable: [threshold for "good enough"]
 
 ## Profiling Data
-
 ```
 
 [Profiler output or benchmark results]
@@ -570,20 +616,24 @@ Acceptable trade-offs: [readability vs performance/etc.]
 # Generate Documentation
 
 ## Target
+
 - Module: [name]
 - Files: [list]
 
 ## Documentation Type
+
 - [ ] API reference
 - [ ] User guide
 - [ ] Architecture overview
 - [ ] Tutorial/examples
 
 ## Audience
+
 - Technical level: [beginner/intermediate/advanced]
 - Role: [developer/user/admin]
 
 ## Required Sections
+
 1. Overview
 2. Installation/Setup
 3. Usage examples
@@ -593,14 +643,15 @@ Acceptable trade-offs: [readability vs performance/etc.]
 7. FAQ
 
 ## Format
+
 - Output: [Markdown/reStructuredText/HTML]
 - Style: [technical/conversational]
 - Code examples: [include/minimal/extensive]
 
 ## Source
+
 - Extract from: [code/docstrings/context.md]
 - Manual content needed: [list areas requiring human input]
-
 ```
 
 ---
@@ -611,9 +662,11 @@ Acceptable trade-offs: [readability vs performance/etc.]
 # Test Development Request
 
 ## Feature to Test
+
 [Name and description]
 
 ## Test Types Needed
+
 - [ ] Unit tests
 - [ ] Integration tests
 - [ ] End-to-end tests
@@ -621,57 +674,69 @@ Acceptable trade-offs: [readability vs performance/etc.]
 - [ ] Security tests
 
 ## Test Cases
+
 ### Happy Path
+
 1. [Scenario] - Expected: [result]
 2. [Scenario] - Expected: [result]
 
 ### Edge Cases
+
 1. [Scenario] - Expected: [result]
 2. [Scenario] - Expected: [result]
 
 ### Error Cases
+
 1. [Scenario] - Expected: [error type]
 2. [Scenario] - Expected: [error type]
 
 ## Test Framework
+
 - Language: [Python/TypeScript]
 - Framework: [pytest/jest/etc.]
 - Mocking: [unittest.mock/sinon/etc.]
 
 ## Coverage Target
+
 - Minimum: [80%]
 - Focus areas: [critical paths]
 
 ## Test Data
+
 - Fixtures: [where they are/need to be created]
 - Mocks: [what needs mocking]
 - Database: [test DB setup requirements]
 
 ## Deliverables
+
 - File: `/tests/test_[feature].py`
 - Coverage report
 - Updated context.md with test information
-
 ```
 
 ---
 
 ## Module Creation Prompt
 
-```markdown
+````markdown
 # Create New Module
 
 ## Module Name
+
 [name]
 
 ## Purpose
+
 [Single responsibility description]
 
 ## Location
+
 `/src/[module_name]/`
 
 ## Public Interface
+
 Define the following:
+
 ```[language]
 # Functions
 function_name(param: Type) -> ReturnType
@@ -683,8 +748,8 @@ class ClassName:
 
 # Constants
 CONSTANT_NAME: Type
-
 ```
+````
 
 ## Dependencies
 
@@ -724,14 +789,14 @@ CONSTANT_NAME: Type
 
 ## Success Criteria
 
-- [ ]  All files created
-- [ ]  context.md complete
-- [ ]  Tests written and passing
-- [ ]  Type checking passes
-- [ ]  plan.md updated with new module
-- [ ]  Dependency graph updated
+- [ ] All files created
+- [ ] context.md complete
+- [ ] Tests written and passing
+- [ ] Type checking passes
+- [ ] plan.md updated with new module
+- [ ] Dependency graph updated
 
-```
+````
 
 ---
 
@@ -749,44 +814,45 @@ CONSTANT_NAME: Type
    Current behavior: [description]
    Needed change: [description]
 
-```
+````
 
 1. **Use context.md as single source of truth**
-    
+
     ```markdown
     # Instead of explaining module state
+
     Current module state: See `/docs/context/auth.md`
-    
     ```
-    
+
 2. **Incremental requests**
-    
+
     ```markdown
     # Bad
+
     "Build entire authentication system"
-    
+
     # Good
+
     Task 1: "Implement user model with password hashing"
     Task 2: "Add session management" (references Task 1 context)
     Task 3: "Implement login endpoint" (references Tasks 1-2 context)
-    
     ```
-    
+
 3. **Leverage file structure**
-    
+
     ```markdown
     # Project structure is documentation
+
     /src/auth/
-      ├── context.md        # Read this first
-      ├── models.py         # User, Session
-      ├── handlers.py       # Login, logout
-      └── validators.py     # Input validation
-    
+    ├── context.md # Read this first
+    ├── models.py # User, Session
+    ├── handlers.py # Login, logout
+    └── validators.py # Input validation
+
     # Request can be minimal
+
     "Add email validation to User model. See /src/auth/context.md"
-    
     ```
-    
 
 ---
 
@@ -798,7 +864,6 @@ CONSTANT_NAME: Type
 "Make it better"
 "Fix the bug"
 "Optimize this"
-
 ```
 
 ### ✅ Specific Requests
@@ -807,7 +872,6 @@ CONSTANT_NAME: Type
 "Reduce response time from 200ms to <50ms"
 "Fix IndexError in process_batch() when list is empty"
 "Optimize database query to use index on user_id column"
-
 ```
 
 ---
@@ -817,7 +881,6 @@ CONSTANT_NAME: Type
 ```markdown
 "On line 47, change variable name from 'data' to 'user_data',
 then on line 52 add a try-except block, then..."
-
 ```
 
 ### ✅ Goal-oriented
@@ -825,10 +888,10 @@ then on line 52 add a try-except block, then..."
 ```markdown
 "Improve error handling in data processing pipeline.
 Requirements:
+
 - Catch and log all exceptions
 - Return meaningful error messages
 - Don't crash on invalid input"
-
 ```
 
 ---
@@ -838,7 +901,6 @@ Requirements:
 ```markdown
 [Pastes 1000 lines of code]
 "Add logging here"
-
 ```
 
 ### ✅ Precise Reference
@@ -846,7 +908,6 @@ Requirements:
 ```markdown
 "Add logging to /src/api/endpoints.py function `create_user()` (lines 78-95)
 Log: user creation attempts, validation failures, database errors"
-
 ```
 
 ---
@@ -953,20 +1014,20 @@ Deliverables: tests + implementation + updated context.md
 Code review: /src/auth/password_reset.py
 Focus: Security - token generation strength
 Concern: Is token entropy sufficient?
-
 ```
 
 ### 4. Track Progress
 
 ```markdown
 # Update tasks.md
+
 - [x] Password reset - Completed: 2025-01-09
 
 # Update missing.md if needed
+
 Missing: Email template system
 Impact: High - needed for production
 Next: Create email module
-
 ```
 
 ---
@@ -1003,11 +1064,11 @@ formatters.py        # Output formatting (100 lines)
 
 ```markdown
 # In missing.md or context.md
+
 File: /src/complex_algorithm.py
 Size: 450 lines
 Reason: Single cohesive algorithm, splitting would harm readability
 Plan: Refactor in Phase 3 when requirements stabilize
-
 ```
 
 ---

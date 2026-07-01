@@ -40,6 +40,19 @@ jobs:
           POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
         run: uv run python -m collector.entrypoints.run_weekly
 
+      # Phase N: cold-archive this year's rankings to Parquet + Storage so the
+      # retention prune (prune_rankings --verify-archive) has a confirmed copy.
+      # Best-effort — the entrypoint always exits 0, so an archive/upload failure
+      # never fails the already-succeeded weekly ranking above.
+      - name: Archive rankings to Parquet cold-storage
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          COLLECTOR_PARQUET_BUCKET: ${{ vars.COLLECTOR_PARQUET_BUCKET }}
+        run: uv run python -m collector.entrypoints.archive_rankings
+
       - name: Notify on failure
         if: failure()
         run: |

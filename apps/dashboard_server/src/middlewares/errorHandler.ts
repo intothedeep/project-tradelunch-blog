@@ -14,14 +14,23 @@ import type { ErrorRequestHandler } from 'express';
 import { pool } from '../database';
 import { buildExpressErrorRow, insertErrorLog } from '../helpers/errorLog';
 
-export const errorHandler: ErrorRequestHandler = async (err, req, res, next) => {
+export const errorHandler: ErrorRequestHandler = async (
+    err,
+    req,
+    res,
+    next
+) => {
     console.error('Unhandled Express error:', err);
 
     // Await the insert (not fire-and-forget): on serverless the function can
     // freeze once the response is sent, dropping a pending write. The latency
     // cost is paid only on the error path.
     try {
-        const row = buildExpressErrorRow(err, req.originalUrl, req.get('user-agent'));
+        const row = buildExpressErrorRow(
+            err,
+            req.originalUrl,
+            req.get('user-agent')
+        );
         await insertErrorLog(pool, row);
     } catch (logErr) {
         console.error('error_log insert failed:', logErr);

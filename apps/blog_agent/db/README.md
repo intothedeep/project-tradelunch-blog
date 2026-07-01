@@ -101,13 +101,13 @@ from config import DB_PG_HOST, DB_PG_PORT, DB_PG_NAME
 
 Settings are loaded from environment variables:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DB_PG_HOST` | Database host | `localhost` |
-| `DB_PG_PORT` | Database port | `5432` |
-| `DB_PG_NAME` | Database name | `tradelunch` |
-| `DB_PG_USER` | Database user | `super` |
-| `DB_PG_PASSWORD` | Database password | *(required)* |
+| Variable         | Description       | Default      |
+| ---------------- | ----------------- | ------------ |
+| `DB_PG_HOST`     | Database host     | `localhost`  |
+| `DB_PG_PORT`     | Database port     | `5432`       |
+| `DB_PG_NAME`     | Database name     | `tradelunch` |
+| `DB_PG_USER`     | Database user     | `super`      |
+| `DB_PG_PASSWORD` | Database password | _(required)_ |
 
 Ensure your `.env` file has the database credentials configured.
 
@@ -127,12 +127,12 @@ The following SQLAlchemy models are available in `models.py`:
 
 ## Repositories
 
-| Repository | Purpose |
-|------------|---------|
-| `CategoryRepository` | Hierarchical category insertion |
-| `PostRepository` | Post creation with Snowflake IDs |
-| `FileRepository` | File metadata management |
-| `TagRepository` | Tag UPSERT and post-tag linking |
+| Repository           | Purpose                          |
+| -------------------- | -------------------------------- |
+| `CategoryRepository` | Hierarchical category insertion  |
+| `PostRepository`     | Post creation with Snowflake IDs |
+| `FileRepository`     | File metadata management         |
+| `TagRepository`      | Tag UPSERT and post-tag linking  |
 
 ## See Also
 

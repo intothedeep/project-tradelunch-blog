@@ -8,12 +8,23 @@ Also provides 13F-specific quarter-count cutoff logic (L18):
   * holdings_prune_periods: given all distinct periods for a CIK, return those
     older than keep_quarters most-recent distinct quarters.
 
+Also provides a day-based TTL cutoff (Phase N):
+  * age_cutoff: ``now - days`` for the log-retention prune (error_log, batch_log).
+
+Also provides DB-window gate for backfill decoupling (L17):
+  * db_keep_cutoff: earliest period_of_report to allow into Postgres during a
+    backfill run; periods older than this skip DB writes but still go to Parquet.
+
 Invariants:
   - prune_cutoff always returns Jan 1 of (today.year - years); bars strictly
     BEFORE this date are prunable (complete years only).
   - prunable_years returns only COMPLETE past years: [min_bar_year .. cutoff.year-1].
   - holdings_prune_periods returns periods (dates) sorted ascending; newest
     keep_quarters periods are retained, remainder are prune candidates.
+  - age_cutoff returns now - days; rows with created_at strictly BEFORE it are
+    prunable.
+  - db_keep_cutoff returns Jan 1 of the year (today.year - keep_quarters // 4);
+    periods >= this date are written to DB; older periods are archive-only.
   - All functions are pure (no IO, no clock reads, no mutation).
 
 Side effects: none.
@@ -21,9 +32,15 @@ Side effects: none.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timedelta
 
-__all__ = ["prune_cutoff", "prunable_years", "holdings_prune_periods"]
+__all__ = [
+    "prune_cutoff",
+    "prunable_years",
+    "holdings_prune_periods",
+    "age_cutoff",
+    "db_keep_cutoff",
+]
 
 
 def prune_cutoff(today: date, years: int) -> date:
@@ -89,3 +106,51 @@ def holdings_prune_periods(
     if len(distinct) <= keep_quarters:
         return []
     return distinct[: len(distinct) - keep_quarters]
+
+
+def age_cutoff(now: datetime, days: int) -> datetime:
+    """Day-based TTL floor: ``now - days``.
+
+    Rows whose timestamp is strictly BEFORE the returned instant are prunable.
+    Used by the log-retention prune (error_log, batch_log) where retention is a
+    rolling age window rather than complete calendar years.
+
+    Args:
+        now: reference instant (read ONCE at the IO boundary, passed in). Should
+            be tz-aware UTC so the comparison matches TIMESTAMPTZ columns.
+        days: retention window in days (positive integer).
+
+    Returns:
+        ``now - days`` as a datetime (same tzinfo as ``now``).
+
+    Pure — no IO, no clock read.
+    """
+    return now - timedelta(days=days)
+
+
+def db_keep_cutoff(today: date, keep_quarters: int) -> date:
+    """Earliest period_of_report that should be written to Postgres in a backfill.
+
+    Converts a quarter-count window to a calendar-year floor using integer
+    division (4 quarters per year). Periods >= the returned date are written to
+    DB; periods strictly before it are archive-only (Parquet cold store).
+
+    The floor is Jan 1 so the boundary is always aligned to a quarter-start
+    and never splits a calendar year mid-way.
+
+    Examples:
+        keep_quarters=12 (3 years), today=2026-06-30 -> date(2023, 1, 1)
+        keep_quarters=8  (2 years), today=2026-06-30 -> date(2024, 1, 1)
+        keep_quarters=4  (1 year),  today=2026-06-30 -> date(2025, 1, 1)
+
+    Args:
+        today: reference date (read ONCE at the IO boundary, passed in).
+        keep_quarters: number of quarters to retain in DB (must be >= 1).
+
+    Returns:
+        date(today.year - keep_quarters // 4, 1, 1)
+
+    Pure — no IO, no clock read.
+    """
+    years_back = keep_quarters // 4
+    return date(today.year - years_back, 1, 1)

@@ -307,5 +307,6 @@ If complexity increases or boundaries are unclear:
 ## 19. jest and docs
 
 1. run them at the end once
+2. Update the documentation surgically.
 
 ## End of Rules

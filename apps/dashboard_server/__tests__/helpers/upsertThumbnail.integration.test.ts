@@ -73,7 +73,9 @@ describe('upsertThumbnail (integration)', () => {
 
     const guard = () => {
         if (!reachable)
-            console.warn('upsertThumbnail.integration: DB unreachable — skipping');
+            console.warn(
+                'upsertThumbnail.integration: DB unreachable — skipping'
+            );
         return reachable;
     };
 

@@ -64,20 +64,21 @@ python __tests__/test_improved_agents.py
 
 ### Environment Variables
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `LLM_PROVIDER` | Provider: `local`, `openai`, `anthropic` | `local` | No |
-| `LLM_TEMPERATURE` | Temperature for generation (0.0-1.0) | `0.3` | No |
-| `LLM_MAX_TOKENS` | Maximum tokens to generate | `2048` | No |
+| Variable          | Description                              | Default | Required |
+| ----------------- | ---------------------------------------- | ------- | -------- |
+| `LLM_PROVIDER`    | Provider: `local`, `openai`, `anthropic` | `local` | No       |
+| `LLM_TEMPERATURE` | Temperature for generation (0.0-1.0)     | `0.3`   | No       |
+| `LLM_MAX_TOKENS`  | Maximum tokens to generate               | `2048`  | No       |
 
 #### Local (Ollama) Settings
 
-| Variable | Description | Default |
-|----------|-------------|---------|
+| Variable          | Description       | Default                  |
+| ----------------- | ----------------- | ------------------------ |
 | `OLLAMA_BASE_URL` | Ollama server URL | `http://localhost:11434` |
-| `OLLAMA_MODEL` | Model name | `qwen3:8b` |
+| `OLLAMA_MODEL`    | Model name        | `qwen3:8b`               |
 
 **Available Ollama models:**
+
 - `qwen3:8b` - Qwen3 8B (recommended, fast)
 - `llama3.2:8b` - Llama 3.2 8B
 - `mistral:7b` - Mistral 7B
@@ -85,34 +86,38 @@ python __tests__/test_improved_agents.py
 
 #### OpenAI Settings
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `OPENAI_API_KEY` | OpenAI API key | *(required)* |
-| `OPENAI_MODEL` | Model name | `gpt-4o-mini` |
+| Variable         | Description    | Default       |
+| ---------------- | -------------- | ------------- |
+| `OPENAI_API_KEY` | OpenAI API key | _(required)_  |
+| `OPENAI_MODEL`   | Model name     | `gpt-4o-mini` |
 
 **Available OpenAI models:**
+
 - `gpt-4o-mini` - Recommended (cheap, fast)
 - `gpt-4o` - Most capable (expensive)
 - `gpt-3.5-turbo` - Cheapest (less capable)
 
 **Pricing (as of 2024):**
+
 - `gpt-4o-mini`: $0.15/1M input tokens, $0.60/1M output
 - `gpt-4o`: $2.50/1M input, $10/1M output
 - See: https://openai.com/api/pricing/
 
 #### Anthropic Settings
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `ANTHROPIC_API_KEY` | Anthropic API key | *(required)* |
-| `ANTHROPIC_MODEL` | Model name | `claude-3-5-sonnet-20241022` |
+| Variable            | Description       | Default                      |
+| ------------------- | ----------------- | ---------------------------- |
+| `ANTHROPIC_API_KEY` | Anthropic API key | _(required)_                 |
+| `ANTHROPIC_MODEL`   | Model name        | `claude-3-5-sonnet-20241022` |
 
 **Available Anthropic models:**
+
 - `claude-3-5-sonnet-20241022` - Recommended (balanced)
 - `claude-3-opus-20240229` - Most capable (expensive)
 - `claude-3-haiku-20240307` - Fastest (cheapest)
 
 **Pricing (as of 2024):**
+
 - `claude-3-5-sonnet`: $3/1M input, $15/1M output
 - `claude-3-opus`: $15/1M input, $75/1M output
 - `claude-3-haiku`: $0.25/1M input, $1.25/1M output
@@ -172,6 +177,7 @@ python __tests__/test_llm_providers.py
 ```
 
 This will:
+
 1. ✅ Test local Ollama connection
 2. ✅ Test OpenAI API (if key set)
 3. ✅ Test Anthropic API (if key set)
@@ -187,7 +193,7 @@ This will:
 
 ```markdown
 ---
-tags: [old, frontmatter, tags]  # IGNORED
+tags: [old, frontmatter, tags] # IGNORED
 ---
 ```
 
@@ -199,11 +205,12 @@ LLM will generate 5-7 relevant tags based on content analysis.
 
 ```markdown
 ---
-desc: Old frontmatter description  # IGNORED
+desc: Old frontmatter description # IGNORED
 ---
 ```
 
 LLM will generate a 3-sentence summary:
+
 1. What is this article about?
 2. What will readers learn?
 3. Key takeaway or benefit
@@ -211,6 +218,7 @@ LLM will generate a 3-sentence summary:
 ### Fallback Behavior
 
 If LLM is disabled or fails:
+
 - Tags: `[]` (empty list)
 - Description: `""` (empty string)
 
@@ -295,15 +303,16 @@ export ANTHROPIC_MODEL="claude-3-haiku-20240307"
 
 For a typical blog post (1000 words):
 
-| Provider | Model | Input Tokens | Output Tokens | Cost per Post | Notes |
-|----------|-------|--------------|---------------|---------------|-------|
-| **Local** | qwen3:8b | ~1500 | ~100 | **FREE** | Runs on your machine |
-| OpenAI | gpt-4o-mini | ~1500 | ~100 | $0.0003 | Cheapest cloud option |
-| OpenAI | gpt-4o | ~1500 | ~100 | $0.005 | Best quality |
-| Anthropic | claude-3-haiku | ~1500 | ~100 | $0.0005 | Fast and cheap |
-| Anthropic | claude-3-5-sonnet | ~1500 | ~100 | $0.006 | Balanced |
+| Provider  | Model             | Input Tokens | Output Tokens | Cost per Post | Notes                 |
+| --------- | ----------------- | ------------ | ------------- | ------------- | --------------------- |
+| **Local** | qwen3:8b          | ~1500        | ~100          | **FREE**      | Runs on your machine  |
+| OpenAI    | gpt-4o-mini       | ~1500        | ~100          | $0.0003       | Cheapest cloud option |
+| OpenAI    | gpt-4o            | ~1500        | ~100          | $0.005        | Best quality          |
+| Anthropic | claude-3-haiku    | ~1500        | ~100          | $0.0005       | Fast and cheap        |
+| Anthropic | claude-3-5-sonnet | ~1500        | ~100          | $0.006        | Balanced              |
 
 **Recommendation:**
+
 - **Development/Testing:** Use local Ollama (free)
 - **Production (budget):** OpenAI `gpt-4o-mini` or Anthropic `claude-3-haiku`
 - **Production (quality):** Anthropic `claude-3-5-sonnet`
@@ -366,6 +375,7 @@ pip install python-dotenv
 5. ✅ Start processing blog posts!
 
 For more help, see:
+
 - [README.md](../README.md) - Project overview
 - [config.py](../config.py) - Configuration entry point (re-exports from `configs/` modules)
 - [configs/llm.py](../configs/llm.py) - LLM-specific configuration

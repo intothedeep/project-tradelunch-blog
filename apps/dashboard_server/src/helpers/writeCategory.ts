@@ -60,7 +60,9 @@ async function findExisting(
     parentId: string | null,
     title: string
 ): Promise<(TCategoryRow & { deleted_at: string | null }) | null> {
-    const { rows } = await client.query<TCategoryRow & { deleted_at: string | null }>(
+    const { rows } = await client.query<
+        TCategoryRow & { deleted_at: string | null }
+    >(
         `SELECT ${NODE_COLS}, deleted_at
          FROM categories
          WHERE user_id = $1
@@ -84,7 +86,12 @@ export async function createCategory(
     }
     if (existing) {
         // Soft-deleted row in the same scope → resurrect + recompute placement.
-        const node = await resurrectCategory(client, userId, existing.id, parentId);
+        const node = await resurrectCategory(
+            client,
+            userId,
+            existing.id,
+            parentId
+        );
         return { status: 'created', node };
     }
 

@@ -64,15 +64,17 @@ describe('listDrafts (integration)', () => {
             await pool.query('DELETE FROM posts WHERE user_id = ANY($1)', [
                 [userA, userB],
             ]);
-            await pool.query('DELETE FROM users WHERE clerk_user_id = ANY($1)', [
-                [clerkA, clerkB],
-            ]);
+            await pool.query(
+                'DELETE FROM users WHERE clerk_user_id = ANY($1)',
+                [[clerkA, clerkB]]
+            );
         }
         await pool.end();
     });
 
     const guard = () => {
-        if (!reachable) console.warn('listDrafts.test: DB unreachable — skipping');
+        if (!reachable)
+            console.warn('listDrafts.test: DB unreachable — skipping');
         return reachable;
     };
 

@@ -1,5 +1,5 @@
 ---
-title: "C How to use signal handling in C"
+title: 'C How to use signal handling in C'
 date: 2025-04-10
 tags: [c, system, signal, handler, exit, kill]
 series: study C

@@ -65,6 +65,7 @@ All Python files use standard naming conventions (no number prefixes):
 - ✅ `agents/base.py` (not `agents/00_base.py`)
 
 This allows standard Python imports:
+
 ```python
 from agents import BaseAgent, AgentTask, ExtractingAgent
 from config import MODEL_NAME, OLLAMA_BASE_URL
@@ -85,6 +86,7 @@ ProjectManager (LangGraph orchestrator + Qwen3 LLM)
 ## Key Components
 
 ### Configuration (`configs/` & `config.py`)
+
 - `configs/` modules: `aws.py`, `database.py`, `llm.py`, `paths.py`
 - `config.py`: Central entry point that aggregates all settings
 - Supports environment variable overrides via `.env`
@@ -92,42 +94,50 @@ ProjectManager (LangGraph orchestrator + Qwen3 LLM)
 ### Database Layer (`db/` & `schema/`)
 
 **Repositories (`db/repositories/`)**
+
 - `CategoryRepository`: Hierarchy management
 - `PostRepository`: Article storage
 - `FileRepository`: Image/file metadata
 - `TagRepository`: Tag management
 
 **Core Components**
+
 - `models.py`: SQLAlchemy ORM models
 - `connection.py`: Async session management
 - `s3.py`: S3 upload/delete utilities
 
 **Schema**
+
 - `schema/tradelunch.schema.sql`: PostgreSQL DDL
 - `schema/schema.py`: Pydantic models for validation
 
 ### Utils (`utils/`)
+
 - `snowflake.py`: Twitter Snowflake ID generator (unique 64-bit IDs)
 
 ### Agents (`agents/`)
 
 **base.py** - Abstract BaseAgent class
+
 - Common interface for all agents
 - Status management
 - Logging functionality
 
 **protocol.py** - Communication protocol
+
 - `AgentMessage` - Inter-agent messages
 - `AgentTask` - Task definitions
 - `AgentResponse` - Task results
 
 **document_scanner_agent.py** - Folder structure scanner
+
 - Recursively scans document folders
 - Identifies article folders (leaf directories)
 - Distinguishes thumbnails from content images
 - Extracts category from folder structure
 
 **extracting_agent.py** - Markdown parser
+
 - Parses frontmatter and content
 - Extracts images
 - Generates slugs
@@ -136,30 +146,35 @@ ProjectManager (LangGraph orchestrator + Qwen3 LLM)
 - Calculates reading time
 
 **uploading_agent.py** - S3/RDS uploader
+
 - Uses `FileRepository` and `s3.py` for uploads
 - Uses `PostRepository` and `CategoryRepository` for data persistence
 - Handles category hierarchy creation
 - Transaction management
 
 **logging_agent.py** - Logging & output
+
 - Rich terminal formatting
 - Progress indicators
 - Result summaries
 - Error highlighting
 
 **project_manager.py** - LangGraph orchestrator
+
 - Analyzes user commands with LLM
 - Plans agent execution sequence
 - Manages workflow state
 - Coordinates data flow between agents
 
 ### CLI (`cli_multi_agent.py`)
+
 - Interactive command-line interface
 - Natural language command support
 - Command history
 - Rich UI with colors and panels
 
 ### Tests (`__tests__/`)
+
 - `test_agents.py`: Basic functionality
 - `test_improved_agents.py`: LLM features
 - `test_llm_providers.py`: Provider connectivity
@@ -177,6 +192,7 @@ ProjectManager (LangGraph orchestrator + Qwen3 LLM)
 ## Usage
 
 ### Setup
+
 ```bash
 # Create virtual environment (pyenv recommended)
 python -m venv tradelunch-agents-venv
@@ -195,6 +211,7 @@ ollama pull qwen3:8b
 **Note:** This project uses `pyproject.toml` (PEP 621 standard) for dependency management and configuration.
 
 ### Run Tests
+
 ```bash
 # Basic tests (no Ollama required)
 python __tests__/test_agents.py
@@ -204,6 +221,7 @@ python __tests__/test_improved_agents.py
 ```
 
 ### Run CLI
+
 ```bash
 # Terminal 1: Start Ollama
 ollama serve
@@ -214,6 +232,7 @@ python cli_multi_agent.py
 ```
 
 ### Commands
+
 ```bash
 # Upload a blog post
 blog-agent> upload ./posts/my-article.md
@@ -273,10 +292,10 @@ Blog posts use YAML frontmatter:
 
 ```markdown
 ---
-title: "Post Title"
-author: "Author Name"
-date: "2026-01-03"
-tags: ["tag1", "tag2"]
+title: 'Post Title'
+author: 'Author Name'
+date: '2026-01-03'
+tags: ['tag1', 'tag2']
 ---
 
 # Content here
@@ -321,15 +340,19 @@ pytest --cov=agents --cov-fail-under=80
 ## Troubleshooting
 
 ### "Connection refused" error
+
 - Ensure Ollama is running: `ollama serve`
 
 ### "Model not found" error
+
 - Pull the model: `ollama pull qwen3:8b`
 
 ### Import errors
+
 - Reinstall dependencies: `pip install -e . --force-reinstall`
 
 ### File not found
+
 - Use absolute paths or check current directory: `pwd`
 - Verify file exists: `ls -la ./posts/`
 
@@ -340,6 +363,7 @@ MIT
 ## Contributing
 
 Contributions welcome! Please follow:
+
 1. TDD workflow
 2. Complete type annotations
 3. Docstrings for all public functions

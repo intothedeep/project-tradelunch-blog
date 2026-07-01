@@ -11,23 +11,27 @@ The project has been successfully migrated to use modern Python standards with `
 ### 1. Virtual Environment
 
 **Old:**
+
 - `venv/` - Generic name
 
 **New:**
+
 - `tradelunch-agents-venv/` - Project-specific name
 - `.python-version` - Specifies Python 3.12.3 for pyenv
 
 ### 2. Dependency Management
 
 **Old:**
+
 - `requirements.txt` - Traditional approach
 
 **New:**
+
 - `pyproject.toml` - Modern Python standard (PEP 621)
-  - Project metadata
-  - Runtime dependencies
-  - Development dependencies (`[dev]`)
-  - Tool configurations (black, isort, mypy, ruff, pytest)
+    - Project metadata
+    - Runtime dependencies
+    - Development dependencies (`[dev]`)
+    - Tool configurations (black, isort, mypy, ruff, pytest)
 
 ### 3. Project Configuration
 
@@ -53,6 +57,7 @@ dev = [
 ```
 
 Tool configurations:
+
 - **Black** (code formatting): 100 char line length
 - **Isort** (import sorting): Compatible with Black
 - **Ruff** (linting): Modern, fast linter
@@ -62,6 +67,7 @@ Tool configurations:
 ## Installation
 
 ### Setup Virtual Environment
+
 ```bash
 # Create virtual environment
 python -m venv tradelunch-agents-venv
@@ -75,6 +81,7 @@ pip install -e ".[dev]"
 ```
 
 ### Why `-e` (Editable Mode)?
+
 - Changes to code take effect immediately
 - No need to reinstall after modifying code
 - Perfect for development
@@ -82,16 +89,20 @@ pip install -e ".[dev]"
 ## Benefits of pyproject.toml
 
 ### 1. Single Source of Truth
+
 - All project configuration in one place
 - No more `setup.py`, `setup.cfg`, `requirements.txt` fragmentation
 
 ### 2. Standard Compliance
+
 - **PEP 518** - Build system requirements
 - **PEP 517** - Build backend interface
 - **PEP 621** - Project metadata
 
 ### 3. Tool Configuration
+
 All development tools configured in one file:
+
 - Black
 - Isort
 - Ruff
@@ -100,6 +111,7 @@ All development tools configured in one file:
 - Coverage
 
 ### 4. Dependency Management
+
 ```bash
 # Runtime dependencies
 pip install -e .
@@ -156,6 +168,7 @@ black . && isort . && ruff check . && mypy agents/ && pytest
 ### Installation
 
 **Old:**
+
 ```bash
 python -m venv venv
 source venv/bin/activate
@@ -163,6 +176,7 @@ pip install -r requirements.txt
 ```
 
 **New:**
+
 ```bash
 python -m venv tradelunch-agents-venv
 source tradelunch-agents-venv/bin/activate
@@ -172,6 +186,7 @@ pip install -e .
 ### Adding Dependencies
 
 **Old:**
+
 ```bash
 # Edit requirements.txt manually
 echo "new-package>=1.0.0" >> requirements.txt
@@ -179,6 +194,7 @@ pip install -r requirements.txt
 ```
 
 **New:**
+
 ```bash
 # Edit pyproject.toml
 # Add to dependencies = [...]
@@ -188,12 +204,14 @@ pip install -e .
 ### Development Setup
 
 **Old:**
+
 ```bash
 # No standardized dev dependencies
 # Each developer sets up their own tools
 ```
 
 **New:**
+
 ```bash
 # One command installs all dev tools
 pip install -e ".[dev]"
@@ -260,27 +278,32 @@ pip show project_tradelunch_agent_blog
 ## Migration Notes
 
 ### What Was Kept
+
 - `requirements.txt` - Kept for backward compatibility
 - All Python source files
 - All documentation
 
 ### What Was Added
+
 - `pyproject.toml` - Modern configuration
 - `.python-version` - Python version specification
 - `tradelunch-agents-venv/` - Named virtual environment
 - Dev dependencies (pytest, mypy, ruff, black, isort)
 
 ### What Was Removed
+
 - Old `venv/` directory
 
 ## Best Practices
 
 ### 1. Always Use Editable Install
+
 ```bash
 pip install -e .  # NOT pip install .
 ```
 
 ### 2. Separate Runtime and Dev Dependencies
+
 ```bash
 # Production
 pip install -e .
@@ -290,14 +313,18 @@ pip install -e ".[dev]"
 ```
 
 ### 3. Keep pyproject.toml Updated
+
 When adding new dependencies, update `pyproject.toml` and reinstall:
+
 ```bash
 # Edit pyproject.toml
 pip install -e .
 ```
 
 ### 4. Use Tool Configurations
+
 All tools are pre-configured in `pyproject.toml`. Just run them:
+
 ```bash
 black .
 mypy agents/

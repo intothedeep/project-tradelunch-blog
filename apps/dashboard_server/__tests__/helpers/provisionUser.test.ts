@@ -37,7 +37,8 @@ describe('provisionUser — email adoption (integration)', () => {
     });
 
     const guard = () => {
-        if (!reachable) console.warn('provisionUser.test: DB unreachable — skipping');
+        if (!reachable)
+            console.warn('provisionUser.test: DB unreachable — skipping');
         return reachable;
     };
 
@@ -103,8 +104,16 @@ describe('provisionUser — email adoption (integration)', () => {
 
     it('is idempotent: the same sub resolves to one row (fast path, no duplicate)', async () => {
         if (!guard()) return;
-        const first = await provisionUser(pool, sub('idem'), stub(email('idem')));
-        const second = await provisionUser(pool, sub('idem'), stub(email('idem')));
+        const first = await provisionUser(
+            pool,
+            sub('idem'),
+            stub(email('idem'))
+        );
+        const second = await provisionUser(
+            pool,
+            sub('idem'),
+            stub(email('idem'))
+        );
         expect(Number(first!.id)).toBe(Number(second!.id));
 
         const { rows } = await pool.query<{ n: string }>(

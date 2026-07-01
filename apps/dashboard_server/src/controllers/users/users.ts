@@ -50,7 +50,10 @@ router.get('/me', requireAuth, async (req, res) => {
         });
     } catch (error) {
         console.error('GET /api/users/me error:', error);
-        res.status(500).json({ success: false, message: 'failed to load profile' });
+        res.status(500).json({
+            success: false,
+            message: 'failed to load profile',
+        });
     }
 });
 
@@ -63,7 +66,10 @@ router.post('/me/username', requireAuth, async (req, res) => {
     try {
         const raw = (req.body as { username?: unknown } | undefined)?.username;
         if (typeof raw !== 'string') {
-            res.status(400).json({ success: false, message: 'username is required' });
+            res.status(400).json({
+                success: false,
+                message: 'username is required',
+            });
             return;
         }
 
@@ -73,16 +79,29 @@ router.post('/me/username', requireAuth, async (req, res) => {
             return;
         }
 
-        const result = await claimUsername(pool, req.auth!.userId, parsed.value);
+        const result = await claimUsername(
+            pool,
+            req.auth!.userId,
+            parsed.value
+        );
         if (!result.ok) {
-            res.status(result.status).json({ success: false, message: result.reason });
+            res.status(result.status).json({
+                success: false,
+                message: result.reason,
+            });
             return;
         }
 
-        res.status(200).json({ userId: req.auth!.userId, username: result.username });
+        res.status(200).json({
+            userId: req.auth!.userId,
+            username: result.username,
+        });
     } catch (error) {
         console.error('POST /api/users/me/username error:', error);
-        res.status(500).json({ success: false, message: 'failed to claim username' });
+        res.status(500).json({
+            success: false,
+            message: 'failed to claim username',
+        });
     }
 });
 
@@ -101,7 +120,10 @@ router.get('/me/drafts', requireAuth, async (req, res) => {
         res.json({ success: true, data: drafts });
     } catch (error) {
         console.error('GET /api/users/me/drafts error:', error);
-        res.status(500).json({ success: false, message: 'failed to load drafts' });
+        res.status(500).json({
+            success: false,
+            message: 'failed to load drafts',
+        });
     }
 });
 

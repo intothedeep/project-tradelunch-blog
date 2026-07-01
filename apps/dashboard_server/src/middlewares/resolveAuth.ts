@@ -14,10 +14,7 @@
 //               and, on first sight only, a verified-email fetch + one write.
 import { verifyToken, type VerifyTokenOptions } from '@clerk/express';
 import { pool } from '../database';
-import {
-    CLERK_SECRET_KEY,
-    ALLOWED_ORIGINS_LIST,
-} from '../config/env.schema';
+import { CLERK_SECRET_KEY, ALLOWED_ORIGINS_LIST } from '../config/env.schema';
 import { provisionUser } from '../helpers/provisionUser';
 import { fetchVerifiedPrimaryEmail } from '../lib/clerkUsers';
 

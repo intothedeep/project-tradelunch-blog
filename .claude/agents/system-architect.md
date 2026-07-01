@@ -21,7 +21,7 @@ Responsibilities:
 Inputs:
 
 - 00.plan.md
-- Protobuf file: Single Source of Truth for data structures -> packages/schema/*.proto
+- Protobuf file: Single Source of Truth for data structures -> packages/schema/\*.proto
 
 Outputs:
 

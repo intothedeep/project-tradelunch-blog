@@ -58,11 +58,11 @@ GitHub Actions cron
 
 ### What is collected & how often
 
-| Workflow | Schedule (UTC) | Collects | Writes |
-|---|---|---|---|
-| `collector-daily` | Mon–Fri **21:30** (after the US close) | Daily OHLC for the watchlist (≤42 labels + sticky-ranked symbols) via Yahoo | `market_history` (interval `1d`, incremental) + `market_snapshots` (latest close + 1-day change) |
-| `collector-weekly` | Sun **06:00** | S&P500-class market-cap ranking (global + per-sector) | `market_rankings` (append) + `tracked_symbols` (sticky top-20 global / top-10 sector) + `symbol_fundamentals` cache |
-| `collector-keepalive` | 1st & 15th **12:00** | — | touches the repo so GitHub doesn't disable the crons after 60 days idle |
+| Workflow              | Schedule (UTC)                         | Collects                                                                    | Writes                                                                                                              |
+| --------------------- | -------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `collector-daily`     | Mon–Fri **21:30** (after the US close) | Daily OHLC for the watchlist (≤42 labels + sticky-ranked symbols) via Yahoo | `market_history` (interval `1d`, incremental) + `market_snapshots` (latest close + 1-day change)                    |
+| `collector-weekly`    | Sun **06:00**                          | S&P500-class market-cap ranking (global + per-sector)                       | `market_rankings` (append) + `tracked_symbols` (sticky top-20 global / top-10 sector) + `symbol_fundamentals` cache |
+| `collector-keepalive` | 1st & 15th **12:00**                   | —                                                                           | touches the repo so GitHub doesn't disable the crons after 60 days idle                                             |
 
 Watchlist — 42 labels, `apps/stock_collector/configs/watchlist.yaml` (editable; add a symbol to
 collect it daily):
@@ -125,7 +125,7 @@ pnpm format          # prettier write
 ## Admin bootstrap
 
 There is **no admin-grant UI** by design — users are lazy-provisioned with `is_admin = false`.
-To promote the owner, run a **one-time** SQL statement in the Supabase SQL Editor *after* that
+To promote the owner, run a **one-time** SQL statement in the Supabase SQL Editor _after_ that
 account has signed up and completed onboarding (so the `users` row exists):
 
 ```sql

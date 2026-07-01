@@ -18,7 +18,10 @@ describe('validateCategoryInput', () => {
     });
 
     it('accepts a numeric-string parentId', () => {
-        const result = validateCategoryInput({ title: 'stocks', parentId: '42' });
+        const result = validateCategoryInput({
+            title: 'stocks',
+            parentId: '42',
+        });
         expect(result).toEqual({
             ok: true,
             value: { title: 'stocks', parentId: '42' },
@@ -55,7 +58,7 @@ describe('validateCategoryInput', () => {
             reason: 'parentId must be a numeric string or null',
         });
         expect(validateCategoryInput({ title: 't', parentId: 42 }).ok).toBe(
-            false,
+            false
         );
     });
 

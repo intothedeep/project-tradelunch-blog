@@ -20,7 +20,10 @@ router.post('', async (req, res) => {
         res.status(204).end();
     } catch (error) {
         console.error('POST /api/error-logs error:', error);
-        res.status(500).json({ success: false, message: 'failed to log error' });
+        res.status(500).json({
+            success: false,
+            message: 'failed to log error',
+        });
     }
 });
 

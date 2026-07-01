@@ -30,7 +30,9 @@ router.get('/', requireAdmin, async (req: Request, res: Response) => {
 
         const rawLimit = parseInt(String(req.query.limit ?? ''), 10);
         const limit = Math.min(
-            Number.isInteger(rawLimit) && rawLimit > 0 ? rawLimit : DEFAULT_LIMIT,
+            Number.isInteger(rawLimit) && rawLimit > 0
+                ? rawLimit
+                : DEFAULT_LIMIT,
             MAX_LIMIT
         );
 
@@ -41,46 +43,71 @@ router.get('/', requireAdmin, async (req: Request, res: Response) => {
         res.json({ success: true, data });
     } catch (error) {
         console.error('GET /api/admin/posts error:', error);
-        res.status(500).json({ success: false, message: 'failed to list posts' });
+        res.status(500).json({
+            success: false,
+            message: 'failed to list posts',
+        });
     }
 });
 
-router.patch('/:postid/status', requireAdmin, async (req: Request, res: Response) => {
-    try {
-        // postId is a BIGINT — keep it a numeric STRING; never parseInt (precision).
-        const postId = String(req.params.postid);
-        if (!/^\d+$/.test(postId)) {
-            res.status(400).json({ success: false, message: 'invalid post id' });
-            return;
-        }
+router.patch(
+    '/:postid/status',
+    requireAdmin,
+    async (req: Request, res: Response) => {
+        try {
+            // postId is a BIGINT — keep it a numeric STRING; never parseInt (precision).
+            const postId = String(req.params.postid);
+            if (!/^\d+$/.test(postId)) {
+                res.status(400).json({
+                    success: false,
+                    message: 'invalid post id',
+                });
+                return;
+            }
 
-        const parsed = validatePostStatus(
-            (req.body as { status?: unknown } | undefined)?.status
-        );
-        if (!parsed.ok) {
-            res.status(400).json({ success: false, message: parsed.reason });
-            return;
-        }
+            const parsed = validatePostStatus(
+                (req.body as { status?: unknown } | undefined)?.status
+            );
+            if (!parsed.ok) {
+                res.status(400).json({
+                    success: false,
+                    message: parsed.reason,
+                });
+                return;
+            }
 
-        const row = await setPostStatus(pool, postId, parsed.value);
-        if (!row) {
-            res.status(404).json({ success: false, message: 'Post not found' });
-            return;
-        }
+            const row = await setPostStatus(pool, postId, parsed.value);
+            if (!row) {
+                res.status(404).json({
+                    success: false,
+                    message: 'Post not found',
+                });
+                return;
+            }
 
-        res.json({ success: true, data: row });
-    } catch (error) {
-        console.error('PATCH /api/admin/posts/:postid/status error:', error);
-        res.status(500).json({ success: false, message: 'failed to set status' });
+            res.json({ success: true, data: row });
+        } catch (error) {
+            console.error(
+                'PATCH /api/admin/posts/:postid/status error:',
+                error
+            );
+            res.status(500).json({
+                success: false,
+                message: 'failed to set status',
+            });
+        }
     }
-});
+);
 
 router.delete('/:postid', requireAdmin, async (req: Request, res: Response) => {
     try {
         // postId is a BIGINT — keep it a numeric STRING; never parseInt (precision).
         const postId = String(req.params.postid);
         if (!/^\d+$/.test(postId)) {
-            res.status(400).json({ success: false, message: 'invalid post id' });
+            res.status(400).json({
+                success: false,
+                message: 'invalid post id',
+            });
             return;
         }
 
@@ -93,7 +120,10 @@ router.delete('/:postid', requireAdmin, async (req: Request, res: Response) => {
         res.json({ success: true, data: { id: deletedId } });
     } catch (error) {
         console.error('DELETE /api/admin/posts/:postid error:', error);
-        res.status(500).json({ success: false, message: 'failed to delete post' });
+        res.status(500).json({
+            success: false,
+            message: 'failed to delete post',
+        });
     }
 });
 

@@ -186,7 +186,10 @@ router.get(
             }
 
             // Whitelisted lookback -> a from-date param, or null for 'max'.
-            const days = range in RANGE_DAYS ? RANGE_DAYS[range] : RANGE_DAYS[DEFAULT_RANGE];
+            const days =
+                range in RANGE_DAYS
+                    ? RANGE_DAYS[range]
+                    : RANGE_DAYS[DEFAULT_RANGE];
             const fromDate =
                 days === null
                     ? null

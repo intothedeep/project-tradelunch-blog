@@ -59,10 +59,7 @@ function mockRes() {
 
 async function invokeFeed(query: Record<string, string>): Promise<void> {
     mockQuery.mockResolvedValueOnce({ rows: [] });
-    await userFeedHandler()(
-        { params: { username: 'u' }, query },
-        mockRes()
-    );
+    await userFeedHandler()({ params: { username: 'u' }, query }, mockRes());
 }
 
 // The bind-params array is the 2nd arg of pool.query(sql, params).
