@@ -14,9 +14,10 @@ export interface RankingEntry {
 }
 
 export interface RankingsSnapshot {
-    asOf: string; // YYYY-MM-DD (latest week)
+    asOf: string; // YYYY-MM-DD — the week actually returned (resolved)
     scope: RankingScope;
     sector: string | null; // selected sector when scope=sector, else null
     sectors: string[]; // sector filter options for asOf
+    availableWeeks: string[]; // distinct weeks, newest-first — drives the picker
     rows: RankingEntry[];
 }

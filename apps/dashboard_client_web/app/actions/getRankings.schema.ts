@@ -20,6 +20,7 @@ export const rankingsSnapshotSchema = z.object({
     scope: z.enum(['global', 'sector']),
     sector: z.string().nullable(),
     sectors: z.array(z.string()),
+    availableWeeks: z.array(z.string()),
     rows: z.array(rankingEntrySchema),
 });
 

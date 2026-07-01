@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 interface RankingsPageProps {
-    searchParams: Promise<{ scope?: string; sector?: string }>;
+    searchParams: Promise<{ scope?: string; sector?: string; asOf?: string }>;
 }
 
 // /rankings — weekly market-cap ranking viewer. States:
@@ -28,7 +28,12 @@ export default async function RankingsPage({
     const sp = await searchParams;
     const scope: RankingScope = sp.scope === 'sector' ? 'sector' : 'global';
 
-    const result = await getRankings({ scope, sector: sp.sector, limit: 100 });
+    const result = await getRankings({
+        scope,
+        sector: sp.sector,
+        asOf: sp.asOf,
+        limit: 100,
+    });
 
     if (!result.ok) {
         return (
@@ -62,7 +67,8 @@ export default async function RankingsPage({
         );
     }
 
-    const { asOf, sector, sectors, rows } = result.data;
+    const { asOf, sector, sectors, availableWeeks, rows } = result.data;
+    const isSinglePeriod = availableWeeks.length <= 1;
 
     return (
         <main className="p-4 md:p-8 max-w-screen-xl mx-auto">
@@ -78,12 +84,19 @@ export default async function RankingsPage({
                 </p>
             </header>
 
-            <div className="mb-6">
+            <div className="mb-6 space-y-2">
                 <RankingsFilter
                     scope={scope}
                     sector={sector}
                     sectors={sectors}
+                    asOf={asOf}
+                    availableWeeks={availableWeeks}
                 />
+                {isSinglePeriod && (
+                    <p className="text-xs text-muted-foreground">
+                        Time-series view unlocks as weekly snapshots accumulate.
+                    </p>
+                )}
             </div>
 
             <RankingsTable

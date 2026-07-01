@@ -63,11 +63,14 @@ function clampLimit(raw: unknown): number {
  * @apiQuery {String="global","sector"} [scope=global] Ranking scope.
  * @apiQuery {String} [sector]  Sector name (only when scope=sector; defaults to
  *                              the first available sector for the latest week).
+ * @apiQuery {String} [asOf]    ISO date YYYY-MM-DD to pin a specific week; an
+ *                              unknown/older date snaps to the nearest ≤ week.
  * @apiQuery {Number} [limit=50] Surfacing depth (1..200).
  *
  * @apiSuccess {Boolean}     success
- * @apiSuccess {Object|null} data  { asOf, scope, sector, sectors[], rows[] } or
- *                                 null when the table/weekly data is absent.
+ * @apiSuccess {Object|null} data  { asOf, scope, sector, sectors[],
+ *                                 availableWeeks[], rows[] } or null when the
+ *                                 table/weekly data is absent.
  */
 router.get('/', async (req, res) => {
     try {
@@ -77,15 +80,40 @@ router.get('/', async (req, res) => {
             return res.json({ success: true, data: null });
         }
 
-        // Latest week. ::text avoids the pg driver's local-midnight Date coercion.
+        // Resolve the target week. `asOf` pins a specific week; an unknown/older
+        // date snaps to the nearest week <= requested (robust deep-links). Absent
+        // → latest. ::text avoids the pg driver's local-midnight Date coercion.
+        const rawAsOf = req.query.asOf;
+        const requestedAsOf =
+            typeof rawAsOf === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rawAsOf)
+                ? rawAsOf
+                : null;
         const { rows: asOfRows } = await pool.query<{ as_of: string | null }>(
-            `SELECT MAX(as_of)::text AS as_of FROM market_rankings`
+            `SELECT MAX(as_of)::text AS as_of FROM market_rankings
+             WHERE ($1::date IS NULL OR as_of <= $1::date)`,
+            [requestedAsOf]
         );
-        const asOf = asOfRows[0]?.as_of ?? null;
+        let asOf = asOfRows[0]?.as_of ?? null;
+        // Requested date older than the whole series → nothing <= it; fall back
+        // to the latest week rather than an empty page.
+        if (asOf === null && requestedAsOf !== null) {
+            const { rows: latestRows } = await pool.query<{
+                as_of: string | null;
+            }>(`SELECT MAX(as_of)::text AS as_of FROM market_rankings`);
+            asOf = latestRows[0]?.as_of ?? null;
+        }
         if (asOf === null) {
             res.set('Cache-Control', RANKINGS_CACHE_CONTROL);
             return res.json({ success: true, data: null });
         }
+
+        // Week picker options — distinct weeks, newest-first, capped (~5yr).
+        const { rows: weekRows } = await pool.query<{ as_of: string }>(
+            `SELECT DISTINCT as_of::text AS as_of FROM market_rankings
+             ORDER BY as_of DESC
+             LIMIT 260`
+        );
+        const availableWeeks = weekRows.map((w) => w.as_of);
 
         // Sector filter options for the latest week (drives the client dropdown).
         const { rows: sectorRows } = await pool.query<{ sector: string }>(
@@ -142,6 +170,7 @@ router.get('/', async (req, res) => {
                 scope,
                 sector: selectedSector,
                 sectors,
+                availableWeeks,
                 rows: entries.map(toEntry),
             },
         });

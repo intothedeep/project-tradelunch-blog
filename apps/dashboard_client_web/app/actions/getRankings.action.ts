@@ -1,7 +1,8 @@
 // Purpose: Server Action returning the weekly market-cap ranking from Express.
 // Cache: next.revalidate=86400 (24h) — matches Express s-maxage on /v1/api/rankings.
 //   The series only gains a new row once a week; daily revalidation is ample.
-// Params: scope ('global'|'sector'), sector (name, when scope=sector), limit.
+// Params: scope ('global'|'sector'), sector (name, when scope=sector), asOf
+//   (YYYY-MM-DD week pin; omitted → latest), limit.
 // Invariant: a null data response (table/weekly data absent) passes through as
 //   { ok:true, data:null } — this is NOT an error. Raw throws are returned as
 //   typed network errors AND forwarded to error_log (source='ssr'). NO mock.
@@ -32,6 +33,7 @@ export type RankingsResult =
 export interface RankingsQuery {
     scope?: RankingScope;
     sector?: string;
+    asOf?: string;
     limit?: number;
 }
 
@@ -43,6 +45,7 @@ export async function getRankings(
         const url = new URL(`${API_BASE}${RANKINGS_ENDPOINT}`);
         if (query.scope) url.searchParams.set('scope', query.scope);
         if (query.sector) url.searchParams.set('sector', query.sector);
+        if (query.asOf) url.searchParams.set('asOf', query.asOf);
         if (query.limit) url.searchParams.set('limit', String(query.limit));
 
         const res = await fetch(url.toString(), {
