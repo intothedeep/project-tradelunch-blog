@@ -42,7 +42,7 @@ jobs:
           # Phase-1.5 archive: writes local Parquet only when the repo VARIABLE is
           # set to 1/true (unset -> no-op, daily run unchanged). Flip once the
           # PRIVATE bucket exists (I1.5.1b).
-          SHOULD_COLLECTOR_MARKET_ARCHIVE_PARQUET: ${{ vars.SHOULD_COLLECTOR_MARKET_ARCHIVE_PARQUET }}
+          SHOULD_COLLECTOR_ARCHIVE_MARKET_PARQUET: ${{ vars.SHOULD_COLLECTOR_ARCHIVE_MARKET_PARQUET }}
         run: uv run python -m collector.entrypoints.run_daily
 
       # Best-effort: upserts the local Parquet archive to the PRIVATE Storage

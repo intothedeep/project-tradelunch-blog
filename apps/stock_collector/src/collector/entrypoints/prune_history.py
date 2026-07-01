@@ -3,7 +3,7 @@
 Purpose: remove old OHLC bars from Postgres once the corresponding Parquet
 objects are confirmed present in Supabase Storage. Guards (all must pass):
   1. DATABASE_URL set
-  2. SHOULD_COLLECTOR_MARKET_ARCHIVE_PARQUET=true (Parquet archive enabled)
+  2. SHOULD_COLLECTOR_ARCHIVE_MARKET_PARQUET=true (Parquet archive enabled)
   3. SUPABASE_URL + SUPABASE_SECRET_KEY set
 
 Flow (layer direction entrypoints -> config|transform -> sink):
@@ -101,7 +101,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if not parquet_archive_enabled():
-        print("[prune_history] SKIP: SHOULD_COLLECTOR_MARKET_ARCHIVE_PARQUET not enabled")
+        print("[prune_history] SKIP: SHOULD_COLLECTOR_ARCHIVE_MARKET_PARQUET not enabled")
         return 0
 
     storage_url, storage_key = supabase_storage()

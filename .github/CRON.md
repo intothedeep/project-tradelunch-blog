@@ -15,7 +15,7 @@ All times are **UTC**. Cron format: `min hour day-of-month month day-of-week`.
 
 | Workflow                     | Cron (UTC)      | Human cadence            | What it does                                                                                                                                                                                                                                                                    |
 | ---------------------------- | --------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `collector-daily.yml`        | `30 21 * * 1-5` | Mon–Fri 21:30            | Yahoo daily OHLC ingest → `market_history` + `market_snapshots`; writes Parquet archive + uploads to Storage (when `SHOULD_COLLECTOR_MARKET_ARCHIVE_PARQUET=1`).                                                                                                                              |
+| `collector-daily.yml`        | `30 21 * * 1-5` | Mon–Fri 21:30            | Yahoo daily OHLC ingest → `market_history` + `market_snapshots`; writes Parquet archive + uploads to Storage (when `SHOULD_COLLECTOR_ARCHIVE_MARKET_PARQUET=1`).                                                                                                                              |
 | `collector-weekly.yml`       | `0 6 * * 0`     | Sun 06:00                | Market-cap ranking → `tracked_symbols` (sticky universe) + `market_rankings`. **Phase N:** then best-effort `archive_rankings` writes `rankings/{YYYY}.parquet` → Storage (cold copy for the rankings prune).                                                                    |
 | `collector-monthly.yml`      | `0 7 1 * *`     | 1st 07:00                | SEC EDGAR 13F holdings → `sec_filings` + `sec_holdings`.                                                                                                                                                                                                                        |
 | `collector-prune.yml`        | `0 7 30 12 *`   | Dec 30 07:00             | **Phase M** `market_history` 5yr retention prune (OHLC). **Scheduled run is LIVE** (mode B): it deletes archive-verified cold bars. A manual dispatch defaults to dry-run (preview); uncheck `dry_run` for a manual live prune. Also runs an **L18** 13F prune job (scheduled dry-run) and a **Phase N** `prune-rankings` job (10yr, archive-verified, scheduled dry-run; 0 candidates until ~2036).            |
@@ -57,7 +57,7 @@ gh workflow list
 - **Secrets** (`Settings → Secrets and variables → Actions → Secrets`):
   `DATABASE_URL` (Supabase **session** pooler `...pooler.supabase.com:5432`),
   `POSTGRES_URL_NON_POOLING`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SEC_USER_AGENT`.
-- **Variables** (`… → Variables`): `SHOULD_COLLECTOR_MARKET_ARCHIVE_PARQUET` (`1` = on),
+- **Variables** (`… → Variables`): `SHOULD_COLLECTOR_ARCHIVE_MARKET_PARQUET` (`1` = on),
   `COLLECTOR_MARKET_PARQUET_BUCKET` (`market-archive`).
     - Inspect: `gh variable list` · `gh secret list` (names only).
 

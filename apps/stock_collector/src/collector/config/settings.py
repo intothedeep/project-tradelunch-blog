@@ -65,7 +65,7 @@ def supabase_storage() -> tuple[str | None, str | None]:
 
 def parquet_archive_enabled() -> bool:
     """Phase-1.5 local Parquet archive toggle (default OFF until the bucket exists)."""
-    return os.getenv("SHOULD_COLLECTOR_MARKET_ARCHIVE_PARQUET", "").strip().lower() in ("1", "true", "yes")
+    return os.getenv("SHOULD_COLLECTOR_ARCHIVE_MARKET_PARQUET", "").strip().lower() in ("1", "true", "yes")
 
 
 def parquet_dir() -> Path:
