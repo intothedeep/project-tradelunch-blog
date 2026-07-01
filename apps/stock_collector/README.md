@@ -44,8 +44,9 @@ Env (`.env`, loaded via python-dotenv — do NOT quote or leave empty):
   `SUPABASE_SECRET_KEY`, `COLLECTOR_ARCHIVE_PARQUET=1`,
   `COLLECTOR_PARQUET_BUCKET` (default `market-archive`).
 - **13F**: `SEC_USER_AGENT` (descriptive UA, else SEC returns 403). 13F Parquet
-  archive is gated by `COLLECTOR_ARCHIVE_SEC_PARQUET=1` (or `--archive`),
-  bucket `COLLECTOR_SEC_BUCKET`.
+  cold archive is gated by `COLLECTOR_ARCHIVE_SEC_PARQUET=1` (or `--archive`),
+  bucket `COLLECTOR_SEC_PARQUET_BUCKET` (default `market-archive`). The separate
+  raw info-table XML archive uses `COLLECTOR_ARCHIVE_SEC` / `COLLECTOR_SEC_BUCKET`.
 - **Provider tuning** (optional): `YAHOO_RPM` (default 30).
 
 ## Run — terminal (`uv`)
@@ -57,7 +58,7 @@ uv run pytest                                          # transform/ranking specs
 uv run python -m collector.entrypoints.run_daily      # daily OHLC + snapshots
 uv run python -m collector.entrypoints.run_weekly     # market-cap ranking + sticky universe
 uv run python -m collector.entrypoints.run_monthly    # weekly SEC 13F (period-advance guarded)
-uv run python -m collector.entrypoints.run_backfill --since 2024 --archive   # 13F historical backfill
+uv run python -m collector.entrypoints.run_backfill --since 2013 --db-keep-quarters 12 --archive   # 13F: Parquet full 2013→, DB last 3yr
 
 # archive (cold storage on Supabase Storage)
 uv run python -m collector.entrypoints.seed_archive       # FULL inception history → Parquet
@@ -102,8 +103,11 @@ gh workflow run collector-weekly.yml                   # trigger manually
 gh workflow run collector-prune.yml                    # OHLC/13F/rankings — dry-run
 gh workflow run collector-prune.yml -f dry_run=false   # LIVE prune (USER gate)
 
-# one-shot 13F historical backfill
-gh workflow run collector-backfill.yml
+# one-shot 13F historical backfill (inputs: cik, since, db_keep_quarters, archive, dry_run)
+# NOTE: unlike the prunes, this workflow defaults to LIVE (dry_run=false) — it writes.
+gh workflow run collector-backfill.yml -f since=2013 -f db_keep_quarters=12 -f archive=true  # full 2013→ archive, DB last 3yr
+gh workflow run collector-backfill.yml -f cik=0001067983                                     # one fund only
+gh workflow run collector-backfill.yml -f dry_run=true                                       # preview (no writes)
 
 # inspect
 gh run list --workflow=collector-daily.yml --limit 10
@@ -115,7 +119,8 @@ gh variable list ; gh secret list                      # config the jobs read (n
 Secrets the jobs read: `DATABASE_URL` (session pooler),
 `POSTGRES_URL_NON_POOLING`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`,
 `SEC_USER_AGENT`. Variables: `COLLECTOR_ARCHIVE_PARQUET` (`1`=on),
-`COLLECTOR_PARQUET_BUCKET`.
+`COLLECTOR_PARQUET_BUCKET` (OHLC/rankings); `COLLECTOR_ARCHIVE_SEC_PARQUET`,
+`COLLECTOR_SEC_PARQUET_BUCKET` (13F cold archive).
 
 ## Production schedule (cron, UTC)
 
@@ -128,7 +133,7 @@ Secrets the jobs read: `DATABASE_URL` (session pooler),
 | `collector-prune` | `0 7 30 12 *` | Dec 30 | OHLC 5yr **LIVE** + 13F + rankings prune (scheduled = dry-run) |
 | `collector-keepalive` | `0 12 1,15 * *` | 1st & 15th | idle keepalive ping |
 | `supabase-keepalive` | `0 9 * * 1,4` | Mon & Thu | DB write ping (free-tier auto-pause guard) |
-| `collector-backfill` | — | manual | `run_backfill` (13F history) |
+| `collector-backfill` | — | manual (**LIVE by default**) | `run_backfill` (13F history; `-f dry_run=true` to preview) |
 | `collector-seed-archive` | — | manual | `seed_archive` (full inception) → `upload_archive` |
 | `ci` | — | push / PR | build + typecheck + lint + tests |
 
