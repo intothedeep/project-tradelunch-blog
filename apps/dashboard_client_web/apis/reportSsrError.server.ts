@@ -16,11 +16,15 @@ export async function reportSsrError(
     message: string,
     path: string
 ): Promise<void> {
+    // Capture the SSR call chain so source='ssr' rows carry a stack (they
+    // otherwise hold only message+path). Not the original throw for parse
+    // failures, but it pinpoints the failing action/render path.
+    const stack = new Error(message).stack;
     try {
         await fetch(`${API_BASE}${ERROR_LOG_ENDPOINT}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message, path, source: 'ssr' }),
+            body: JSON.stringify({ message, path, stack, source: 'ssr' }),
             cache: 'no-store',
         });
     } catch {

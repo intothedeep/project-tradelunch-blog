@@ -44,7 +44,12 @@ export default function RankingsFilter({
 }: RankingsFilterProps) {
     const router = useRouter();
 
-    const latestWeek = availableWeeks[0] ?? null;
+    // Always include the currently-shown week, even if the list is momentarily
+    // empty (tolerant `.default([])` on a stale-cache body). The picker must
+    // never render without the week it is currently displaying — otherwise the
+    // dropdown flickers between "has this week" and "empty" across cache states.
+    const weeks = availableWeeks.length > 0 ? availableWeeks : [asOf];
+    const latestWeek = weeks[0] ?? asOf;
     // Pin only a NON-latest week; latest stays live (no asOf param).
     const pinnedAsOf = asOf && asOf !== latestWeek ? asOf : null;
 
@@ -145,7 +150,7 @@ export default function RankingsFilter({
                 <DropdownMenuTrigger asChild>
                     <button
                         type="button"
-                        disabled={availableWeeks.length <= 1}
+                        disabled={weeks.length <= 1}
                         className={PICKER_TRIGGER}
                     >
                         Week of {asOf}
@@ -156,7 +161,7 @@ export default function RankingsFilter({
                     align="start"
                     className="max-h-80 overflow-y-auto"
                 >
-                    {availableWeeks.map((week) => (
+                    {weeks.map((week) => (
                         <DropdownMenuItem
                             key={week}
                             onSelect={() => goWeek(week)}
