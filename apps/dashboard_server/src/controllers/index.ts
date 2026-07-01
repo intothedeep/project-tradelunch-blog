@@ -5,6 +5,7 @@ import likes, { likesListRouter } from './likes';
 import { postCommentsRouter, commentsRouter } from './comments';
 import dashboard from './dashboard';
 import funds from './funds';
+import rankings from './rankings';
 import users from './users';
 import admin from './admin';
 import favorites from './favorites';
@@ -29,6 +30,9 @@ router.use('/api/dashboard', dashboard);
 // SEC 13F holdings viewer (GET /api/funds, GET /api/funds/:cik) — PUBLIC read,
 // store-derived; tables-absent guard returns empty (not 500) when 0017 unapplied.
 router.use('/api/funds', funds);
+// Weekly market-cap ranking viewer (GET /api/rankings) — PUBLIC read, derived
+// data; table-absent guard returns data:null (not 500) when 0012 unapplied.
+router.use('/api/rankings', rankings);
 router.use('/api/users', users);
 router.use('/api/admin', admin);
 router.use('/api/favorites', favorites);
