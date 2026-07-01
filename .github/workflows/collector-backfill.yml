@@ -5,7 +5,7 @@ name: collector-13f-backfill
 # sec_filings/sec_holdings via run_backfill. Idempotent (UPSERT + period-scoped
 # supersede), so safe to re-run. The recurring `collector-13f` weekly workflow
 # keeps the latest quarter current going forward — this is only the initial fill.
-# Defaults to DRY-RUN; uncheck `dry_run` to actually write.
+# Defaults to LIVE (writes DB + Parquet archive); set dry_run=true to preview only.
 # SEC requires a descriptive User-Agent (SEC_USER_AGENT) or it 403s.
 #
 # L17: db_keep_quarters decouples the Parquet archive window (since) from the
@@ -23,10 +23,10 @@ on:
         required: false
         default: ""
       dry_run:
-        description: "Dry run (no DB writes). Uncheck to actually backfill."
+        description: "Preview only, no writes. Default false = actually backfill + archive."
         type: boolean
         required: false
-        default: true
+        default: false
       archive:
         description: "Also write the Parquet cold archive to Storage (default off)."
         type: boolean
