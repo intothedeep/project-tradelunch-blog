@@ -145,13 +145,21 @@ def fetch_primary_doc(cik: str, accession: str, primary_document_name: str) -> b
     Used ONLY for amendment filings to read <amendmentType> via
     parse_amendment_type(). Originals (13F-HR) do not carry <amendmentType>.
 
-    Endpoint: {SEC_EDGAR_BASE}/Archives/edgar/data/{cik_int}/{accession_nodashes}/{name}
+    Endpoint: {SEC_EDGAR_BASE}/Archives/edgar/data/{cik_int}/{accession_nodashes}/primary_doc.xml
     Same session + PROVIDER_SEC13F rate limiter as all other SEC calls.
     Returns raw bytes. Raises on non-2xx status.
+
+    NOTE: submissions `primaryDocument` is the XSL-RENDERED path
+    (e.g. `xslForm13F_X02/primary_doc.xml`) — that URL returns styled HTML, not
+    parseable XML. We strip the `xslForm13F_X0N/` prefix and fetch the RAW cover
+    page at the accession root, which carries the <amendmentType> element.
+    Fetching the xsl path returns HTML -> ET.fromstring fails -> amendment_type
+    None -> the amendment wrongly supersedes the original (Berkshire NEW HOLDINGS bug).
     """
+    doc_name = primary_document_name.rsplit("/", 1)[-1]  # strip xslForm13F_X0N/ -> raw XML
     url = (
         f"{SEC_EDGAR_BASE}/Archives/edgar/data"
-        f"/{cik_int(cik)}/{accession_nodashes(accession)}/{primary_document_name}"
+        f"/{cik_int(cik)}/{accession_nodashes(accession)}/{doc_name}"
     )
     resp = request_with_backoff(
         lambda: _session.get(url, timeout=30),
