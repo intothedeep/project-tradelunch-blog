@@ -15,12 +15,24 @@ re-run job self-heals.
 | Job | What it writes | Why |
 | --- | --- | --- |
 | **Daily** (`run_daily`) | Daily OHLC bars (Yahoo/yfinance) for the watchlist → `market_history` (interval `1d`, incremental) + `market_snapshots` (latest close + 1-day change). | The dashboard's price/series data. Incremental cursor keeps each run cheap; optional Parquet archive to Storage. |
-| **Weekly** (`run_weekly`) | S&P500-class market-cap ranking, global + per-sector → `market_rankings`; sticky `tracked_symbols` (global top-20 / sector top-10); `symbol_fundamentals` cache (shares/sector). | Powers the ranking views and keeps the watchlist self-expanding. Market cap is derived from cached `shares × close` to avoid a per-symbol `.info` call. |
+| **Weekly** (`run_weekly`) | S&P500-class market-cap ranking, global + per-sector → `market_rankings`; sticky `tracked_symbols` (global top-20 / sector top-10); `symbol_fundamentals` cache (shares / sector / company **name**). | Powers the ranking views and keeps the watchlist self-expanding. Market cap is derived from cached `shares × close` to avoid a per-symbol `.info` call. The company name (`long_name`, migration 0018) rides the SAME quarterly `.info` call as sector and renders under the ticker in `/rankings`. |
 | **Weekly 13F** (`run_monthly`) | SEC EDGAR 13F institutional holdings → `sec_filings` + `sec_holdings`; supersedes earlier amendments for the same period. | Fund holdings / rank-flow views. **L19:** cron is weekly (Mon), but a period-advance guard makes it a cheap no-op except during the 4 quarterly 13F windows. |
 | **13F backfill** (`run_backfill`) | Historical 13F from `--since` (default ~2yr back) across all funds, per period. | One-shot seed of fund history. `--db-keep-quarters` decouples the long Parquet cold-archive from the short free-tier Postgres serving window. |
 | **Rankings archive** (`archive_rankings`) | `market_rankings` → `rankings/{YYYY}.parquet` on Storage. | Rankings are point-in-time and NON-reproducible (no shares-outstanding history). Wired into the weekly job so the current-year cold copy stays fresh — the precondition for the rankings prune. |
 | **OHLC/13F Parquet archive** (`seed_archive`, `upload_archive`) | Full inception history → Parquet on Supabase Storage. | Cold storage that the retention prunes verify against before any delete. |
 | **Retention prunes** | `prune_history` (OHLC 5yr), `prune_holdings` (13F 3yr), `prune_rankings` (10yr), `prune_logs` (`error_log` 7d / `batch_log` 90d). | Keep the free-tier Postgres lean. Domain prunes hard-delete ONLY after confirming the row's Parquet object exists in Storage (all-or-skip). |
+
+> **Company-name note:** `long_name` comes from Yahoo `.info` `longName`
+> (`shortName` fallback) — the SAME expensive call already made for `sector`, so
+> no extra network per symbol. `plan_refresh` forces an `.info` refetch whenever
+> `long_name IS NULL`, so ONE weekly run backfills the whole universe; at
+> `YAHOO_RPM=30` a ~1,000-symbol first backfill takes ~35 min (a one-time cost —
+> later runs only refetch stale/new symbols). Reads/writes probe the column, so
+> the run is safe before migration 0018 is applied (name stays NULL).
+> _Future optimization:_ the S&P500 constituents CSV already fetched each run
+> carries a `Security` (company-name) column — currently discarded; wiring it in
+> would name the ~500 large caps with ZERO extra calls (Yahoo `.info` would then
+> only cover the non-S&P remainder).
 
 > **Soft-delete note:** the repo rule is tombstone-not-delete. The domain prunes
 > (`prune_history`/`prune_holdings`/`prune_rankings`) and log prunes
