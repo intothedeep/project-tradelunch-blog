@@ -6,7 +6,7 @@
 
 funds:
   - { cik: "0001067983", label: "Berkshire Hathaway" }
-  - { cik: "0001086364", label: "BlackRock" }            # BLACKROCK ADVISORS LLC (active 13F filer)
+  - { cik: "0002012383", label: "BlackRock" }            # BlackRock, Inc. (BLK) — CURRENT 13F filer (since 2025-Q2). Prior entities: 0001364742 (2023Q4–2024Q2), 0001086364 ADVISORS LLC (…2016). No single CIK has continuous history (2024Q3–2025Q1 gap).
   - { cik: "0000102909", label: "Vanguard Group" }
   - { cik: "0000093751", label: "State Street" }
   - { cik: "0001350694", label: "Bridgewater Associates" }   # Bridgewater Associates, LP
