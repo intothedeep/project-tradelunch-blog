@@ -14,6 +14,10 @@ name: collector-13f-backfill
 on:
   workflow_dispatch:
     inputs:
+      cik:
+        description: "Single fund CIK (digits; zero-pad optional) — empty = all funds in funds.yaml."
+        required: false
+        default: ""
       since:
         description: "Earliest period_of_report (YYYY or YYYY-MM-DD). Empty = ~2 years back."
         required: false
@@ -72,7 +76,8 @@ jobs:
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           COLLECTOR_SEC_PARQUET_BUCKET: ${{ vars.COLLECTOR_SEC_PARQUET_BUCKET }}
         run: |
-          uv run python -m collector.entrypoints.run_backfill \
+          uv run python -u -m collector.entrypoints.run_backfill \
+            ${{ inputs.cik != '' && format('--cik {0}', inputs.cik) || '' }} \
             ${{ inputs.since != '' && format('--since {0}', inputs.since) || '' }} \
             ${{ inputs.dry_run && '--dry-run' || '' }} \
             ${{ inputs.archive && '--archive' || '' }} \
