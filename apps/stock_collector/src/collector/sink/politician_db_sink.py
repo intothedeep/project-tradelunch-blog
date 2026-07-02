@@ -46,13 +46,17 @@ INSERT INTO politician_registry
      bioguide_id, source)
 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 ON CONFLICT (filer_id) DO UPDATE SET
-    filer_name  = EXCLUDED.filer_name,
-    party       = EXCLUDED.party,
-    chamber     = EXCLUDED.chamber,
-    branch      = EXCLUDED.branch,
-    state       = EXCLUDED.state,
-    office      = EXCLUDED.office,
-    agency      = EXCLUDED.agency,
+    -- COALESCE(NULLIF(...)) so an empty/NULL value from per-filer detail rows
+    -- (filer/{id}.json trades omit filer_name/party/etc — those live on the
+    -- parent object) never clobbers a good value set by the filers.json
+    -- enrichment path. Makes the two upsert paths order-independent.
+    filer_name  = COALESCE(NULLIF(EXCLUDED.filer_name, ''), politician_registry.filer_name),
+    party       = COALESCE(EXCLUDED.party,   politician_registry.party),
+    chamber     = COALESCE(EXCLUDED.chamber, politician_registry.chamber),
+    branch      = COALESCE(EXCLUDED.branch,  politician_registry.branch),
+    state       = COALESCE(EXCLUDED.state,   politician_registry.state),
+    office      = COALESCE(EXCLUDED.office,  politician_registry.office),
+    agency      = COALESCE(EXCLUDED.agency,  politician_registry.agency),
     deleted_at  = NULL,
     updated_at  = now()
 """
