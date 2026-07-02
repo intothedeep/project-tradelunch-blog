@@ -41,6 +41,7 @@ import {
     computeAnnualizedVol,
     percentileRank,
 } from '../../helpers/priceSignals';
+import { computePoliticalScore } from '../../helpers/politicalScore';
 
 export const router = Router();
 
@@ -223,6 +224,8 @@ interface ICandidateRow {
     market_cap: string | null;     // NUMERIC → string in pg
     politician_count_90d: string | null;   // BIGINT → string; null when view absent
     politician_net_direction: string | null;
+    politician_buy_member_count: string | null;   // BIGINT → string; null when view absent
+    politician_sell_member_count: string | null;  // BIGINT → string; null when view absent
 }
 
 // --- Helper ---
@@ -314,8 +317,10 @@ router.get('/screen', async (req, res) => {
         // Politician-activity join (migration 0022) — only when view exists AND
         // the ticker join is also present (ticker is the join key).
         const politicianSelect = hasPoliticianActivity && hasTickerJoin
-            ? 'pa.traded_by_count AS politician_count_90d, pa.net_direction AS politician_net_direction'
-            : 'NULL::bigint AS politician_count_90d, NULL::text AS politician_net_direction';
+            ? `pa.traded_by_count AS politician_count_90d, pa.net_direction AS politician_net_direction,
+               pa.buy_member_count AS politician_buy_member_count, pa.sell_member_count AS politician_sell_member_count`
+            : `NULL::bigint AS politician_count_90d, NULL::text AS politician_net_direction,
+               NULL::bigint AS politician_buy_member_count, NULL::bigint AS politician_sell_member_count`;
         const politicianJoin = hasPoliticianActivity && hasTickerJoin
             ? `LEFT JOIN v_politician_activity pa ON pa.ticker = sm.ticker`
             : '';
@@ -364,6 +369,20 @@ SELECT c.cusip,
                     : null;
             const politicianNetDirection =
                 r.politician_net_direction ?? null;
+            // Political-interest score (separate lens from the 13F score — never blended).
+            // null when migration 0022 absent or tradedByCount is 0.
+            const politicalInterestScore = computePoliticalScore({
+                tradedByCount:
+                    r.politician_count_90d !== null ? Number(r.politician_count_90d) : null,
+                buyMembers:
+                    r.politician_buy_member_count !== null
+                        ? Number(r.politician_buy_member_count)
+                        : null,
+                sellMembers:
+                    r.politician_sell_member_count !== null
+                        ? Number(r.politician_sell_member_count)
+                        : null,
+            });
 
             return {
                 cusip: r.cusip,
@@ -380,6 +399,8 @@ SELECT c.cusip,
                 // Politician-activity (null when migration 0022 not yet applied).
                 politicianCount90d,
                 politicianNetDirection,
+                // Political-interest score (null when no politician data — separate lens, never blended with 13F score).
+                politicalInterestScore,
             };
         });
 

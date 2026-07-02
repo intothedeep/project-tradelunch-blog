@@ -40,6 +40,11 @@ export interface ScreenerCandidate {
     // Top filers (absent when migration 0023 not yet applied).
     // Empty array when view exists but no politicians traded this ticker.
     politicianTopFilers?: Array<{ filerId: string; filerName: string }>;
+    // Political-interest score [0,1] (absent when migration 0022 not yet applied).
+    // Measures breadth + directional consensus of DISCLOSED politician transactions (90d).
+    // Separate transparency lens — NEVER blended with the 13F score field above.
+    // null when no politician data for this ticker.
+    politicalInterestScore?: number | null;
 }
 
 export interface ScreenerData {

@@ -50,6 +50,11 @@ function hasPoliticianColumn(candidates: ScreenerCandidate[]): boolean {
     return candidates.some((c) => c.politicianCount90d !== undefined);
 }
 
+// Whether any candidate carries politicalInterestScore data (migration 0022).
+function hasPoliticalInterestCol(candidates: ScreenerCandidate[]): boolean {
+    return candidates.some((c) => c.politicalInterestScore !== undefined);
+}
+
 // Whether any candidate has top-filers data (migration 0023).
 function hasTopFilersData(candidates: ScreenerCandidate[]): boolean {
     return candidates.some(
@@ -61,11 +66,14 @@ function hasTopFilersData(candidates: ScreenerCandidate[]): boolean {
 
 export function ScreenerTable({ candidates }: Props) {
     const showPoliticianCol = hasPoliticianColumn(candidates);
+    const showPoliticalInterestCol = hasPoliticalInterestCol(candidates);
     const showTopFilersSection = hasTopFilersData(candidates);
     // Base columns: Security, Ticker, Active/Total, Cap Rank, Consensus,
     //               Cap Tier, Momentum, Low-Vol, Score = 9
-    // + 1 when politician column present
-    const colCount = 9 + (showPoliticianCol ? 1 : 0);
+    // + 1 when politician "Traded by" column present
+    // + 1 when political-interest score column present
+    const colCount =
+        9 + (showPoliticianCol ? 1 : 0) + (showPoliticalInterestCol ? 1 : 0);
 
     return (
         <div className="space-y-2">
@@ -103,6 +111,14 @@ export function ScreenerTable({ candidates }: Props) {
                             {showPoliticianCol && (
                                 <th className="px-4 py-3 text-right font-medium">
                                     Traded by&nbsp;(90d)
+                                </th>
+                            )}
+                            {showPoliticalInterestCol && (
+                                <th
+                                    className="px-4 py-3 text-right font-medium"
+                                    title="Breadth + directional consensus of DISCLOSED politician transactions (last 90 days). Transparency lens only — NOT a buy/sell signal or portfolio holdings indicator."
+                                >
+                                    Political&nbsp;Interest
                                 </th>
                             )}
                         </tr>
@@ -173,6 +189,35 @@ export function ScreenerTable({ candidates }: Props) {
                                                         {netDirectionChip(
                                                             c.politicianNetDirection
                                                         )}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-muted-foreground">
+                                                        —
+                                                    </span>
+                                                )}
+                                            </td>
+                                        )}
+                                        {showPoliticalInterestCol && (
+                                            <td className="px-4 py-3 text-right tabular-nums">
+                                                {c.politicalInterestScore !=
+                                                null ? (
+                                                    <span className="inline-flex flex-col items-end gap-0.5">
+                                                        <span>
+                                                            {(
+                                                                c.politicalInterestScore *
+                                                                100
+                                                            ).toFixed(0)}
+                                                            %
+                                                        </span>
+                                                        <span
+                                                            className="h-1 rounded-full bg-primary/40"
+                                                            style={{
+                                                                width: `${Math.round(
+                                                                    c.politicalInterestScore *
+                                                                        48
+                                                                )}px`,
+                                                            }}
+                                                        />
                                                     </span>
                                                 ) : (
                                                     <span className="text-muted-foreground">

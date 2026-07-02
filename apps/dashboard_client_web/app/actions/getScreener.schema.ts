@@ -37,6 +37,9 @@ const screenerCandidateSchema = z.object({
     politicianTopFilers: z
         .array(z.object({ filerId: z.string(), filerName: z.string() }))
         .optional(),
+    // Optional: absent when migration 0022 not yet applied (lenient-parse contract).
+    // Separate transparency lens — never blended with the 13F score field.
+    politicalInterestScore: z.number().nullable().optional(),
 });
 
 export const screenerDataSchema = z.object({
