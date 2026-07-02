@@ -8,17 +8,26 @@
 //   - LEFT JOIN security_map: ticker is NULL when CUSIP not yet resolved (0019 not seeded).
 //   - LEFT JOIN LATERAL: most-recent global market_rankings row by ticker.
 //   - Score computed in Node via computeScore() — deterministic, testable without DB.
+//   - momentum (0.3) + lowVol (0.1): computed from market_history '1d' closes joined
+//     by resolved ticker, cross-sectionally percentile-normalised across the candidate
+//     set (helpers/priceSignals.ts). Candidates outside the tracked universe (no bars,
+//     or < ~1yr history) keep null terms — the partial-score contract in screenScore.ts.
 //   - Sort: score DESC, then holderCountActive DESC; slice to limit.
 // DEFERRED:
-//   - momentum (0.3) + lowVol (0.1) score terms require price-history join → always null.
 //   - filing_date lookahead: v_sec_consensus is period-based. A production signal
 //     must gate on sec_filings.filing_date so the screener only runs after all funds
-//     have filed for the period. Not yet implemented.
+//     have filed for the period. Not yet implemented. (Live price momentum "as of now"
+//     is current market data, not lookahead — the gap is the 13F period vs filing_date.)
 // Constraints: raw SQL only, parameterized, no ORM, no side effects beyond pool reads.
 
 import { pool } from '../../database';
 import { Router } from 'express';
 import { computeScore } from '../../helpers/screenScore';
+import {
+    computeRawMomentum,
+    computeAnnualizedVol,
+    percentileRank,
+} from '../../helpers/priceSignals';
 
 export const router = Router();
 
@@ -38,22 +47,79 @@ interface IRawPresence {
     has_consensus: boolean;
     has_secmap: boolean;
     has_rankings: boolean;
+    has_market_history: boolean;
 }
 
 async function probePresence(): Promise<{
     hasConsensus: boolean;
     hasSecmap: boolean;
     hasRankings: boolean;
+    hasMarketHistory: boolean;
 }> {
     const { rows } = await pool.query<IRawPresence>(
         `SELECT to_regclass('public.v_sec_consensus') IS NOT NULL AS has_consensus,
                 to_regclass('public.security_map')     IS NOT NULL AS has_secmap,
-                to_regclass('public.market_rankings')  IS NOT NULL AS has_rankings`
+                to_regclass('public.market_rankings')  IS NOT NULL AS has_rankings,
+                to_regclass('public.market_history')   IS NOT NULL AS has_market_history`
     );
     return {
         hasConsensus: rows[0]?.has_consensus ?? false,
         hasSecmap: rows[0]?.has_secmap ?? false,
         hasRankings: rows[0]?.has_rankings ?? false,
+        hasMarketHistory: rows[0]?.has_market_history ?? false,
+    };
+}
+
+// --- Price-signal helper (momentum + lowVol) ---
+
+interface IPriceRow {
+    label: string;
+    close: string;
+}
+
+/**
+ * Fetch tracked '1d' closes for the given tickers and compute cross-sectionally
+ * normalised momentum + lowVol for each ticker (candidate order preserved).
+ * Returns null-filled arrays when market_history is absent or no tickers resolve.
+ */
+async function computePriceSignals(
+    tickers: (string | null)[],
+    hasMarketHistory: boolean
+): Promise<{ momentum: (number | null)[]; lowVol: (number | null)[] }> {
+    const nulls = tickers.map(() => null);
+    const resolved = tickers.filter((t): t is string => t !== null);
+    if (!hasMarketHistory || resolved.length === 0) {
+        return { momentum: nulls, lowVol: nulls };
+    }
+
+    // One query for all candidate tickers; group ascending closes per label.
+    const { rows } = await pool.query<IPriceRow>(
+        `SELECT label, close
+           FROM market_history
+          WHERE label = ANY($1) AND interval = '1d'
+          ORDER BY label, bar_time ASC`,
+        [resolved]
+    );
+    const closesByTicker = new Map<string, number[]>();
+    for (const r of rows) {
+        const arr = closesByTicker.get(r.label) ?? [];
+        arr.push(Number(r.close));
+        closesByTicker.set(r.label, arr);
+    }
+
+    const rawMomentum = tickers.map((t) =>
+        t ? computeRawMomentum(closesByTicker.get(t) ?? []) : null
+    );
+    // Negate vol so LOWER volatility percentile-ranks HIGHER.
+    const rawInvVol = tickers.map((t) => {
+        if (!t) return null;
+        const vol = computeAnnualizedVol(closesByTicker.get(t) ?? []);
+        return vol === null ? null : -vol;
+    });
+
+    return {
+        momentum: percentileRank(rawMomentum),
+        lowVol: percentileRank(rawInvVol),
     };
 }
 
@@ -101,7 +167,8 @@ router.get('/screen', async (req, res) => {
         const maxRank          = clampParam(req.query.maxRank,          0, 0, 1000);
         const limit            = clampParam(req.query.limit,           50, 1, 200);
 
-        const { hasConsensus, hasSecmap, hasRankings } = await probePresence();
+        const { hasConsensus, hasSecmap, hasRankings, hasMarketHistory } =
+            await probePresence();
         if (!hasConsensus) {
             return res.json({ success: true, data: null });
         }
@@ -168,13 +235,21 @@ SELECT c.cusip,
 `;
         const { rows } = await pool.query<ICandidateRow>(sql, params);
 
+        // Price signals — normalised across the candidate set (candidate order).
+        const { momentum, lowVol } = await computePriceSignals(
+            rows.map((r) => r.ticker),
+            hasMarketHistory
+        );
+
         // Score in Node (deterministic, no SQL), sort, then slice to limit.
-        const scored = rows.map((r) => {
+        const scored = rows.map((r, i) => {
             const rank = r.rank === null ? null : Number(r.rank);
             const { score, components } = computeScore({
                 holderCountActive: Number(r.holder_count_active),
                 totalActiveFunds,
                 rank,
+                momentum: momentum[i],
+                lowVol: lowVol[i],
             });
             return {
                 cusip: r.cusip,

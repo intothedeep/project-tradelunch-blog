@@ -75,7 +75,7 @@ describe('computeScore — score sum', () => {
         expect(score).toBeCloseTo(0.6);
     });
 
-    it('max score is 0.6 with current deferred weights', () => {
+    it('partial max is 0.6 when momentum/lowVol are absent (null)', () => {
         const { score } = computeScore({ holderCountActive: 3, totalActiveFunds: 3, rank: 1 });
         expect(score).toBeCloseTo(0.6);
     });
@@ -92,14 +92,42 @@ describe('computeScore — score sum', () => {
     });
 });
 
-describe('computeScore — deferred terms', () => {
-    it('momentum is always null', () => {
+describe('computeScore — price terms (momentum + lowVol)', () => {
+    it('defaults momentum/lowVol to null when omitted (partial-score contract)', () => {
         const { components } = computeScore({ holderCountActive: 3, totalActiveFunds: 3, rank: 1 });
         expect(components.momentum).toBeNull();
+        expect(components.lowVol).toBeNull();
     });
 
-    it('lowVol is always null', () => {
-        const { components } = computeScore({ holderCountActive: 3, totalActiveFunds: 3, rank: 1 });
-        expect(components.lowVol).toBeNull();
+    it('adds 0.3*momentum when a normalised momentum is supplied', () => {
+        // consensus=1, capTier=1 (0.6) + 0.3*1 = 0.9
+        const { score, components } = computeScore({
+            holderCountActive: 3, totalActiveFunds: 3, rank: 1, momentum: 1,
+        });
+        expect(components.momentum).toBe(1);
+        expect(score).toBeCloseTo(0.9);
+    });
+
+    it('adds 0.1*lowVol when a normalised lowVol is supplied', () => {
+        // 0.6 + 0.1*1 = 0.7
+        const { score } = computeScore({
+            holderCountActive: 3, totalActiveFunds: 3, rank: 1, lowVol: 1,
+        });
+        expect(score).toBeCloseTo(0.7);
+    });
+
+    it('reaches full max 1.0 with all four terms at 1', () => {
+        const { score } = computeScore({
+            holderCountActive: 3, totalActiveFunds: 3, rank: 1, momentum: 1, lowVol: 1,
+        });
+        expect(score).toBeCloseTo(1.0);
+    });
+
+    it('weights fractional momentum/lowVol correctly', () => {
+        // 0.6 + 0.3*0.5 + 0.1*0.25 = 0.775
+        const { score } = computeScore({
+            holderCountActive: 3, totalActiveFunds: 3, rank: 1, momentum: 0.5, lowVol: 0.25,
+        });
+        expect(score).toBeCloseTo(0.6 + 0.3 * 0.5 + 0.1 * 0.25);
     });
 });

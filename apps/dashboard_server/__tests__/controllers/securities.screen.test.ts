@@ -220,6 +220,48 @@ describe('GET /screen — happy path', () => {
             'public, s-maxage=86400, stale-while-revalidate=604800'
         );
     });
+
+    it('populates momentum/lowVol when market_history is present', async () => {
+        // 1. probePresence — market_history present
+        mockQuery.mockResolvedValueOnce({
+            rows: [{
+                has_consensus: true, has_secmap: true,
+                has_rankings: true, has_market_history: true,
+            }],
+        });
+        // 2. active fund count
+        mockQuery.mockResolvedValueOnce({ rows: [{ total_active: '3' }] });
+        // 3. latest period
+        mockQuery.mockResolvedValueOnce({ rows: [{ period }] });
+        // 4. candidates — two resolved tickers so percentileRank has a cross-section
+        mockQuery.mockResolvedValueOnce({
+            rows: [
+                { cusip: 'C1', name_of_issuer: 'Hi Mom', holder_count_active: '3',
+                  holder_count_total: '3', ticker: 'HIMO', rank: 1, market_cap: null },
+                { cusip: 'C2', name_of_issuer: 'Lo Mom', holder_count_active: '3',
+                  holder_count_total: '3', ticker: 'LOMO', rank: 1, market_cap: null },
+            ],
+        });
+        // 5. price history — HIMO strong uptrend, LOMO flat (>=253 bars each)
+        const priceRows: Array<{ label: string; close: string }> = [];
+        for (let i = 0; i < 260; i++) priceRows.push({ label: 'HIMO', close: String(100 + i) });
+        for (let i = 0; i < 260; i++) priceRows.push({ label: 'LOMO', close: '100' });
+        mockQuery.mockResolvedValueOnce({ rows: priceRows });
+
+        const result = await invoke();
+        expect(mockQuery).toHaveBeenCalledTimes(5);
+        const body = result.payload as { success: boolean; data: Record<string, unknown> };
+        const candidates = body.data.candidates as Array<Record<string, unknown>>;
+        const byCusip = Object.fromEntries(candidates.map((c) => [c.cusip, c]));
+        const hi = byCusip.C1.components as Record<string, unknown>;
+        const lo = byCusip.C2.components as Record<string, unknown>;
+        // HIMO has higher momentum (uptrend) → percentile 1; LOMO → 0.
+        expect(hi.momentum).toBe(1);
+        expect(lo.momentum).toBe(0);
+        // Flat LOMO has lower vol → higher lowVol percentile (1) than HIMO (0).
+        expect(lo.lowVol).toBe(1);
+        expect(hi.lowVol).toBe(0);
+    });
 });
 
 // --- Clamp behaviour ---
