@@ -34,6 +34,13 @@ export const securityConsensusSchema = z.object({
 export type SecurityConsensusSchema = z.infer<typeof securityConsensusSchema>;
 
 // Bidirectional structural-equality guard (compile-time only).
-type AssertEqual<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
-const _consensusAligns: AssertEqual<SecurityConsensusSchema, SecurityConsensus> = true;
+type AssertEqual<A, B> = [A] extends [B]
+    ? [B] extends [A]
+        ? true
+        : never
+    : never;
+const _consensusAligns: AssertEqual<
+    SecurityConsensusSchema,
+    SecurityConsensus
+> = true;
 void _consensusAligns;

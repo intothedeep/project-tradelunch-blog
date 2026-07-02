@@ -38,7 +38,10 @@ export async function getSecurityConsensus(
         });
         if (!res.ok) {
             await reportSsrError(`consensus HTTP ${res.status}`, path);
-            return { ok: false, error: { kind: 'network', message: `HTTP ${res.status}` } };
+            return {
+                ok: false,
+                error: { kind: 'network', message: `HTTP ${res.status}` },
+            };
         }
         const body: unknown = await res.json();
         payload = (body as { data?: unknown }).data;
@@ -56,7 +59,10 @@ export async function getSecurityConsensus(
     const parsed = securityConsensusSchema.safeParse(payload);
     if (!parsed.success) {
         await reportSsrError(`consensus parse: ${parsed.error.message}`, path);
-        return { ok: false, error: { kind: 'parse', message: parsed.error.message } };
+        return {
+            ok: false,
+            error: { kind: 'parse', message: parsed.error.message },
+        };
     }
 
     return { ok: true, data: parsed.data };
