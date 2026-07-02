@@ -85,7 +85,7 @@ export function HoldingCell({
                 // dark themes (theme primary was near-black in light and read
                 // as unclear; tile-derived color was ~always white).
                 isActive &&
-                    'ring-2 ring-[#ff7f50] ring-offset-2 ring-offset-background'
+                    'ring-4 ring-[#ff7f50] ring-offset-2 ring-offset-background'
             )}
             style={{ backgroundColor: bg, color: textColor }}
             title={`${label} (${cusip})`}
