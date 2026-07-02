@@ -476,3 +476,48 @@ CREATE TABLE IF NOT EXISTS symbol_fundamentals (
     deleted_at          TIMESTAMPTZ NULL,
     CONSTRAINT symbol_fundamentals_pkey PRIMARY KEY (symbol)
 );
+
+-- =============================================================================
+-- Phase P (STEP 0-b): CUSIP -> ticker -> sector join key.
+-- Mirrors migration 0019_security_map.sql.
+-- NOTE: the companion view v_sec_holdings_enriched (0019) plus the
+-- sec_filings/sec_holdings tables (0017) live in migrations only — this SSOT
+-- dump has a pre-existing gap for the SEC 13F tables (0014/0015/0017 drift),
+-- tracked as a separate ENG cleanup. security_map is self-contained and mirrored.
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS security_map (
+    cusip           TEXT NOT NULL,
+    ticker          TEXT NULL,
+    name            TEXT NULL,
+    sector          TEXT NULL,
+    source          TEXT NOT NULL DEFAULT 'openfigi',
+    confidence      TEXT NOT NULL DEFAULT 'exact',
+    resolved_at     TIMESTAMPTZ NULL,
+    attempt_count   INT NOT NULL DEFAULT 0,
+    last_attempt_at TIMESTAMPTZ NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at      TIMESTAMPTZ NULL,
+    CONSTRAINT security_map_pkey PRIMARY KEY (cusip)
+);
+
+CREATE INDEX IF NOT EXISTS idx_security_map_ticker
+    ON security_map(ticker) WHERE deleted_at IS NULL AND ticker IS NOT NULL;
+
+-- =============================================================================
+-- Phase P (STEP 1): 13F signal analytics. fund_registry classifies filers as
+-- active stock-pickers vs passive index funds (consensus uses active only).
+-- Mirrors migration 0020_sec_analytics.sql (table only). The analytics VIEWS
+-- (v_sec_positions / v_sec_fund_periods / v_sec_position_delta / v_sec_exits /
+-- v_sec_consensus) live in the migration — they depend on sec_holdings/sec_filings,
+-- which this SSOT dump omits (0014/0015/0017 drift, tracked separately).
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS fund_registry (
+    cik               TEXT NOT NULL,
+    label             TEXT NOT NULL,
+    is_active_manager BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at        TIMESTAMPTZ NULL,
+    CONSTRAINT fund_registry_pkey PRIMARY KEY (cik)
+);

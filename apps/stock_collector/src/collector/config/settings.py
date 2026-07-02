@@ -38,6 +38,16 @@ def sec_user_agent() -> str:
     return os.getenv("SEC_USER_AGENT", "tradelunch-collector admin@prettylog.com")
 
 
+def openfigi_api_key() -> str | None:
+    """OpenFIGI API key for CUSIP->ticker mapping (Phase P). None when unset.
+
+    Keyless requests work but are throttled (~25 req/min); a free key raises the
+    limit (~250 req/min, 100 jobs/batch) and is sent as the ``X-OPENFIGI-APIKEY``
+    header. run_security_map runs keyless-tolerant, so absence is graceful.
+    """
+    return os.getenv("OPENFIGI_API_KEY") or None
+
+
 def database_url() -> str | None:
     """Supabase SESSION-pooler DSN (read at call time). None when unset.
 

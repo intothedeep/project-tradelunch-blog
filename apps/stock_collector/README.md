@@ -18,6 +18,7 @@ re-run job self-heals.
 | **Weekly** (`run_weekly`) | S&P500-class market-cap ranking, global + per-sector → `market_rankings`; sticky `tracked_symbols` (global top-20 / sector top-10); `symbol_fundamentals` cache (shares / sector / company **name**). | Powers the ranking views and keeps the watchlist self-expanding. Market cap is derived from cached `shares × close` to avoid a per-symbol `.info` call. The company name (`long_name`, migration 0018) rides the SAME quarterly `.info` call as sector and renders under the ticker in `/rankings`. |
 | **Weekly 13F** (`run_monthly`) | SEC EDGAR 13F institutional holdings → `sec_filings` + `sec_holdings`; supersedes earlier amendments for the same period. | Fund holdings / rank-flow views. **L19:** cron is weekly (Mon), but a period-advance guard makes it a cheap no-op except during the 4 quarterly 13F windows. |
 | **13F backfill** (`run_backfill`) | Historical 13F from `--since` (default ~2yr back) across all funds, per period. | One-shot seed of fund history. `--db-keep-quarters` decouples the long Parquet cold-archive from the short free-tier Postgres serving window. |
+| **Security map** (`run_security_map`) | CUSIP → ticker → sector for the ever-top-N 13F holdings (OpenFIGI `/v3/mapping` + `symbol_fundamentals`) → `security_map`. | Phase P join key: 13F is CUSIP-only, prices/rankings are ticker-only. Reads go through the `v_sec_holdings_enriched` view (no `sec_holdings.ticker` backfill). Weekly, 1h after the 13F job. OpenFIGI is keyless-tolerant (`OPENFIGI_API_KEY` raises the limit). |
 | **Rankings archive** (`archive_rankings`) | `market_rankings` → `rankings/{YYYY}.parquet` on Storage. | Rankings are point-in-time and NON-reproducible (no shares-outstanding history). Wired into the weekly job so the current-year cold copy stays fresh — the precondition for the rankings prune. |
 | **OHLC/13F Parquet archive** (`seed_archive`, `upload_archive`) | Full inception history → Parquet on Supabase Storage. | Cold storage that the retention prunes verify against before any delete. |
 | **Retention prunes** | `prune_history` (OHLC 5yr), `prune_holdings` (13F 3yr), `prune_rankings` (10yr), `prune_logs` (`error_log` 7d / `batch_log` 90d). | Keep the free-tier Postgres lean. Domain prunes hard-delete ONLY after confirming the row's Parquet object exists in Storage (all-or-skip). |
@@ -71,6 +72,7 @@ uv run python -m collector.entrypoints.run_daily      # daily OHLC + snapshots
 uv run python -m collector.entrypoints.run_weekly     # market-cap ranking + sticky universe
 uv run python -m collector.entrypoints.run_monthly    # weekly SEC 13F (period-advance guarded)
 uv run python -m collector.entrypoints.run_backfill --since 2013 --db-keep-quarters 12 --archive   # 13F: Parquet full 2013→, DB last 3yr
+uv run python -m collector.entrypoints.run_security_map --dry-run   # CUSIP→ticker: preview candidate count (no OpenFIGI/writes)
 
 # archive (cold storage on Supabase Storage)
 uv run python -m collector.entrypoints.seed_archive       # FULL inception history → Parquet
@@ -121,6 +123,9 @@ gh workflow run collector-backfill.yml -f since=2013 -f db_keep_quarters=12 -f a
 gh workflow run collector-backfill.yml -f cik=0001067983                                     # one fund only
 gh workflow run collector-backfill.yml -f dry_run=true                                       # preview (no writes)
 
+gh workflow run collector-security-map.yml                    # CUSIP→ticker resolve (LIVE)
+gh workflow run collector-security-map.yml -f dry_run=true    # preview candidate count
+
 # inspect
 gh run list --workflow=collector-daily.yml --limit 10
 gh run watch <run-id>
@@ -141,6 +146,7 @@ Secrets the jobs read: `DATABASE_URL` (session pooler),
 | `collector-daily` | `30 21 * * 1-5` | Mon–Fri (after US close) | `run_daily` → `upload_archive` |
 | `collector-weekly` | `0 6 * * 0` | Sun | `run_weekly` → `archive_rankings` |
 | `collector-monthly` (`collector-13f`) | `0 7 * * 1` | Mon (weekly, L19) | `run_monthly` |
+| `collector-security-map` | `0 8 * * 1` | Mon (1h after 13F) | `run_security_map` (CUSIP→ticker) |
 | `collector-prune-logs` | `0 3 * * *` | Daily | `prune_logs` — **LIVE** (no archive gate) |
 | `collector-prune` | `0 7 30 12 *` | Dec 30 | OHLC 5yr **LIVE** + 13F + rankings prune (scheduled = dry-run) |
 | `collector-keepalive` | `0 12 1,15 * *` | 1st & 15th | idle keepalive ping |

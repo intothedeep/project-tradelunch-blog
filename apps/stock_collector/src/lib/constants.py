@@ -50,6 +50,11 @@ HOLDINGS_PROVIDERS = (PROVIDER_SEC13F,)
 SEC_EDGAR_BASE = "https://www.sec.gov"
 SEC_DATA_BASE = "https://data.sec.gov"
 
+# OpenFIGI CUSIP -> ticker mapping (Phase P). NOT an OHLCV price provider; used
+# only by run_security_map to resolve 13F CUSIPs. Free /v3/mapping endpoint.
+PROVIDER_OPENFIGI = "openfigi"
+OPENFIGI_MAPPING_URL = "https://api.openfigi.com/v3/mapping"
+
 
 def sec_user_agent() -> str:
     """SEC EDGAR User-Agent (read at call time from SEC_USER_AGENT).

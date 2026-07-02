@@ -14,6 +14,7 @@ import requests
 from lib.constants import (
     PROVIDER_ALPACA,
     PROVIDER_MASSIVE,
+    PROVIDER_OPENFIGI,
     PROVIDER_SEC13F,
     PROVIDER_YAHOO,
 )
@@ -26,6 +27,10 @@ PROVIDER_RPM: Dict[str, int] = {
     PROVIDER_ALPACA: 200,
     PROVIDER_YAHOO: 30,  # conservative; yfinance is unofficial and rate-blocks
     PROVIDER_SEC13F: 300,  # SEC cap ~10 req/s (600 rpm); 300 = 5 req/s, conservative
+    # OpenFIGI /v3/mapping: keyless ~25 req/min, keyed ~250 req/min (batched, up
+    # to 100 jobs/req keyed). 20 = conservative keyless floor; RE-VERIFY current
+    # limits against OpenFIGI docs before raising for a keyed deploy.
+    PROVIDER_OPENFIGI: 20,
 }
 
 
