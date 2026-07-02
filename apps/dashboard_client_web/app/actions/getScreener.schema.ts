@@ -11,8 +11,8 @@ import type { ScreenerData } from '@/types/screener';
 const scoreComponentsSchema = z.object({
     consensus: z.number(),
     capTier: z.number(),
-    momentum: z.null(),
-    lowVol: z.null(),
+    momentum: z.number().nullable(),
+    lowVol: z.number().nullable(),
 });
 
 const screenerCandidateSchema = z.object({

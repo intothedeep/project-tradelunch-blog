@@ -6,8 +6,10 @@
 //   security_map is seeded by the collector.
 // Invariant: Server Component only (no client state / hooks needed).
 //   force-dynamic because searchParams drive the screener filters.
-// DEFERRED: momentum + lowVol terms (score max = 0.6 until price-history
-//   joins are available). Score components are displayed explicitly as null.
+// Score = 0.4*consensus + 0.3*momentum + 0.2*capTier + 0.1*lowVol. momentum/
+//   lowVol are [0,1] price signals normalised across the candidate set; they
+//   render as "—" for securities outside the tracked price universe (partial
+//   score, max 0.6) and are omitted from that row's sum.
 
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -87,9 +89,11 @@ export default async function ScreenerPage({
                     tracked: {totalActiveFunds}
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                    Score = 0.4 &times; consensus + 0.2 &times; cap tier
-                    (max&nbsp;0.6). Momentum &amp; low-vol terms deferred until
-                    security_map is seeded.
+                    Score = 0.4 &times; consensus + 0.3 &times; momentum + 0.2
+                    &times; cap tier + 0.1 &times; low-vol. Momentum &amp;
+                    low-vol are normalised across candidates;
+                    &ldquo;&mdash;&rdquo; means the security is outside the
+                    tracked price universe (partial score).
                 </p>
             </header>
 
@@ -128,6 +132,12 @@ export default async function ScreenerPage({
                                 </th>
                                 <th className="px-4 py-3 text-right font-medium">
                                     Cap Tier
+                                </th>
+                                <th className="px-4 py-3 text-right font-medium">
+                                    Momentum
+                                </th>
+                                <th className="px-4 py-3 text-right font-medium">
+                                    Low&#8209;Vol
                                 </th>
                                 <th className="px-4 py-3 text-right font-medium">
                                     Score
@@ -183,6 +193,16 @@ export default async function ScreenerPage({
                                               : c.rank === null
                                                 ? 'No data'
                                                 : 'Other'}
+                                    </td>
+                                    <td className="px-4 py-3 text-right tabular-nums">
+                                        {c.components.momentum !== null
+                                            ? `${(c.components.momentum * 100).toFixed(0)}%`
+                                            : '—'}
+                                    </td>
+                                    <td className="px-4 py-3 text-right tabular-nums">
+                                        {c.components.lowVol !== null
+                                            ? `${(c.components.lowVol * 100).toFixed(0)}%`
+                                            : '—'}
                                     </td>
                                     <td className="px-4 py-3 text-right tabular-nums font-semibold">
                                         {c.score.toFixed(3)}
