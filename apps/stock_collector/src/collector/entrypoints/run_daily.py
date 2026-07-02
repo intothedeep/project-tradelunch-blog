@@ -69,7 +69,12 @@ def _ingest(
             if full
             else fetch_daily(e.symbol, _from_date(e, latest, backfill_days))
         )
-        rows = to_history_rows(e.label, candles, interval=DEFAULT_INTERVAL)
+        rows = to_history_rows(
+            e.label,
+            candles,
+            interval=DEFAULT_INTERVAL,
+            allow_weekends=(e.category == "crypto"),
+        )
         if not rows:
             skipped += 1
             continue
@@ -98,7 +103,9 @@ def _dry_run(universe, limit) -> int:
     ok = 0
     for e in universe[:n]:
         candles = fetch_daily(e.symbol, date.today() - timedelta(days=10))
-        rows = to_history_rows(e.label, candles)
+        rows = to_history_rows(
+            e.label, candles, allow_weekends=(e.category == "crypto")
+        )
         status = f"{len(rows)} bars" if rows else "SKIP (no Yahoo data)"
         print(f"  {e.category:8} {e.label:20} {e.symbol:12} -> {status}")
         ok += 1 if rows else 0

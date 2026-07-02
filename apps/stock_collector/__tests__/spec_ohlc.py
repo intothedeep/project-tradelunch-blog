@@ -56,3 +56,31 @@ def test_nan_close_bar_is_dropped():
 def test_nan_in_any_ohlc_field_is_dropped():
     candles = [_candle("2026-01-01", float("nan"), 2, 0.5, 1.5, 50)]
     assert to_history_rows("X", candles) == []
+
+
+def test_weekend_bars_dropped_by_default():
+    # Yahoo returns spurious Sat/Sun bars for markets closed on weekends
+    # (equities/indices/FX). 2026-01-02=Fri, 01-03=Sat, 01-04=Sun, 01-05=Mon.
+    candles = [
+        _candle("2026-01-02", 1, 2, 0.5, 1.5, 50),
+        _candle("2026-01-03", 9, 9, 9, 9.0, 10),  # Saturday — artifact
+        _candle("2026-01-04", 8, 8, 8, 8.0, 10),  # Sunday — artifact
+        _candle("2026-01-05", 2, 3, 1, 2.5, 60),
+    ]
+    rows = to_history_rows("TQQQ", candles)
+    assert [r.bar_time for r in rows] == [date(2026, 1, 2), date(2026, 1, 5)]
+
+
+def test_weekend_bars_kept_for_crypto():
+    # Crypto trades 24/7 — weekend bars are real observations, keep them.
+    candles = [
+        _candle("2026-01-02", 1, 2, 0.5, 1.5, 50),
+        _candle("2026-01-03", 9, 9, 9, 9.0, 10),  # Saturday — valid for crypto
+        _candle("2026-01-04", 8, 8, 8, 8.0, 10),  # Sunday — valid for crypto
+    ]
+    rows = to_history_rows("BTC/USD", candles, allow_weekends=True)
+    assert [r.bar_time for r in rows] == [
+        date(2026, 1, 2),
+        date(2026, 1, 3),
+        date(2026, 1, 4),
+    ]
