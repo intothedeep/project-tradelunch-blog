@@ -566,3 +566,41 @@ def delete_rankings_before(conn: psycopg.Connection, cutoff: date) -> int:
     with conn.cursor() as cur:
         cur.execute("DELETE FROM market_rankings WHERE as_of < %s", (cutoff,))
         return cur.rowcount
+
+
+# --- Phase Q: politician ticker promotion -----------------------------------
+
+_POLITICIAN_TICKER_SQL = """
+SELECT
+    ticker,
+    COUNT(DISTINCT filer_id)::int AS distinct_filers,
+    COUNT(*)::int                 AS trade_count
+FROM politician_trades
+WHERE ticker IS NOT NULL
+  AND asset_type = 'equity'
+  AND deleted_at IS NULL
+GROUP BY ticker
+ORDER BY COUNT(DISTINCT filer_id) DESC, COUNT(*) DESC, ticker ASC
+"""
+
+
+def read_top_politician_tickers(
+    conn: psycopg.Connection, limit: int = 0
+) -> list[tuple[str, int, int]]:
+    """Return (ticker, distinct_filers, trade_count) rows from politician_trades.
+
+    Groups by ticker, filtering to non-null equity trades with no soft-delete.
+    Ordered by distinct-politician breadth DESC, total trades DESC, ticker ASC.
+
+    Args:
+        conn:  psycopg3 connection.
+        limit: SQL LIMIT cap (0 = no limit — fetch all distinct tickers).
+    """
+    sql = _POLITICIAN_TICKER_SQL
+    params: tuple = ()
+    if limit > 0:
+        sql = sql.rstrip() + " LIMIT %s"
+        params = (limit,)
+    with conn.cursor() as cur:
+        cur.execute(sql, params)
+        return [(ticker, int(df), int(tc)) for ticker, df, tc in cur.fetchall()]

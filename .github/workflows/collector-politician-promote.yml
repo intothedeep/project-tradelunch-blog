@@ -1,0 +1,61 @@
+name: collector-politician-promote
+
+# Promote top-N politician-traded equity tickers into the OHLC collection
+# universe (tracked_symbols) — Phase Q8.
+# workflow_dispatch ONLY — no cron (occasional curation step, not daily).
+# Default dry_run=true so an accidental trigger never writes to prod DB.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Read DB + compute selection but write nothing; print would-add list."
+        type: boolean
+        required: false
+        default: true
+      limit:
+        description: "SQL LIMIT cap on politician_trades GROUP BY query (0 = fetch all)."
+        type: number
+        required: false
+        default: 0
+
+concurrency:
+  group: collector-politician-promote
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/stock_collector
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          enable-cache: true
+          working-directory: apps/stock_collector
+
+      - name: Sync deps
+        run: |
+          uv python install 3.12
+          uv sync
+
+      - name: Promote politician tickers
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+        run: |
+          uv run python -u -m collector.entrypoints.promote_politician_tickers \
+            ${{ inputs.dry_run && '--dry-run' || '' }} \
+            ${{ inputs.limit > 0 && format('--limit {0}', inputs.limit) || '' }}
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          curl -sS -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues" \
+            -d '{"title":"collector-politician-promote failed (run ${{ github.run_id }})","body":"The politician ticker promotion failed. See https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}","labels":["collector","ci-failure"]}'
