@@ -141,7 +141,7 @@ describe('GET /:ticker/by-ticker — happy path', () => {
                 },
             ],
         });
-        // Query B: one holder row (no delta fields — hasDelta=false from probe mock)
+        // Query B: one holder row
         mockQuery.mockResolvedValueOnce({
             rows: [
                 {
@@ -152,12 +152,11 @@ describe('GET /:ticker/by-ticker — happy path', () => {
                     period_of_report: period,
                     sector: 'Technology',
                     cusip: null,
-                    weight_pct: null,
-                    delta_weight_pct: null,
-                    is_new: false,
                 },
             ],
         });
+        // getHolderWeights: resolveCusips → no cusip mapped → returns empty early
+        mockQuery.mockResolvedValueOnce({ rows: [] });
 
         const result = await invoke({ ticker: 'AAPL' });
         const body = result.payload as { success: boolean; data: Record<string, unknown> };
@@ -193,7 +192,8 @@ describe('GET /:ticker/by-ticker — happy path', () => {
         // priceHistory absent (hasMarketHistory=false from probe mock)
         expect(body.data.priceHistory).toEqual([]);
 
-        expect(mockQuery).toHaveBeenCalledTimes(3);
+        // probe + qA + qB holders + resolveCusips(empty → no weight queries)
+        expect(mockQuery).toHaveBeenCalledTimes(4);
     });
 
     it('returns data with null sector and null periodOfReport when only rankings exist', async () => {
@@ -232,15 +232,18 @@ describe('GET /:ticker/by-ticker — happy path', () => {
     });
 });
 
-describe('GET /:ticker/by-ticker — delta weight fields', () => {
-    it('includes weightPct/deltaWeightPct/isNew when v_sec_position_delta is present', async () => {
+describe('GET /:ticker/by-ticker — weight/delta derivation', () => {
+    // Query sequence when holders exist: probe, [qA], qB holders, resolveCusips,
+    // then WEIGHT_LATEST + WEIGHT_PREV (Promise.all). weightPct = cusip_value*100/
+    // total_value; deltaWeightPct = weightLatest − weightPrev; isNew = prev held none.
+    it('derives weightPct/deltaWeightPct from sec_holdings aggregates', async () => {
         const period = new Date('2026-03-31');
 
-        // Probe: has_delta and has_rankings, has_holdings true
+        // Probe (has_holdings true; hasRankings false → no qA)
         mockQuery.mockResolvedValueOnce({
-            rows: [{ has_holdings: true, has_rankings: false, has_delta: true, has_market_history: false }],
+            rows: [{ has_holdings: true, has_rankings: false, has_market_history: false }],
         });
-        // Query B: holder rows (no delta fields — delta is a separate query now)
+        // Query B: holder row
         mockQuery.mockResolvedValueOnce({
             rows: [
                 {
@@ -254,17 +257,15 @@ describe('GET /:ticker/by-ticker — delta weight fields', () => {
                 },
             ],
         });
-        // Delta query: per (cik, cusip) weight/delta/isNew, merged in Node
+        // resolveCusips
+        mockQuery.mockResolvedValueOnce({ rows: [{ cusip: '037833100' }] });
+        // WEIGHT_LATEST: 123456/1000000*100 = 12.3456%
         mockQuery.mockResolvedValueOnce({
-            rows: [
-                {
-                    cik: '0001067983',
-                    cusip: '037833100',
-                    weight_pct: '12.3456',
-                    delta_weight_pct: '-1.2300',
-                    is_new: false,
-                },
-            ],
+            rows: [{ cik: '0001067983', total_value: '1000000', cusip_value: '123456' }],
+        });
+        // WEIGHT_PREV: 135756/1000000*100 = 13.5756% → delta = 12.3456 − 13.5756 = −1.23
+        mockQuery.mockResolvedValueOnce({
+            rows: [{ cik: '0001067983', total_value: '1000000', cusip_value: '135756' }],
         });
 
         const result = await invoke({ ticker: 'AAPL' });
@@ -276,17 +277,16 @@ describe('GET /:ticker/by-ticker — delta weight fields', () => {
         expect(holders[0].weightPct).toBeCloseTo(12.3456);
         expect(holders[0].deltaWeightPct).toBeCloseTo(-1.23);
         expect(holders[0].isNew).toBe(false);
-        // 3 calls: probe + qB holders + delta query
-        expect(mockQuery).toHaveBeenCalledTimes(3);
+        // probe + qB + resolveCusips + WEIGHT_LATEST + WEIGHT_PREV
+        expect(mockQuery).toHaveBeenCalledTimes(5);
     });
 
-    it('marks isNew=true when fund opened a new position this period', async () => {
+    it('marks isNew=true when the fund held none of the cusip in the prior period', async () => {
         const period = new Date('2026-03-31');
 
         mockQuery.mockResolvedValueOnce({
-            rows: [{ has_holdings: true, has_rankings: false, has_delta: true, has_market_history: false }],
+            rows: [{ has_holdings: true, has_rankings: false, has_market_history: false }],
         });
-        // Query B: holder row (no delta fields)
         mockQuery.mockResolvedValueOnce({
             rows: [
                 {
@@ -300,24 +300,22 @@ describe('GET /:ticker/by-ticker — delta weight fields', () => {
                 },
             ],
         });
-        // Delta query: new position (no prior weight to diff)
+        mockQuery.mockResolvedValueOnce({ rows: [{ cusip: '037833100' }] });
+        // WEIGHT_LATEST: 3.5%
         mockQuery.mockResolvedValueOnce({
-            rows: [
-                {
-                    cik: '0001350694',
-                    cusip: '037833100',
-                    weight_pct: '3.5000',
-                    delta_weight_pct: null,
-                    is_new: true,
-                },
-            ],
+            rows: [{ cik: '0001350694', total_value: '1000000', cusip_value: '35000' }],
+        });
+        // WEIGHT_PREV: filed prev but held none of the cusip → cusip_value null
+        mockQuery.mockResolvedValueOnce({
+            rows: [{ cik: '0001350694', total_value: '2000000', cusip_value: null }],
         });
 
         const result = await invoke({ ticker: 'AAPL' });
         const body = result.payload as { success: boolean; data: Record<string, unknown> };
         const holders = body.data.holders as Array<Record<string, unknown>>;
         expect(holders[0].isNew).toBe(true);
-        expect(holders[0].deltaWeightPct).toBeNull();
+        // new position: delta = weightLatest − 0 = full current weight (3.5%)
+        expect(holders[0].deltaWeightPct).toBeCloseTo(3.5);
     });
 });
 

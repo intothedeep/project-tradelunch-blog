@@ -2,7 +2,8 @@
 // Purpose: Read-only per-ticker detail (Phase P, STEP 2 / P9 — extended).
 //   Axis 1 — weekly market-cap ranking history (market_rankings, scope='global').
 //   Axis 2 — institutional 13F holders at the ticker's latest filing period
-//             (v_sec_holdings_enriched + fund_registry + v_sec_position_delta for Δweight).
+//             (v_sec_holdings_enriched + fund_registry; Δweight/isNew derived from
+//             sec_holdings aggregates, NOT v_sec_position_delta — see Query B).
 //   Axis 3 — daily price sparkline from market_history (tracked universe only).
 // Invariants:
 //   - Ticker validated by regex before any DB hit.
@@ -10,12 +11,13 @@
 //   - Unknown ticker (no rows in any source) → data:null.
 //   - BIGINT value_usd → Number in DTO (fund position values < 2^53 — safe,
 //     unlike the post-id BIGINT case which IS > 2^53 in production).
-//   - v_sec_position_delta absent → holder rows carry NULL weight/delta; isNew defaults false.
+//   - CUSIP unresolved (no security_map row) → weight/delta null, isNew false.
 //   - market_history absent/empty → priceHistory: [].
 // Constraints: raw SQL, no ORM, no side effects beyond pool reads.
 
 import { pool } from '../../database';
 import { Router } from 'express';
+import { getHolderWeights } from '../../helpers/holderWeights';
 
 export const router = Router();
 
@@ -30,26 +32,22 @@ const TICKER_RE = /^[A-Za-z0-9.\-]{1,12}$/;
 interface IRawPresence {
     has_holdings: boolean;
     has_rankings: boolean;
-    has_delta: boolean;
     has_market_history: boolean;
 }
 
 async function probePresence(): Promise<{
     hasHoldings: boolean;
     hasRankings: boolean;
-    hasDelta: boolean;
     hasMarketHistory: boolean;
 }> {
     const { rows } = await pool.query<IRawPresence>(
         `SELECT to_regclass('public.v_sec_holdings_enriched')  IS NOT NULL AS has_holdings,
                 to_regclass('public.market_rankings')           IS NOT NULL AS has_rankings,
-                to_regclass('public.v_sec_position_delta')      IS NOT NULL AS has_delta,
                 to_regclass('public.market_history')            IS NOT NULL AS has_market_history`
     );
     return {
         hasHoldings:      rows[0]?.has_holdings       ?? false,
         hasRankings:      rows[0]?.has_rankings       ?? false,
-        hasDelta:         rows[0]?.has_delta          ?? false,
         hasMarketHistory: rows[0]?.has_market_history ?? false,
     };
 }
@@ -71,15 +69,6 @@ interface IHolderRow {
     period_of_report: Date | string;
     sector: string | null;
     cusip: string | null;
-}
-
-// Δweight / isNew fetched as a SEPARATE cusip-filtered query (see Query B note).
-interface IDeltaRow {
-    cik: string;
-    cusip: string | null;
-    weight_pct: string | null;
-    delta_weight_pct: string | null;
-    is_new: boolean | null;
 }
 
 interface IPriceRow {
@@ -111,7 +100,7 @@ router.get('/:ticker/by-ticker', async (req, res) => {
             return res.json({ success: true, data: null });
         }
 
-        const { hasHoldings, hasRankings, hasDelta, hasMarketHistory } =
+        const { hasHoldings, hasRankings, hasMarketHistory } =
             await probePresence();
 
         // Query A — ranking history (global scope, desc, up to 52 weeks = ~1 year).
@@ -142,7 +131,7 @@ router.get('/:ticker/by-ticker', async (req, res) => {
 
         // Query B — holders at the ticker's latest 13F period.
         // sector is sourced from v_sec_holdings_enriched (COALESCE(symbol_fundamentals, security_map)).
-        // LEFT JOIN v_sec_position_delta for weight/delta/isNew — only when that view is present.
+        // weight/delta/isNew are derived below from sec_holdings aggregates (see note).
         let holders: Array<{
             cik: string;
             label: string;
@@ -155,11 +144,10 @@ router.get('/:ticker/by-ticker', async (req, res) => {
         let periodOfReport: string | null = null;
         let sector: string | null = null;
         if (hasHoldings) {
-            // Holders at the ticker's latest 13F period. NB: do NOT LEFT JOIN
-            // v_sec_position_delta here — joining two heavy views (enriched
-            // holdings × the delta view) makes the planner compute the delta view
-            // across all 200k+ holdings → statement timeout. Instead fetch holders
-            // and deltas as two cusip-filtered queries (each fast) and merge in Node.
+            // Holders at the ticker's latest 13F period (enriched view → sector +
+            // fund_registry). Δweight/isNew are derived separately from sec_holdings
+            // aggregates below — never via v_sec_position_delta, which recomputes
+            // every fund's whole portfolio across all quarters (~1.2s).
             const { rows: hRows } = await pool.query<IHolderRow>(
                 `WITH latest AS (
                     SELECT MAX(h.period_of_report) AS period
@@ -178,40 +166,26 @@ router.get('/:ticker/by-ticker', async (req, res) => {
             if (hRows.length > 0) {
                 periodOfReport = toIsoDate(hRows[0].period_of_report);
                 sector = hRows[0].sector ?? null;
+                const ciks = [...new Set(hRows.map((h) => h.cik))];
 
-                // Δweight / isNew per (cik, cusip) at this period — separate query,
-                // cusip-filtered so the planner pushes the filter into the view.
-                const deltaByKey = new Map<string, IDeltaRow>();
-                if (hasDelta) {
-                    const { rows: dRows } = await pool.query<IDeltaRow>(
-                        `SELECT d.cik, d.cusip, d.weight_pct, d.delta_weight_pct, d.is_new
-                           FROM v_sec_position_delta d
-                          WHERE d.period_of_report = $2
-                            AND d.cusip IN (
-                                SELECT cusip FROM security_map
-                                 WHERE ticker = $1 AND deleted_at IS NULL
-                            )`,
-                        [ticker, hRows[0].period_of_report]
-                    );
-                    for (const d of dRows) {
-                        deltaByKey.set(`${d.cik}|${d.cusip}`, d);
-                    }
-                }
+                // weight_pct / delta_weight_pct / isNew derived from sec_holdings
+                // aggregates (helpers/holderWeights), NOT v_sec_position_delta.
+                const weightByCik = await getHolderWeights(
+                    ticker,
+                    ciks,
+                    hRows[0].period_of_report
+                );
 
                 holders = hRows.map((h) => {
-                    const d = deltaByKey.get(`${h.cik}|${h.cusip}`);
+                    const w = weightByCik.get(h.cik);
                     return {
                         cik: h.cik,
                         label: h.label,
                         isActiveManager: h.is_active_manager,
                         valueUsd: Number(h.value_usd),
-                        weightPct:
-                            d && d.weight_pct != null ? Number(d.weight_pct) : null,
-                        deltaWeightPct:
-                            d && d.delta_weight_pct != null
-                                ? Number(d.delta_weight_pct)
-                                : null,
-                        isNew: d?.is_new ?? false,
+                        weightPct: w?.weightPct ?? null,
+                        deltaWeightPct: w?.deltaWeightPct ?? null,
+                        isNew: w?.isNew ?? false,
                     };
                 });
             }
