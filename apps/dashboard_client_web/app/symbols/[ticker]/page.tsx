@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { getSymbolDetail } from '@/app/actions/getSymbolDetail.action';
+import { PriceSparkline } from '@/components/symbols/PriceSparkline';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,11 +19,26 @@ export async function generateMetadata({
     };
 }
 
-// /symbols/[ticker] — per-ticker detail: marketcap rank history + institutional holders.
+// Format weight percentage for display, e.g. "12.34%"
+function fmtPct(v: number | null): string {
+    return v !== null ? `${v.toFixed(2)}%` : '—';
+}
+
+// Format delta weight with ▲/▼ prefix, e.g. "▲ 1.20%" or "▼ 0.50%"
+function fmtDelta(v: number | null): { label: string; color: string } | null {
+    if (v === null) return null;
+    const isUp = v >= 0;
+    return {
+        label: `${isUp ? '▲' : '▼'} ${Math.abs(v).toFixed(2)}%`,
+        color: isUp ? '#16a34a' : '#dc2626',
+    };
+}
+
+// /symbols/[ticker] — per-ticker detail: marketcap rank history + institutional holders + price sparkline.
 // States:
-//   backend error           → explicit error block
+//   backend error              → explicit error block
 //   data:null (unknown/absent) → not-found block
-//   populated               → rank table + holders table
+//   populated                  → rank table + holders table + sparkline
 export default async function SymbolDetailPage({
     params,
 }: SymbolDetailPageProps) {
@@ -61,7 +77,8 @@ export default async function SymbolDetailPage({
         );
     }
 
-    const { rankingHistory, holders, periodOfReport, sector } = result.data;
+    const { rankingHistory, holders, periodOfReport, sector, priceHistory } =
+        result.data;
 
     return (
         <main className="p-4 md:p-8 max-w-screen-xl mx-auto">
@@ -75,6 +92,18 @@ export default async function SymbolDetailPage({
                     </p>
                 )}
             </header>
+
+            {/* Price sparkline */}
+            <section className="mb-8 max-w-xs">
+                <h2 className="mb-3 text-xl font-semibold">Price (1Y)</h2>
+                {priceHistory.length > 0 ? (
+                    <PriceSparkline points={priceHistory} />
+                ) : (
+                    <p className="text-sm text-muted-foreground">
+                        Price history not tracked for this symbol.
+                    </p>
+                )}
+            </section>
 
             <div className="grid gap-8 md:grid-cols-2">
                 {/* Marketcap rank history */}
@@ -154,28 +183,65 @@ export default async function SymbolDetailPage({
                                         <th className="pb-2 text-right font-medium">
                                             Value (USD)
                                         </th>
+                                        <th className="pb-2 text-right font-medium">
+                                            Weight
+                                        </th>
+                                        <th className="pb-2 text-right font-medium">
+                                            Δ Weight
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {holders.map((h) => (
-                                        <tr
-                                            key={h.cik}
-                                            className="border-b last:border-0"
-                                        >
-                                            <td className="py-2">
-                                                <span>{h.label}</span>
-                                                {h.isActiveManager && (
-                                                    <span className="ml-2 inline-flex items-center rounded-sm bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
-                                                        ACTIVE
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="py-2 text-right tabular-nums">
-                                                ${(h.valueUsd / 1e6).toFixed(0)}
-                                                M
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {holders.map((h) => {
+                                        const delta = fmtDelta(
+                                            h.deltaWeightPct
+                                        );
+                                        return (
+                                            <tr
+                                                key={h.cik}
+                                                className="border-b last:border-0"
+                                            >
+                                                <td className="py-2">
+                                                    <span>{h.label}</span>
+                                                    {h.isActiveManager && (
+                                                        <span className="ml-2 inline-flex items-center rounded-sm bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                                                            ACTIVE
+                                                        </span>
+                                                    )}
+                                                    {h.isNew && (
+                                                        <span className="ml-1 inline-flex items-center rounded-sm bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-600">
+                                                            NEW
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="py-2 text-right tabular-nums">
+                                                    $
+                                                    {(h.valueUsd / 1e6).toFixed(
+                                                        0
+                                                    )}
+                                                    M
+                                                </td>
+                                                <td className="py-2 text-right tabular-nums text-muted-foreground">
+                                                    {fmtPct(h.weightPct)}
+                                                </td>
+                                                <td className="py-2 text-right tabular-nums">
+                                                    {delta ? (
+                                                        <span
+                                                            style={{
+                                                                color: delta.color,
+                                                            }}
+                                                        >
+                                                            {delta.label}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-muted-foreground">
+                                                            —
+                                                        </span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>

@@ -6,6 +6,9 @@
 //   3. Unknown ticker (both queries empty) → { success: true, data: null }
 //   4. Happy path — ranking history + holders → shape assertions
 //   5. Cache-Control header is set
+//   6. Holders include weightPct/deltaWeightPct/isNew when delta view present
+//   7. Price history happy path (market_history present)
+//   8. market_history absent → priceHistory []
 //
 // Pool is mocked so these run without Postgres.
 
@@ -138,7 +141,7 @@ describe('GET /:ticker/by-ticker — happy path', () => {
                 },
             ],
         });
-        // Query B: one holder row
+        // Query B: one holder row (no delta fields — hasDelta=false from probe mock)
         mockQuery.mockResolvedValueOnce({
             rows: [
                 {
@@ -148,6 +151,10 @@ describe('GET /:ticker/by-ticker — happy path', () => {
                     value_usd: '40000000000',
                     period_of_report: period,
                     sector: 'Technology',
+                    cusip: null,
+                    weight_pct: null,
+                    delta_weight_pct: null,
+                    is_new: false,
                 },
             ],
         });
@@ -178,7 +185,13 @@ describe('GET /:ticker/by-ticker — happy path', () => {
             label: 'Berkshire Hathaway',
             isActiveManager: true,
             valueUsd: 40000000000,
+            weightPct: null,
+            deltaWeightPct: null,
+            isNew: false,
         });
+
+        // priceHistory absent (hasMarketHistory=false from probe mock)
+        expect(body.data.priceHistory).toEqual([]);
 
         expect(mockQuery).toHaveBeenCalledTimes(3);
     });
@@ -216,6 +229,144 @@ describe('GET /:ticker/by-ticker — happy path', () => {
         const history = body.data.rankingHistory as Array<Record<string, unknown>>;
         expect(history).toHaveLength(1);
         expect(mockQuery).toHaveBeenCalledTimes(2);
+    });
+});
+
+describe('GET /:ticker/by-ticker — delta weight fields', () => {
+    it('includes weightPct/deltaWeightPct/isNew when v_sec_position_delta is present', async () => {
+        const period = new Date('2026-03-31');
+
+        // Probe: has_delta and has_rankings, has_holdings true
+        mockQuery.mockResolvedValueOnce({
+            rows: [{ has_holdings: true, has_rankings: false, has_delta: true, has_market_history: false }],
+        });
+        // Query B only (hasRankings=false skips qA)
+        mockQuery.mockResolvedValueOnce({
+            rows: [
+                {
+                    cik: '0001067983',
+                    label: 'Berkshire Hathaway',
+                    is_active_manager: true,
+                    value_usd: '40000000000',
+                    period_of_report: period,
+                    sector: 'Technology',
+                    cusip: '037833100',
+                    weight_pct: '12.3456',
+                    delta_weight_pct: '-1.2300',
+                    is_new: false,
+                },
+            ],
+        });
+
+        const result = await invoke({ ticker: 'AAPL' });
+        const body = result.payload as { success: boolean; data: Record<string, unknown> };
+
+        expect(body.success).toBe(true);
+        const holders = body.data.holders as Array<Record<string, unknown>>;
+        expect(holders).toHaveLength(1);
+        expect(holders[0].weightPct).toBeCloseTo(12.3456);
+        expect(holders[0].deltaWeightPct).toBeCloseTo(-1.23);
+        expect(holders[0].isNew).toBe(false);
+        // 2 calls: probe + qB
+        expect(mockQuery).toHaveBeenCalledTimes(2);
+    });
+
+    it('marks isNew=true when fund opened a new position this period', async () => {
+        const period = new Date('2026-03-31');
+
+        mockQuery.mockResolvedValueOnce({
+            rows: [{ has_holdings: true, has_rankings: false, has_delta: true, has_market_history: false }],
+        });
+        mockQuery.mockResolvedValueOnce({
+            rows: [
+                {
+                    cik: '0001350694',
+                    label: 'Bridgewater Associates',
+                    is_active_manager: true,
+                    value_usd: '5000000000',
+                    period_of_report: period,
+                    sector: 'Technology',
+                    cusip: '037833100',
+                    weight_pct: '3.5000',
+                    delta_weight_pct: null, // new position: no prior weight to diff
+                    is_new: true,
+                },
+            ],
+        });
+
+        const result = await invoke({ ticker: 'AAPL' });
+        const body = result.payload as { success: boolean; data: Record<string, unknown> };
+        const holders = body.data.holders as Array<Record<string, unknown>>;
+        expect(holders[0].isNew).toBe(true);
+        expect(holders[0].deltaWeightPct).toBeNull();
+    });
+});
+
+describe('GET /:ticker/by-ticker — price history', () => {
+    it('returns ascending priceHistory when market_history is present', async () => {
+        // Probe: only market_history present
+        mockQuery.mockResolvedValueOnce({
+            rows: [{ has_holdings: false, has_rankings: false, has_delta: false, has_market_history: true }],
+        });
+        // Query C: 3 rows returned DESC (controller reverses them)
+        mockQuery.mockResolvedValueOnce({
+            rows: [
+                { bar_time: new Date('2026-06-27'), close: '213.50' },
+                { bar_time: new Date('2026-06-26'), close: '211.00' },
+                { bar_time: new Date('2026-06-25'), close: '209.00' },
+            ],
+        });
+
+        const result = await invoke({ ticker: 'AAPL' });
+        const body = result.payload as { success: boolean; data: Record<string, unknown> };
+
+        expect(body.success).toBe(true);
+        const ph = body.data.priceHistory as Array<{ t: string; close: number }>;
+        expect(ph).toHaveLength(3);
+        // After reverse: ascending — 2026-06-25 first, 2026-06-27 last
+        expect(ph[0].t).toBe('2026-06-25');
+        expect(ph[0].close).toBeCloseTo(209.0);
+        expect(ph[2].t).toBe('2026-06-27');
+        expect(ph[2].close).toBeCloseTo(213.5);
+        // 2 calls: probe + qC
+        expect(mockQuery).toHaveBeenCalledTimes(2);
+    });
+
+    it('returns priceHistory:[] when market_history is absent from presence probe', async () => {
+        // Probe: rankings only, no market_history
+        mockQuery.mockResolvedValueOnce({
+            rows: [{ has_holdings: false, has_rankings: true, has_delta: false, has_market_history: false }],
+        });
+        // Query A: one ranking row
+        mockQuery.mockResolvedValueOnce({
+            rows: [{ as_of: new Date('2026-06-27'), scope: 'global', rank: 1, market_cap: '3000000000000' }],
+        });
+
+        const result = await invoke({ ticker: 'AAPL' });
+        const body = result.payload as { success: boolean; data: Record<string, unknown> };
+        expect(body.success).toBe(true);
+        expect(body.data.priceHistory).toEqual([]);
+        // 2 calls: probe + qA (no qC)
+        expect(mockQuery).toHaveBeenCalledTimes(2);
+    });
+
+    it('returns priceHistory:[] when market_history table is present but has no rows for ticker', async () => {
+        // Probe: market_history present
+        mockQuery.mockResolvedValueOnce({
+            rows: [{ has_holdings: false, has_rankings: true, has_delta: false, has_market_history: true }],
+        });
+        // Query A: one ranking row
+        mockQuery.mockResolvedValueOnce({
+            rows: [{ as_of: new Date('2026-06-27'), scope: 'global', rank: 5, market_cap: '500000000000' }],
+        });
+        // Query C: empty
+        mockQuery.mockResolvedValueOnce({ rows: [] });
+
+        const result = await invoke({ ticker: 'MSFT' });
+        const body = result.payload as { success: boolean; data: Record<string, unknown> };
+        expect(body.success).toBe(true);
+        expect(body.data.priceHistory).toEqual([]);
+        expect(mockQuery).toHaveBeenCalledTimes(3);
     });
 });
 

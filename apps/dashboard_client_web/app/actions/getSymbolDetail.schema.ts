@@ -20,6 +20,14 @@ export const symbolHolderSchema = z.object({
     label: z.string(),
     isActiveManager: z.boolean(),
     valueUsd: z.number(),
+    weightPct: z.number().nullable(),
+    deltaWeightPct: z.number().nullable(),
+    isNew: z.boolean(),
+});
+
+export const pricePointSchema = z.object({
+    t: z.string(),
+    close: z.number(),
 });
 
 export const symbolDetailSchema = z.object({
@@ -28,6 +36,7 @@ export const symbolDetailSchema = z.object({
     rankingHistory: z.array(symbolRankingEntrySchema),
     holders: z.array(symbolHolderSchema),
     periodOfReport: z.string().nullable(),
+    priceHistory: z.array(pricePointSchema),
 });
 
 export type SymbolDetailSchema = z.infer<typeof symbolDetailSchema>;

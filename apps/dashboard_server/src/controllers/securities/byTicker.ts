@@ -1,14 +1,17 @@
 // controllers/securities/byTicker.ts
-// Purpose: Read-only per-ticker detail (Phase P, STEP 2 / P9).
+// Purpose: Read-only per-ticker detail (Phase P, STEP 2 / P9 — extended).
 //   Axis 1 — weekly market-cap ranking history (market_rankings, scope='global').
 //   Axis 2 — institutional 13F holders at the ticker's latest filing period
-//             (v_sec_holdings_enriched + fund_registry).
+//             (v_sec_holdings_enriched + fund_registry + v_sec_position_delta for Δweight).
+//   Axis 3 — daily price sparkline from market_history (tracked universe only).
 // Invariants:
 //   - Ticker validated by regex before any DB hit.
 //   - Presence guard: absent views/tables → data:null, not 500.
-//   - Unknown ticker (no rows in either source) → data:null.
+//   - Unknown ticker (no rows in any source) → data:null.
 //   - BIGINT value_usd → Number in DTO (fund position values < 2^53 — safe,
 //     unlike the post-id BIGINT case which IS > 2^53 in production).
+//   - v_sec_position_delta absent → holder rows carry NULL weight/delta; isNew defaults false.
+//   - market_history absent/empty → priceHistory: [].
 // Constraints: raw SQL, no ORM, no side effects beyond pool reads.
 
 import { pool } from '../../database';
@@ -27,19 +30,27 @@ const TICKER_RE = /^[A-Za-z0-9.\-]{1,12}$/;
 interface IRawPresence {
     has_holdings: boolean;
     has_rankings: boolean;
+    has_delta: boolean;
+    has_market_history: boolean;
 }
 
 async function probePresence(): Promise<{
     hasHoldings: boolean;
     hasRankings: boolean;
+    hasDelta: boolean;
+    hasMarketHistory: boolean;
 }> {
     const { rows } = await pool.query<IRawPresence>(
-        `SELECT to_regclass('public.v_sec_holdings_enriched') IS NOT NULL AS has_holdings,
-                to_regclass('public.market_rankings')          IS NOT NULL AS has_rankings`
+        `SELECT to_regclass('public.v_sec_holdings_enriched')  IS NOT NULL AS has_holdings,
+                to_regclass('public.market_rankings')           IS NOT NULL AS has_rankings,
+                to_regclass('public.v_sec_position_delta')      IS NOT NULL AS has_delta,
+                to_regclass('public.market_history')            IS NOT NULL AS has_market_history`
     );
     return {
-        hasHoldings: rows[0]?.has_holdings ?? false,
-        hasRankings: rows[0]?.has_rankings ?? false,
+        hasHoldings:      rows[0]?.has_holdings       ?? false,
+        hasRankings:      rows[0]?.has_rankings       ?? false,
+        hasDelta:         rows[0]?.has_delta          ?? false,
+        hasMarketHistory: rows[0]?.has_market_history ?? false,
     };
 }
 
@@ -59,6 +70,15 @@ interface IHolderRow {
     value_usd: string;
     period_of_report: Date | string;
     sector: string | null;
+    cusip: string | null;
+    weight_pct: string | null;
+    delta_weight_pct: string | null;
+    is_new: boolean | null;
+}
+
+interface IPriceRow {
+    bar_time: Date | string;
+    close: string;
 }
 
 // --- Pure helpers ---
@@ -73,7 +93,8 @@ function numOrNull(v: string | null): number | null {
 
 /**
  * @api {get} /v1/api/securities/:ticker/by-ticker Per-ticker detail
- * @apiSuccess {Object|null} data  { ticker, sector, rankingHistory[], holders[], periodOfReport }
+ * @apiSuccess {Object|null} data  { ticker, sector, rankingHistory[], holders[],
+ *                                   periodOfReport, priceHistory[] }
  *                                  or null when ticker invalid/unknown or tables absent.
  */
 router.get('/:ticker/by-ticker', async (req, res) => {
@@ -84,7 +105,8 @@ router.get('/:ticker/by-ticker', async (req, res) => {
             return res.json({ success: true, data: null });
         }
 
-        const { hasHoldings, hasRankings } = await probePresence();
+        const { hasHoldings, hasRankings, hasDelta, hasMarketHistory } =
+            await probePresence();
 
         // Query A — ranking history (global scope, desc, up to 52 weeks = ~1 year).
         const rankingHistory: Array<{
@@ -114,15 +136,29 @@ router.get('/:ticker/by-ticker', async (req, res) => {
 
         // Query B — holders at the ticker's latest 13F period.
         // sector is sourced from v_sec_holdings_enriched (COALESCE(symbol_fundamentals, security_map)).
+        // LEFT JOIN v_sec_position_delta for weight/delta/isNew — only when that view is present.
         let holders: Array<{
             cik: string;
             label: string;
             isActiveManager: boolean;
             valueUsd: number;
+            weightPct: number | null;
+            deltaWeightPct: number | null;
+            isNew: boolean;
         }> = [];
         let periodOfReport: string | null = null;
         let sector: string | null = null;
         if (hasHoldings) {
+            const deltaJoin = hasDelta
+                ? `LEFT JOIN v_sec_position_delta d
+                       ON d.cik = h.cik
+                      AND d.period_of_report = l.period
+                      AND d.cusip = h.cusip`
+                : '';
+            const deltaSelect = hasDelta
+                ? `d.weight_pct, d.delta_weight_pct, d.is_new`
+                : `NULL::NUMERIC AS weight_pct, NULL::NUMERIC AS delta_weight_pct, FALSE AS is_new`;
+
             const { rows: hRows } = await pool.query<IHolderRow>(
                 `WITH latest AS (
                     SELECT MAX(h.period_of_report) AS period
@@ -130,10 +166,13 @@ router.get('/:ticker/by-ticker', async (req, res) => {
                     WHERE h.mapped_ticker = $1
                 )
                 SELECT h.cik, r.label, r.is_active_manager,
-                       h.value_usd, h.period_of_report, h.sector
+                       h.value_usd, h.period_of_report, h.sector,
+                       h.cusip,
+                       ${deltaSelect}
                   FROM v_sec_holdings_enriched h
                   JOIN fund_registry r ON r.cik = h.cik AND r.deleted_at IS NULL
                   JOIN latest l ON h.period_of_report = l.period
+                  ${deltaJoin}
                  WHERE h.mapped_ticker = $1
                  ORDER BY h.value_usd DESC`,
                 [ticker]
@@ -146,12 +185,38 @@ router.get('/:ticker/by-ticker', async (req, res) => {
                     label: h.label,
                     isActiveManager: h.is_active_manager,
                     valueUsd: Number(h.value_usd),
+                    weightPct: h.weight_pct != null ? Number(h.weight_pct) : null,
+                    deltaWeightPct: h.delta_weight_pct != null ? Number(h.delta_weight_pct) : null,
+                    isNew: h.is_new ?? false,
                 }));
             }
         }
 
-        // Unknown ticker: no data in either source.
-        if (rankingHistory.length === 0 && holders.length === 0) {
+        // Query C — price sparkline (tracked universe only).
+        // Fetch DESC then reverse to return ascending bar_time for the client.
+        let priceHistory: Array<{ t: string; close: number }> = [];
+        if (hasMarketHistory) {
+            const { rows: pRows } = await pool.query<IPriceRow>(
+                `SELECT bar_time, close
+                   FROM market_history
+                  WHERE label = $1 AND interval = '1d'
+                  ORDER BY bar_time DESC
+                  LIMIT 260`,
+                [ticker]
+            );
+            if (pRows.length > 0) {
+                priceHistory = pRows
+                    .reverse()
+                    .map((p) => ({ t: toIsoDate(p.bar_time), close: Number(p.close) }));
+            }
+        }
+
+        // Unknown ticker: no data in any source.
+        if (
+            rankingHistory.length === 0 &&
+            holders.length === 0 &&
+            priceHistory.length === 0
+        ) {
             return res.json({ success: true, data: null });
         }
 
@@ -163,6 +228,7 @@ router.get('/:ticker/by-ticker', async (req, res) => {
                 rankingHistory,
                 holders,
                 periodOfReport,
+                priceHistory,
             },
         });
     } catch {

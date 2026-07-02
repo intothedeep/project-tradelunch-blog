@@ -16,6 +16,9 @@ export interface SymbolHolder {
     label: string;
     isActiveManager: boolean;
     valueUsd: number;
+    weightPct: number | null; // portfolio weight % from v_sec_position_delta; null when absent
+    deltaWeightPct: number | null; // quarter-over-quarter Δ weight %; null when new/absent
+    isNew: boolean; // true when fund opened this position in the latest period
 }
 
 export interface SymbolDetail {
@@ -24,4 +27,5 @@ export interface SymbolDetail {
     rankingHistory: SymbolRankingEntry[]; // value-desc, latest-first, up to 52 weeks
     holders: SymbolHolder[]; // value-desc; empty until security_map is seeded
     periodOfReport: string | null; // 'YYYY-MM-DD' of latest 13F period; null when no holders
+    priceHistory: { t: string; close: number }[]; // ascending daily closes; [] for untracked
 }
