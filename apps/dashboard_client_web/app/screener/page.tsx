@@ -12,8 +12,8 @@
 //   score, max 0.6) and are omitted from that row's sum.
 
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { getScreener } from '@/app/actions/getScreener.action';
+import { ScreenerTable } from '@/components/screener/ScreenerTable';
 
 export const dynamic = 'force-dynamic';
 
@@ -78,6 +78,12 @@ export default async function ScreenerPage({
     const { periodOfReport, totalActiveFunds, candidates } = result.data;
     const effectiveMin = minActiveHolders ?? 2;
 
+    // Two data-availability tiers (NOT a quality ranking): candidates with both
+    // price signals first, consensus-only (outside the tracked price universe)
+    // after. Backend already sorts within each tier; filter preserves order.
+    const fullSignal = candidates.filter((c) => c.hasPriceSignals);
+    const consensusOnly = candidates.filter((c) => !c.hasPriceSignals);
+
     return (
         <main className="p-4 md:p-8 max-w-screen-xl mx-auto">
             <header className="mb-6">
@@ -111,106 +117,46 @@ export default async function ScreenerPage({
                     </p>
                 </div>
             ) : (
-                <div className="overflow-x-auto rounded-lg border">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b bg-muted/50 text-muted-foreground">
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Security
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Ticker
-                                </th>
-                                <th className="px-4 py-3 text-right font-medium">
-                                    Active&nbsp;/ Total
-                                </th>
-                                <th className="px-4 py-3 text-right font-medium">
-                                    Cap Rank
-                                </th>
-                                <th className="px-4 py-3 text-right font-medium">
-                                    Consensus
-                                </th>
-                                <th className="px-4 py-3 text-right font-medium">
-                                    Cap Tier
-                                </th>
-                                <th className="px-4 py-3 text-right font-medium">
-                                    Momentum
-                                </th>
-                                <th className="px-4 py-3 text-right font-medium">
-                                    Low&#8209;Vol
-                                </th>
-                                <th className="px-4 py-3 text-right font-medium">
-                                    Score
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {candidates.map((c) => (
-                                <tr
-                                    key={c.cusip}
-                                    className="border-b last:border-0 hover:bg-muted/30"
-                                >
-                                    <td className="px-4 py-3">
-                                        <span className="font-medium">
-                                            {c.name}
-                                        </span>
-                                        <span className="ml-2 font-mono text-xs text-muted-foreground">
-                                            {c.cusip}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        {c.ticker !== null ? (
-                                            <Link
-                                                href={`/symbols/${c.ticker}`}
-                                                className="font-mono font-semibold text-primary underline-offset-4 hover:underline"
-                                            >
-                                                {c.ticker}
-                                            </Link>
-                                        ) : (
-                                            <span className="text-muted-foreground">
-                                                —
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-3 text-right tabular-nums">
-                                        {c.holderCountActive}&nbsp;/&nbsp;
-                                        {c.holderCountTotal}
-                                    </td>
-                                    <td className="px-4 py-3 text-right tabular-nums">
-                                        {c.rank !== null ? `#${c.rank}` : '—'}
-                                    </td>
-                                    <td className="px-4 py-3 text-right tabular-nums">
-                                        {(c.components.consensus * 100).toFixed(
-                                            0
-                                        )}
-                                        %
-                                    </td>
-                                    <td className="px-4 py-3 text-right">
-                                        {c.components.capTier === 1
-                                            ? 'Top 20'
-                                            : c.components.capTier === 0.5
-                                              ? 'Top 100'
-                                              : c.rank === null
-                                                ? 'No data'
-                                                : 'Other'}
-                                    </td>
-                                    <td className="px-4 py-3 text-right tabular-nums">
-                                        {c.components.momentum !== null
-                                            ? `${(c.components.momentum * 100).toFixed(0)}%`
-                                            : '—'}
-                                    </td>
-                                    <td className="px-4 py-3 text-right tabular-nums">
-                                        {c.components.lowVol !== null
-                                            ? `${(c.components.lowVol * 100).toFixed(0)}%`
-                                            : '—'}
-                                    </td>
-                                    <td className="px-4 py-3 text-right tabular-nums font-semibold">
-                                        {c.score.toFixed(3)}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div className="space-y-8">
+                    {fullSignal.length > 0 && (
+                        <section>
+                            <div className="mb-2 flex items-baseline gap-2">
+                                <h2 className="text-lg font-semibold">
+                                    Price-signal candidates
+                                </h2>
+                                <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground tabular-nums">
+                                    {fullSignal.length}
+                                </span>
+                            </div>
+                            <p className="mb-3 text-xs text-muted-foreground">
+                                Momentum &amp; volatility measured (in the
+                                tracked price universe) — scored on all four
+                                terms.
+                            </p>
+                            <ScreenerTable candidates={fullSignal} />
+                        </section>
+                    )}
+
+                    {consensusOnly.length > 0 && (
+                        <section>
+                            <div className="mb-2 flex items-baseline gap-2">
+                                <h2 className="text-lg font-semibold">
+                                    Consensus-only
+                                </h2>
+                                <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground tabular-nums">
+                                    {consensusOnly.length}
+                                </span>
+                            </div>
+                            <p className="mb-3 text-xs text-muted-foreground">
+                                Outside the tracked price universe — momentum
+                                &amp; low-vol not yet measured
+                                (&ldquo;&mdash;&rdquo;). Ranked on consensus +
+                                cap tier; promotes to the section above as price
+                                coverage grows.
+                            </p>
+                            <ScreenerTable candidates={consensusOnly} />
+                        </section>
+                    )}
                 </div>
             )}
         </main>

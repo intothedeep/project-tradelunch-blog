@@ -12,7 +12,10 @@
 //     by resolved ticker, cross-sectionally percentile-normalised across the candidate
 //     set (helpers/priceSignals.ts). Candidates outside the tracked universe (no bars,
 //     or < ~1yr history) keep null terms — the partial-score contract in screenScore.ts.
-//   - Sort: score DESC, then holderCountActive DESC; slice to limit.
+//   - Sort (compareScreenCandidates): price-signal-complete tier first, then
+//     score DESC, then holderCountActive DESC; slice to limit. Each candidate
+//     carries hasPriceSignals so the client can render the two data-availability
+//     tiers without re-deriving it. (PM+architect decision 2026-07-02.)
 // DEFERRED:
 //   - filing_date lookahead: v_sec_consensus is period-based. A production signal
 //     must gate on sec_filings.filing_date so the screener only runs after all funds
@@ -23,6 +26,10 @@
 import { pool } from '../../database';
 import { Router } from 'express';
 import { computeScore } from '../../helpers/screenScore';
+import {
+    compareScreenCandidates,
+    hasPriceSignals,
+} from '../../helpers/screenSort';
 import {
     computeRawMomentum,
     computeAnnualizedVol,
@@ -261,13 +268,13 @@ SELECT c.cusip,
                 holderCountTotal: Number(r.holder_count_total),
                 score,
                 components,
+                // Data-availability flag — drives the two-tier /screener view.
+                hasPriceSignals: hasPriceSignals(components),
             };
         });
 
-        scored.sort((a, b) => {
-            if (b.score !== a.score) return b.score - a.score;
-            return b.holderCountActive - a.holderCountActive;
-        });
+        // Two-tier order: price-signal-complete first, then score/holders desc.
+        scored.sort(compareScreenCandidates);
 
         const candidates = scored.slice(0, limit);
 

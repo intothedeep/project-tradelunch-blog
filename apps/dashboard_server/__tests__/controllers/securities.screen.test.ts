@@ -262,6 +262,40 @@ describe('GET /screen — happy path', () => {
         expect(lo.lowVol).toBe(1);
         expect(hi.lowVol).toBe(0);
     });
+
+    it('ranks a price-signal-complete candidate above a higher-scored consensus-only one', async () => {
+        mockQuery.mockResolvedValueOnce({
+            rows: [{
+                has_consensus: true, has_secmap: true,
+                has_rankings: true, has_market_history: true,
+            }],
+        });
+        mockQuery.mockResolvedValueOnce({ rows: [{ total_active: '3' }] });
+        mockQuery.mockResolvedValueOnce({ rows: [{ period }] });
+        // PARTIAL (no ticker → no price): full consensus → score 0.4.
+        // FULL (has price): weaker consensus (1/3) but carries momentum/lowVol.
+        mockQuery.mockResolvedValueOnce({
+            rows: [
+                { cusip: 'PART', name_of_issuer: 'Partial Co', holder_count_active: '3',
+                  holder_count_total: '3', ticker: null, rank: null, market_cap: null },
+                { cusip: 'FULL', name_of_issuer: 'Full Co', holder_count_active: '1',
+                  holder_count_total: '3', ticker: 'FULL', rank: null, market_cap: null },
+            ],
+        });
+        const priceRows: Array<{ label: string; close: string }> = [];
+        for (let i = 0; i < 260; i++) priceRows.push({ label: 'FULL', close: String(100 + i) });
+        mockQuery.mockResolvedValueOnce({ rows: priceRows });
+
+        const result = await invoke();
+        const body = result.payload as { success: boolean; data: Record<string, unknown> };
+        const candidates = body.data.candidates as Array<Record<string, unknown>>;
+        // FULL is the lower-scored candidate but leads on the price-signal tier.
+        expect(candidates[0].cusip).toBe('FULL');
+        expect(candidates[0].hasPriceSignals).toBe(true);
+        expect(candidates[1].cusip).toBe('PART');
+        expect(candidates[1].hasPriceSignals).toBe(false);
+        expect(candidates[0].score as number).toBeLessThan(candidates[1].score as number);
+    });
 });
 
 // --- Clamp behaviour ---

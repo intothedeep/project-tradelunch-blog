@@ -8,8 +8,9 @@
 //   few bars) the caller passes null and that term is OMITTED from the sum —
 //   the "partial score" contract. Components expose which terms are present so
 //   callers can surface partiality. NB: partial (max 0.6) and full (max 1.0)
-//   scores are sorted together — a documented limitation, not normalised away,
-//   to keep the fixed-weight spec. Most tracked large-caps carry full history.
+//   scores live on different axes, so they are NOT blended into one ranking —
+//   the caller sorts into two data-availability tiers (see helpers/screenSort.ts)
+//   rather than re-normalising, keeping the fixed-weight spec intact.
 
 export interface ScoreComponents {
     consensus: number;      // [0,1] holderCountActive / totalActiveFunds, clamped

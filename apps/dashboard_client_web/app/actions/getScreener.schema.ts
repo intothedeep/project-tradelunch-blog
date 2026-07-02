@@ -25,6 +25,7 @@ const screenerCandidateSchema = z.object({
     holderCountTotal: z.number(),
     score: z.number(),
     components: scoreComponentsSchema,
+    hasPriceSignals: z.boolean(),
 });
 
 export const screenerDataSchema = z.object({

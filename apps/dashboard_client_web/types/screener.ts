@@ -24,6 +24,9 @@ export interface ScreenerCandidate {
     holderCountTotal: number;
     score: number; // 0.4*consensus + 0.3*momentum + 0.2*capTier + 0.1*lowVol (present terms only)
     components: ScoreComponents;
+    // Data-availability tier flag: true when both price terms are present.
+    // Drives the two-section /screener view (NOT a quality verdict).
+    hasPriceSignals: boolean;
 }
 
 export interface ScreenerData {
