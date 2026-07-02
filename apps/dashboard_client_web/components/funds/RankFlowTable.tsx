@@ -161,6 +161,10 @@ function FlowColumn({
                                 weightPct={cell.weightPct}
                                 valueUsd={cell.valueUsd}
                                 isActive={activeCusip === row.cusip}
+                                isDimmed={
+                                    activeCusip !== null &&
+                                    activeCusip !== row.cusip
+                                }
                                 onToggle={onToggleCusip}
                                 badge={badges.get(row.cusip)?.[period]}
                             />
@@ -217,6 +221,10 @@ function AlignedColumn({
                                 weightPct={cell.weightPct}
                                 valueUsd={cell.valueUsd}
                                 isActive={activeCusip === row.cusip}
+                                isDimmed={
+                                    activeCusip !== null &&
+                                    activeCusip !== row.cusip
+                                }
                                 onToggle={onToggleCusip}
                                 badge={badges.get(row.cusip)?.[period]}
                             />

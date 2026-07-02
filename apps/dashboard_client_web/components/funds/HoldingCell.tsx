@@ -20,6 +20,10 @@ export interface HoldingCellProps {
     weightPct: number;
     valueUsd: number;
     isActive: boolean;
+    // Something else is selected and this is not it → fade to spotlight the
+    // active cusip's trail. Keeps each tile's own hue (and its paired text
+    // color) intact, so legibility never depends on the selection state.
+    isDimmed?: boolean;
     onToggle: (cusip: string) => void;
     badge?: CellBadge;
 }
@@ -57,6 +61,7 @@ export function HoldingCell({
     weightPct,
     valueUsd,
     isActive,
+    isDimmed = false,
     onToggle,
     badge,
 }: HoldingCellProps) {
@@ -78,14 +83,19 @@ export function HoldingCell({
             onClick={() => onToggle(cusip)}
             onKeyDown={handleKeyDown}
             className={cn(
-                'relative rounded p-1.5 cursor-pointer select-none transition-shadow',
+                'relative rounded p-1.5 cursor-pointer select-none transition-all',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-ring',
                 // Selected block: fixed coral ring with a background-colored
                 // offset gap. Coral pops over any cusip hue in both light and
                 // dark themes (theme primary was near-black in light and read
                 // as unclear; tile-derived color was ~always white).
                 isActive &&
-                    'ring-4 ring-[#ff7f50] ring-offset-2 ring-offset-background'
+                    'ring-4 ring-[#ff7f50] ring-offset-2 ring-offset-background z-10',
+                // Spotlight: when another cusip is selected, fade + desaturate
+                // this one so the active trail dominates by contrast. We never
+                // repaint the active tile, so its pre-computed text color stays
+                // legible regardless of theme.
+                isDimmed && 'opacity-35 saturate-50'
             )}
             style={{ backgroundColor: bg, color: textColor }}
             title={`${label} (${cusip})`}
