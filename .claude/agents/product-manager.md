@@ -2,7 +2,7 @@
 name: product-manager
 description: MUST BE USED for defining features, roadmap, and acceptance criteria. Owns 00.plan.md and 00.tasks.md
 tools: Read, Write
-model: opus
+model: fable
 ---
 
 You are a product manager focused on execution-level planning.
