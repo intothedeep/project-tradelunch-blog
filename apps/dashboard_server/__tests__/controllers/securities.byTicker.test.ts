@@ -240,7 +240,7 @@ describe('GET /:ticker/by-ticker — delta weight fields', () => {
         mockQuery.mockResolvedValueOnce({
             rows: [{ has_holdings: true, has_rankings: false, has_delta: true, has_market_history: false }],
         });
-        // Query B only (hasRankings=false skips qA)
+        // Query B: holder rows (no delta fields — delta is a separate query now)
         mockQuery.mockResolvedValueOnce({
             rows: [
                 {
@@ -250,6 +250,15 @@ describe('GET /:ticker/by-ticker — delta weight fields', () => {
                     value_usd: '40000000000',
                     period_of_report: period,
                     sector: 'Technology',
+                    cusip: '037833100',
+                },
+            ],
+        });
+        // Delta query: per (cik, cusip) weight/delta/isNew, merged in Node
+        mockQuery.mockResolvedValueOnce({
+            rows: [
+                {
+                    cik: '0001067983',
                     cusip: '037833100',
                     weight_pct: '12.3456',
                     delta_weight_pct: '-1.2300',
@@ -267,8 +276,8 @@ describe('GET /:ticker/by-ticker — delta weight fields', () => {
         expect(holders[0].weightPct).toBeCloseTo(12.3456);
         expect(holders[0].deltaWeightPct).toBeCloseTo(-1.23);
         expect(holders[0].isNew).toBe(false);
-        // 2 calls: probe + qB
-        expect(mockQuery).toHaveBeenCalledTimes(2);
+        // 3 calls: probe + qB holders + delta query
+        expect(mockQuery).toHaveBeenCalledTimes(3);
     });
 
     it('marks isNew=true when fund opened a new position this period', async () => {
@@ -277,6 +286,7 @@ describe('GET /:ticker/by-ticker — delta weight fields', () => {
         mockQuery.mockResolvedValueOnce({
             rows: [{ has_holdings: true, has_rankings: false, has_delta: true, has_market_history: false }],
         });
+        // Query B: holder row (no delta fields)
         mockQuery.mockResolvedValueOnce({
             rows: [
                 {
@@ -287,8 +297,17 @@ describe('GET /:ticker/by-ticker — delta weight fields', () => {
                     period_of_report: period,
                     sector: 'Technology',
                     cusip: '037833100',
+                },
+            ],
+        });
+        // Delta query: new position (no prior weight to diff)
+        mockQuery.mockResolvedValueOnce({
+            rows: [
+                {
+                    cik: '0001350694',
+                    cusip: '037833100',
                     weight_pct: '3.5000',
-                    delta_weight_pct: null, // new position: no prior weight to diff
+                    delta_weight_pct: null,
                     is_new: true,
                 },
             ],

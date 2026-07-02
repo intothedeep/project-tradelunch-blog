@@ -71,6 +71,12 @@ interface IHolderRow {
     period_of_report: Date | string;
     sector: string | null;
     cusip: string | null;
+}
+
+// Δweight / isNew fetched as a SEPARATE cusip-filtered query (see Query B note).
+interface IDeltaRow {
+    cik: string;
+    cusip: string | null;
     weight_pct: string | null;
     delta_weight_pct: string | null;
     is_new: boolean | null;
@@ -149,16 +155,11 @@ router.get('/:ticker/by-ticker', async (req, res) => {
         let periodOfReport: string | null = null;
         let sector: string | null = null;
         if (hasHoldings) {
-            const deltaJoin = hasDelta
-                ? `LEFT JOIN v_sec_position_delta d
-                       ON d.cik = h.cik
-                      AND d.period_of_report = l.period
-                      AND d.cusip = h.cusip`
-                : '';
-            const deltaSelect = hasDelta
-                ? `d.weight_pct, d.delta_weight_pct, d.is_new`
-                : `NULL::NUMERIC AS weight_pct, NULL::NUMERIC AS delta_weight_pct, FALSE AS is_new`;
-
+            // Holders at the ticker's latest 13F period. NB: do NOT LEFT JOIN
+            // v_sec_position_delta here — joining two heavy views (enriched
+            // holdings × the delta view) makes the planner compute the delta view
+            // across all 200k+ holdings → statement timeout. Instead fetch holders
+            // and deltas as two cusip-filtered queries (each fast) and merge in Node.
             const { rows: hRows } = await pool.query<IHolderRow>(
                 `WITH latest AS (
                     SELECT MAX(h.period_of_report) AS period
@@ -166,13 +167,10 @@ router.get('/:ticker/by-ticker', async (req, res) => {
                     WHERE h.mapped_ticker = $1
                 )
                 SELECT h.cik, r.label, r.is_active_manager,
-                       h.value_usd, h.period_of_report, h.sector,
-                       h.cusip,
-                       ${deltaSelect}
+                       h.value_usd, h.period_of_report, h.sector, h.cusip
                   FROM v_sec_holdings_enriched h
                   JOIN fund_registry r ON r.cik = h.cik AND r.deleted_at IS NULL
                   JOIN latest l ON h.period_of_report = l.period
-                  ${deltaJoin}
                  WHERE h.mapped_ticker = $1
                  ORDER BY h.value_usd DESC`,
                 [ticker]
@@ -180,15 +178,42 @@ router.get('/:ticker/by-ticker', async (req, res) => {
             if (hRows.length > 0) {
                 periodOfReport = toIsoDate(hRows[0].period_of_report);
                 sector = hRows[0].sector ?? null;
-                holders = hRows.map((h) => ({
-                    cik: h.cik,
-                    label: h.label,
-                    isActiveManager: h.is_active_manager,
-                    valueUsd: Number(h.value_usd),
-                    weightPct: h.weight_pct != null ? Number(h.weight_pct) : null,
-                    deltaWeightPct: h.delta_weight_pct != null ? Number(h.delta_weight_pct) : null,
-                    isNew: h.is_new ?? false,
-                }));
+
+                // Δweight / isNew per (cik, cusip) at this period — separate query,
+                // cusip-filtered so the planner pushes the filter into the view.
+                const deltaByKey = new Map<string, IDeltaRow>();
+                if (hasDelta) {
+                    const { rows: dRows } = await pool.query<IDeltaRow>(
+                        `SELECT d.cik, d.cusip, d.weight_pct, d.delta_weight_pct, d.is_new
+                           FROM v_sec_position_delta d
+                          WHERE d.period_of_report = $2
+                            AND d.cusip IN (
+                                SELECT cusip FROM security_map
+                                 WHERE ticker = $1 AND deleted_at IS NULL
+                            )`,
+                        [ticker, hRows[0].period_of_report]
+                    );
+                    for (const d of dRows) {
+                        deltaByKey.set(`${d.cik}|${d.cusip}`, d);
+                    }
+                }
+
+                holders = hRows.map((h) => {
+                    const d = deltaByKey.get(`${h.cik}|${h.cusip}`);
+                    return {
+                        cik: h.cik,
+                        label: h.label,
+                        isActiveManager: h.is_active_manager,
+                        valueUsd: Number(h.value_usd),
+                        weightPct:
+                            d && d.weight_pct != null ? Number(d.weight_pct) : null,
+                        deltaWeightPct:
+                            d && d.delta_weight_pct != null
+                                ? Number(d.delta_weight_pct)
+                                : null,
+                        isNew: d?.is_new ?? false,
+                    };
+                });
             }
         }
 
