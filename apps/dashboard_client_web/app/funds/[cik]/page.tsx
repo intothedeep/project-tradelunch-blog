@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { getFunds } from '@/app/actions/getFunds.action';
 import { getFundRankFlow } from '@/app/actions/getFundRankFlow.action';
 import FundList from '@/components/funds/FundList';
+import FundNavDrawer from '@/components/funds/FundNavDrawer.client';
 import RankFlowTable from '@/components/funds/RankFlowTable';
 import FundsEmptyState from '@/components/funds/FundsEmptyState';
 
@@ -69,17 +70,29 @@ export default async function FundDetailPage({ params }: FundDetailPageProps) {
         rankFlowResult.data === null ||
         rankFlowResult.data.periods.length === 0
     ) {
+        const emptyLabel =
+            fundsResult.data.find((f) => f.cik === cik)?.label ?? cik;
         return (
             <main className="p-4 md:p-8 max-w-screen-xl mx-auto">
-                <div className="flex gap-8">
-                    <aside className="w-64 shrink-0">
+                <div className="md:flex md:gap-8">
+                    <aside className="hidden md:block w-64 shrink-0">
                         <FundList
                             funds={fundsResult.data}
                             activeCik={cik}
                         />
                     </aside>
-                    <div className="flex min-h-[40vh] flex-1 items-center justify-center">
-                        <FundsEmptyState />
+                    <div className="flex-1 min-w-0">
+                        <div className="mb-4 md:hidden">
+                            <FundNavDrawer activeLabel={emptyLabel}>
+                                <FundList
+                                    funds={fundsResult.data}
+                                    activeCik={cik}
+                                />
+                            </FundNavDrawer>
+                        </div>
+                        <div className="flex min-h-[40vh] items-center justify-center">
+                            <FundsEmptyState />
+                        </div>
                     </div>
                 </div>
             </main>
@@ -94,14 +107,22 @@ export default async function FundDetailPage({ params }: FundDetailPageProps) {
 
     return (
         <main className="p-4 md:p-8 max-w-screen-xl mx-auto">
-            <div className="flex gap-8">
-                <aside className="w-64 shrink-0">
+            <div className="md:flex md:gap-8">
+                <aside className="hidden md:block w-64 shrink-0">
                     <FundList
                         funds={fundsResult.data}
                         activeCik={cik}
                     />
                 </aside>
                 <section className="flex-1 min-w-0">
+                    <div className="mb-4 md:hidden">
+                        <FundNavDrawer activeLabel={fundLabel}>
+                            <FundList
+                                funds={fundsResult.data}
+                                activeCik={cik}
+                            />
+                        </FundNavDrawer>
+                    </div>
                     <header className="mb-4">
                         <h1 className="text-2xl font-bold tracking-tight">
                             {fundLabel}

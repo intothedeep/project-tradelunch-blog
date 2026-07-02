@@ -143,7 +143,7 @@ function FlowColumn({
     const orderedRows = orderColumnByRank(rows, period);
 
     return (
-        <div className={cn('flex flex-col gap-1', COL_MIN_W)}>
+        <div className={cn('flex flex-col gap-1 snap-start', COL_MIN_W)}>
             <ColumnHeader
                 period={period}
                 isReference={isReference}
@@ -203,7 +203,7 @@ function AlignedColumn({
     onHeaderClick,
 }: AlignedColumnProps) {
     return (
-        <div className={cn('flex flex-col gap-1', COL_MIN_W)}>
+        <div className={cn('flex flex-col gap-1 snap-start', COL_MIN_W)}>
             <ColumnHeader
                 period={period}
                 isReference={isReference}
@@ -334,8 +334,8 @@ export default function RankFlowTable({ data }: RankFlowTableProps) {
                 )}
             </div>
 
-            {/* Scrollable columns */}
-            <div className="overflow-x-auto -mx-1">
+            {/* Scrollable columns — snap per quarter for mobile swipe. */}
+            <div className="overflow-x-auto -mx-1 snap-x snap-mandatory">
                 <div
                     className="inline-flex gap-2 px-1 pb-2"
                     style={{ minWidth: 'max-content' }}
