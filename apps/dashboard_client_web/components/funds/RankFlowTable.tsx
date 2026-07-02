@@ -16,7 +16,6 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { cusipColor, cusipTextColor } from '@/utils/cusipColor';
 import { quarterLabel } from '@/utils/quarterLabel';
 import {
     getOrderedPeriods,
@@ -24,7 +23,9 @@ import {
     orderColumnByRank,
     sortRowsByReference,
 } from '@/utils/rankFlowRows';
-import { formatUsd } from '@/utils/formatUsd';
+import { deriveCellBadges, type CellBadge } from '@/utils/rankFlowBadges';
+import { HoldingCell } from '@/components/funds/HoldingCell';
+import { ConsensusPanel } from '@/components/funds/ConsensusPanel.client';
 import type { RankFlow, RankFlowPeriod, RankFlowRow } from '@/types/rankFlow';
 
 interface RankFlowTableProps {
@@ -37,67 +38,6 @@ const COL_MIN_W = 'min-w-[130px]';
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
-
-interface HoldingCellProps {
-    cusip: string;
-    label: string;
-    rank: number;
-    weightPct: number;
-    valueUsd: number;
-    isActive: boolean;
-    onToggle: (cusip: string) => void;
-}
-
-function HoldingCell({
-    cusip,
-    label,
-    rank,
-    weightPct,
-    valueUsd,
-    isActive,
-    onToggle,
-}: HoldingCellProps) {
-    const bg = cusipColor(cusip);
-    const textColor = cusipTextColor(cusip);
-
-    function handleKeyDown(e: React.KeyboardEvent) {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onToggle(cusip);
-        }
-    }
-
-    return (
-        <div
-            role="button"
-            tabIndex={0}
-            aria-pressed={isActive}
-            onClick={() => onToggle(cusip)}
-            onKeyDown={handleKeyDown}
-            className={cn(
-                'relative rounded p-1.5 cursor-pointer select-none transition-shadow',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-ring',
-                isActive && 'ring-2 ring-inset ring-white/80'
-            )}
-            style={{ backgroundColor: bg, color: textColor }}
-            title={`${label} (${cusip})`}
-        >
-            <div className="text-[10px] font-bold leading-tight">#{rank}</div>
-            <div
-                className="text-[10px] leading-tight truncate max-w-[110px]"
-                title={label}
-            >
-                {label}
-            </div>
-            <div className="text-[11px] font-semibold tabular-nums">
-                {weightPct.toFixed(1)}%
-            </div>
-            <div className="text-[9px] opacity-80 tabular-nums">
-                {formatUsd(valueUsd)}
-            </div>
-        </div>
-    );
-}
 
 function GhostCell() {
     return (
@@ -185,6 +125,7 @@ interface FlowColumnProps {
     rows: RankFlowRow[];
     activeCusip: string | null;
     isReference: boolean;
+    badges: Map<string, Record<string, CellBadge>>;
     onToggleCusip: (cusip: string) => void;
     onHeaderClick: (period: string) => void;
 }
@@ -195,6 +136,7 @@ function FlowColumn({
     rows,
     activeCusip,
     isReference,
+    badges,
     onToggleCusip,
     onHeaderClick,
 }: FlowColumnProps) {
@@ -220,6 +162,7 @@ function FlowColumn({
                                 valueUsd={cell.valueUsd}
                                 isActive={activeCusip === row.cusip}
                                 onToggle={onToggleCusip}
+                                badge={badges.get(row.cusip)?.[period]}
                             />
                         ) : null}
                     </div>
@@ -240,6 +183,7 @@ interface AlignedColumnProps {
     sortedRows: RankFlowRow[];
     activeCusip: string | null;
     isReference: boolean;
+    badges: Map<string, Record<string, CellBadge>>;
     onToggleCusip: (cusip: string) => void;
     onHeaderClick: (period: string) => void;
 }
@@ -250,6 +194,7 @@ function AlignedColumn({
     sortedRows,
     activeCusip,
     isReference,
+    badges,
     onToggleCusip,
     onHeaderClick,
 }: AlignedColumnProps) {
@@ -273,6 +218,7 @@ function AlignedColumn({
                                 valueUsd={cell.valueUsd}
                                 isActive={activeCusip === row.cusip}
                                 onToggle={onToggleCusip}
+                                badge={badges.get(row.cusip)?.[period]}
                             />
                         ) : (
                             <GhostCell />
@@ -321,6 +267,12 @@ export default function RankFlowTable({ data }: RankFlowTableProps) {
 
     const orderedPeriods = getOrderedPeriods(data.periods);
     const periodMap = new Map(data.periods.map((p) => [p.periodOfReport, p]));
+
+    // Per-cusip Δ badges (NEW / rank move), computed once against the ordered
+    // (newest-first) period keys. Passed down so each cell renders its own.
+    const badgesByCusip = new Map(
+        data.rows.map((r) => [r.cusip, deriveCellBadges(r, orderedPeriods)])
+    );
 
     if (orderedPeriods.length === 0) {
         return (
@@ -389,6 +341,7 @@ export default function RankFlowTable({ data }: RankFlowTableProps) {
                                   sortedRows={sortedRows}
                                   activeCusip={activeCusip}
                                   isReference={period === refPeriod}
+                                  badges={badgesByCusip}
                                   onToggleCusip={toggleCusip}
                                   onHeaderClick={handleHeaderClick}
                               />
@@ -401,12 +354,16 @@ export default function RankFlowTable({ data }: RankFlowTableProps) {
                                   rows={data.rows}
                                   activeCusip={activeCusip}
                                   isReference={false}
+                                  badges={badgesByCusip}
                                   onToggleCusip={toggleCusip}
                                   onHeaderClick={handleHeaderClick}
                               />
                           ))}
                 </div>
             </div>
+
+            {/* Cross-fund consensus for the selected security (lazy). */}
+            <ConsensusPanel cusip={activeCusip} />
         </div>
     );
 }
