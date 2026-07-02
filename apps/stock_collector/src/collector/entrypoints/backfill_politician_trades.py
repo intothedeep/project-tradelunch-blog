@@ -189,6 +189,12 @@ def main(argv: list[str] | None = None) -> int:
                     f" rows_upserted={upserted}"
                 )
             except Exception as exc:  # noqa: BLE001
+                # Reset the connection: a mid-transaction failure leaves it in
+                # an aborted state, which would fail every subsequent filer.
+                try:
+                    conn.rollback()
+                except Exception:  # noqa: BLE001
+                    pass
                 filer_failures += 1
                 print(
                     f"  filer={filer_id} FAILED"

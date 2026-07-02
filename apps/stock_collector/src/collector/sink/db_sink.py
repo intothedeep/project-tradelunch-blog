@@ -49,7 +49,14 @@ def connect() -> psycopg.Connection:
     # WHY: bar_time is TIMESTAMPTZ but we write bare dates, and the incremental
     # cursor (MAX(bar_time)::date) + reader's UTC date derivation all assume a
     # UTC session. Pin it so the invariant holds under any DATABASE_URL.
-    return psycopg.connect(dsn, options="-c timezone=UTC")
+    # prepare_threshold=None disables psycopg3 server-side auto-prepare: the
+    # Supabase pooler rotates the underlying server connection, so a statement
+    # prepared after N reuses (e.g. the same upsert across 434 backfill filers)
+    # vanishes → "prepared statement _pg3_x does not exist". Disabling is the
+    # Supabase-pooler-safe setting and harmless for our executemany-heavy path.
+    return psycopg.connect(
+        dsn, options="-c timezone=UTC", prepare_threshold=None
+    )
 
 
 # --- writes -----------------------------------------------------------------
