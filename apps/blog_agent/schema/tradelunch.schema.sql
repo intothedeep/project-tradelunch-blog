@@ -478,12 +478,70 @@ CREATE TABLE IF NOT EXISTS symbol_fundamentals (
 );
 
 -- =============================================================================
+-- 0018: add company display name to the fundamentals cache.
+-- Mirrors migration 0018_symbol_fundamentals_long_name.sql.
+-- =============================================================================
+ALTER TABLE symbol_fundamentals
+    ADD COLUMN IF NOT EXISTS long_name TEXT NULL;
+
+-- =============================================================================
+-- Phase J (SEC 13F): filing-level metadata + per-position rows.
+-- Mirrors migration 0017_sec_holdings.sql.
+-- Soft-delete on both tables; amendments insert a new accession and the
+-- collector soft-deletes the prior same-period filing.
+-- =============================================================================
+
+-- One row per (cik, accession) — filing-level metadata.
+CREATE TABLE IF NOT EXISTS sec_filings (
+    cik               TEXT NOT NULL,                 -- zero-padded 10-char, source-native
+    accession         TEXT NOT NULL,                 -- e.g. 0001067983-25-000123
+    period_of_report  DATE NOT NULL,                 -- reportDate (quarter-end) = as_of
+    form_type         TEXT NOT NULL,                 -- '13F-HR' | '13F-HR/A'
+    filer             TEXT NULL,
+    filing_date       DATE NULL,
+    value_units       TEXT NOT NULL DEFAULT 'usd',   -- 'usd' | 'usd_thousands'
+    source            TEXT NOT NULL DEFAULT 'sec13f',
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at        TIMESTAMPTZ NULL,
+    CONSTRAINT sec_filings_pkey PRIMARY KEY (cik, accession)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sec_filings_cik_period
+    ON sec_filings(cik, period_of_report DESC) WHERE deleted_at IS NULL;
+
+-- One row per (cik, accession, cusip, put_call, prn_type). put_call + prn_type
+-- are NON-NULL sentinels ('') because Postgres treats NULL as distinct in a
+-- unique key, which would silently break the ON CONFLICT upsert.
+CREATE TABLE IF NOT EXISTS sec_holdings (
+    cik              TEXT NOT NULL,
+    accession        TEXT NOT NULL,
+    period_of_report DATE NOT NULL,                  -- denormalized for fast as-of reads
+    cusip            TEXT NOT NULL,
+    name_of_issuer   TEXT NOT NULL,
+    title_of_class   TEXT NULL,
+    ticker           TEXT NULL,                       -- reserved; CUSIP->ticker via security_map
+    shares           BIGINT NULL,                     -- sshPrnamt when type=SH
+    prn_type         TEXT NOT NULL DEFAULT '',        -- 'SH' | 'PRN'
+    value_usd        BIGINT NOT NULL,                 -- normalized whole USD
+    put_call         TEXT NOT NULL DEFAULT '',        -- '' | 'PUT' | 'CALL'
+    discretion       TEXT NULL,
+    source           TEXT NOT NULL DEFAULT 'sec13f',
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at       TIMESTAMPTZ NULL,
+    CONSTRAINT sec_holdings_pkey PRIMARY KEY (cik, accession, cusip, put_call, prn_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sec_holdings_cik_period
+    ON sec_holdings(cik, period_of_report DESC) WHERE deleted_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_sec_holdings_cusip
+    ON sec_holdings(cusip) WHERE deleted_at IS NULL;
+
+-- =============================================================================
 -- Phase P (STEP 0-b): CUSIP -> ticker -> sector join key.
--- Mirrors migration 0019_security_map.sql.
--- NOTE: the companion view v_sec_holdings_enriched (0019) plus the
--- sec_filings/sec_holdings tables (0017) live in migrations only — this SSOT
--- dump has a pre-existing gap for the SEC 13F tables (0014/0015/0017 drift),
--- tracked as a separate ENG cleanup. security_map is self-contained and mirrored.
+-- Mirrors migration 0019_security_map.sql (table + v_sec_holdings_enriched view).
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS security_map (
     cusip           TEXT NOT NULL,
@@ -504,13 +562,26 @@ CREATE TABLE IF NOT EXISTS security_map (
 CREATE INDEX IF NOT EXISTS idx_security_map_ticker
     ON security_map(ticker) WHERE deleted_at IS NULL AND ticker IS NOT NULL;
 
+-- Enriched read surface: 13F holdings + resolved ticker + sector. sector prefers
+-- live symbol_fundamentals, falls back to the mapping-time cached sector.
+-- Rows whose CUSIP is unresolved surface mapped_ticker = NULL (naturally excluded
+-- from signal math, which requires a ticker).
+CREATE OR REPLACE VIEW v_sec_holdings_enriched AS
+SELECT h.*,
+       m.ticker                      AS mapped_ticker,
+       COALESCE(f.sector, m.sector)  AS sector,
+       m.confidence                  AS map_confidence
+FROM sec_holdings h
+LEFT JOIN security_map m
+       ON m.cusip = h.cusip AND m.deleted_at IS NULL
+LEFT JOIN symbol_fundamentals f
+       ON f.symbol = m.ticker AND f.deleted_at IS NULL
+WHERE h.deleted_at IS NULL;
+
 -- =============================================================================
 -- Phase P (STEP 1): 13F signal analytics. fund_registry classifies filers as
 -- active stock-pickers vs passive index funds (consensus uses active only).
--- Mirrors migration 0020_sec_analytics.sql (table only). The analytics VIEWS
--- (v_sec_positions / v_sec_fund_periods / v_sec_position_delta / v_sec_exits /
--- v_sec_consensus) live in the migration — they depend on sec_holdings/sec_filings,
--- which this SSOT dump omits (0014/0015/0017 drift, tracked separately).
+-- Mirrors migration 0020_sec_analytics.sql (table + seed + views).
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS fund_registry (
     cik               TEXT NOT NULL,
@@ -521,6 +592,83 @@ CREATE TABLE IF NOT EXISTS fund_registry (
     deleted_at        TIMESTAMPTZ NULL,
     CONSTRAINT fund_registry_pkey PRIMARY KEY (cik)
 );
+
+INSERT INTO fund_registry (cik, label, is_active_manager) VALUES
+    ('0001067983', 'Berkshire Hathaway',       TRUE),
+    ('0001350694', 'Bridgewater Associates',   TRUE),
+    ('0001037389', 'Renaissance Technologies', TRUE),
+    ('0002012383', 'BlackRock',                FALSE),
+    ('0000102909', 'Vanguard Group',           FALSE),
+    ('0000093751', 'State Street',             FALSE)
+ON CONFLICT (cik) DO NOTHING;
+
+-- Base: one row per (cik, period, cusip), summed across accessions, with the
+-- fund's in-quarter portfolio weight.
+CREATE OR REPLACE VIEW v_sec_positions AS
+WITH pos AS (
+    SELECT cik, period_of_report, cusip,
+           MAX(name_of_issuer) AS name_of_issuer,
+           SUM(shares)         AS shares,
+           SUM(value_usd)      AS value_usd
+    FROM sec_holdings
+    WHERE deleted_at IS NULL AND put_call = '' AND prn_type <> 'PRN'
+    GROUP BY cik, period_of_report, cusip
+)
+SELECT p.*,
+       ROUND(p.value_usd * 100.0 / NULLIF(
+           SUM(p.value_usd) OVER (PARTITION BY cik, period_of_report), 0), 4
+       ) AS weight_pct
+FROM pos p;
+
+-- Each fund's adjacent filed-quarter ladder (prev_period = the quarter actually
+-- filed before this one, NOT calendar-minus-one).
+CREATE OR REPLACE VIEW v_sec_fund_periods AS
+SELECT cik, period_of_report,
+       LAG(period_of_report) OVER (PARTITION BY cik ORDER BY period_of_report) AS prev_period
+FROM (
+    SELECT DISTINCT cik, period_of_report
+    FROM sec_filings WHERE deleted_at IS NULL
+) fp;
+
+-- Δ for currently-held positions vs the fund's prior filed quarter.
+CREATE OR REPLACE VIEW v_sec_position_delta AS
+SELECT cur.cik, cur.period_of_report, cur.cusip, cur.name_of_issuer,
+       cur.shares, cur.value_usd, cur.weight_pct,
+       fp.prev_period,
+       cur.shares     - prev.shares      AS delta_shares,
+       cur.weight_pct - prev.weight_pct  AS delta_weight_pct,
+       (fp.prev_period IS NOT NULL AND prev.cusip IS NULL) AS is_new,
+       (fp.prev_period IS NULL)                            AS is_first_period
+FROM v_sec_positions cur
+JOIN v_sec_fund_periods fp
+  ON fp.cik = cur.cik AND fp.period_of_report = cur.period_of_report
+LEFT JOIN v_sec_positions prev
+  ON prev.cik = cur.cik AND prev.period_of_report = fp.prev_period
+ AND prev.cusip = cur.cusip;
+
+-- EXITs: held in the prior filed quarter, absent now (attributed to this period).
+CREATE OR REPLACE VIEW v_sec_exits AS
+SELECT fp.cik, fp.period_of_report, prev.cusip, prev.name_of_issuer,
+       prev.shares AS prev_shares, prev.weight_pct AS prev_weight_pct
+FROM v_sec_fund_periods fp
+JOIN v_sec_positions prev
+  ON prev.cik = fp.cik AND prev.period_of_report = fp.prev_period
+LEFT JOIN v_sec_positions cur
+  ON cur.cik = fp.cik AND cur.period_of_report = fp.period_of_report
+ AND cur.cusip = prev.cusip
+WHERE cur.cusip IS NULL;
+
+-- Cross-fund consensus per (period, cusip): active vs total holder counts.
+CREATE OR REPLACE VIEW v_sec_consensus AS
+SELECT p.period_of_report, p.cusip,
+       MAX(p.name_of_issuer)                                AS name_of_issuer,
+       COUNT(*) FILTER (WHERE r.is_active_manager)          AS holder_count_active,
+       COUNT(*)                                             AS holder_count_total,
+       SUM(p.value_usd) FILTER (WHERE r.is_active_manager)  AS active_value_usd,
+       ARRAY_AGG(p.cik ORDER BY p.value_usd DESC)           AS holder_ciks
+FROM v_sec_positions p
+JOIN fund_registry r ON r.cik = p.cik AND r.deleted_at IS NULL
+GROUP BY p.period_of_report, p.cusip;
 
 -- =============================================================================
 -- Phase Q: US congressional + executive STOCK Act disclosures.
@@ -606,34 +754,46 @@ LEFT JOIN symbol_fundamentals f
        ON f.symbol = pt.ticker AND f.deleted_at IS NULL
 WHERE pt.deleted_at IS NULL;
 
+-- Aggregate activity per ticker over a rolling 90-day disclosure window.
+-- Re-keyed on person identity (COALESCE(bioguide_id, filer_id)) per 0024 so
+-- that House→Senate career moves and name-spelling variants count as one member.
+-- v_politician_ticker_holders / v_politician_filer_timeline remain filer_id-keyed
+-- (per-filer profile pages — out of scope here).
 CREATE OR REPLACE VIEW v_politician_activity AS
+WITH trades AS (
+    SELECT
+        pt.ticker,
+        pt.transaction_type,
+        pt.disclosure_date,
+        COALESCE(r.bioguide_id, pt.filer_id) AS person_key
+    FROM politician_trades pt
+    LEFT JOIN politician_registry r
+           ON r.filer_id = pt.filer_id AND r.deleted_at IS NULL
+    WHERE pt.ticker IS NOT NULL
+      AND pt.deleted_at IS NULL
+      AND pt.disclosure_date >= CURRENT_DATE - INTERVAL '90 days'
+)
 SELECT
     ticker,
-    -- keyed on kadoa filer_id (not bioguide_id, which is not yet populated);
-    -- may slightly over-count a politician whose slug varies across sources —
-    -- reconcile at bioguide enrichment.
-    COUNT(DISTINCT filer_id)                                                    AS traded_by_count,
-    COUNT(DISTINCT filer_id) FILTER (WHERE transaction_type = 'buy')            AS buy_member_count,
-    COUNT(DISTINCT filer_id) FILTER (WHERE transaction_type = 'sell')           AS sell_member_count,
+    COUNT(DISTINCT person_key)                                                    AS traded_by_count,
+    COUNT(DISTINCT person_key) FILTER (WHERE transaction_type = 'buy')            AS buy_member_count,
+    COUNT(DISTINCT person_key) FILTER (WHERE transaction_type = 'sell')           AS sell_member_count,
     CASE
-        WHEN COUNT(DISTINCT filer_id) FILTER (WHERE transaction_type = 'buy')
-           > COUNT(DISTINCT filer_id) FILTER (WHERE transaction_type = 'sell')
+        WHEN COUNT(DISTINCT person_key) FILTER (WHERE transaction_type = 'buy')
+           > COUNT(DISTINCT person_key) FILTER (WHERE transaction_type = 'sell')
             THEN 'buy_skew'
-        WHEN COUNT(DISTINCT filer_id) FILTER (WHERE transaction_type = 'sell')
-           > COUNT(DISTINCT filer_id) FILTER (WHERE transaction_type = 'buy')
+        WHEN COUNT(DISTINCT person_key) FILTER (WHERE transaction_type = 'sell')
+           > COUNT(DISTINCT person_key) FILTER (WHERE transaction_type = 'buy')
             THEN 'sell_skew'
         ELSE 'mixed'
-    END                                                                          AS net_direction,
-    MAX(disclosure_date)                                                         AS latest_disclosure_date,
+    END                                                                           AS net_direction,
+    MAX(disclosure_date)                                                          AS latest_disclosure_date,
     (
-        COUNT(DISTINCT filer_id) FILTER (WHERE transaction_type = 'buy')  >= 3
+        COUNT(DISTINCT person_key) FILTER (WHERE transaction_type = 'buy')  >= 3
         OR
-        COUNT(DISTINCT filer_id) FILTER (WHERE transaction_type = 'sell') >= 3
-    )                                                                            AS cluster_flag
-FROM politician_trades
-WHERE ticker IS NOT NULL
-  AND deleted_at IS NULL
-  AND disclosure_date >= CURRENT_DATE - INTERVAL '90 days'
+        COUNT(DISTINCT person_key) FILTER (WHERE transaction_type = 'sell') >= 3
+    )                                                                             AS cluster_flag
+FROM trades
 GROUP BY ticker;
 
 ALTER TABLE politician_registry
