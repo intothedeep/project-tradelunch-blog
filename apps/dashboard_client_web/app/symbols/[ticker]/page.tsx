@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getSymbolDetail } from '@/app/actions/getSymbolDetail.action';
-import { PriceSparkline } from '@/components/symbols/PriceSparkline';
+import { PriceChart } from '@/components/symbols/PriceChart';
 
 export const dynamic = 'force-dynamic';
 
@@ -93,11 +93,11 @@ export default async function SymbolDetailPage({
                 )}
             </header>
 
-            {/* Price sparkline */}
-            <section className="mb-8 max-w-xs">
+            {/* Price chart */}
+            <section className="mb-8 max-w-2xl">
                 <h2 className="mb-3 text-xl font-semibold">Price (1Y)</h2>
                 {priceHistory.length > 0 ? (
-                    <PriceSparkline points={priceHistory} />
+                    <PriceChart points={priceHistory} />
                 ) : (
                     <p className="text-sm text-muted-foreground">
                         Price history not tracked for this symbol.
