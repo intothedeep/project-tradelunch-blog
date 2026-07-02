@@ -13,6 +13,7 @@ import favorites from './favorites';
 import categories from './categories';
 import tags from './tags';
 import errorLogs from './errorLogs';
+import politicians from './politicians';
 
 export const router = Router();
 
@@ -54,10 +55,8 @@ router.use('/api/likes', likesListRouter);
 // Error-log ingest (POST /api/error-logs) — PUBLIC, called server-to-server by
 // the Next runtime (app/api/log-error), never by the browser. Its own prefix.
 router.use('/api/error-logs', errorLogs);
-// router.use("/accounts", require("./accounts"));
-// router.use("/auth", require("./auth"));
-// router.use("/chat", require("./chat"));
-// router.use("/products", require("./products"));
-// router.use("/cart", require("./cart"));
+// Politician PTR profile (GET /api/politicians/:filerId) — PUBLIC read;
+// presence-guarded against 0022/0023 migrations; returns data:null when absent.
+router.use('/api/politicians', politicians);
 
 export default router;

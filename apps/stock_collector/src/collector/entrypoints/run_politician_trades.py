@@ -1,7 +1,13 @@
 """Entrypoint: daily kadoa congressional-trade disclosure collector (Phase Q).
 
 Flow: fetch kadoa trades.json -> parse -> upsert_politicians -> commit ->
+[best-effort] fetch filers.json -> parse_filers -> upsert_politicians_enriched -> commit ->
 upsert_trades -> commit; try/finally insert_batch_log.
+
+The filers enrichment step is best-effort: if fetch_filers or upsert_politicians_enriched
+fails, a WARNING is logged and the run continues — trades ingest succeeds and exits 0.
+The enrichment never clobbers basic columns set by the trades path because
+upsert_politicians_enriched uses a separate SQL that owns the aggregate columns.
 
 Guardrail logging:
   * rows_ingested       — total trade rows upserted
@@ -26,9 +32,13 @@ from datetime import date, datetime, timezone
 
 from collector.config.settings import database_url
 from collector.sink import db_sink
-from collector.sink.kadoa_fetch import fetch_trades
-from collector.sink.politician_db_sink import upsert_politicians, upsert_trades
-from collector.transform.politician_parse import parse_trades
+from collector.sink.kadoa_fetch import fetch_filers, fetch_trades
+from collector.sink.politician_db_sink import (
+    upsert_politicians,
+    upsert_politicians_enriched,
+    upsert_trades,
+)
+from collector.transform.politician_parse import parse_filers, parse_trades
 
 
 def _guardrail_stats(
@@ -53,6 +63,21 @@ def _guardrail_stats(
         staleness = None
 
     return rows_ingested, distinct_filers, unresolved_pct, staleness
+
+
+def _enrich_registry_best_effort(conn) -> None:
+    """Fetch filers.json and upsert aggregate columns. Non-fatal on any error."""
+    try:
+        filer_records = fetch_filers()
+        enriched_rows = parse_filers(filer_records)
+        n = upsert_politicians_enriched(conn, enriched_rows)
+        conn.commit()
+        print(f"[run_politician_trades] enriched {n} registry rows from filers.json")
+    except Exception as exc:  # noqa: BLE001
+        print(
+            f"[run_politician_trades] WARNING: filers enrichment failed (non-fatal): "
+            f"{type(exc).__name__}: {exc}"
+        )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -98,9 +123,12 @@ def main(argv: list[str] | None = None) -> int:
             trade_rows, registry_rows
         )
 
-        # FK order: registry first, then trades.
+        # FK order: registry first, then enrichment, then trades.
         n_politicians = upsert_politicians(conn, registry_rows)
         conn.commit()
+
+        # Best-effort filers enrichment (non-fatal; trades ingest proceeds regardless).
+        _enrich_registry_best_effort(conn)
 
         n_trades = upsert_trades(conn, trade_rows)
         conn.commit()

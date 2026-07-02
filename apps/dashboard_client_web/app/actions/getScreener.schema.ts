@@ -5,7 +5,8 @@
 //   drift. `data:null` is a valid response — handled by the action, not here.
 //   politicianCount90d / politicianNetDirection are .optional() so that a stale
 //   Next Data Cache body (pre-migration-0022) still parses without error —
-//   lenient-parsing rule.
+//   lenient-parsing rule. politicianTopFilers is .optional() for the same reason
+//   (pre-migration-0023).
 // Side effects: none (pure schema declaration).
 
 import { z } from 'zod';
@@ -32,6 +33,10 @@ const screenerCandidateSchema = z.object({
     // Optional: absent when migration 0022 not yet applied (lenient-parse contract).
     politicianCount90d: z.number().nullable().optional(),
     politicianNetDirection: z.string().nullable().optional(),
+    // Optional: absent when migration 0023 not yet applied (lenient-parse contract).
+    politicianTopFilers: z
+        .array(z.object({ filerId: z.string(), filerName: z.string() }))
+        .optional(),
 });
 
 export const screenerDataSchema = z.object({

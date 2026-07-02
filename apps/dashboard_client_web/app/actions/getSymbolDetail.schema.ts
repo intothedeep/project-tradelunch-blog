@@ -5,6 +5,7 @@
 //   on drift. `data:null` is a valid response and is handled by the action.
 //   politicianActivity is .optional() so that a stale Next Data Cache body
 //   (pre-migration-0022) still parses without error — lenient-parsing rule.
+//   politicianHolders is .optional() for the same reason (pre-migration-0023).
 // Side effects: none (pure schema declaration).
 
 import { z } from 'zod';
@@ -41,6 +42,27 @@ export const symbolPoliticianActivitySchema = z.object({
     clusterFlag: z.boolean(),
 });
 
+export const symbolPoliticianHolderSchema = z.object({
+    filerId: z.string(),
+    filerName: z.string(),
+    party: z.string().nullable(),
+    chamber: z.string().nullable(),
+    disclosedValueBand: z.enum([
+        '<$15K',
+        '$15K–$50K',
+        '$50K–$250K',
+        '$250K–$1M',
+        '>$1M',
+        '—',
+    ]),
+    sharePctOfFilerVolume: z.number().nullable(),
+    rankInFilerVolume: z.number().nullable(),
+    totalTickerCount: z.number().nullable(),
+    tradeCount: z.number(),
+    netDirection: z.enum(['buy_skew', 'sell_skew', 'mixed']),
+    latestDisclosure: z.string(),
+});
+
 export const symbolDetailSchema = z.object({
     ticker: z.string(),
     sector: z.string().nullable(),
@@ -50,6 +72,8 @@ export const symbolDetailSchema = z.object({
     priceHistory: z.array(pricePointSchema),
     // Optional: absent when migration 0022 not yet applied (lenient-parse contract).
     politicianActivity: symbolPoliticianActivitySchema.nullable().optional(),
+    // Optional: absent when migration 0023 not yet applied (lenient-parse contract).
+    politicianHolders: z.array(symbolPoliticianHolderSchema).optional(),
 });
 
 export type SymbolDetailSchema = z.infer<typeof symbolDetailSchema>;

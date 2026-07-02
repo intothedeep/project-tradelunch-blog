@@ -1,14 +1,18 @@
 """IO boundary: fetch kadoa congressional-trade JSON over HTTP.
 
-Purpose: single GET of the kadoa trades.json file from GitHub raw content.
-No API key required. ETag/If-None-Match supported optionally (caller can
-pass last_etag; returns (records, new_etag) tuple).
+Purpose: single GET helpers for kadoa GitHub raw content files.
+No API key required. ETag/If-None-Match supported for trades.json only.
+
+Endpoints:
+  * fetch_trades  — trades.json (ETag-aware, 304 short-circuit)
+  * fetch_filers  — filers.json (aggregate stats per politician)
+  * fetch_filer_detail — filer/{id}.json (one filer's full trade history)
 
 Invariants:
-  * Returns list[dict] — one dict per trade record.
-  * 304 Not Modified: returns ([], last_etag) — caller skips upsert.
-  * Raises requests.HTTPError on any non-2xx, non-304 response.
-  * Exponential backoff via request_with_backoff (max 3 attempts).
+  * fetch_trades returns (list[dict], etag); 304 → ([], last_etag).
+  * fetch_filers / fetch_filer_detail return the parsed JSON directly.
+  * Raises requests.HTTPError on any non-2xx, non-304 response after retries.
+  * Exponential backoff via _request_with_backoff (max 3 attempts).
 
 Side effects: network (raw.githubusercontent.com).
 """
@@ -19,10 +23,13 @@ import time
 
 import requests
 
-_KADOA_TRADES_URL = (
+_BASE_URL = (
     "https://raw.githubusercontent.com/kadoa-org/"
-    "congress-trading-monitor/main/public/data/trades.json"
+    "congress-trading-monitor/main/public/data"
 )
+_KADOA_TRADES_URL = f"{_BASE_URL}/trades.json"
+_KADOA_FILERS_URL = f"{_BASE_URL}/filers.json"
+_KADOA_FILER_DETAIL_URL = f"{_BASE_URL}/filer/{{filer_id}}.json"
 
 _USER_AGENT = "tradelunch-collector admin@prettylog.com"
 _TIMEOUT = 30
@@ -93,3 +100,30 @@ def fetch_trades(
     resp.raise_for_status()
     new_etag = resp.headers.get("ETag") or last_etag
     return resp.json(), new_etag
+
+
+def fetch_filers(url: str = _KADOA_FILERS_URL) -> list[dict]:
+    """GET kadoa filers.json; return list of filer aggregate records.
+
+    No ETag support (always fresh; called once per daily run).
+
+    Raises:
+        requests.HTTPError: on non-2xx response after retries.
+    """
+    resp = _request_with_backoff(lambda: _session.get(url, timeout=_TIMEOUT))
+    resp.raise_for_status()
+    return resp.json()
+
+
+def fetch_filer_detail(filer_id: str) -> dict:
+    """GET kadoa filer/{filer_id}.json; return { filer: {...}, trades: [...] }.
+
+    Used by the backfill entrypoint to pull per-filer full trade history.
+
+    Raises:
+        requests.HTTPError: on non-2xx response after retries.
+    """
+    url = _KADOA_FILER_DETAIL_URL.format(filer_id=filer_id)
+    resp = _request_with_backoff(lambda: _session.get(url, timeout=_TIMEOUT))
+    resp.raise_for_status()
+    return resp.json()

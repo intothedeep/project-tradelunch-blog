@@ -635,3 +635,59 @@ WHERE ticker IS NOT NULL
   AND deleted_at IS NULL
   AND disclosure_date >= CURRENT_DATE - INTERVAL '90 days'
 GROUP BY ticker;
+
+ALTER TABLE politician_registry
+    ADD COLUMN IF NOT EXISTS photo_url    TEXT   NULL,
+    ADD COLUMN IF NOT EXISTS trade_count  INT    NULL,
+    ADD COLUMN IF NOT EXISTS purchases    INT    NULL,
+    ADD COLUMN IF NOT EXISTS sales        INT    NULL,
+    ADD COLUMN IF NOT EXISTS late_filings INT    NULL,
+    ADD COLUMN IF NOT EXISTS est_volume   BIGINT NULL;
+
+CREATE OR REPLACE VIEW v_politician_ticker_holders AS
+SELECT
+    ticker,
+    filer_id,
+    SUM(value_estimate)                                                  AS disclosed_value_usd,
+    COUNT(*)                                                             AS trade_count,
+    COUNT(*) FILTER (WHERE transaction_type = 'buy')                     AS buy_count,
+    COUNT(*) FILTER (WHERE transaction_type = 'sell')                    AS sell_count,
+    CASE
+        WHEN COUNT(*) FILTER (WHERE transaction_type = 'buy')
+           > COUNT(*) FILTER (WHERE transaction_type = 'sell')
+            THEN 'buy_skew'
+        WHEN COUNT(*) FILTER (WHERE transaction_type = 'sell')
+           > COUNT(*) FILTER (WHERE transaction_type = 'buy')
+            THEN 'sell_skew'
+        ELSE 'mixed'
+    END                                                                  AS net_direction,
+    MAX(disclosure_date)                                                 AS latest_disclosure,
+    MIN(disclosure_date)                                                 AS first_disclosure
+FROM politician_trades
+WHERE ticker IS NOT NULL
+  AND deleted_at IS NULL
+GROUP BY ticker, filer_id;
+
+CREATE OR REPLACE VIEW v_politician_filer_timeline AS
+SELECT
+    filer_id,
+    ticker,
+    date_trunc('quarter', transaction_date)::date                                                AS quarter,
+    COALESCE(SUM(value_estimate) FILTER (WHERE transaction_type = 'buy'), 0)
+        - COALESCE(SUM(value_estimate) FILTER (WHERE transaction_type = 'sell'), 0)             AS net_value_usd,
+    COUNT(*) FILTER (WHERE transaction_type = 'buy')                                             AS buy_count,
+    COUNT(*) FILTER (WHERE transaction_type = 'sell')                                            AS sell_count,
+    CASE
+        WHEN COUNT(*) FILTER (WHERE transaction_type = 'buy')
+           > COUNT(*) FILTER (WHERE transaction_type = 'sell')
+            THEN 'buy'
+        WHEN COUNT(*) FILTER (WHERE transaction_type = 'sell')
+           > COUNT(*) FILTER (WHERE transaction_type = 'buy')
+            THEN 'sell'
+        ELSE 'mixed'
+    END                                                                                          AS direction
+FROM politician_trades
+WHERE ticker IS NOT NULL
+  AND transaction_date IS NOT NULL
+  AND deleted_at IS NULL
+GROUP BY filer_id, ticker, date_trunc('quarter', transaction_date);

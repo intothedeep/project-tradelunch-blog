@@ -10,6 +10,9 @@
 //   - LEFT JOIN v_politician_activity (when present, migration 0022): exposes
 //     politicianCount90d + politicianNetDirection per candidate row.
 //     When absent → both fields omitted (never 500), exactly like other dynamic joins.
+//   - politicianTopFilers (Q6.4): top ~3 filers per ticker from
+//     v_politician_ticker_holders (migration 0023); presence-guarded.
+//     When view absent → politicianTopFilers:[] for all candidates, never 500.
 //   - Score computed in Node via computeScore() — deterministic, testable without DB.
 //   - momentum (0.3) + lowVol (0.1): computed from market_history '1d' closes joined
 //     by resolved ticker, cross-sectionally percentile-normalised across the candidate
@@ -59,6 +62,7 @@ interface IRawPresence {
     has_rankings: boolean;
     has_market_history: boolean;
     has_politician_activity: boolean;
+    has_politician_holders: boolean;
 }
 
 async function probePresence(): Promise<{
@@ -67,13 +71,15 @@ async function probePresence(): Promise<{
     hasRankings: boolean;
     hasMarketHistory: boolean;
     hasPoliticianActivity: boolean;
+    hasPoliticianHolders: boolean;
 }> {
     const { rows } = await pool.query<IRawPresence>(
-        `SELECT to_regclass('public.v_sec_consensus')        IS NOT NULL AS has_consensus,
-                to_regclass('public.security_map')           IS NOT NULL AS has_secmap,
-                to_regclass('public.market_rankings')        IS NOT NULL AS has_rankings,
-                to_regclass('public.market_history')         IS NOT NULL AS has_market_history,
-                to_regclass('public.v_politician_activity')  IS NOT NULL AS has_politician_activity`
+        `SELECT to_regclass('public.v_sec_consensus')             IS NOT NULL AS has_consensus,
+                to_regclass('public.security_map')                IS NOT NULL AS has_secmap,
+                to_regclass('public.market_rankings')             IS NOT NULL AS has_rankings,
+                to_regclass('public.market_history')              IS NOT NULL AS has_market_history,
+                to_regclass('public.v_politician_activity')       IS NOT NULL AS has_politician_activity,
+                to_regclass('public.v_politician_ticker_holders') IS NOT NULL AS has_politician_holders`
     );
     return {
         hasConsensus:          rows[0]?.has_consensus           ?? false,
@@ -81,6 +87,7 @@ async function probePresence(): Promise<{
         hasRankings:           rows[0]?.has_rankings            ?? false,
         hasMarketHistory:      rows[0]?.has_market_history      ?? false,
         hasPoliticianActivity: rows[0]?.has_politician_activity ?? false,
+        hasPoliticianHolders:  rows[0]?.has_politician_holders  ?? false,
     };
 }
 
@@ -145,6 +152,57 @@ async function computePriceSignals(
     };
 }
 
+// --- Top filers helper (Q6.4) ---
+
+interface ITopFilerRow {
+    ticker: string;
+    filer_id: string;
+    filer_name: string;
+}
+
+/**
+ * Fetch top 3 politician filers per ticker (by disclosed value DESC).
+ * Presence-guarded: when v_politician_ticker_holders is absent returns empty map.
+ * On error degrades to empty map — never propagates a 500.
+ */
+async function fetchTopFilersPerTicker(
+    tickers: string[],
+    hasPoliticianHolders: boolean
+): Promise<Map<string, Array<{ filerId: string; filerName: string }>>> {
+    const map = new Map<string, Array<{ filerId: string; filerName: string }>>();
+    if (!hasPoliticianHolders || tickers.length === 0) return map;
+
+    try {
+        const { rows } = await pool.query<ITopFilerRow>(
+            `WITH ranked AS (
+                SELECT h.ticker,
+                       h.filer_id,
+                       r.filer_name,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY h.ticker
+                           ORDER BY h.disclosed_value_usd DESC NULLS LAST
+                       ) AS rn
+                  FROM v_politician_ticker_holders h
+                  JOIN politician_registry r
+                    ON r.filer_id = h.filer_id AND r.deleted_at IS NULL
+                 WHERE h.ticker = ANY($1)
+             )
+             SELECT ticker, filer_id, filer_name
+               FROM ranked
+              WHERE rn <= 3`,
+            [tickers]
+        );
+        for (const row of rows) {
+            const list = map.get(row.ticker) ?? [];
+            list.push({ filerId: row.filer_id, filerName: row.filer_name });
+            map.set(row.ticker, list);
+        }
+    } catch {
+        // Degrade to empty map on any sub-query error (e.g. politician_registry absent).
+    }
+    return map;
+}
+
 // --- DB row shapes (only columns we SELECT) ---
 
 interface IActiveFundCountRow {
@@ -197,6 +255,7 @@ router.get('/screen', async (req, res) => {
             hasRankings,
             hasMarketHistory,
             hasPoliticianActivity,
+            hasPoliticianHolders,
         } = await probePresence();
         if (!hasConsensus) {
             return res.json({ success: true, data: null });
@@ -327,7 +386,23 @@ SELECT c.cusip,
         // Two-tier order: price-signal-complete first, then score/holders desc.
         scored.sort(compareScreenCandidates);
 
-        const candidates = scored.slice(0, limit);
+        const sliced = scored.slice(0, limit);
+
+        // Q6.4: top filers per ticker (migration 0023) — presence-guarded.
+        const resolvedTickers = sliced
+            .map((c) => c.ticker)
+            .filter((t): t is string => t !== null);
+        const topFilersMap = await fetchTopFilersPerTicker(
+            resolvedTickers,
+            hasPoliticianHolders
+        );
+
+        const candidates = sliced.map((c) => ({
+            ...c,
+            politicianTopFilers: c.ticker !== null
+                ? (topFilersMap.get(c.ticker) ?? [])
+                : [],
+        }));
 
         return res.json({
             success: true,

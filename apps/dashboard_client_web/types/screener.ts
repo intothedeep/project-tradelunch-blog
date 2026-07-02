@@ -8,6 +8,9 @@
 // politicianCount90d / politicianNetDirection: absent when migration 0022
 //   (v_politician_activity) has not been applied; clients must treat undefined
 //   and null identically (show empty cell).
+// politicianTopFilers: absent when migration 0023 (v_politician_ticker_holders)
+//   has not been applied; empty array when view exists but no politicians traded
+//   this ticker. Each entry links to /politicians/[filerId].
 // Side effects: none (type declarations only).
 
 export interface ScoreComponents {
@@ -34,6 +37,9 @@ export interface ScreenerCandidate {
     // null when view exists but no trades in the 90-day window for this ticker.
     politicianCount90d?: number | null;
     politicianNetDirection?: string | null;
+    // Top filers (absent when migration 0023 not yet applied).
+    // Empty array when view exists but no politicians traded this ticker.
+    politicianTopFilers?: Array<{ filerId: string; filerName: string }>;
 }
 
 export interface ScreenerData {

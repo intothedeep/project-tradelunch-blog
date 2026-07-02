@@ -1,8 +1,17 @@
 """IO boundary: politician_registry + politician_trades Postgres writes (psycopg3 ONLY).
 
 Purpose: idempotent UPSERTs for Phase Q kadoa congressional-trade disclosures.
-  * upsert_politicians -> politician_registry  ON CONFLICT(filer_id) DO UPDATE
-  * upsert_trades      -> politician_trades    ON CONFLICT(external_id) DO UPDATE
+  * upsert_politicians          -> politician_registry, basic columns only
+  * upsert_politicians_enriched -> politician_registry, including Q10.2 aggregate cols
+  * upsert_trades               -> politician_trades  ON CONFLICT(external_id) DO UPDATE
+
+Anti-clobber design (Q10.2):
+  _POLITICIAN_SQL (trades path) lists only basic columns in both INSERT and SET.
+  Because ON CONFLICT DO UPDATE touches ONLY the SET columns, the aggregate fields
+  (photo_url, trade_count, purchases, sales, late_filings, est_volume) are
+  untouched by the trades path even when a row already exists — no COALESCE
+  trickery needed; the SQL simply does not mention those columns.
+  _POLITICIAN_ENRICH_SQL (filers path) covers all columns and overwrites aggregates.
 
 Foreign key constraint: politician_registry must be upserted BEFORE politician_trades
 in each run (enforced by the entrypoint call order).
@@ -28,6 +37,9 @@ from collector.schema.rows import PoliticianRow, PoliticianTradeRow
 # SQL templates
 # ---------------------------------------------------------------------------
 
+# Trades-path upsert: basic identity columns ONLY.
+# Aggregate columns (photo_url … est_volume) are intentionally absent from
+# both the INSERT list and the SET list so conflicts never clobber them.
 _POLITICIAN_SQL = """
 INSERT INTO politician_registry
     (filer_id, filer_name, party, chamber, branch, state, office, agency,
@@ -43,6 +55,31 @@ ON CONFLICT (filer_id) DO UPDATE SET
     agency      = EXCLUDED.agency,
     deleted_at  = NULL,
     updated_at  = now()
+"""
+
+# Filers-path upsert: all columns including Q10.2 aggregates.
+_POLITICIAN_ENRICH_SQL = """
+INSERT INTO politician_registry
+    (filer_id, filer_name, party, chamber, branch, state, office, agency,
+     bioguide_id, source,
+     photo_url, trade_count, purchases, sales, late_filings, est_volume)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+ON CONFLICT (filer_id) DO UPDATE SET
+    filer_name   = EXCLUDED.filer_name,
+    party        = EXCLUDED.party,
+    chamber      = EXCLUDED.chamber,
+    branch       = EXCLUDED.branch,
+    state        = EXCLUDED.state,
+    office       = EXCLUDED.office,
+    agency       = EXCLUDED.agency,
+    photo_url    = EXCLUDED.photo_url,
+    trade_count  = EXCLUDED.trade_count,
+    purchases    = EXCLUDED.purchases,
+    sales        = EXCLUDED.sales,
+    late_filings = EXCLUDED.late_filings,
+    est_volume   = EXCLUDED.est_volume,
+    deleted_at   = NULL,
+    updated_at   = now()
 """
 
 _TRADE_SQL = """
@@ -87,7 +124,11 @@ ON CONFLICT (external_id) DO UPDATE SET
 
 
 def upsert_politicians(conn: psycopg.Connection, rows: Sequence[PoliticianRow]) -> int:
-    """UPSERT politician_registry rows. Caller must commit. Idempotent."""
+    """UPSERT politician_registry rows (basic columns only). Caller must commit.
+
+    Aggregate columns (photo_url … est_volume) are not mentioned in the SQL,
+    so this function never clobbers values written by upsert_politicians_enriched.
+    """
     if not rows:
         return 0
     params = [
@@ -99,6 +140,28 @@ def upsert_politicians(conn: psycopg.Connection, rows: Sequence[PoliticianRow]) 
     ]
     with conn.cursor() as cur:
         cur.executemany(_POLITICIAN_SQL, params)
+    return len(params)
+
+
+def upsert_politicians_enriched(conn: psycopg.Connection, rows: Sequence[PoliticianRow]) -> int:
+    """UPSERT politician_registry rows including Q10.2 aggregate columns. Caller must commit.
+
+    Use this for rows produced by parse_filers (filers.json enrichment path).
+    Overwrites aggregate fields on conflict; safe to run repeatedly (idempotent).
+    """
+    if not rows:
+        return 0
+    params = [
+        (
+            r.filer_id, r.filer_name, r.party, r.chamber, r.branch,
+            r.state, r.office, r.agency, r.bioguide_id, r.source,
+            r.photo_url, r.trade_count, r.purchases, r.sales,
+            r.late_filings, r.est_volume,
+        )
+        for r in rows
+    ]
+    with conn.cursor() as cur:
+        cur.executemany(_POLITICIAN_ENRICH_SQL, params)
     return len(params)
 
 

@@ -12,6 +12,8 @@ Covers:
   * registry dedup: distinct filer_ids only
   * filer_id guard: records with null/empty filer_id are skipped entirely
     (no trade row, no registry row) — prevents FK violation on upsert batch
+  * parse_filers: all 20 filers.json records map to PoliticianRow; est_volume rounded;
+    photo_url carried; records without id are skipped
 """
 
 from __future__ import annotations
@@ -28,6 +30,7 @@ from collector.transform.politician_parse import (
     _normalize_owner,
     _normalize_ticker,
     _normalize_transaction_type,
+    parse_filers,
     parse_trades,
 )
 
@@ -335,3 +338,76 @@ def test_filer_id_null_does_not_affect_valid_siblings():
     assert trades[0].external_id == "test-good-sibling"
     assert len(registry) == 1
     assert registry[0].filer_id == "real-filer"
+
+
+# ---------------------------------------------------------------------------
+# parse_filers (Q10.2) — kadoa_filers_sample.json (20 records)
+# ---------------------------------------------------------------------------
+
+_FILERS_FIXTURE_PATH = Path(__file__).parent / "kadoa_filers_sample.json"
+
+
+@pytest.fixture(scope="module")
+def filers_records() -> list[dict]:
+    return json.loads(_FILERS_FIXTURE_PATH.read_text())
+
+
+@pytest.fixture(scope="module")
+def parsed_filers(filers_records):
+    return parse_filers(filers_records)
+
+
+def test_parse_filers_all_20_produce_rows(filers_records, parsed_filers):
+    """All 20 records in filers_sample have valid id -> 20 PoliticianRow instances."""
+    assert len(parsed_filers) == len(filers_records)
+    assert len(parsed_filers) == 20
+
+
+def test_parse_filers_filer_ids_unique(parsed_filers):
+    ids = [r.filer_id for r in parsed_filers]
+    assert len(ids) == len(set(ids)), "filer_id must be unique in parse_filers output"
+
+
+def test_parse_filers_est_volume_rounded_to_int(filers_records, parsed_filers):
+    """est_volume is float in JSON (e.g. 230290737.5); must be rounded to int."""
+    for row, rec in zip(parsed_filers, filers_records):
+        raw = rec.get("est_volume")
+        if raw is not None:
+            assert isinstance(row.est_volume, int), (
+                f"{row.filer_id}: est_volume must be int, got {type(row.est_volume)}"
+            )
+            assert row.est_volume == int(round(raw)), (
+                f"{row.filer_id}: expected {int(round(raw))}, got {row.est_volume}"
+            )
+
+
+def test_parse_filers_photo_url_carried(filers_records, parsed_filers):
+    """photo_url is carried from filers.json when present."""
+    for row, rec in zip(parsed_filers, filers_records):
+        assert row.photo_url == rec.get("photo_url"), (
+            f"{row.filer_id}: photo_url mismatch"
+        )
+
+
+def test_parse_filers_aggregate_fields_carried(filers_records, parsed_filers):
+    """trade_count, purchases, sales, late_filings are carried as-is."""
+    for row, rec in zip(parsed_filers, filers_records):
+        assert row.trade_count == rec.get("trade_count")
+        assert row.purchases == rec.get("purchases")
+        assert row.sales == rec.get("sales")
+        assert row.late_filings == rec.get("late_filings")
+
+
+def test_parse_filers_source_is_kadoa(parsed_filers):
+    assert all(r.source == "kadoa" for r in parsed_filers)
+
+
+def test_parse_filers_skips_record_without_id():
+    """Records missing 'id' are dropped; all others are kept."""
+    records = [
+        {"id": None, "full_name": "No ID"},
+        {"id": "house_test", "full_name": "Test Rep", "branch": "congress"},
+    ]
+    rows = parse_filers(records)
+    assert len(rows) == 1
+    assert rows[0].filer_id == "house_test"

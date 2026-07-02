@@ -7,6 +7,8 @@
 //   Axis 3 — daily price sparkline from market_history (tracked universe only).
 //   Axis 4 — politician trading activity over 90-day disclosure window
 //             (v_politician_activity, migration 0022; presence-guarded).
+//   Axis 5 — per-politician PTR transaction holders
+//             (v_politician_ticker_holders, migration 0023; presence-guarded).
 // Invariants:
 //   - Ticker validated by regex before any DB hit.
 //   - Presence guard: absent views/tables → data:null, not 500.
@@ -16,6 +18,7 @@
 //   - CUSIP unresolved (no security_map row) → weight/delta null, isNew false.
 //   - market_history absent/empty → priceHistory: [].
 //   - v_politician_activity absent → politicianActivity: null (regression 0).
+//   - v_politician_ticker_holders absent → politicianHolders: [] (regression 0).
 // Constraints: raw SQL, no ORM, no side effects beyond pool reads.
 
 import { pool } from '../../database';
@@ -25,6 +28,10 @@ import {
     fetchPoliticianActivity,
     type PoliticianActivityDto,
 } from '../../helpers/politicianActivity';
+import {
+    fetchPoliticianHolders,
+    type PoliticianHolderDto,
+} from '../../helpers/fetchPoliticianHolders';
 
 export const router = Router();
 
@@ -41,6 +48,7 @@ interface IRawPresence {
     has_rankings: boolean;
     has_market_history: boolean;
     has_politician_activity: boolean;
+    has_politician_holders: boolean;
 }
 
 async function probePresence(): Promise<{
@@ -48,18 +56,21 @@ async function probePresence(): Promise<{
     hasRankings: boolean;
     hasMarketHistory: boolean;
     hasPoliticianActivity: boolean;
+    hasPoliticianHolders: boolean;
 }> {
     const { rows } = await pool.query<IRawPresence>(
-        `SELECT to_regclass('public.v_sec_holdings_enriched')   IS NOT NULL AS has_holdings,
-                to_regclass('public.market_rankings')            IS NOT NULL AS has_rankings,
-                to_regclass('public.market_history')             IS NOT NULL AS has_market_history,
-                to_regclass('public.v_politician_activity')      IS NOT NULL AS has_politician_activity`
+        `SELECT to_regclass('public.v_sec_holdings_enriched')      IS NOT NULL AS has_holdings,
+                to_regclass('public.market_rankings')               IS NOT NULL AS has_rankings,
+                to_regclass('public.market_history')                IS NOT NULL AS has_market_history,
+                to_regclass('public.v_politician_activity')         IS NOT NULL AS has_politician_activity,
+                to_regclass('public.v_politician_ticker_holders')   IS NOT NULL AS has_politician_holders`
     );
     return {
         hasHoldings:             rows[0]?.has_holdings              ?? false,
         hasRankings:             rows[0]?.has_rankings              ?? false,
         hasMarketHistory:        rows[0]?.has_market_history        ?? false,
         hasPoliticianActivity:   rows[0]?.has_politician_activity   ?? false,
+        hasPoliticianHolders:    rows[0]?.has_politician_holders    ?? false,
     };
 }
 
@@ -101,7 +112,7 @@ function numOrNull(v: string | null): number | null {
  * @api {get} /v1/api/securities/:ticker/by-ticker Per-ticker detail
  * @apiSuccess {Object|null} data  { ticker, sector, rankingHistory[], holders[],
  *                                   periodOfReport, priceHistory[],
- *                                   politicianActivity }
+ *                                   politicianActivity, politicianHolders[] }
  *                                  or null when ticker invalid/unknown or tables absent.
  */
 router.get('/:ticker/by-ticker', async (req, res) => {
@@ -112,8 +123,13 @@ router.get('/:ticker/by-ticker', async (req, res) => {
             return res.json({ success: true, data: null });
         }
 
-        const { hasHoldings, hasRankings, hasMarketHistory, hasPoliticianActivity } =
-            await probePresence();
+        const {
+            hasHoldings,
+            hasRankings,
+            hasMarketHistory,
+            hasPoliticianActivity,
+            hasPoliticianHolders,
+        } = await probePresence();
 
         // Query A — ranking history (global scope, desc, up to 52 weeks = ~1 year).
         const rankingHistory: Array<{
@@ -227,12 +243,18 @@ router.get('/:ticker/by-ticker', async (req, res) => {
         const politicianActivity: PoliticianActivityDto | null =
             await fetchPoliticianActivity(ticker, hasPoliticianActivity);
 
+        // Query E — per-politician PTR holders (migration 0023).
+        // fetchPoliticianHolders short-circuits to [] when view is absent.
+        const politicianHolders: PoliticianHolderDto[] =
+            await fetchPoliticianHolders(ticker, hasPoliticianHolders);
+
         // Unknown ticker: no data in any source.
         if (
             rankingHistory.length === 0 &&
             holders.length === 0 &&
             priceHistory.length === 0 &&
-            politicianActivity === null
+            politicianActivity === null &&
+            politicianHolders.length === 0
         ) {
             return res.json({ success: true, data: null });
         }
@@ -247,6 +269,7 @@ router.get('/:ticker/by-ticker', async (req, res) => {
                 periodOfReport,
                 priceHistory,
                 politicianActivity,
+                politicianHolders,
             },
         });
     } catch {

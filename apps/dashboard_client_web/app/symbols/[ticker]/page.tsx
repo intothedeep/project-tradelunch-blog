@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { getSymbolDetail } from '@/app/actions/getSymbolDetail.action';
 import { PriceChart } from '@/components/symbols/PriceChart';
 import { PoliticianActivity } from '@/components/symbols/PoliticianActivity.client';
+import { PoliticianHolders } from '@/components/symbols/PoliticianHolders.client';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,6 +86,7 @@ export default async function SymbolDetailPage({
         sector,
         priceHistory,
         politicianActivity,
+        politicianHolders,
     } = result.data;
 
     return (
@@ -121,6 +123,20 @@ export default async function SymbolDetailPage({
                     <PoliticianActivity
                         politicianActivity={politicianActivity}
                     />
+                </section>
+            )}
+
+            {/* Politician transaction disclosures (migration 0023 — presence-guarded) */}
+            {politicianHolders != null && politicianHolders.length > 0 && (
+                <section className="mb-8">
+                    <h2 className="mb-3 text-xl font-semibold">
+                        Disclosed Transactions by Politicians
+                    </h2>
+                    <p className="mb-3 text-xs text-muted-foreground">
+                        Past PTR transaction disclosures — not current
+                        positions.
+                    </p>
+                    <PoliticianHolders politicianHolders={politicianHolders} />
                 </section>
             )}
 

@@ -222,6 +222,13 @@ class PoliticianRow:
 
     Carries stable identity metadata per kadoa filer slug. ``bioguide_id`` is
     reserved for future congress-legislators enrichment (None until resolved).
+
+    Q10.2 aggregate fields (photo_url … est_volume) are populated from the filers.json
+    enrichment path (upsert_politicians_enriched). The trades-path upsert
+    (upsert_politicians) omits these columns from its SQL entirely, so a
+    trades-derived PoliticianRow with all aggregates=None will never clobber
+    values already written by the enrichment path.
+
     Soft-delete only (``deleted_at`` managed by DB / upsert; not stored here).
     """
 
@@ -235,6 +242,13 @@ class PoliticianRow:
     agency: Optional[str] = None
     bioguide_id: Optional[str] = None
     source: str = "kadoa"
+    # Q10.2 — aggregate stats from kadoa filers.json (None on trades-path upsert)
+    photo_url: Optional[str] = None
+    trade_count: Optional[int] = None
+    purchases: Optional[int] = None
+    sales: Optional[int] = None
+    late_filings: Optional[int] = None
+    est_volume: Optional[int] = None  # BIGINT in DB; JSON float rounded in parse_filers
 
 
 @dataclass(frozen=True)

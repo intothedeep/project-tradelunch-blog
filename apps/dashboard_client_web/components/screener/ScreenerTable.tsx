@@ -4,8 +4,12 @@
 //   the "—" cells render naturally for absent momentum/lowVol.
 //   "Traded by (90d)" column shows politician trade count + net-direction chip
 //   when migration 0022 data is present; rows without data show an empty cell.
+//   Q6.4: expand sub-row shows politicianTopFilers (migration 0023) as
+//   "Traded by: {names}" with links to /politicians/[filerId].
+//   When politicianTopFilers is absent or empty, no sub-row is rendered.
 // Invariant: pure presentational Server Component — no hooks, no side effects.
 
+import { Fragment } from 'react';
 import Link from 'next/link';
 import type { ScreenerCandidate } from '@/types/screener';
 import { PoliticianDisclaimer } from '@/components/symbols/PoliticianDisclaimer';
@@ -46,8 +50,22 @@ function hasPoliticianColumn(candidates: ScreenerCandidate[]): boolean {
     return candidates.some((c) => c.politicianCount90d !== undefined);
 }
 
+// Whether any candidate has top-filers data (migration 0023).
+function hasTopFilersData(candidates: ScreenerCandidate[]): boolean {
+    return candidates.some(
+        (c) =>
+            c.politicianTopFilers !== undefined &&
+            c.politicianTopFilers.length > 0
+    );
+}
+
 export function ScreenerTable({ candidates }: Props) {
     const showPoliticianCol = hasPoliticianColumn(candidates);
+    const showTopFilersSection = hasTopFilersData(candidates);
+    // Base columns: Security, Ticker, Active/Total, Cap Rank, Consensus,
+    //               Cap Tier, Momentum, Low-Vol, Score = 9
+    // + 1 when politician column present
+    const colCount = 9 + (showPoliticianCol ? 1 : 0);
 
     return (
         <div className="space-y-2">
@@ -90,80 +108,127 @@ export function ScreenerTable({ candidates }: Props) {
                         </tr>
                     </thead>
                     <tbody>
-                        {candidates.map((c) => (
-                            <tr
-                                key={c.cusip}
-                                className="border-b last:border-0 hover:bg-muted/30"
-                            >
-                                <td className="px-4 py-3">
-                                    <span className="font-medium">
-                                        {c.name}
-                                    </span>
-                                    <span className="ml-2 font-mono text-xs text-muted-foreground">
-                                        {c.cusip}
-                                    </span>
-                                </td>
-                                <td className="px-4 py-3">
-                                    {c.ticker !== null ? (
-                                        <Link
-                                            href={`/symbols/${c.ticker}`}
-                                            className="font-mono font-semibold text-primary underline-offset-4 hover:underline"
-                                        >
-                                            {c.ticker}
-                                        </Link>
-                                    ) : (
-                                        <span className="text-muted-foreground">
-                                            —
-                                        </span>
-                                    )}
-                                </td>
-                                <td className="px-4 py-3 text-right tabular-nums">
-                                    {c.holderCountActive}&nbsp;/&nbsp;
-                                    {c.holderCountTotal}
-                                </td>
-                                <td className="px-4 py-3 text-right tabular-nums">
-                                    {c.rank !== null ? `#${c.rank}` : '—'}
-                                </td>
-                                <td className="px-4 py-3 text-right tabular-nums">
-                                    {(c.components.consensus * 100).toFixed(0)}%
-                                </td>
-                                <td className="px-4 py-3 text-right">
-                                    {capTierLabel(c)}
-                                </td>
-                                <td className="px-4 py-3 text-right tabular-nums">
-                                    {pctOrDash(c.components.momentum)}
-                                </td>
-                                <td className="px-4 py-3 text-right tabular-nums">
-                                    {pctOrDash(c.components.lowVol)}
-                                </td>
-                                <td className="px-4 py-3 text-right tabular-nums font-semibold">
-                                    {c.score.toFixed(3)}
-                                </td>
-                                {showPoliticianCol && (
-                                    <td className="px-4 py-3 text-right tabular-nums">
-                                        {c.politicianCount90d != null &&
-                                        c.politicianCount90d > 0 ? (
-                                            <span className="inline-flex items-center gap-1">
-                                                {c.politicianCount90d}
-                                                {netDirectionChip(
-                                                    c.politicianNetDirection
+                        {candidates.map((c) => {
+                            const topFilers = c.politicianTopFilers ?? [];
+                            const hasTopFilers = topFilers.length > 0;
+
+                            return (
+                                <Fragment key={c.cusip}>
+                                    <tr className="border-b hover:bg-muted/30">
+                                        <td className="px-4 py-3">
+                                            <span className="font-medium">
+                                                {c.name}
+                                            </span>
+                                            <span className="ml-2 font-mono text-xs text-muted-foreground">
+                                                {c.cusip}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {c.ticker !== null ? (
+                                                <Link
+                                                    href={`/symbols/${c.ticker}`}
+                                                    className="font-mono font-semibold text-primary underline-offset-4 hover:underline"
+                                                >
+                                                    {c.ticker}
+                                                </Link>
+                                            ) : (
+                                                <span className="text-muted-foreground">
+                                                    —
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3 text-right tabular-nums">
+                                            {c.holderCountActive}&nbsp;/&nbsp;
+                                            {c.holderCountTotal}
+                                        </td>
+                                        <td className="px-4 py-3 text-right tabular-nums">
+                                            {c.rank !== null
+                                                ? `#${c.rank}`
+                                                : '—'}
+                                        </td>
+                                        <td className="px-4 py-3 text-right tabular-nums">
+                                            {(
+                                                c.components.consensus * 100
+                                            ).toFixed(0)}
+                                            %
+                                        </td>
+                                        <td className="px-4 py-3 text-right">
+                                            {capTierLabel(c)}
+                                        </td>
+                                        <td className="px-4 py-3 text-right tabular-nums">
+                                            {pctOrDash(c.components.momentum)}
+                                        </td>
+                                        <td className="px-4 py-3 text-right tabular-nums">
+                                            {pctOrDash(c.components.lowVol)}
+                                        </td>
+                                        <td className="px-4 py-3 text-right tabular-nums font-semibold">
+                                            {c.score.toFixed(3)}
+                                        </td>
+                                        {showPoliticianCol && (
+                                            <td className="px-4 py-3 text-right tabular-nums">
+                                                {c.politicianCount90d != null &&
+                                                c.politicianCount90d > 0 ? (
+                                                    <span className="inline-flex items-center gap-1">
+                                                        {c.politicianCount90d}
+                                                        {netDirectionChip(
+                                                            c.politicianNetDirection
+                                                        )}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-muted-foreground">
+                                                        —
+                                                    </span>
                                                 )}
-                                            </span>
-                                        ) : (
-                                            <span className="text-muted-foreground">
-                                                —
-                                            </span>
+                                            </td>
                                         )}
-                                    </td>
-                                )}
-                            </tr>
-                        ))}
+                                    </tr>
+
+                                    {/* Q6.4: top filers accordion sub-row (migration 0023) */}
+                                    {hasTopFilers && (
+                                        <tr
+                                            key={`${c.cusip}-filers`}
+                                            className="border-b bg-muted/20 last:border-0"
+                                        >
+                                            <td
+                                                colSpan={colCount}
+                                                className="px-4 py-1.5"
+                                            >
+                                                <details className="text-xs">
+                                                    <summary className="cursor-pointer select-none text-muted-foreground hover:text-foreground">
+                                                        Traded by:{' '}
+                                                        {topFilers
+                                                            .map(
+                                                                (f) =>
+                                                                    f.filerName
+                                                            )
+                                                            .join(', ')}
+                                                    </summary>
+                                                    <div className="mt-1.5 flex flex-wrap gap-2 pl-2">
+                                                        {topFilers.map((f) => (
+                                                            <Link
+                                                                key={f.filerId}
+                                                                href={`/politicians/${f.filerId}`}
+                                                                className="underline-offset-4 hover:underline"
+                                                            >
+                                                                {f.filerName}
+                                                            </Link>
+                                                        ))}
+                                                    </div>
+                                                </details>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </Fragment>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
 
-            {/* Disclaimer always visible when politician column is present */}
-            {showPoliticianCol && <PoliticianDisclaimer />}
+            {/* Disclaimer always visible when politician column or top-filers data present */}
+            {(showPoliticianCol || showTopFilersSection) && (
+                <PoliticianDisclaimer />
+            )}
         </div>
     );
 }

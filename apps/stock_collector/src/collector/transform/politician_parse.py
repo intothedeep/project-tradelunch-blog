@@ -14,6 +14,8 @@ Invariants:
   * value_estimate = round(sqrt(value_min * value_max)); None when either bound is None.
   * Registry dedup: one PoliticianRow per distinct filer_id (first-seen wins metadata).
   * asset_type defaults to 'other' for any unrecognized code.
+  * parse_filers: maps filers.json records to PoliticianRow with aggregates carried;
+    est_volume (float in JSON) is rounded to int to match BIGINT DB column.
 
 Side effects: none.
 """
@@ -207,3 +209,45 @@ def parse_trades(
 
     registry_rows = list(seen_filers.values())
     return trade_rows, registry_rows
+
+
+def parse_filers(records: list[dict]) -> list[PoliticianRow]:
+    """Parse kadoa filers.json records into enriched PoliticianRow list.
+
+    Maps filers.json shape (id, full_name, branch, chamber, party, state,
+    agency, office, photo_url, trade_count, purchases, sales, late_filings,
+    est_volume) to PoliticianRow with all aggregate fields populated.
+
+    ``est_volume`` is a float in the source JSON (fractional dollars); it is
+    rounded to int to match the BIGINT DB column.
+
+    Records without ``id`` are skipped. No I/O.
+    """
+    rows: list[PoliticianRow] = []
+    for rec in records:
+        filer_id = rec.get("id")
+        if not filer_id:
+            continue
+        est_volume_raw = rec.get("est_volume")
+        est_volume = int(round(est_volume_raw)) if est_volume_raw is not None else None
+        rows.append(
+            PoliticianRow(
+                filer_id=filer_id,
+                filer_name=rec.get("full_name") or "",
+                party=rec.get("party"),
+                chamber=rec.get("chamber"),
+                branch=rec.get("branch"),
+                state=rec.get("state"),
+                office=rec.get("office"),
+                agency=rec.get("agency"),
+                bioguide_id=None,
+                source="kadoa",
+                photo_url=rec.get("photo_url"),
+                trade_count=rec.get("trade_count"),
+                purchases=rec.get("purchases"),
+                sales=rec.get("sales"),
+                late_filings=rec.get("late_filings"),
+                est_volume=est_volume,
+            )
+        )
+    return rows
