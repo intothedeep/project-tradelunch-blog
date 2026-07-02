@@ -80,12 +80,12 @@ export function HoldingCell({
             className={cn(
                 'relative rounded p-1.5 cursor-pointer select-none transition-shadow',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-ring',
-                // Selected block: theme-accent ring with a background-colored
-                // offset gap so it stays clearly visible over any cusip hue in
-                // both light and dark themes (tile-derived color was ~always
-                // white and vanished on light tiles).
+                // Selected block: fixed coral ring with a background-colored
+                // offset gap. Coral pops over any cusip hue in both light and
+                // dark themes (theme primary was near-black in light and read
+                // as unclear; tile-derived color was ~always white).
                 isActive &&
-                    'ring-2 ring-primary ring-offset-2 ring-offset-background'
+                    'ring-2 ring-[#ff7f50] ring-offset-2 ring-offset-background'
             )}
             style={{ backgroundColor: bg, color: textColor }}
             title={`${label} (${cusip})`}
