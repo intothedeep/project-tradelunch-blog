@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { getFunds } from '@/app/actions/getFunds.action';
 import { getFundRankFlow } from '@/app/actions/getFundRankFlow.action';
 import FundList from '@/components/funds/FundList';
-import FundNavDrawer from '@/components/funds/FundNavDrawer.client';
+import PageMenuRegistrar from '@/components/PageMenuRegistrar.client';
 import RankFlowTable from '@/components/funds/RankFlowTable';
 import FundsEmptyState from '@/components/funds/FundsEmptyState';
 
@@ -70,8 +70,6 @@ export default async function FundDetailPage({ params }: FundDetailPageProps) {
         rankFlowResult.data === null ||
         rankFlowResult.data.periods.length === 0
     ) {
-        const emptyLabel =
-            fundsResult.data.find((f) => f.cik === cik)?.label ?? cik;
         return (
             <main className="p-4 md:p-8 max-w-screen-xl mx-auto">
                 <div className="md:flex md:gap-8">
@@ -82,14 +80,13 @@ export default async function FundDetailPage({ params }: FundDetailPageProps) {
                         />
                     </aside>
                     <div className="flex-1 min-w-0">
-                        <div className="mb-4 md:hidden">
-                            <FundNavDrawer activeLabel={emptyLabel}>
-                                <FundList
-                                    funds={fundsResult.data}
-                                    activeCik={cik}
-                                />
-                            </FundNavDrawer>
-                        </div>
+                        {/* Mobile: contribute the fund list to the hamburger chooser. */}
+                        <PageMenuRegistrar label="Funds">
+                            <FundList
+                                funds={fundsResult.data}
+                                activeCik={cik}
+                            />
+                        </PageMenuRegistrar>
                         <div className="flex min-h-[40vh] items-center justify-center">
                             <FundsEmptyState />
                         </div>
@@ -115,14 +112,13 @@ export default async function FundDetailPage({ params }: FundDetailPageProps) {
                     />
                 </aside>
                 <section className="flex-1 min-w-0">
-                    <div className="mb-4 md:hidden">
-                        <FundNavDrawer activeLabel={fundLabel}>
-                            <FundList
-                                funds={fundsResult.data}
-                                activeCik={cik}
-                            />
-                        </FundNavDrawer>
-                    </div>
+                    {/* Mobile: contribute the fund list to the hamburger chooser. */}
+                    <PageMenuRegistrar label="Funds">
+                        <FundList
+                            funds={fundsResult.data}
+                            activeCik={cik}
+                        />
+                    </PageMenuRegistrar>
                     <header className="mb-4">
                         <h1 className="text-2xl font-bold tracking-tight">
                             {fundLabel}

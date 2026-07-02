@@ -5,20 +5,28 @@
 // desktop left rail is hidden, so this drawer is where the PRIMARY nav (Home /
 // Write / Saved / My blog) stays reachable — its link source is
 // usePrimaryNavLinks (auth-gated; "My blog" hidden until onboarded).
+// When the current page contributes a secondary menu (pageMenuAtom), the drawer
+// opens onto a chooser (site menu vs the page menu) instead of the site nav.
 // Side effects (escape key, body scroll lock, focus trap) are isolated here.
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useAtom } from 'jotai';
+import { useAtom, useAtomValue } from 'jotai';
 import { useTranslations } from 'next-intl';
-import { isMenuDrawerOpenAtom } from '@/store/menu.atom';
+import { ChevronLeft } from 'lucide-react';
+import { isMenuDrawerOpenAtom, pageMenuAtom } from '@/store/menu.atom';
 import { usePrimaryNavLinks } from '@/hooks/useNavLinks.hook';
 
 const FOCUSABLE_SELECTOR =
     'a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])';
 
+// Which panel the drawer shows: the chooser root, the site nav, or the
+// page-contributed menu. 'root' collapses to the site nav when no page menu.
+type DrawerView = 'root' | 'site' | 'page';
+
 export function MenuDrawer() {
     const [isOpen, setIsOpen] = useAtom(isMenuDrawerOpenAtom);
+    const pageMenu = useAtomValue(pageMenuAtom);
     const links = usePrimaryNavLinks();
     const t = useTranslations('blog');
 
@@ -27,6 +35,12 @@ export function MenuDrawer() {
 
     const [touchStart, setTouchStart] = useState(0);
     const [touchEnd, setTouchEnd] = useState(0);
+
+    // Every open resets to the chooser (or, with no page menu, the site nav).
+    const [view, setView] = useState<DrawerView>('root');
+    useEffect(() => {
+        if (isOpen) setView('root');
+    }, [isOpen]);
 
     // Close on Escape; lock body scroll; trap Tab focus within the drawer; and
     // restore focus to the trigger on close.
@@ -88,6 +102,14 @@ export function MenuDrawer() {
         if (touchStart - touchEnd < -50) setIsOpen(false);
     };
 
+    const showChooser = pageMenu !== null && view === 'root';
+    const showSite = pageMenu === null || view === 'site';
+    const canGoBack = pageMenu !== null && view !== 'root';
+    const title =
+        pageMenu !== null && view === 'page'
+            ? pageMenu.label.toUpperCase()
+            : 'MENU';
+
     return (
         <>
             {/* Backdrop */}
@@ -119,11 +141,21 @@ export function MenuDrawer() {
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-primary/30">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 border-2 border-primary bg-secondary flex items-center justify-center">
-                            <span className="text-2xl">👨‍💻</span>
-                        </div>
+                        {canGoBack ? (
+                            <button
+                                onClick={() => setView('root')}
+                                className="w-10 h-10 flex items-center justify-center hover:bg-secondary transition-colors border border-primary"
+                                aria-label="Back to menu chooser"
+                            >
+                                <ChevronLeft className="size-5 text-primary" />
+                            </button>
+                        ) : (
+                            <div className="w-10 h-10 border-2 border-primary bg-secondary flex items-center justify-center">
+                                <span className="text-2xl">👨‍💻</span>
+                            </div>
+                        )}
                         <span className="text-xl font-mono text-primary terminal-glow">
-                            MENU
+                            {title}
                         </span>
                     </div>
 
@@ -160,67 +192,130 @@ export function MenuDrawer() {
                     </button>
                 </div>
 
-                {/* Navigation Links — primary nav set (reachable at <md). */}
-                <nav className="p-6 max-h-[70vh] overflow-y-auto">
-                    <ul className="space-y-2">
-                        {links.map((link, index) => {
-                            const label = link.labelKey
-                                ? t(link.labelKey)
-                                : link.title;
-                            const itemStyle: React.CSSProperties = {
-                                animationDelay: `${index * 50}ms`,
-                                animation: isOpen
-                                    ? 'slideInUp 0.3s ease-out forwards'
-                                    : 'none',
-                            };
+                {/* Chooser — shown only when the page contributes its own menu. */}
+                {showChooser && (
+                    <nav className="p-6 space-y-3">
+                        <ChooserButton
+                            label="SITE MENU"
+                            onClick={() => setView('site')}
+                        />
+                        <ChooserButton
+                            label={pageMenu!.label.toUpperCase()}
+                            onClick={() => setView('page')}
+                        />
+                    </nav>
+                )}
 
-                            if (link.disabled) {
-                                return (
-                                    <li key={link.href}>
-                                        <span
-                                            aria-disabled="true"
-                                            className="block px-4 py-4 font-mono text-lg border-2 border-primary/20 text-muted-foreground cursor-not-allowed"
-                                            style={itemStyle}
-                                        >
-                                            <span className="text-primary">
-                                                &gt;
-                                            </span>{' '}
-                                            {label.toUpperCase()}
-                                        </span>
-                                    </li>
-                                );
-                            }
+                {/* Site nav — primary nav set (reachable at <md). */}
+                {showSite && (
+                    <SiteMenuBody
+                        links={links}
+                        t={t}
+                        isOpen={isOpen}
+                        onNavigate={() => setIsOpen(false)}
+                    />
+                )}
 
-                            return (
-                                <li key={link.href}>
-                                    <Link
-                                        href={link.href}
-                                        onClick={() => setIsOpen(false)}
-                                        className="block px-4 py-4 font-mono text-lg border-2 border-primary/30 hover:border-primary hover:bg-secondary transition-all"
-                                        style={itemStyle}
-                                    >
-                                        <span className="text-primary">
-                                            &gt;
-                                        </span>{' '}
-                                        {label.toUpperCase()}
-                                    </Link>
-                                </li>
-                            );
-                        })}
-                    </ul>
-
-                    {/* Additional Info */}
-                    <div className="mt-6 p-4 border-2 border-primary/30 bg-secondary/50">
-                        <div className="text-sm font-mono text-muted-foreground space-y-1">
-                            <p>&gt; TIO.TAEK.LIM@GMAIL.COM</p>
-                            <p>&gt; GITHUB: tradelunch</p>
-                            <p>&gt; LINKEDIN: tiotaeklim</p>
-                            <p>&gt; WARRENSBURG, MO 64093 USA</p>
-                        </div>
+                {/* Page-contributed menu (e.g. fund list); tap navigates + closes. */}
+                {pageMenu !== null && view === 'page' && (
+                    <div
+                        className="p-6 max-h-[70vh] overflow-y-auto"
+                        onClick={() => setIsOpen(false)}
+                    >
+                        {pageMenu.content}
                     </div>
-                </nav>
+                )}
             </div>
         </>
+    );
+}
+
+// A single chooser entry, styled to match the terminal nav rows.
+function ChooserButton({
+    label,
+    onClick,
+}: {
+    label: string;
+    onClick: () => void;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className="block w-full px-4 py-4 text-left font-mono text-lg border-2 border-primary/30 hover:border-primary hover:bg-secondary transition-all"
+        >
+            <span className="text-primary">&gt;</span> {label}
+        </button>
+    );
+}
+
+type NavLink = ReturnType<typeof usePrimaryNavLinks>[number];
+
+// The site's primary nav links + contact info block.
+function SiteMenuBody({
+    links,
+    t,
+    isOpen,
+    onNavigate,
+}: {
+    links: NavLink[];
+    t: ReturnType<typeof useTranslations>;
+    isOpen: boolean;
+    onNavigate: () => void;
+}) {
+    return (
+        <nav className="p-6 max-h-[70vh] overflow-y-auto">
+            <ul className="space-y-2">
+                {links.map((link, index) => {
+                    const label = link.labelKey ? t(link.labelKey) : link.title;
+                    const itemStyle: React.CSSProperties = {
+                        animationDelay: `${index * 50}ms`,
+                        animation: isOpen
+                            ? 'slideInUp 0.3s ease-out forwards'
+                            : 'none',
+                    };
+
+                    if (link.disabled) {
+                        return (
+                            <li key={link.href}>
+                                <span
+                                    aria-disabled="true"
+                                    className="block px-4 py-4 font-mono text-lg border-2 border-primary/20 text-muted-foreground cursor-not-allowed"
+                                    style={itemStyle}
+                                >
+                                    <span className="text-primary">&gt;</span>{' '}
+                                    {label.toUpperCase()}
+                                </span>
+                            </li>
+                        );
+                    }
+
+                    return (
+                        <li key={link.href}>
+                            <Link
+                                href={link.href}
+                                onClick={onNavigate}
+                                className="block px-4 py-4 font-mono text-lg border-2 border-primary/30 hover:border-primary hover:bg-secondary transition-all"
+                                style={itemStyle}
+                            >
+                                <span className="text-primary">&gt;</span>{' '}
+                                {label.toUpperCase()}
+                            </Link>
+                        </li>
+                    );
+                })}
+            </ul>
+
+            {/* Additional Info */}
+            <div className="mt-6 p-4 border-2 border-primary/30 bg-secondary/50">
+                <div className="text-sm font-mono text-muted-foreground space-y-1">
+                    <p>&gt; TIO.TAEK.LIM@GMAIL.COM</p>
+                    <p>&gt; GITHUB: tradelunch</p>
+                    <p>&gt; LINKEDIN: tiotaeklim</p>
+                    <p>&gt; WARRENSBURG, MO 64093 USA</p>
+                </div>
+            </div>
+        </nav>
     );
 }
 
