@@ -100,11 +100,19 @@ async function computePriceSignals(
     }
 
     // One query for all candidate tickers; group ascending closes per label.
+    // Cap to the most-recent 260 bars per label: momentum (12-1M) + vol only read
+    // the last ~253 bars, so this is output-identical to the full history but
+    // avoids transferring years of backfilled bars (386k rows → ~10k). The window
+    // uses idx_market_history_label_interval.
     const { rows } = await pool.query<IPriceRow>(
-        `SELECT label, close
-           FROM market_history
-          WHERE label = ANY($1) AND interval = '1d'
-          ORDER BY label, bar_time ASC`,
+        `SELECT label, close FROM (
+            SELECT label, close, bar_time,
+                   ROW_NUMBER() OVER (PARTITION BY label ORDER BY bar_time DESC) AS rn
+              FROM market_history
+             WHERE label = ANY($1) AND interval = '1d'
+         ) t
+         WHERE rn <= 260
+         ORDER BY label, bar_time ASC`,
         [resolved]
     );
     const closesByTicker = new Map<string, number[]>();
@@ -188,9 +196,16 @@ router.get('/screen', async (req, res) => {
         );
         const totalActiveFunds = Number(activeRows[0]?.total_active ?? 0);
 
-        // Single latest period across all securities in v_sec_consensus.
+        // Latest 13F period. Read it straight from sec_holdings (registry funds,
+        // same put_call/prn filter as v_sec_consensus) — a cheap MAX over a
+        // filtered join, vs computing the entire grouped consensus view just to
+        // find its max period (~2.3s → ~0.7s). The candidate query below still
+        // filters v_sec_consensus by this period.
         const { rows: periodRows } = await pool.query<ILatestPeriodRow>(
-            `SELECT MAX(period_of_report)::text AS period FROM v_sec_consensus`
+            `SELECT MAX(h.period_of_report)::text AS period
+               FROM sec_holdings h
+               JOIN fund_registry r ON r.cik = h.cik AND r.deleted_at IS NULL
+              WHERE h.deleted_at IS NULL AND h.put_call = '' AND h.prn_type <> 'PRN'`
         );
         const periodOfReport = periodRows[0]?.period ?? null;
         if (!periodOfReport) {
