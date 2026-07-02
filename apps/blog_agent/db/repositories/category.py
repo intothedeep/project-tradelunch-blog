@@ -118,8 +118,14 @@ class CategoryRepository(BaseRepository[Category]):
         if not categories:
             return None
 
-        root_name = categories[0]
-        children_names = categories[1:]
+        # Normalize titles to lowercase (trim + lower), mirroring the TS write
+        # paths (validateCategoryInput.ts, CategoryComboBox) and tag normalization.
+        # WHY: category filtering matches titles case-sensitively via array overlap,
+        # so mixed-case stored titles (e.g. "Rust") never match the lowercased filter facet.
+        normalized = [c.strip().lower() for c in categories]
+
+        root_name = normalized[0]
+        children_names = normalized[1:]
 
         # 1. Handle root category with raw SQL upsert
         root_id = generate_id()
