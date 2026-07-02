@@ -15,6 +15,7 @@ import {
 } from '@/store/dashboard.atom';
 import type { IOHLCPoint } from '@/types/history';
 import { generateIntervalCandles } from '@/utils/generateIntervalCandles';
+import { synthesizeFxOpen } from '@/utils/synthesizeFxOpen';
 import { TV_DARK, TV_LIGHT, type ChartPalette } from '@/lib/chart-theme';
 import { deriveChartHeader } from '@/utils/chart-panel-derive';
 import ChartHeader from '@/components/dashboard/ChartHeader.client';
@@ -25,7 +26,10 @@ import ChartDrawToolbar from '@/components/dashboard/ChartDrawToolbar.client';
 import ChartIndicatorCloseButtons from '@/components/dashboard/ChartIndicatorCloseButtons.client';
 import { useTradingViewChart } from '@/hooks/useTradingViewChart.hook';
 import { useChartDrawings } from '@/hooks/useChartDrawings.hook';
-import { useDashboardHistory } from '@/hooks/useDashboardSnapshot.query.client';
+import {
+    useDashboardHistory,
+    useDashboardSnapshot,
+} from '@/hooks/useDashboardSnapshot.query.client';
 import { useChartIndicators } from '@/hooks/useChartIndicators.hook';
 import { useChartPanelMenu } from '@/hooks/useChartPanelMenu.hook';
 
@@ -60,16 +64,29 @@ export default function ChartPanel({ className }: Props) {
         enabled: mounted,
     });
 
+    // FX-membership from the (already-cached) snapshot. Yahoo's FX daily Open is
+    // degenerate (Open == Close), so FX candles get their open re-derived from the
+    // prior close before interval aggregation — see synthesizeFxOpen.
+    const snapshotQuery = useDashboardSnapshot();
+    const isFx = useMemo(() => {
+        if (selectedLabel === null) return false;
+        const snap = snapshotQuery.data;
+        return !!snap?.ok && snap.data.fx.items.some(
+            (i) => i.label === selectedLabel
+        );
+    }, [selectedLabel, snapshotQuery.data]);
+
     const candles = useMemo<IOHLCPoint[]>(() => {
         if (selectedLabel === null) return [];
         const res = historyQuery.data;
         const baseDaily = res?.ok && res.data ? res.data.candles : [];
+        const daily = isFx ? synthesizeFxOpen(baseDaily) : baseDaily;
         return generateIntervalCandles(
             selectedLabel,
             selectedInterval,
-            baseDaily
+            daily
         );
-    }, [selectedLabel, selectedInterval, historyQuery.data]);
+    }, [selectedLabel, selectedInterval, historyQuery.data, isFx]);
 
     const {
         indicators,
