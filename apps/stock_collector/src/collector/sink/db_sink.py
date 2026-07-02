@@ -114,6 +114,29 @@ INSERT INTO batch_log (job, status, resolved, started_at, finished_at, descr)
 VALUES (%s, %s, %s, %s, %s, %s)
 """
 
+_ERROR_LOG_SQL = """
+INSERT INTO error_log (message, path, source)
+VALUES (%s, %s, 'collector')
+"""
+
+
+def insert_error_log(
+    conn: psycopg.Connection, *, message: str, path: str
+) -> bool:
+    """Best-effort: append ONE error_log row (source='collector'). NEVER raises —
+    a missing table or any insert error is swallowed so it can't fail the job.
+    Used for operational alerts (e.g. isolated-date/non-trading-day suspects)."""
+    try:
+        conn.rollback()
+        with conn.cursor() as cur:
+            cur.execute(_ERROR_LOG_SQL, (message, path))
+        conn.commit()
+        return True
+    except Exception as exc:  # noqa: BLE001 — op log, must never abort the job
+        conn.rollback()
+        print(f"[error_log] skipped ({type(exc).__name__}: {exc})")
+        return False
+
 
 def insert_batch_log(
     conn: psycopg.Connection,

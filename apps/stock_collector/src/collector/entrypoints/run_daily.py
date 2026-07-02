@@ -25,6 +25,7 @@ from collector.schema.rows import DEFAULT_INTERVAL, WatchlistEntry
 from collector.sink import db_sink, parquet_sink
 from collector.sink.yahoo_fetch import fetch_daily, fetch_full
 from collector.transform.archive import to_parquet_records
+from collector.transform.detect_isolated_bars import detect_isolated_bars
 from collector.transform.ohlc import to_history_rows
 from collector.transform.snapshot import build_snapshot
 from collector.transform.universe_resolve import resolve_universe
@@ -51,6 +52,30 @@ def _archive(items: list[tuple[str, list]], base: Path) -> int:
             parquet_sink.write_year(base, PROVIDER_YAHOO, ticker, year, records)
             total += len(records)
     return total
+
+
+def _flag_isolated_dates(conn, targets, all_rows) -> int:
+    """Detect bars on non-trading days via US-stocks consensus; LOG-only.
+
+    Reference = the ``stocks`` universe (~110 US symbols incl. TQQQ/SOXL): large
+    enough that a real trading day has near-full coverage and a Yahoo glitch bar
+    stands out. KRX (2 symbols) / FX (4) are too small to judge and are NOT
+    covered here — that needs a real trading calendar (deferred; see 00.tasks.md).
+    """
+    reference = {e.label for e in targets if e.category == "stocks"}
+    suspects = detect_isolated_bars(all_rows, reference)
+    if not suspects:
+        return 0
+    dates = sorted({d for _, d in suspects})
+    sample = ", ".join(f"{lbl}@{d}" for lbl, d in suspects[:20])
+    message = (
+        f"isolated-date suspects: {len(suspects)} bars across "
+        f"{len(dates)} non-consensus dates ({dates[0]}..{dates[-1]}); "
+        f"sample: {sample}"
+    )
+    print(f"[run_daily] WARN {message}")
+    db_sink.insert_error_log(conn, message=message, path="run_daily --full")
+    return len(suspects)
 
 
 def _ingest(
@@ -82,6 +107,10 @@ def _ingest(
         if archive:
             archive_items.append((e.symbol, candles))
     written = db_sink.load_history(conn, all_rows)
+    if full:
+        # Bulk backfill is the risky path for Yahoo non-trading-day glitch bars.
+        # Log-only alert (never deletes) via US-stocks cross-symbol consensus.
+        _flag_isolated_dates(conn, targets, all_rows)
     archived = _archive(archive_items, base) if archive else 0
 
     fetched_at = datetime.now(timezone.utc)
