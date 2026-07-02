@@ -3,6 +3,9 @@
 // Invariant: ScreenerDataSchema's z.infer MUST stay structurally equal to
 //   ScreenerData (types/screener.ts). The AssertEqual guard fails typecheck on
 //   drift. `data:null` is a valid response — handled by the action, not here.
+//   politicianCount90d / politicianNetDirection are .optional() so that a stale
+//   Next Data Cache body (pre-migration-0022) still parses without error —
+//   lenient-parsing rule.
 // Side effects: none (pure schema declaration).
 
 import { z } from 'zod';
@@ -26,6 +29,9 @@ const screenerCandidateSchema = z.object({
     score: z.number(),
     components: scoreComponentsSchema,
     hasPriceSignals: z.boolean(),
+    // Optional: absent when migration 0022 not yet applied (lenient-parse contract).
+    politicianCount90d: z.number().nullable().optional(),
+    politicianNetDirection: z.string().nullable().optional(),
 });
 
 export const screenerDataSchema = z.object({

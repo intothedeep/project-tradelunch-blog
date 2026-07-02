@@ -5,6 +5,9 @@
 // momentum + lowVol are cross-sectionally-normalised [0,1] price signals, or
 //   null when the security is outside the tracked price universe / has < ~1yr
 //   of history (partial-score contract — those terms are omitted from the sum).
+// politicianCount90d / politicianNetDirection: absent when migration 0022
+//   (v_politician_activity) has not been applied; clients must treat undefined
+//   and null identically (show empty cell).
 // Side effects: none (type declarations only).
 
 export interface ScoreComponents {
@@ -27,6 +30,10 @@ export interface ScreenerCandidate {
     // Data-availability tier flag: true when both price terms are present.
     // Drives the two-section /screener view (NOT a quality verdict).
     hasPriceSignals: boolean;
+    // Politician-activity (absent when migration 0022 not yet applied).
+    // null when view exists but no trades in the 90-day window for this ticker.
+    politicianCount90d?: number | null;
+    politicianNetDirection?: string | null;
 }
 
 export interface ScreenerData {

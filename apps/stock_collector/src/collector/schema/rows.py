@@ -211,3 +211,63 @@ class HoldingRow:
     discretion: Optional[str] = None
     ticker: Optional[str] = None
     source: str = "sec13f"
+
+
+# --- Output rows (Phase Q — Congressional / executive trade disclosures) ----
+
+
+@dataclass(frozen=True)
+class PoliticianRow:
+    """One filer in politician_registry (PK filer_id).
+
+    Carries stable identity metadata per kadoa filer slug. ``bioguide_id`` is
+    reserved for future congress-legislators enrichment (None until resolved).
+    Soft-delete only (``deleted_at`` managed by DB / upsert; not stored here).
+    """
+
+    filer_id: str
+    filer_name: str
+    party: Optional[str] = None
+    chamber: Optional[str] = None
+    branch: Optional[str] = None
+    state: Optional[str] = None
+    office: Optional[str] = None
+    agency: Optional[str] = None
+    bioguide_id: Optional[str] = None
+    source: str = "kadoa"
+
+
+@dataclass(frozen=True)
+class PoliticianTradeRow:
+    """One disclosed transaction event -> politician_trades (PK external_id).
+
+    ``external_id`` is the kadoa ``id`` field (globally unique dedup key).
+    ``disclosure_date`` is kadoa ``filing_date`` (the signal date; NOT NULL).
+    ``transaction_date`` is the actual trade date (nullable — kadoa may omit).
+    ``value_estimate`` is the geometric-mean midpoint of [value_min, value_max];
+    None when either bound is absent.
+    Soft-delete only (``deleted_at`` managed by DB / upsert; not stored here).
+    """
+
+    external_id: str
+    filer_id: str
+    disclosure_date: date
+    transaction_type: str                  # 'buy'|'sell'|'exchange'
+    asset_type: str                        # 'equity'|'bond'|'option'|'other'
+    transaction_date: Optional[date] = None
+    transaction_type_raw: Optional[str] = None
+    filer_owner: Optional[str] = None     # 'self'|'spouse'|'joint'|'dependent'
+    owner_raw: Optional[str] = None
+    asset_type_raw: Optional[str] = None
+    ticker: Optional[str] = None
+    asset_name: Optional[str] = None
+    value_min: Optional[int] = None
+    value_max: Optional[int] = None
+    value_estimate: Optional[int] = None
+    value_label: Optional[str] = None
+    doc_url: Optional[str] = None
+    source_id: Optional[str] = None
+    filing_type: Optional[str] = None
+    days_to_file: Optional[int] = None
+    is_late: Optional[bool] = None
+    source: str = "kadoa"

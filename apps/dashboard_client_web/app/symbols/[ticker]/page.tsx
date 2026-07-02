@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getSymbolDetail } from '@/app/actions/getSymbolDetail.action';
 import { PriceChart } from '@/components/symbols/PriceChart';
+import { PoliticianActivity } from '@/components/symbols/PoliticianActivity.client';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,8 +78,14 @@ export default async function SymbolDetailPage({
         );
     }
 
-    const { rankingHistory, holders, periodOfReport, sector, priceHistory } =
-        result.data;
+    const {
+        rankingHistory,
+        holders,
+        periodOfReport,
+        sector,
+        priceHistory,
+        politicianActivity,
+    } = result.data;
 
     return (
         <main className="p-4 md:p-8 max-w-screen-xl mx-auto">
@@ -104,6 +111,18 @@ export default async function SymbolDetailPage({
                     </p>
                 )}
             </section>
+
+            {/* Politician activity (migration 0022 — presence-guarded) */}
+            {politicianActivity != null && politicianActivity.count90d > 0 && (
+                <section className="mb-8 max-w-2xl">
+                    <h2 className="mb-3 text-xl font-semibold">
+                        Congressional Trading
+                    </h2>
+                    <PoliticianActivity
+                        politicianActivity={politicianActivity}
+                    />
+                </section>
+            )}
 
             <div className="grid gap-8 md:grid-cols-2">
                 {/* Marketcap rank history */}

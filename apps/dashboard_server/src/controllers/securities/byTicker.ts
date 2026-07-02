@@ -5,6 +5,8 @@
 //             (v_sec_holdings_enriched + fund_registry; Δweight/isNew derived from
 //             sec_holdings aggregates, NOT v_sec_position_delta — see Query B).
 //   Axis 3 — daily price sparkline from market_history (tracked universe only).
+//   Axis 4 — politician trading activity over 90-day disclosure window
+//             (v_politician_activity, migration 0022; presence-guarded).
 // Invariants:
 //   - Ticker validated by regex before any DB hit.
 //   - Presence guard: absent views/tables → data:null, not 500.
@@ -13,11 +15,16 @@
 //     unlike the post-id BIGINT case which IS > 2^53 in production).
 //   - CUSIP unresolved (no security_map row) → weight/delta null, isNew false.
 //   - market_history absent/empty → priceHistory: [].
+//   - v_politician_activity absent → politicianActivity: null (regression 0).
 // Constraints: raw SQL, no ORM, no side effects beyond pool reads.
 
 import { pool } from '../../database';
 import { Router } from 'express';
 import { getHolderWeights } from '../../helpers/holderWeights';
+import {
+    fetchPoliticianActivity,
+    type PoliticianActivityDto,
+} from '../../helpers/politicianActivity';
 
 export const router = Router();
 
@@ -33,22 +40,26 @@ interface IRawPresence {
     has_holdings: boolean;
     has_rankings: boolean;
     has_market_history: boolean;
+    has_politician_activity: boolean;
 }
 
 async function probePresence(): Promise<{
     hasHoldings: boolean;
     hasRankings: boolean;
     hasMarketHistory: boolean;
+    hasPoliticianActivity: boolean;
 }> {
     const { rows } = await pool.query<IRawPresence>(
-        `SELECT to_regclass('public.v_sec_holdings_enriched')  IS NOT NULL AS has_holdings,
-                to_regclass('public.market_rankings')           IS NOT NULL AS has_rankings,
-                to_regclass('public.market_history')            IS NOT NULL AS has_market_history`
+        `SELECT to_regclass('public.v_sec_holdings_enriched')   IS NOT NULL AS has_holdings,
+                to_regclass('public.market_rankings')            IS NOT NULL AS has_rankings,
+                to_regclass('public.market_history')             IS NOT NULL AS has_market_history,
+                to_regclass('public.v_politician_activity')      IS NOT NULL AS has_politician_activity`
     );
     return {
-        hasHoldings:      rows[0]?.has_holdings       ?? false,
-        hasRankings:      rows[0]?.has_rankings       ?? false,
-        hasMarketHistory: rows[0]?.has_market_history ?? false,
+        hasHoldings:             rows[0]?.has_holdings              ?? false,
+        hasRankings:             rows[0]?.has_rankings              ?? false,
+        hasMarketHistory:        rows[0]?.has_market_history        ?? false,
+        hasPoliticianActivity:   rows[0]?.has_politician_activity   ?? false,
     };
 }
 
@@ -89,7 +100,8 @@ function numOrNull(v: string | null): number | null {
 /**
  * @api {get} /v1/api/securities/:ticker/by-ticker Per-ticker detail
  * @apiSuccess {Object|null} data  { ticker, sector, rankingHistory[], holders[],
- *                                   periodOfReport, priceHistory[] }
+ *                                   periodOfReport, priceHistory[],
+ *                                   politicianActivity }
  *                                  or null when ticker invalid/unknown or tables absent.
  */
 router.get('/:ticker/by-ticker', async (req, res) => {
@@ -100,7 +112,7 @@ router.get('/:ticker/by-ticker', async (req, res) => {
             return res.json({ success: true, data: null });
         }
 
-        const { hasHoldings, hasRankings, hasMarketHistory } =
+        const { hasHoldings, hasRankings, hasMarketHistory, hasPoliticianActivity } =
             await probePresence();
 
         // Query A — ranking history (global scope, desc, up to 52 weeks = ~1 year).
@@ -210,11 +222,17 @@ router.get('/:ticker/by-ticker', async (req, res) => {
             }
         }
 
+        // Query D — politician activity (90-day window, migration 0022).
+        // fetchPoliticianActivity short-circuits to null when view is absent.
+        const politicianActivity: PoliticianActivityDto | null =
+            await fetchPoliticianActivity(ticker, hasPoliticianActivity);
+
         // Unknown ticker: no data in any source.
         if (
             rankingHistory.length === 0 &&
             holders.length === 0 &&
-            priceHistory.length === 0
+            priceHistory.length === 0 &&
+            politicianActivity === null
         ) {
             return res.json({ success: true, data: null });
         }
@@ -228,6 +246,7 @@ router.get('/:ticker/by-ticker', async (req, res) => {
                 holders,
                 periodOfReport,
                 priceHistory,
+                politicianActivity,
             },
         });
     } catch {

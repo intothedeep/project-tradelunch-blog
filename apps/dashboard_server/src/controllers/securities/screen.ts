@@ -7,6 +7,9 @@
 //   - Uses the single latest period_of_report across all securities in v_sec_consensus.
 //   - LEFT JOIN security_map: ticker is NULL when CUSIP not yet resolved (0019 not seeded).
 //   - LEFT JOIN LATERAL: most-recent global market_rankings row by ticker.
+//   - LEFT JOIN v_politician_activity (when present, migration 0022): exposes
+//     politicianCount90d + politicianNetDirection per candidate row.
+//     When absent → both fields omitted (never 500), exactly like other dynamic joins.
 //   - Score computed in Node via computeScore() — deterministic, testable without DB.
 //   - momentum (0.3) + lowVol (0.1): computed from market_history '1d' closes joined
 //     by resolved ticker, cross-sectionally percentile-normalised across the candidate
@@ -55,6 +58,7 @@ interface IRawPresence {
     has_secmap: boolean;
     has_rankings: boolean;
     has_market_history: boolean;
+    has_politician_activity: boolean;
 }
 
 async function probePresence(): Promise<{
@@ -62,18 +66,21 @@ async function probePresence(): Promise<{
     hasSecmap: boolean;
     hasRankings: boolean;
     hasMarketHistory: boolean;
+    hasPoliticianActivity: boolean;
 }> {
     const { rows } = await pool.query<IRawPresence>(
-        `SELECT to_regclass('public.v_sec_consensus') IS NOT NULL AS has_consensus,
-                to_regclass('public.security_map')     IS NOT NULL AS has_secmap,
-                to_regclass('public.market_rankings')  IS NOT NULL AS has_rankings,
-                to_regclass('public.market_history')   IS NOT NULL AS has_market_history`
+        `SELECT to_regclass('public.v_sec_consensus')        IS NOT NULL AS has_consensus,
+                to_regclass('public.security_map')           IS NOT NULL AS has_secmap,
+                to_regclass('public.market_rankings')        IS NOT NULL AS has_rankings,
+                to_regclass('public.market_history')         IS NOT NULL AS has_market_history,
+                to_regclass('public.v_politician_activity')  IS NOT NULL AS has_politician_activity`
     );
     return {
-        hasConsensus: rows[0]?.has_consensus ?? false,
-        hasSecmap: rows[0]?.has_secmap ?? false,
-        hasRankings: rows[0]?.has_rankings ?? false,
-        hasMarketHistory: rows[0]?.has_market_history ?? false,
+        hasConsensus:          rows[0]?.has_consensus           ?? false,
+        hasSecmap:             rows[0]?.has_secmap              ?? false,
+        hasRankings:           rows[0]?.has_rankings            ?? false,
+        hasMarketHistory:      rows[0]?.has_market_history      ?? false,
+        hasPoliticianActivity: rows[0]?.has_politician_activity ?? false,
     };
 }
 
@@ -156,6 +163,8 @@ interface ICandidateRow {
     ticker: string | null;
     rank: number | null;           // INT → number in pg (from market_rankings)
     market_cap: string | null;     // NUMERIC → string in pg
+    politician_count_90d: string | null;   // BIGINT → string; null when view absent
+    politician_net_direction: string | null;
 }
 
 // --- Helper ---
@@ -182,8 +191,13 @@ router.get('/screen', async (req, res) => {
         const maxRank          = clampParam(req.query.maxRank,          0, 0, 1000);
         const limit            = clampParam(req.query.limit,           50, 1, 200);
 
-        const { hasConsensus, hasSecmap, hasRankings, hasMarketHistory } =
-            await probePresence();
+        const {
+            hasConsensus,
+            hasSecmap,
+            hasRankings,
+            hasMarketHistory,
+            hasPoliticianActivity,
+        } = await probePresence();
         if (!hasConsensus) {
             return res.json({ success: true, data: null });
         }
@@ -213,19 +227,19 @@ router.get('/screen', async (req, res) => {
         }
 
         // Build dynamic SQL — joins only reference tables confirmed present.
-        const hasTickerJoin = hasSecmap;
-        const hasRankJoin   = hasSecmap && hasRankings;
+        const hasTickerJoin   = hasSecmap;
+        const hasRankJoin     = hasSecmap && hasRankings;
         const applyRankFilter = maxRank > 0 && hasRankJoin;
 
-        const smSelect    = hasTickerJoin ? 'sm.ticker' : 'NULL::text AS ticker';
-        const rankSelect  = hasRankJoin
+        const smSelect   = hasTickerJoin ? 'sm.ticker' : 'NULL::text AS ticker';
+        const rankSelect = hasRankJoin
             ? 'mr.rank, mr.market_cap'
             : 'NULL::int AS rank, NULL::numeric AS market_cap';
-        const smJoin      = hasTickerJoin
+        const smJoin     = hasTickerJoin
             ? `LEFT JOIN security_map sm ON sm.cusip = c.cusip AND sm.deleted_at IS NULL`
             : '';
         // r2 avoids alias collision with the outer lateral alias 'mr'.
-        const rankJoin    = hasRankJoin
+        const rankJoin   = hasRankJoin
             ? `LEFT JOIN LATERAL (
                     SELECT r2.rank, r2.market_cap
                     FROM market_rankings r2
@@ -234,8 +248,17 @@ router.get('/screen', async (req, res) => {
                     LIMIT 1
                ) mr ON TRUE`
             : '';
-        const rankFilter  = applyRankFilter
+        const rankFilter = applyRankFilter
             ? `AND (mr.rank IS NULL OR mr.rank <= $3)`
+            : '';
+
+        // Politician-activity join (migration 0022) — only when view exists AND
+        // the ticker join is also present (ticker is the join key).
+        const politicianSelect = hasPoliticianActivity && hasTickerJoin
+            ? 'pa.traded_by_count AS politician_count_90d, pa.net_direction AS politician_net_direction'
+            : 'NULL::bigint AS politician_count_90d, NULL::text AS politician_net_direction';
+        const politicianJoin = hasPoliticianActivity && hasTickerJoin
+            ? `LEFT JOIN v_politician_activity pa ON pa.ticker = sm.ticker`
             : '';
 
         const params: (string | number)[] = [periodOfReport, minActiveHolders];
@@ -247,10 +270,12 @@ SELECT c.cusip,
        c.holder_count_active,
        c.holder_count_total,
        ${smSelect},
-       ${rankSelect}
+       ${rankSelect},
+       ${politicianSelect}
   FROM v_sec_consensus c
   ${smJoin}
   ${rankJoin}
+  ${politicianJoin}
  WHERE c.period_of_report = $1
    AND c.holder_count_active >= $2
    ${rankFilter}
@@ -273,6 +298,14 @@ SELECT c.cusip,
                 momentum: momentum[i],
                 lowVol: lowVol[i],
             });
+
+            const politicianCount90d =
+                r.politician_count_90d !== null
+                    ? Number(r.politician_count_90d)
+                    : null;
+            const politicianNetDirection =
+                r.politician_net_direction ?? null;
+
             return {
                 cusip: r.cusip,
                 name: r.name_of_issuer,
@@ -285,6 +318,9 @@ SELECT c.cusip,
                 components,
                 // Data-availability flag — drives the two-tier /screener view.
                 hasPriceSignals: hasPriceSignals(components),
+                // Politician-activity (null when migration 0022 not yet applied).
+                politicianCount90d,
+                politicianNetDirection,
             };
         });
 
