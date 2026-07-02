@@ -8,7 +8,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu } from 'lucide-react';
+import { ChevronDown, Landmark } from 'lucide-react';
 import {
     Sheet,
     SheetContent,
@@ -38,13 +38,12 @@ export default function FundNavDrawer({
             <SheetTrigger asChild>
                 <button
                     type="button"
+                    aria-label="Switch fund"
                     className="flex w-full items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-muted/60"
                 >
-                    <Menu className="size-4 shrink-0 text-muted-foreground" />
+                    <Landmark className="size-4 shrink-0 text-muted-foreground" />
                     <span className="truncate">{activeLabel}</span>
-                    <span className="ml-auto shrink-0 text-xs text-muted-foreground">
-                        Funds
-                    </span>
+                    <ChevronDown className="ml-auto size-4 shrink-0 text-muted-foreground" />
                 </button>
             </SheetTrigger>
             <SheetContent
