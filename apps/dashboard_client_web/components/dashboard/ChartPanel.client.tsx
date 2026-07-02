@@ -71,8 +71,9 @@ export default function ChartPanel({ className }: Props) {
     const isFx = useMemo(() => {
         if (selectedLabel === null) return false;
         const snap = snapshotQuery.data;
-        return !!snap?.ok && snap.data.fx.items.some(
-            (i) => i.label === selectedLabel
+        return (
+            !!snap?.ok &&
+            snap.data.fx.items.some((i) => i.label === selectedLabel)
         );
     }, [selectedLabel, snapshotQuery.data]);
 
@@ -81,11 +82,7 @@ export default function ChartPanel({ className }: Props) {
         const res = historyQuery.data;
         const baseDaily = res?.ok && res.data ? res.data.candles : [];
         const daily = isFx ? synthesizeFxOpen(baseDaily) : baseDaily;
-        return generateIntervalCandles(
-            selectedLabel,
-            selectedInterval,
-            daily
-        );
+        return generateIntervalCandles(selectedLabel, selectedInterval, daily);
     }, [selectedLabel, selectedInterval, historyQuery.data, isFx]);
 
     const {
