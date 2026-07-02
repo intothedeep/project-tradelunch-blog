@@ -22,6 +22,9 @@
 //     score DESC, then holderCountActive DESC; slice to limit. Each candidate
 //     carries hasPriceSignals so the client can render the two data-availability
 //     tiers without re-deriving it. (PM+architect decision 2026-07-02.)
+//   - notionalTier (0.15 weight in politicalInterestScore): 90d disclosed-value aggregate
+//     from politician_trades. Gated on hasPoliticianActivity (same migration as the view).
+//     notional is a COARSE 3-level proxy — never surfaced as an exact figure to the client.
 // DEFERRED:
 //   - filing_date lookahead: v_sec_consensus is period-based. A production signal
 //     must gate on sec_filings.filing_date so the screener only runs after all funds
@@ -226,6 +229,7 @@ interface ICandidateRow {
     politician_net_direction: string | null;
     politician_buy_member_count: string | null;   // BIGINT → string; null when view absent
     politician_sell_member_count: string | null;  // BIGINT → string; null when view absent
+    politician_notional_90d: string | null;       // BIGINT → string; 90d sum from politician_trades
 }
 
 // --- Helper ---
@@ -316,13 +320,24 @@ router.get('/screen', async (req, res) => {
 
         // Politician-activity join (migration 0022) — only when view exists AND
         // the ticker join is also present (ticker is the join key).
+        // pn: 90d notional aggregate from politician_trades (same gate — no separate migration).
+        // notional is a COARSE 3-level tier proxy; never surfaced as an exact $ to the client.
         const politicianSelect = hasPoliticianActivity && hasTickerJoin
             ? `pa.traded_by_count AS politician_count_90d, pa.net_direction AS politician_net_direction,
-               pa.buy_member_count AS politician_buy_member_count, pa.sell_member_count AS politician_sell_member_count`
+               pa.buy_member_count AS politician_buy_member_count, pa.sell_member_count AS politician_sell_member_count,
+               pn.notional_90d AS politician_notional_90d`
             : `NULL::bigint AS politician_count_90d, NULL::text AS politician_net_direction,
-               NULL::bigint AS politician_buy_member_count, NULL::bigint AS politician_sell_member_count`;
+               NULL::bigint AS politician_buy_member_count, NULL::bigint AS politician_sell_member_count,
+               NULL::bigint AS politician_notional_90d`;
         const politicianJoin = hasPoliticianActivity && hasTickerJoin
-            ? `LEFT JOIN v_politician_activity pa ON pa.ticker = sm.ticker`
+            ? `LEFT JOIN v_politician_activity pa ON pa.ticker = sm.ticker
+               LEFT JOIN (
+                   SELECT ticker, SUM(COALESCE(value_estimate, 0))::bigint AS notional_90d
+                     FROM politician_trades
+                    WHERE ticker IS NOT NULL AND deleted_at IS NULL
+                      AND disclosure_date >= CURRENT_DATE - INTERVAL '90 days'
+                    GROUP BY ticker
+               ) pn ON pn.ticker = sm.ticker`
             : '';
 
         const params: (string | number)[] = [periodOfReport, minActiveHolders];
@@ -371,6 +386,7 @@ SELECT c.cusip,
                 r.politician_net_direction ?? null;
             // Political-interest score (separate lens from the 13F score — never blended).
             // null when migration 0022 absent or tradedByCount is 0.
+            // notional feeds only a coarse 3-level tier (0/0.5/1) — never an exact $ figure.
             const politicalInterestScore = computePoliticalScore({
                 tradedByCount:
                     r.politician_count_90d !== null ? Number(r.politician_count_90d) : null,
@@ -381,6 +397,10 @@ SELECT c.cusip,
                 sellMembers:
                     r.politician_sell_member_count !== null
                         ? Number(r.politician_sell_member_count)
+                        : null,
+                notional:
+                    r.politician_notional_90d != null
+                        ? Number(r.politician_notional_90d)
                         : null,
             });
 

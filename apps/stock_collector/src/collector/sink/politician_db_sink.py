@@ -4,6 +4,8 @@ Purpose: idempotent UPSERTs for Phase Q kadoa congressional-trade disclosures.
   * upsert_politicians          -> politician_registry, basic columns only
   * upsert_politicians_enriched -> politician_registry, including Q10.2 aggregate cols
   * upsert_trades               -> politician_trades  ON CONFLICT(external_id) DO UPDATE
+  * read_congress_filers        -> SELECT from politician_registry (non-executive rows)
+  * update_bioguide_ids         -> SET bioguide_id on politician_registry by filer_id
 
 Anti-clobber design (Q10.2):
   _POLITICIAN_SQL (trades path) lists only basic columns in both INSERT and SET.
@@ -22,7 +24,7 @@ Invariants:
   * deleted_at is reset to NULL on re-upsert (revive soft-deleted rows).
   * updated_at is refreshed on every upsert touch.
 
-Side effects: DB writes (psycopg3).
+Side effects: DB reads + writes (psycopg3).
 """
 
 from __future__ import annotations
@@ -121,6 +123,26 @@ ON CONFLICT (external_id) DO UPDATE SET
     updated_at           = now()
 """
 
+# Read all non-executive registry rows (bioguide enrichment candidates).
+_READ_CONGRESS_SQL = """
+SELECT filer_id, filer_name, state, chamber, branch
+FROM politician_registry
+WHERE deleted_at IS NULL
+  AND (
+    branch IS NULL
+    OR lower(branch) NOT IN ('executive', 'oge')
+  )
+  AND chamber IS NOT NULL
+"""
+
+# Update only the bioguide_id column; touches nothing else.
+_UPDATE_BIOGUIDE_SQL = """
+UPDATE politician_registry
+SET bioguide_id = %s,
+    updated_at  = now()
+WHERE filer_id = %s
+"""
+
 
 # ---------------------------------------------------------------------------
 # Public functions — caller commits
@@ -192,4 +214,44 @@ def upsert_trades(conn: psycopg.Connection, rows: Sequence[PoliticianTradeRow]) 
     ]
     with conn.cursor() as cur:
         cur.executemany(_TRADE_SQL, params)
+    return len(params)
+
+
+def read_congress_filers(conn: psycopg.Connection) -> list[dict]:
+    """SELECT all non-executive, non-deleted politician_registry rows.
+
+    Returns a list of dicts with keys: filer_id, filer_name, state, chamber, branch.
+    Used by enrich_bioguide to determine which filers need a bioguide_id lookup.
+
+    Only rows where chamber IS NOT NULL and branch is not executive/OGE are returned
+    because those are the only rows that can have a congress-legislators match.
+    """
+    with conn.cursor() as cur:
+        cur.execute(_READ_CONGRESS_SQL)
+        cols = [desc[0] for desc in cur.description]
+        return [dict(zip(cols, row)) for row in cur.fetchall()]
+
+
+def update_bioguide_ids(
+    conn: psycopg.Connection,
+    mapping: dict[str, str],
+) -> int:
+    """UPDATE bioguide_id for each filer_id in mapping. Caller must commit.
+
+    Only touches the bioguide_id + updated_at columns — all other registry
+    columns are left unchanged. Idempotent: re-running with the same mapping
+    produces no net change.
+
+    Args:
+        conn:    open psycopg connection (caller commits).
+        mapping: {filer_id: bioguide_id} for all matched filers.
+
+    Returns:
+        Number of rows passed to executemany (matched count).
+    """
+    if not mapping:
+        return 0
+    params = [(bioguide_id, filer_id) for filer_id, bioguide_id in mapping.items()]
+    with conn.cursor() as cur:
+        cur.executemany(_UPDATE_BIOGUIDE_SQL, params)
     return len(params)
