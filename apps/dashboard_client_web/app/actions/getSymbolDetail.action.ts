@@ -1,5 +1,11 @@
 // Purpose: Server Action returning per-ticker detail (ranking history + holders).
-// Cache: next.revalidate=86400 (24h) — must match Express s-maxage.
+// Cache: cache:'no-store' — read fresh from Express every render, relying on
+//   Express's own CDN cache (s-maxage=86400) for speed. We deliberately do NOT
+//   use Next's Data Cache here: caching per-ticker responses caches a transient
+//   `data:null` (e.g. a backend outage) for up to 24h and, because the frontend
+//   is a separate Vercel project, a backend-only fix does not purge it — tickers
+//   stay stuck on "not found" long after the backend recovers. no-store + the
+//   Express CDN gives freshness without the double-cache stale-null trap.
 // Invariant: a null data response (unknown ticker / tables absent) passes through
 //   as { ok:true, data:null } — NOT an error. Raw throws are typed network
 //   errors AND forwarded to error_log (source='ssr'). NO mock fallback.
@@ -14,7 +20,6 @@ import { symbolDetailSchema } from '@/app/actions/getSymbolDetail.schema';
 import type { SymbolDetail } from '@/types/symbolDetail';
 
 const SECURITIES_ENDPOINT = '/v1/api/securities';
-const REVALIDATE_SECONDS = 86400; // 24h — must match Express s-maxage
 
 export type SymbolDetailErrorKind = 'network' | 'parse';
 
@@ -34,7 +39,7 @@ export async function getSymbolDetail(
     let payload: unknown;
     try {
         const res = await fetch(`${API_BASE}${path}`, {
-            next: { revalidate: REVALIDATE_SECONDS },
+            cache: 'no-store',
         });
         if (!res.ok) {
             await reportSsrError(`symbolDetail HTTP ${res.status}`, path);
