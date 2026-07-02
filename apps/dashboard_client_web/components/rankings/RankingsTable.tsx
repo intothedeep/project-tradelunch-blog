@@ -4,6 +4,7 @@
 // Constraints: server component — no client hooks. Pure presentation.
 // Side effects: none.
 
+import Link from 'next/link';
 import {
     Table,
     TableBody,
@@ -49,9 +50,12 @@ export default function RankingsTable({ rows, scope }: RankingsTableProps) {
                             {row.rank}
                         </TableCell>
                         <TableCell>
-                            <span className="block font-medium font-mono">
+                            <Link
+                                href={`/symbols/${row.symbol}`}
+                                className="block font-medium font-mono hover:underline"
+                            >
                                 {row.symbol}
-                            </span>
+                            </Link>
                             {row.name && row.name !== row.symbol && (
                                 <span className="block truncate text-xs text-muted-foreground">
                                     {row.name}

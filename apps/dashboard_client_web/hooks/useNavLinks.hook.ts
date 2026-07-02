@@ -25,13 +25,15 @@ export type NavLink = {
 
 // Pure: the header bar's market destinations. About / blog / resume live in the
 // left-rail primary nav, so the header carries only the finance surfaces — the
-// chart dashboard, the SEC 13F funds viewer, and the weekly market-cap rankings.
+// chart dashboard, the SEC 13F funds viewer, the weekly market-cap rankings, and
+// the 13F consensus candidate screener (Phase P).
 // Desktop renders these inside a single "MARKETS" dropdown (TopBar); the mobile
 // drawer lists them flat via NavMenu. No username needed.
 export const buildNavLinks = (): NavLink[] => [
     { title: 'dashboard', href: '/dashboard' },
     { title: 'SEC 13F funds', href: '/funds' },
     { title: 'marketcap rankings', href: '/rankings' },
+    { title: 'screener', href: '/screener' },
 ];
 
 // Pure: build the primary nav set consumed by the P4 PrimaryNav.

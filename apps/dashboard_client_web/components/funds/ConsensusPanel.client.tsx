@@ -8,6 +8,7 @@
 
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { getSecurityConsensus } from '@/app/actions/getSecurityConsensus.action';
 import type { SecurityConsensus } from '@/types/consensus';
@@ -66,9 +67,18 @@ export function ConsensusPanel({ cusip }: ConsensusPanelProps) {
                 <>
                     <p className="mt-1 text-xs text-muted-foreground">
                         {data.name}
-                        {data.mappedTicker
-                            ? ` · ${data.mappedTicker}`
-                            : ''} · {data.periodOfReport}
+                        {data.mappedTicker && (
+                            <>
+                                {' · '}
+                                <Link
+                                    href={`/symbols/${data.mappedTicker}`}
+                                    className="font-medium text-primary hover:underline"
+                                >
+                                    {data.mappedTicker}
+                                </Link>
+                            </>
+                        )}{' '}
+                        · {data.periodOfReport}
                     </p>
                     <p className="mt-2 text-sm">
                         <span className="font-semibold text-primary">
