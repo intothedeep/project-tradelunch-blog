@@ -84,8 +84,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--years",
         type=int,
-        default=5,
-        help="retention window in years (default: 5)",
+        default=3,
+        help="retention window in years (default: 3)",
     )
     parser.add_argument(
         "--limit",
