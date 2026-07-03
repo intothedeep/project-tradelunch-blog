@@ -334,10 +334,13 @@ export default function RankFlowTable({ data }: RankFlowTableProps) {
                 )}
             </div>
 
-            {/* Scrollable columns — snap per quarter for mobile swipe. */}
-            <div className="overflow-x-auto -mx-1 snap-x snap-mandatory">
+            {/* Scrollable columns — snap per quarter for mobile swipe.
+                px/py-2 gutter keeps the selected cell's ring-4 + ring-offset-2
+                (~6px) from being clipped by overflow-x's implied vertical clip on
+                edge columns / the top row; -mx-2 cancels px-2 so edges stay flush. */}
+            <div className="overflow-x-auto -mx-2 snap-x snap-mandatory">
                 <div
-                    className="inline-flex gap-2 px-1 pb-2"
+                    className="inline-flex gap-2 px-2 py-2"
                     style={{ minWidth: 'max-content' }}
                 >
                     {isAligned
