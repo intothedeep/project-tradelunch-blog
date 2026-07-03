@@ -8,11 +8,11 @@
 // (never rethrows — must not break the shell). Empty renders a "no tags" state.
 // Side effects: one network read (isolated to this boundary).
 
-import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { getPopularTags } from '@/apis/getPopularTags.api';
 import { getUserPopularTags } from '@/apis/getUserPopularTags.api';
 import { FilterChip } from '@/components/blog/filter/FilterChip.client';
+import { NavTagLink } from '@/components/rail/NavTagLink.client';
 import type { TPopularTag } from '@repo/types';
 
 const FALLBACK_LINE = 'px-1 py-2 text-xs text-muted-foreground';
@@ -54,15 +54,10 @@ export const TagCloud = async ({ username, mode = 'nav' }: Props = {}) => {
                             count={count}
                         />
                     ) : (
-                        <Link
-                            href={`/tags/${encodeURIComponent(tag)}`}
-                            className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-foreground transition-colors hover:bg-accent/50"
-                        >
-                            <span className="truncate">{tag}</span>
-                            <span className="text-muted-foreground">
-                                {count}
-                            </span>
-                        </Link>
+                        <NavTagLink
+                            tag={tag}
+                            count={count}
+                        />
                     )}
                 </li>
             ))}
