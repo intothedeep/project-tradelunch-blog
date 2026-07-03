@@ -9,6 +9,8 @@
 //             (v_politician_activity, migration 0022; presence-guarded).
 //   Axis 5 — per-politician PTR transaction holders
 //             (v_politician_ticker_holders, migration 0023; presence-guarded).
+//   Axis 6 — committee-relevance flag on each politician holder
+//             (v_politician_sector_oversight, migration 0025; presence-guarded).
 // Invariants:
 //   - Ticker validated by regex before any DB hit.
 //   - Presence guard: absent views/tables → data:null, not 500.
@@ -19,6 +21,7 @@
 //   - market_history absent/empty → priceHistory: [].
 //   - v_politician_activity absent → politicianActivity: null (regression 0).
 //   - v_politician_ticker_holders absent → politicianHolders: [] (regression 0).
+//   - v_politician_sector_oversight absent → committeeRelevant: false everywhere.
 // Constraints: raw SQL, no ORM, no side effects beyond pool reads.
 
 import { pool } from '../../database';
@@ -49,6 +52,7 @@ interface IRawPresence {
     has_market_history: boolean;
     has_politician_activity: boolean;
     has_politician_holders: boolean;
+    has_sector_oversight: boolean;
 }
 
 async function probePresence(): Promise<{
@@ -57,13 +61,15 @@ async function probePresence(): Promise<{
     hasMarketHistory: boolean;
     hasPoliticianActivity: boolean;
     hasPoliticianHolders: boolean;
+    hasSectorOversight: boolean;
 }> {
     const { rows } = await pool.query<IRawPresence>(
         `SELECT to_regclass('public.v_sec_holdings_enriched')      IS NOT NULL AS has_holdings,
                 to_regclass('public.market_rankings')               IS NOT NULL AS has_rankings,
                 to_regclass('public.market_history')                IS NOT NULL AS has_market_history,
                 to_regclass('public.v_politician_activity')         IS NOT NULL AS has_politician_activity,
-                to_regclass('public.v_politician_ticker_holders')   IS NOT NULL AS has_politician_holders`
+                to_regclass('public.v_politician_ticker_holders')   IS NOT NULL AS has_politician_holders,
+                to_regclass('public.v_politician_sector_oversight') IS NOT NULL AS has_sector_oversight`
     );
     return {
         hasHoldings:             rows[0]?.has_holdings              ?? false,
@@ -71,6 +77,7 @@ async function probePresence(): Promise<{
         hasMarketHistory:        rows[0]?.has_market_history        ?? false,
         hasPoliticianActivity:   rows[0]?.has_politician_activity   ?? false,
         hasPoliticianHolders:    rows[0]?.has_politician_holders    ?? false,
+        hasSectorOversight:      rows[0]?.has_sector_oversight      ?? false,
     };
 }
 
@@ -129,6 +136,7 @@ router.get('/:ticker/by-ticker', async (req, res) => {
             hasMarketHistory,
             hasPoliticianActivity,
             hasPoliticianHolders,
+            hasSectorOversight,
         } = await probePresence();
 
         // Query A — ranking history (global scope, desc, up to 52 weeks = ~1 year).
@@ -243,10 +251,11 @@ router.get('/:ticker/by-ticker', async (req, res) => {
         const politicianActivity: PoliticianActivityDto | null =
             await fetchPoliticianActivity(ticker, hasPoliticianActivity);
 
-        // Query E — per-politician PTR holders (migration 0023).
-        // fetchPoliticianHolders short-circuits to [] when view is absent.
+        // Query E — per-politician PTR holders (migration 0023) + committee-relevance
+        // (Phase Q: v_politician_sector_oversight, migration 0025; absent → false).
+        // sector is available from Query B (null when holdings absent or unmapped).
         const politicianHolders: PoliticianHolderDto[] =
-            await fetchPoliticianHolders(ticker, hasPoliticianHolders);
+            await fetchPoliticianHolders(ticker, hasPoliticianHolders, sector, hasSectorOversight);
 
         // Unknown ticker: no data in any source.
         if (

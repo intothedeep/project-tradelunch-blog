@@ -9,6 +9,8 @@
 //   - data:null (unknown filerId / tables absent) → graceful not-found state.
 //   - PoliticianDisclaimer + coverage footnote always visible.
 //   - timeline empty (pre-backfill) → timeline section hidden entirely.
+//   - committees absent/empty → committee section hidden entirely.
+//   - committeeRelevant badge shown only when true; based on CURRENT membership.
 // Side effects: one Server Action fetch per render.
 
 import type { Metadata } from 'next';
@@ -48,6 +50,11 @@ function directionLabel(d: PoliticianTicker['netDirection']): string {
     return 'mixed';
 }
 
+const COMMITTEE_BADGE_TOOLTIP =
+    'This filer currently sits on a committee whose jurisdiction covers ' +
+    "this stock's sector. Based on CURRENT committee membership only — " +
+    'historical assignments are not available. Not investment advice.';
+
 export default async function PoliticianPage({ params }: PageProps) {
     const { filerId } = await params;
     const result = await getPolitician(filerId);
@@ -84,6 +91,8 @@ export default async function PoliticianPage({ params }: PageProps) {
     }
 
     const { filer, tickers, timeline } = result.data;
+    const hasCommittees =
+        filer.committees !== undefined && filer.committees.length > 0;
 
     return (
         <main className="p-4 md:p-8 max-w-screen-xl mx-auto">
@@ -107,6 +116,21 @@ export default async function PoliticianPage({ params }: PageProps) {
                         {filer.state && <NeutralChip label={filer.state} />}
                         {filer.office && <NeutralChip label={filer.office} />}
                     </div>
+
+                    {/* Committee chips — current membership only (Phase Q) */}
+                    {hasCommittees && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            {filer.committees!.map((c) => (
+                                <span
+                                    key={c.thomasId}
+                                    className="inline-flex items-center gap-1 rounded border border-border px-2 py-0.5 text-xs text-muted-foreground"
+                                    title="Current committee membership (historical not available)"
+                                >
+                                    {c.name}
+                                </span>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Source-aggregate totals — labeled as-reported */}
                     <p className="mt-3 text-xs text-muted-foreground">
@@ -188,12 +212,22 @@ export default async function PoliticianPage({ params }: PageProps) {
                                         className="border-b last:border-0 hover:bg-muted/30"
                                     >
                                         <td className="px-4 py-3">
-                                            <Link
-                                                href={`/symbols/${t.ticker}`}
-                                                className="font-mono font-semibold text-primary underline-offset-4 hover:underline"
-                                            >
-                                                {t.ticker}
-                                            </Link>
+                                            <div className="flex items-center gap-2">
+                                                <Link
+                                                    href={`/symbols/${t.ticker}`}
+                                                    className="font-mono font-semibold text-primary underline-offset-4 hover:underline"
+                                                >
+                                                    {t.ticker}
+                                                </Link>
+                                                {t.committeeRelevant && (
+                                                    <span
+                                                        className="inline-flex items-center rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                                                        title={COMMITTEE_BADGE_TOOLTIP}
+                                                    >
+                                                        committee
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3 text-right tabular-nums">
                                             {t.disclosedValueBand}

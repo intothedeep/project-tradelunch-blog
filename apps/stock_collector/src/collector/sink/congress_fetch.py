@@ -77,3 +77,37 @@ def fetch_legislators() -> list[dict]:
     historical: list[dict] = yaml.safe_load(historical_bytes) or []
 
     return current + historical
+
+
+_COMMITTEES_URL = f"{_BASE}/committees-current.yaml"
+_MEMBERSHIP_URL = f"{_BASE}/committee-membership-current.yaml"
+
+
+def fetch_committees() -> list[dict]:
+    """Download committees-current.yaml; return list of committee dicts.
+
+    Each dict has at minimum: thomas_id, name, type (house|senate|joint).
+    Subcommittees are nested under 'subcommittees' but callers may ignore them
+    (Phase Q enrichment only cares about full committees).
+    """
+    session = requests.Session()
+    session.headers.update(
+        {"User-Agent": _USER_AGENT, "Accept-Encoding": "gzip, deflate"}
+    )
+    raw = _get_with_backoff(_COMMITTEES_URL, session)
+    return yaml.safe_load(raw) or []
+
+
+def fetch_committee_membership() -> dict[str, list[dict]]:
+    """Download committee-membership-current.yaml; return raw dict.
+
+    Keyed by thomas_id -> list of member dicts with at minimum:
+    {name, party, rank, bioguide}.  The 'title' key is present only for
+    chairs / ranking members.
+    """
+    session = requests.Session()
+    session.headers.update(
+        {"User-Agent": _USER_AGENT, "Accept-Encoding": "gzip, deflate"}
+    )
+    raw = _get_with_backoff(_MEMBERSHIP_URL, session)
+    return yaml.safe_load(raw) or {}

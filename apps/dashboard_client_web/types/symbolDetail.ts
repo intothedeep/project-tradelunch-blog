@@ -6,6 +6,8 @@
 //   not been applied yet; consumers MUST treat undefined / null identically.
 //   politicianHolders is absent when migration 0023 has not been applied;
 //   empty array when the view exists but no data for this ticker.
+//   committeeRelevant on SymbolPoliticianHolder is absent when Phase Q tables
+//   (migration 0025) are not yet applied; treat undefined as false.
 // Side effects: none (type declarations only).
 
 export interface SymbolRankingEntry {
@@ -51,6 +53,8 @@ export type ValueBand =
  *   - sharePctOfFilerVolume / rankInFilerVolume are PTR transaction volume proxies
  *     (NOT portfolio weight or holdings rank).
  *   - netDirection reflects transaction skew, NOT a current position direction.
+ *   - committeeRelevant: true when the holder's committee oversees the ticker's
+ *     sector (CURRENT membership only; absent tables → field absent/false).
  */
 export interface SymbolPoliticianHolder {
     filerId: string;
@@ -67,6 +71,12 @@ export interface SymbolPoliticianHolder {
     tradeCount: number;
     netDirection: 'buy_skew' | 'sell_skew' | 'mixed';
     latestDisclosure: string; // 'YYYY-MM-DD'
+    /**
+     * True when the holder sits on a committee whose jurisdiction covers
+     * this ticker's sector (CURRENT membership only). Absent when Phase Q
+     * tables not yet applied — treat as false.
+     */
+    committeeRelevant?: boolean;
 }
 
 export interface SymbolDetail {

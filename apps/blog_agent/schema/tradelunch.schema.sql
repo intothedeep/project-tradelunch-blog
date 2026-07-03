@@ -851,3 +851,33 @@ WHERE ticker IS NOT NULL
   AND transaction_date IS NOT NULL
   AND deleted_at IS NULL
 GROUP BY filer_id, ticker, date_trunc('quarter', transaction_date);
+
+-- Mirrors migration 0025_politician_committees.sql (committee membership + sector map).
+
+CREATE TABLE IF NOT EXISTS politician_committees (
+    bioguide_id          TEXT        NOT NULL,
+    committee_thomas_id  TEXT        NOT NULL,
+    committee_name       TEXT        NOT NULL,
+    committee_type       TEXT        NOT NULL,
+    title                TEXT            NULL,
+    source               TEXT        NOT NULL DEFAULT 'congress-legislators',
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at           TIMESTAMPTZ         NULL,
+    PRIMARY KEY (bioguide_id, committee_thomas_id)
+);
+
+CREATE TABLE IF NOT EXISTS committee_sector_map (
+    committee_thomas_id  TEXT  NOT NULL,
+    sector               TEXT  NOT NULL,
+    PRIMARY KEY (committee_thomas_id, sector)
+);
+
+CREATE OR REPLACE VIEW v_politician_sector_oversight AS
+SELECT DISTINCT
+    pc.bioguide_id,
+    csm.sector
+FROM politician_committees pc
+JOIN committee_sector_map csm
+    ON csm.committee_thomas_id = pc.committee_thomas_id
+WHERE pc.deleted_at IS NULL;

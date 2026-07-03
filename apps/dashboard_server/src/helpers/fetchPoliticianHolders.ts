@@ -10,6 +10,8 @@
 //     transaction volume, NOT portfolio weight or holdings.
 //   - latestDisclosure is returned as 'YYYY-MM-DD' string.
 //   - Results sorted by disclosed_value_usd DESC (highest trader first).
+//   - committeeRelevant: true when the holder's committee oversees tickerSector
+//     (CURRENT membership only; absent tables or null bioguide_id → false).
 // Constraints: raw SQL, no ORM, no side effects beyond pool reads.
 
 import { pool } from '../database';
@@ -30,6 +32,13 @@ export interface PoliticianHolderDto {
     tradeCount: number;
     netDirection: 'buy_skew' | 'sell_skew' | 'mixed';
     latestDisclosure: string; // 'YYYY-MM-DD'
+    /**
+     * True when the holder sits on a committee whose jurisdiction covers
+     * the ticker's sector (CURRENT membership only). Always false when
+     * politician_committees / v_politician_sector_oversight are absent or the
+     * filer has no bioguide_id.
+     */
+    committeeRelevant: boolean;
 }
 
 interface IRawHolderRow {
@@ -41,6 +50,7 @@ interface IRawHolderRow {
     trade_count: string;
     net_direction: string;
     latest_disclosure: Date | string;
+    bioguide_id: string | null;
 }
 
 function toIsoDate(d: Date | string): string {
@@ -52,6 +62,7 @@ const HOLDER_SQL = `
            r.filer_name,
            r.party,
            r.chamber,
+           r.bioguide_id,
            h.disclosed_value_usd,
            h.trade_count,
            h.net_direction,
@@ -64,10 +75,17 @@ const HOLDER_SQL = `
 /**
  * Fetches politician holders for a single ticker.
  * Returns [] when the view is absent or when there are no rows for the ticker.
+ *
+ * @param ticker             The stock ticker to look up.
+ * @param hasPoliticianHolders  Whether v_politician_ticker_holders exists.
+ * @param tickerSector       The GICS sector for this ticker (null if unknown).
+ * @param hasSectorOversight Whether v_politician_sector_oversight exists.
  */
 export async function fetchPoliticianHolders(
     ticker: string,
-    hasPoliticianHolders: boolean
+    hasPoliticianHolders: boolean,
+    tickerSector: string | null = null,
+    hasSectorOversight: boolean = false,
 ): Promise<PoliticianHolderDto[]> {
     if (!hasPoliticianHolders) return [];
 
@@ -77,8 +95,28 @@ export async function fetchPoliticianHolders(
     const filerIds = rows.map((r) => r.filer_id);
     const shareMap = await getPoliticianHolderShares(ticker, filerIds);
 
+    // Batch resolve which bioguide_ids oversee the ticker's sector.
+    const overseesBioguideIds = new Set<string>();
+    if (hasSectorOversight && tickerSector !== null) {
+        const bioguideIds = rows
+            .map((r) => r.bioguide_id)
+            .filter((id): id is string => id !== null);
+        if (bioguideIds.length > 0) {
+            const { rows: soRows } = await pool.query<{ bioguide_id: string }>(
+                `SELECT DISTINCT bioguide_id
+                   FROM v_politician_sector_oversight
+                  WHERE bioguide_id = ANY($1::text[])
+                    AND sector = $2`,
+                [bioguideIds, tickerSector]
+            );
+            soRows.forEach((r) => overseesBioguideIds.add(r.bioguide_id));
+        }
+    }
+
     return rows.map((r) => {
         const share = shareMap.get(r.filer_id);
+        const committeeRelevant =
+            r.bioguide_id !== null && overseesBioguideIds.has(r.bioguide_id);
         return {
             filerId: r.filer_id,
             filerName: r.filer_name,
@@ -91,6 +129,7 @@ export async function fetchPoliticianHolders(
             tradeCount: Number(r.trade_count),
             netDirection: r.net_direction as PoliticianHolderDto['netDirection'],
             latestDisclosure: toIsoDate(r.latest_disclosure),
+            committeeRelevant,
         };
     });
 }

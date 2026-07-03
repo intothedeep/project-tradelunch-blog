@@ -6,6 +6,8 @@ Purpose: idempotent UPSERTs for Phase Q kadoa congressional-trade disclosures.
   * upsert_trades               -> politician_trades  ON CONFLICT(external_id) DO UPDATE
   * read_congress_filers        -> SELECT from politician_registry (non-executive rows)
   * update_bioguide_ids         -> SET bioguide_id on politician_registry by filer_id
+  * upsert_committees           -> politician_committees ON CONFLICT DO UPDATE
+  * upsert_committee_sector_map -> committee_sector_map ON CONFLICT DO NOTHING
 
 Anti-clobber design (Q10.2):
   _POLITICIAN_SQL (trades path) lists only basic columns in both INSERT and SET.
@@ -33,7 +35,7 @@ from collections.abc import Sequence
 
 import psycopg
 
-from collector.schema.rows import PoliticianRow, PoliticianTradeRow
+from collector.schema.rows import PoliticianCommitteeRow, PoliticianRow, PoliticianTradeRow
 
 # ---------------------------------------------------------------------------
 # SQL templates
@@ -141,6 +143,27 @@ UPDATE politician_registry
 SET bioguide_id = %s,
     updated_at  = now()
 WHERE filer_id = %s
+"""
+
+# Committee membership upsert — revive soft-deleted rows on re-run.
+_COMMITTEE_SQL = """
+INSERT INTO politician_committees
+    (bioguide_id, committee_thomas_id, committee_name, committee_type, title, source)
+VALUES (%s, %s, %s, %s, %s, %s)
+ON CONFLICT (bioguide_id, committee_thomas_id) DO UPDATE SET
+    committee_name  = EXCLUDED.committee_name,
+    committee_type  = EXCLUDED.committee_type,
+    title           = EXCLUDED.title,
+    source          = EXCLUDED.source,
+    deleted_at      = NULL,
+    updated_at      = now()
+"""
+
+# Sector map upsert — purely additive; no meaningful UPDATE needed.
+_SECTOR_MAP_SQL = """
+INSERT INTO committee_sector_map (committee_thomas_id, sector)
+VALUES (%s, %s)
+ON CONFLICT (committee_thomas_id, sector) DO NOTHING
 """
 
 
@@ -255,3 +278,63 @@ def update_bioguide_ids(
     with conn.cursor() as cur:
         cur.executemany(_UPDATE_BIOGUIDE_SQL, params)
     return len(params)
+
+
+def upsert_committees(
+    conn: psycopg.Connection,
+    rows: Sequence[PoliticianCommitteeRow],
+) -> int:
+    """UPSERT politician_committees rows. Caller must commit. Idempotent.
+
+    Revives soft-deleted rows (deleted_at = NULL on conflict) so re-runs after
+    a Congress session change stay current. Only operates on rows whose
+    bioguide_id exists in politician_registry — the DB FK is not enforced at
+    schema level (to avoid hard failures for unmapped filers), but callers
+    should filter to known bioguide_ids when possible.
+
+    Args:
+        conn: open psycopg3 connection (caller commits).
+        rows: PoliticianCommitteeRow instances from parse_committees().
+
+    Returns:
+        Number of rows passed to executemany.
+    """
+    if not rows:
+        return 0
+    params = [
+        (
+            r.bioguide_id,
+            r.committee_thomas_id,
+            r.committee_name,
+            r.committee_type,
+            r.title,
+            r.source,
+        )
+        for r in rows
+    ]
+    with conn.cursor() as cur:
+        cur.executemany(_COMMITTEE_SQL, params)
+    return len(params)
+
+
+def upsert_committee_sector_map(
+    conn: psycopg.Connection,
+    rows: Sequence[tuple[str, str]],
+) -> int:
+    """UPSERT committee_sector_map rows. Caller must commit. Purely additive.
+
+    ON CONFLICT DO NOTHING — the map is considered stable across runs.
+    Manual corrections to the table survive re-runs.
+
+    Args:
+        conn: open psycopg3 connection (caller commits).
+        rows: list of (committee_thomas_id, sector) tuples from parse_committees().
+
+    Returns:
+        Number of rows passed to executemany (not necessarily inserted).
+    """
+    if not rows:
+        return 0
+    with conn.cursor() as cur:
+        cur.executemany(_SECTOR_MAP_SQL, list(rows))
+    return len(rows)

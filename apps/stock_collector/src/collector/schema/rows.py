@@ -285,3 +285,21 @@ class PoliticianTradeRow:
     days_to_file: Optional[int] = None
     is_late: Optional[bool] = None
     source: str = "kadoa"
+
+
+@dataclass(frozen=True)
+class PoliticianCommitteeRow:
+    """One committee membership for a current-serving member (PK bioguide_id, committee_thomas_id).
+
+    Source: unitedstates/congress-legislators committees-current.yaml +
+    committee-membership-current.yaml (CC0). Current members only — historical
+    committee memberships are not available. Soft-delete (deleted_at) managed
+    by DB / upsert; not stored here.
+    """
+
+    bioguide_id: str
+    committee_thomas_id: str
+    committee_name: str
+    committee_type: str            # 'house' | 'senate' | 'joint'
+    title: Optional[str] = None   # 'Chair', 'Ranking Member', etc.
+    source: str = "congress-legislators"

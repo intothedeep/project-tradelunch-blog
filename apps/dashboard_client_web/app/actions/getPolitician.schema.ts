@@ -4,6 +4,8 @@
 //   PoliticianDetail (types/politician.ts). The AssertEqual guard fails typecheck
 //   on drift. `data:null` is a valid response — handled by the action, not here.
 //   All band enums must match ValueBand from types/symbolDetail.ts exactly.
+//   committees + committeeRelevant are .optional() so that stale Next Data Cache
+//   bodies (pre-migration-0025) still parse without error — lenient-parsing rule.
 // Side effects: none (pure schema declaration).
 
 import { z } from 'zod';
@@ -18,6 +20,11 @@ const valueBandSchema = z.enum([
     '—',
 ]);
 
+const politicianCommitteeSchema = z.object({
+    thomasId: z.string(),
+    name: z.string(),
+});
+
 const politicianFilerSchema = z.object({
     filerId: z.string(),
     filerName: z.string(),
@@ -31,6 +38,8 @@ const politicianFilerSchema = z.object({
     sales: z.number().nullable(),
     lateFilings: z.number().nullable(),
     estVolumeBand: valueBandSchema,
+    // Optional: absent when migration 0025 not yet applied (lenient-parse contract).
+    committees: z.array(politicianCommitteeSchema).optional(),
 });
 
 const politicianTickerSchema = z.object({
@@ -42,6 +51,8 @@ const politicianTickerSchema = z.object({
     netDirection: z.enum(['buy_skew', 'sell_skew', 'mixed']),
     latestDisclosure: z.string(),
     tradeCount: z.number(),
+    // Optional: absent when Phase Q tables not yet applied (lenient-parse contract).
+    committeeRelevant: z.boolean().optional(),
 });
 
 const politicianTimelineEntrySchema = z.object({

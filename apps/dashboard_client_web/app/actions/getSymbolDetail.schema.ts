@@ -6,6 +6,7 @@
 //   politicianActivity is .optional() so that a stale Next Data Cache body
 //   (pre-migration-0022) still parses without error — lenient-parsing rule.
 //   politicianHolders is .optional() for the same reason (pre-migration-0023).
+//   committeeRelevant is .optional() on each holder (pre-migration-0025 compat).
 // Side effects: none (pure schema declaration).
 
 import { z } from 'zod';
@@ -61,6 +62,8 @@ export const symbolPoliticianHolderSchema = z.object({
     tradeCount: z.number(),
     netDirection: z.enum(['buy_skew', 'sell_skew', 'mixed']),
     latestDisclosure: z.string(),
+    // Optional: absent when migration 0025 not yet applied (lenient-parse contract).
+    committeeRelevant: z.boolean().optional(),
 });
 
 export const symbolDetailSchema = z.object({
