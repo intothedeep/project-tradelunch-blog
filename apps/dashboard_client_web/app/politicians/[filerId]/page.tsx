@@ -222,7 +222,9 @@ export default async function PoliticianPage({ params }: PageProps) {
                                                 {t.committeeRelevant && (
                                                     <span
                                                         className="inline-flex items-center rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground"
-                                                        title={COMMITTEE_BADGE_TOOLTIP}
+                                                        title={
+                                                            COMMITTEE_BADGE_TOOLTIP
+                                                        }
                                                     >
                                                         committee
                                                     </span>
