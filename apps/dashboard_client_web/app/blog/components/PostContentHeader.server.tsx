@@ -1,6 +1,6 @@
 import { TPost } from '@/apis/blog.types';
 import { MoveBack } from '@/app/blog/components/MoveBack';
-import { format } from 'date-fns';
+import { formatPostDate } from '@/utils/formatPostDate';
 import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
@@ -58,7 +58,7 @@ export const PostContentHeader: React.FC<Props> = ({
 
             {bylineLabel && <span>•</span>}
 
-            <span>{post.date && format(post.date, 'yyyy-MM-dd')}</span>
+            <span>{formatPostDate(post.date)}</span>
         </div>
     );
 };
