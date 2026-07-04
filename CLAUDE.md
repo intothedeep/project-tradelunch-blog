@@ -118,21 +118,9 @@ Layered MVC under `src/`:
 
 ### Workflow Docs (rule)
 
-Exactly **three** living root-level docs — do not create per-feature plan/task/ADR variants;
-fold new work into these:
-
-- `00.plan.md` — product intent + roadmap + architecture decisions (owned by product-manager agent)
-- `00.tasks.md` — atomic task breakdown for every phase (owned by product-manager agent)
-- `01.status.md` — progress log: **one line per update, sequential, newest at the bottom**; append a
-  single line per change, never prose blocks (owned by engineer agent)
-
-Rules:
-
-- When starting non-trivial work, read all three first; update in place.
-- Do **not** spin up extra docs (`00.<feature>.plan.md`, `*.arch.md`, `00.migration.md`, etc.).
-  A large sub-effort becomes a section/phase inside `00.plan.md` + `00.tasks.md`.
-- use `_docs/` (gitignored, local-only archive) — they are not deleted and not committed.
-- Update the documentation surgically.
+Three living root docs only — `00.plan.md` (owned by product-manager), `00.tasks.md` (product-manager),
+`01.status.md` (engineer). Read all three before non-trivial work; update in place; no per-feature variants.
+Full lifecycle + archive READ GUARD: `.claude/rules/docs.md`.
 
 ## Naming Conventions (Quick Reference)
 
@@ -141,9 +129,8 @@ From `.claude/CLAUDE.md` §17 and `.claude/rules/nexjts.md`:
 - API: `[method]-[name].api.ts` (e.g. `getPosts.api.ts`); mock: `*.mock.api.ts`
 - Hook: `useFoo.hook.ts`; query client: `useFoo.query.client.ts`
 - Server/client component split: `Foo.server.tsx` / `Foo.client.tsx` when ambiguity matters
-- Folder triplet: `use-api/`, `use-ws/`, `use-poll/` for fetching patterns
-- Booleans: `is/has/can` prefix; functions: verb-based; data: noun-based
-- TS imports: **no file extensions**
+
+General naming (verb/noun/boolean prefixes, `use-api|ws|poll` folders, TS no-extension imports): `.claude/CLAUDE.md` + `.claude/rules/{nexjts,typescript}.md`.
 
 ## Soft-Delete Convention
 
