@@ -39,7 +39,7 @@ export function registerUserCategoriesRoutes(router: Router): void {
                         c.level,
                         c.priority,
                         c.title,
-                        LPAD(c.seq::text, 6, '0') AS path
+                        LPAD(c.priority::text, 6, '0') || '.' || LPAD(c.seq::text, 6, '0') AS path
                     FROM categories c
                     JOIN users u ON c.user_id = u.id
                     WHERE c.parent_id IS NULL
@@ -57,7 +57,7 @@ export function registerUserCategoriesRoutes(router: Router): void {
                         c.level,
                         c.priority,
                         c.title,
-                        ct.path || '.' || LPAD(c.seq::text, 6, '0') AS path
+                        ct.path || '.' || LPAD(c.priority::text, 6, '0') || '.' || LPAD(c.seq::text, 6, '0') AS path
                     FROM categories c
                     JOIN category_tree ct ON c.parent_id = ct.id
                     JOIN users u ON c.user_id = u.id
@@ -126,7 +126,7 @@ export function registerUserCategoriesRoutes(router: Router): void {
                         p.created_at,
                         p.updated_at,
                         p.username,
-                        ct.path || '.' || LPAD(p.seq::text, 6, '0') AS path
+                        ct.path || '.' || LPAD(p.priority::text, 6, '0') || '.' || LPAD(p.seq::text, 6, '0') AS path
                     FROM user_posts p
                     JOIN category_tree ct ON p.category_id = ct.id
                     )
