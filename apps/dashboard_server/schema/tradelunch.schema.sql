@@ -901,3 +901,32 @@ FROM politician_committees pc
 JOIN committee_sector_map csm
     ON csm.committee_thomas_id = pc.committee_thomas_id
 WHERE pc.deleted_at IS NULL;
+
+-- Mirrors migration 0028_signal_backtest.sql (Phase R event-study / forward-return harness).
+
+CREATE TABLE IF NOT EXISTS signal_backtest (
+    signal_type  TEXT        NOT NULL,
+    ticker       TEXT        NOT NULL,
+    as_of        DATE        NOT NULL,
+    horizon_days INT         NOT NULL,
+    car          NUMERIC         NULL,
+    is_hit       BOOLEAN         NULL,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at   TIMESTAMPTZ         NULL,
+    CONSTRAINT signal_backtest_pkey PRIMARY KEY (signal_type, ticker, as_of, horizon_days)
+);
+
+CREATE OR REPLACE VIEW v_signal_backtest_summary AS
+SELECT
+    signal_type,
+    horizon_days,
+    AVG(car)                                                               AS mean_car,
+    AVG(is_hit::int)                                                       AS hit_rate,
+    COUNT(*)                                                               AS n,
+    AVG(car) / NULLIF(STDDEV_SAMP(car) / SQRT(COUNT(*)), 0)               AS t_stat
+FROM signal_backtest
+WHERE deleted_at IS NULL
+  AND car IS NOT NULL
+GROUP BY signal_type, horizon_days
+ORDER BY signal_type, horizon_days;

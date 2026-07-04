@@ -604,3 +604,191 @@ def read_top_politician_tickers(
     with conn.cursor() as cur:
         cur.execute(sql, params)
         return [(ticker, int(df), int(tc)) for ticker, df, tc in cur.fetchall()]
+
+
+# --- Phase R: signal backtest reads + upsert --------------------------------
+
+_RETURNS_WINDOW_SQL = """
+SELECT bar_time::date, close
+FROM market_history
+WHERE label = %s
+  AND interval = %s
+  AND bar_time > %s
+ORDER BY bar_time ASC
+LIMIT %s
+"""
+
+_POLITICIAN_EVENTS_SQL = """
+SELECT
+    CASE transaction_type
+        WHEN 'buy'  THEN 'politician_buy'
+        ELSE             'politician_sell'
+    END                  AS signal_type,
+    ticker,
+    disclosure_date      AS event_date,
+    transaction_type     AS direction
+FROM politician_trades
+WHERE ticker IS NOT NULL
+  AND asset_type = 'equity'
+  AND transaction_type IN ('buy', 'sell')
+  AND deleted_at IS NULL
+  AND disclosure_date >= %s
+ORDER BY disclosure_date DESC
+LIMIT %s
+"""
+
+_SEC_NEW_POSITION_EVENTS_SQL = """
+SELECT
+    '13f_new_position'       AS signal_type,
+    sm.ticker,
+    f.filing_date            AS event_date,
+    'buy'                    AS direction
+FROM v_sec_position_delta d
+JOIN security_map sm
+    ON sm.cusip = d.cusip AND sm.deleted_at IS NULL
+JOIN (
+    -- v_sec_position_delta exposes no accession; resolve the original filing
+    -- date per (cik, period) via MIN (amendments file later, ignore them).
+    SELECT cik, period_of_report, MIN(filing_date) AS filing_date
+    FROM sec_filings
+    WHERE filing_date IS NOT NULL AND deleted_at IS NULL
+    GROUP BY cik, period_of_report
+) f
+    ON f.cik = d.cik AND f.period_of_report = d.period_of_report
+WHERE d.is_new = true
+  AND sm.ticker IS NOT NULL
+  AND f.filing_date >= %s
+ORDER BY f.filing_date DESC
+LIMIT %s
+"""
+
+_BACKTEST_UPSERT_SQL = """
+INSERT INTO signal_backtest
+    (signal_type, ticker, as_of, horizon_days, car, is_hit)
+VALUES (%s, %s, %s, %s, %s, %s)
+ON CONFLICT (signal_type, ticker, as_of, horizon_days) DO UPDATE SET
+    car        = EXCLUDED.car,
+    is_hit     = EXCLUDED.is_hit,
+    updated_at = CURRENT_TIMESTAMP
+"""
+
+
+def read_returns_window(
+    conn: psycopg.Connection,
+    ticker: str,
+    start_date: date,
+    num_bars: int,
+    interval: str = DEFAULT_INTERVAL,
+) -> list[tuple[date, float]]:
+    """Return ascending (bar_date, close) tuples for ``ticker`` after ``start_date``.
+
+    Fetches up to ``num_bars`` rows from market_history with bar_time > start_date.
+    Caller passes a buffer large enough for the max horizon (e.g. 25 for horizon=21).
+
+    Args:
+        conn:       psycopg3 connection.
+        ticker:     market_history label (== ticker symbol).
+        start_date: exclusive lower bound (bars strictly after this date).
+        num_bars:   LIMIT cap; caller sets this to (max_horizon + buffer).
+        interval:   market_history interval column (default '1d').
+
+    Returns:
+        Ascending list of (date, float) pairs; empty when no matching bars.
+    """
+    with conn.cursor() as cur:
+        cur.execute(_RETURNS_WINDOW_SQL, (ticker, interval, start_date, num_bars))
+        return [(row[0], float(row[1])) for row in cur.fetchall()]
+
+
+def read_signal_events(
+    conn: psycopg.Connection,
+    since: date,
+    limit: int = 5000,
+) -> list[tuple[str, str, date, str]]:
+    """Yield (signal_type, ticker, event_date, direction) tuples from all signal sources.
+
+    Sources:
+      * politician_trades: buy → 'politician_buy'/'buy'; sell → 'politician_sell'/'sell'.
+        Only equity trades with a non-null ticker and no soft-delete. Ordered by
+        disclosure_date DESC, capped at ``limit``.
+      * v_sec_position_delta joined security_map: is_new positions → '13f_new_position'/'buy'.
+        Requires ticker from security_map and filing_date from sec_filings. Capped at ``limit``.
+
+    Both queries are bounded by ``since`` (inclusive lower bound on the event date)
+    and ``limit`` so a --limit/--since run stays bounded.
+
+    Args:
+        conn:  psycopg3 connection.
+        since: inclusive lower bound on event_date (disclosure_date / filing_date).
+        limit: per-source SQL LIMIT cap (default 5000).
+
+    Returns:
+        Combined list of (signal_type, ticker, event_date, direction) tuples.
+        Deduplication is left to the caller (upsert handles idempotency).
+    """
+    events: list[tuple[str, str, date, str]] = []
+
+    with conn.cursor() as cur:
+        cur.execute(_POLITICIAN_EVENTS_SQL, (since, limit))
+        events.extend(
+            (str(sig), str(tick), row_date, str(direction))
+            for sig, tick, row_date, direction in cur.fetchall()
+        )
+
+    # Guard: v_sec_position_delta may not exist (migration 0020 not applied) and
+    # is an expensive self-join view — on the pooler it exceeds statement_timeout
+    # even for a bounded window, so the 13F axis gracefully skips here (never
+    # crashes). Including 13F needs a materialized new-position source first
+    # (Phase R follow-up); the politician axis is fully functional today.
+    try:
+        with conn.cursor() as cur:
+            cur.execute(_SEC_NEW_POSITION_EVENTS_SQL, (since, limit))
+            events.extend(
+                (str(sig), str(tick), row_date, str(direction))
+                for sig, tick, row_date, direction in cur.fetchall()
+            )
+    except Exception as exc:  # noqa: BLE001 — view may be absent in older DBs
+        conn.rollback()
+        print(f"[read_signal_events] skipping 13f events ({type(exc).__name__}: {exc})")
+
+    return events
+
+
+def upsert_signal_backtest(
+    conn: psycopg.Connection,
+    rows: "Sequence[SignalBacktestRow]",  # type: ignore[name-defined]  # noqa: F821
+) -> int:
+    """UPSERT signal_backtest rows. ON CONFLICT DO UPDATE (idempotent).
+
+    Uses per-item rollback on error so a single bad row does not abort the batch.
+    Returns the count of rows successfully submitted.
+
+    Args:
+        conn: psycopg3 connection (prepare_threshold=None from connect()).
+        rows: sequence of SignalBacktestRow (from collector.schema.rows).
+
+    Returns:
+        Count of rows submitted without error.
+    """
+    if not rows:
+        return 0
+
+    submitted = 0
+    for row in rows:
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    _BACKTEST_UPSERT_SQL,
+                    (row.signal_type, row.ticker, row.as_of, row.horizon_days,
+                     row.car, row.is_hit),
+                )
+            conn.commit()
+            submitted += 1
+        except Exception as exc:  # noqa: BLE001 — per-item isolation
+            conn.rollback()
+            print(
+                f"[upsert_signal_backtest] skipped row "
+                f"({row.signal_type},{row.ticker},{row.as_of},{row.horizon_days}): "
+                f"{type(exc).__name__}: {exc}"
+            )
+    return submitted

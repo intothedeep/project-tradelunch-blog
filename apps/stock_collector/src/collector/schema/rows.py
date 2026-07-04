@@ -303,3 +303,24 @@ class PoliticianCommitteeRow:
     committee_type: str            # 'house' | 'senate' | 'joint'
     title: Optional[str] = None   # 'Chair', 'Ranking Member', etc.
     source: str = "congress-legislators"
+
+
+# --- Output rows (Phase R — signal backtest) --------------------------------
+
+
+@dataclass(frozen=True)
+class SignalBacktestRow:
+    """One forward-return observation -> signal_backtest (PK signal_type, ticker, as_of, horizon_days).
+
+    ``car`` is the cumulative (abnormal) return over the horizon window.
+    ``is_hit`` is True when the directional prediction was correct (car>0 for
+    buy-like signals; car<0 for sell-like). Both may be None when price data is
+    insufficient. Soft-delete (deleted_at) managed by DB / upsert; not stored here.
+    """
+
+    signal_type: str           # 'politician_buy' | 'politician_sell' | '13f_new_position'
+    ticker: str
+    as_of: date                # event date (disclosure_date / filing_date)
+    horizon_days: int          # 1 | 5 | 21
+    car: Optional[float] = None
+    is_hit: Optional[bool] = None
