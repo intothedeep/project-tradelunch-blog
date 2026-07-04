@@ -693,6 +693,7 @@ def read_signal_events(
     conn: psycopg.Connection,
     since: date,
     limit: int = 5000,
+    source: str = "all",
 ) -> list[tuple[str, str, date, str]]:
     """Yield (signal_type, ticker, event_date, direction) tuples from all signal sources.
 
@@ -717,12 +718,16 @@ def read_signal_events(
     """
     events: list[tuple[str, str, date, str]] = []
 
-    with conn.cursor() as cur:
-        cur.execute(_POLITICIAN_EVENTS_SQL, (since, limit))
-        events.extend(
-            (str(sig), str(tick), row_date, str(direction))
-            for sig, tick, row_date, direction in cur.fetchall()
-        )
+    if source in ("all", "politician"):
+        with conn.cursor() as cur:
+            cur.execute(_POLITICIAN_EVENTS_SQL, (since, limit))
+            events.extend(
+                (str(sig), str(tick), row_date, str(direction))
+                for sig, tick, row_date, direction in cur.fetchall()
+            )
+
+    if source not in ("all", "13f"):
+        return events
 
     # Guard: mv_sec_new_positions (migration 0029) may be absent or empty (never
     # REFRESHed). Absent -> this block skips cleanly (politician axis still runs);

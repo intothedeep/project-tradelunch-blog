@@ -180,6 +180,12 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="REFRESH mv_sec_new_positions before reading (Phase R.6, slow)",
     )
+    parser.add_argument(
+        "--signal-source",
+        choices=("all", "politician", "13f"),
+        default="all",
+        help="restrict events to one source (default: all)",
+    )
     args = parser.parse_args(argv)
 
     if not database_url():
@@ -205,7 +211,9 @@ def main(argv: list[str] | None = None) -> int:
             f"[run_signal_backtest] reading events since={args.since} limit={args.limit}"
             f" sector_neutral={args.sector_neutral} …"
         )
-        events = db_sink.read_signal_events(conn, since=args.since, limit=args.limit)
+        events = db_sink.read_signal_events(
+            conn, since=args.since, limit=args.limit, source=args.signal_source
+        )
         events_scanned = len(events)
         print(f"[run_signal_backtest] {events_scanned} events loaded")
 

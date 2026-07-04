@@ -931,24 +931,43 @@ WHERE deleted_at IS NULL
 GROUP BY signal_type, horizon_days
 ORDER BY signal_type, horizon_days;
 
--- Mirrors migration 0029_sec_new_positions_mv.sql (Phase R.6 — fast 13F event source).
--- Materialized is_new 13F positions joined to ticker + original filing_date, so the
--- signal backtest scans an indexed table instead of the expensive v_sec_position_delta
--- self-join. Created WITH NO DATA; REFRESH out-of-band (db_sink.refresh_new_positions).
+-- Mirrors migration 0031_sec_new_positions_mapped.sql (Phase R.6 — fast 13F source).
+-- Supersedes 0029: pushes the security_map (mapped-CUSIP) filter DOWN into the
+-- position CTE so the new-position self-join runs on ~250 mapped CUSIPs, not all
+-- of sec_holdings. REFRESH went from >600s to ~5s. Populated WITH DATA.
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_sec_new_positions AS
-SELECT d.cik, d.period_of_report, d.cusip, sm.ticker, f.filing_date
-FROM v_sec_position_delta d
-JOIN security_map sm
-    ON sm.cusip = d.cusip AND sm.deleted_at IS NULL
+WITH mapped AS (
+    SELECT DISTINCT cusip, ticker FROM security_map
+    WHERE deleted_at IS NULL AND ticker IS NOT NULL
+),
+pos AS (
+    SELECT h.cik, h.period_of_report, h.cusip
+    FROM sec_holdings h JOIN mapped m ON m.cusip = h.cusip
+    WHERE h.deleted_at IS NULL AND h.put_call = '' AND h.prn_type <> 'PRN'
+    GROUP BY h.cik, h.period_of_report, h.cusip
+),
+periods AS (
+    SELECT cik, period_of_report,
+           LAG(period_of_report) OVER (PARTITION BY cik ORDER BY period_of_report) AS prev_period
+    FROM (SELECT DISTINCT cik, period_of_report FROM sec_filings WHERE deleted_at IS NULL) fp
+),
+newpos AS (
+    SELECT cur.cik, cur.period_of_report, cur.cusip
+    FROM pos cur
+    JOIN periods p ON p.cik = cur.cik AND p.period_of_report = cur.period_of_report
+    LEFT JOIN pos prev ON prev.cik = cur.cik
+        AND prev.period_of_report = p.prev_period AND prev.cusip = cur.cusip
+    WHERE p.prev_period IS NOT NULL AND prev.cusip IS NULL
+)
+SELECT n.cik, n.period_of_report, n.cusip, m.ticker, f.filing_date
+FROM newpos n
+JOIN mapped m ON m.cusip = n.cusip
 JOIN (
     SELECT cik, period_of_report, MIN(filing_date) AS filing_date
-    FROM sec_filings
-    WHERE filing_date IS NOT NULL AND deleted_at IS NULL
+    FROM sec_filings WHERE filing_date IS NOT NULL AND deleted_at IS NULL
     GROUP BY cik, period_of_report
-) f
-    ON f.cik = d.cik AND f.period_of_report = d.period_of_report
-WHERE d.is_new = true AND sm.ticker IS NOT NULL
-WITH NO DATA;
+) f ON f.cik = n.cik AND f.period_of_report = n.period_of_report
+WITH DATA;
 
 CREATE UNIQUE INDEX IF NOT EXISTS mv_sec_new_positions_pk
     ON mv_sec_new_positions (cik, cusip, period_of_report);
