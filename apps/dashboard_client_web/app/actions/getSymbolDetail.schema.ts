@@ -66,6 +66,15 @@ export const symbolPoliticianHolderSchema = z.object({
     committeeRelevant: z.boolean().optional(),
 });
 
+// Phase U: aggregate 13F options exposure (PUT/CALL notional) for the ticker.
+export const symbolSecDerivativesSchema = z.object({
+    periodOfReport: z.string(),
+    callValueUsd: z.number(),
+    putValueUsd: z.number(),
+    holderCount: z.number(),
+    netSkew: z.enum(['call_skew', 'put_skew', 'balanced']),
+});
+
 export const symbolDetailSchema = z.object({
     ticker: z.string(),
     sector: z.string().nullable(),
@@ -77,6 +86,8 @@ export const symbolDetailSchema = z.object({
     politicianActivity: symbolPoliticianActivitySchema.nullable().optional(),
     // Optional: absent when migration 0023 not yet applied (lenient-parse contract).
     politicianHolders: z.array(symbolPoliticianHolderSchema).optional(),
+    // Optional: absent when migration 0027 not yet applied (lenient-parse contract).
+    secDerivatives: symbolSecDerivativesSchema.nullable().optional(),
 });
 
 export type SymbolDetailSchema = z.infer<typeof symbolDetailSchema>;

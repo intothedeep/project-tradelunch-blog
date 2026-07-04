@@ -5,23 +5,20 @@
 //             (v_sec_holdings_enriched + fund_registry; Δweight/isNew derived from
 //             sec_holdings aggregates, NOT v_sec_position_delta — see Query B).
 //   Axis 3 — daily price sparkline from market_history (tracked universe only).
-//   Axis 4 — politician trading activity over 90-day disclosure window
-//             (v_politician_activity, migration 0022; presence-guarded).
-//   Axis 5 — per-politician PTR transaction holders
-//             (v_politician_ticker_holders, migration 0023; presence-guarded).
-//   Axis 6 — committee-relevance flag on each politician holder
-//             (v_politician_sector_oversight, migration 0025; presence-guarded).
+//   Axis 4 — politician 90-day trading activity (v_politician_activity, 0022).
+//   Axis 5 — per-politician PTR holders (v_politician_ticker_holders, 0023).
+//   Axis 6 — committee-relevance on holders (v_politician_sector_oversight, 0025).
+//   Axis 7 — 13F options exposure PUT/CALL (v_sec_derivatives_exposure, 0027).
+//   (Axes 4–7 all presence-guarded — absent view degrades that axis only.)
 // Invariants:
 //   - Ticker validated by regex before any DB hit.
 //   - Presence guard: absent views/tables → data:null, not 500.
 //   - Unknown ticker (no rows in any source) → data:null.
-//   - BIGINT value_usd → Number in DTO (fund position values < 2^53 — safe,
-//     unlike the post-id BIGINT case which IS > 2^53 in production).
+//   - BIGINT value_usd → Number in DTO (13F position values < 2^53 — safe).
 //   - CUSIP unresolved (no security_map row) → weight/delta null, isNew false.
 //   - market_history absent/empty → priceHistory: [].
-//   - v_politician_activity absent → politicianActivity: null (regression 0).
-//   - v_politician_ticker_holders absent → politicianHolders: [] (regression 0).
-//   - v_politician_sector_oversight absent → committeeRelevant: false everywhere.
+//   - Any absent view degrades its axis (regression 0): politicianActivity/
+//     secDerivatives → null; politicianHolders → []; committeeRelevant → false.
 // Constraints: raw SQL, no ORM, no side effects beyond pool reads.
 
 import { pool } from '../../database';
@@ -35,6 +32,10 @@ import {
     fetchPoliticianHolders,
     type PoliticianHolderDto,
 } from '../../helpers/fetchPoliticianHolders';
+import {
+    fetchSecDerivatives,
+    type SecDerivativesDto,
+} from '../../helpers/secDerivatives';
 
 export const router = Router();
 
@@ -53,6 +54,7 @@ interface IRawPresence {
     has_politician_activity: boolean;
     has_politician_holders: boolean;
     has_sector_oversight: boolean;
+    has_sec_derivatives: boolean;
 }
 
 async function probePresence(): Promise<{
@@ -62,6 +64,7 @@ async function probePresence(): Promise<{
     hasPoliticianActivity: boolean;
     hasPoliticianHolders: boolean;
     hasSectorOversight: boolean;
+    hasSecDerivatives: boolean;
 }> {
     const { rows } = await pool.query<IRawPresence>(
         `SELECT to_regclass('public.v_sec_holdings_enriched')      IS NOT NULL AS has_holdings,
@@ -69,7 +72,8 @@ async function probePresence(): Promise<{
                 to_regclass('public.market_history')                IS NOT NULL AS has_market_history,
                 to_regclass('public.v_politician_activity')         IS NOT NULL AS has_politician_activity,
                 to_regclass('public.v_politician_ticker_holders')   IS NOT NULL AS has_politician_holders,
-                to_regclass('public.v_politician_sector_oversight') IS NOT NULL AS has_sector_oversight`
+                to_regclass('public.v_politician_sector_oversight') IS NOT NULL AS has_sector_oversight,
+                to_regclass('public.v_sec_derivatives_exposure')    IS NOT NULL AS has_sec_derivatives`
     );
     return {
         hasHoldings:             rows[0]?.has_holdings              ?? false,
@@ -78,6 +82,7 @@ async function probePresence(): Promise<{
         hasPoliticianActivity:   rows[0]?.has_politician_activity   ?? false,
         hasPoliticianHolders:    rows[0]?.has_politician_holders    ?? false,
         hasSectorOversight:      rows[0]?.has_sector_oversight      ?? false,
+        hasSecDerivatives:       rows[0]?.has_sec_derivatives       ?? false,
     };
 }
 
@@ -117,9 +122,7 @@ function numOrNull(v: string | null): number | null {
 
 /**
  * @api {get} /v1/api/securities/:ticker/by-ticker Per-ticker detail
- * @apiSuccess {Object|null} data  { ticker, sector, rankingHistory[], holders[],
- *                                   periodOfReport, priceHistory[],
- *                                   politicianActivity, politicianHolders[] }
+ * @apiSuccess {Object|null} data  full per-ticker detail (see return shape below),
  *                                  or null when ticker invalid/unknown or tables absent.
  */
 router.get('/:ticker/by-ticker', async (req, res) => {
@@ -137,6 +140,7 @@ router.get('/:ticker/by-ticker', async (req, res) => {
             hasPoliticianActivity,
             hasPoliticianHolders,
             hasSectorOversight,
+            hasSecDerivatives,
         } = await probePresence();
 
         // Query A — ranking history (global scope, desc, up to 52 weeks = ~1 year).
@@ -257,13 +261,19 @@ router.get('/:ticker/by-ticker', async (req, res) => {
         const politicianHolders: PoliticianHolderDto[] =
             await fetchPoliticianHolders(ticker, hasPoliticianHolders, sector, hasSectorOversight);
 
+        // Query F — 13F options exposure (migration 0027, Phase U).
+        // fetchSecDerivatives short-circuits to null when the view is absent.
+        const secDerivatives: SecDerivativesDto | null =
+            await fetchSecDerivatives(ticker, hasSecDerivatives);
+
         // Unknown ticker: no data in any source.
         if (
             rankingHistory.length === 0 &&
             holders.length === 0 &&
             priceHistory.length === 0 &&
             politicianActivity === null &&
-            politicianHolders.length === 0
+            politicianHolders.length === 0 &&
+            secDerivatives === null
         ) {
             return res.json({ success: true, data: null });
         }
@@ -279,6 +289,7 @@ router.get('/:ticker/by-ticker', async (req, res) => {
                 priceHistory,
                 politicianActivity,
                 politicianHolders,
+                secDerivatives,
             },
         });
     } catch {

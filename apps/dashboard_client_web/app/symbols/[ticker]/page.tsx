@@ -87,6 +87,7 @@ export default async function SymbolDetailPage({
         priceHistory,
         politicianActivity,
         politicianHolders,
+        secDerivatives,
     } = result.data;
 
     return (
@@ -282,6 +283,56 @@ export default async function SymbolDetailPage({
                         </div>
                     )}
                 </section>
+
+                {/* 13F options exposure (migration 0027 — presence-guarded).
+                    Quarterly, coarse derivatives sentiment — NOT gamma/GEX. */}
+                {secDerivatives != null && (
+                    <section>
+                        <h2 className="mb-3 text-xl font-semibold">
+                            Options Exposure (13F)
+                        </h2>
+                        <p className="mb-2 text-xs text-muted-foreground">
+                            As of {secDerivatives.periodOfReport} ·{' '}
+                            {secDerivatives.holderCount} filer
+                            {secDerivatives.holderCount !== 1 ? 's' : ''} ·
+                            disclosed option notional, not gamma exposure
+                        </p>
+                        <div className="flex flex-wrap gap-4 text-sm">
+                            <div className="rounded-md border px-3 py-2">
+                                <div className="text-xs text-muted-foreground">
+                                    Calls
+                                </div>
+                                <div className="tabular-nums font-semibold text-emerald-600">
+                                    $
+                                    {(
+                                        secDerivatives.callValueUsd / 1e6
+                                    ).toFixed(0)}
+                                    M
+                                </div>
+                            </div>
+                            <div className="rounded-md border px-3 py-2">
+                                <div className="text-xs text-muted-foreground">
+                                    Puts
+                                </div>
+                                <div className="tabular-nums font-semibold text-rose-600">
+                                    $
+                                    {(secDerivatives.putValueUsd / 1e6).toFixed(
+                                        0
+                                    )}
+                                    M
+                                </div>
+                            </div>
+                            <div className="rounded-md border px-3 py-2">
+                                <div className="text-xs text-muted-foreground">
+                                    Skew
+                                </div>
+                                <div className="font-semibold capitalize">
+                                    {secDerivatives.netSkew.replace('_', ' ')}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                )}
             </div>
         </main>
     );

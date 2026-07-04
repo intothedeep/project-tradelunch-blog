@@ -671,6 +671,26 @@ JOIN fund_registry r ON r.cik = p.cik AND r.deleted_at IS NULL
 GROUP BY p.period_of_report, p.cusip;
 
 -- =============================================================================
+-- Phase U: 13F options exposure — the complement of v_sec_positions.
+-- Mirrors migration 0027_sec_derivatives_exposure.sql.
+-- v_sec_positions keeps put_call = '' (long stock); this view keeps
+-- put_call IN ('PUT','CALL'), the option legs it discards. One row per
+-- (cik, period, cusip) with call vs put notional/shares. Quarterly, coarse
+-- derivatives sentiment (NOT gamma/GEX — that is Phase V).
+-- =============================================================================
+CREATE OR REPLACE VIEW v_sec_derivatives_exposure AS
+SELECT cik, period_of_report, cusip,
+       MAX(name_of_issuer)                             AS name_of_issuer,
+       SUM(value_usd) FILTER (WHERE put_call = 'CALL') AS call_value_usd,
+       SUM(value_usd) FILTER (WHERE put_call = 'PUT')  AS put_value_usd,
+       SUM(shares)    FILTER (WHERE put_call = 'CALL') AS call_shares,
+       SUM(shares)    FILTER (WHERE put_call = 'PUT')  AS put_shares,
+       SUM(value_usd)                                  AS derivatives_value_usd
+FROM sec_holdings
+WHERE deleted_at IS NULL AND put_call IN ('PUT', 'CALL')
+GROUP BY cik, period_of_report, cusip;
+
+-- =============================================================================
 -- Phase Q: US congressional + executive STOCK Act disclosures.
 -- Mirrors migration 0022_politician_trades.sql (tables + indexes + views).
 -- Views (v_politician_trades_enriched / v_politician_activity) depend on

@@ -79,6 +79,19 @@ export interface SymbolPoliticianHolder {
     committeeRelevant?: boolean;
 }
 
+/**
+ * Aggregate 13F options exposure for the ticker at its latest filed period
+ * (Phase U, migration 0027). PUT/CALL notional summed across all filers.
+ * NOT a gamma/GEX signal — 13F is quarter-lagged positions, not option chains.
+ */
+export interface SymbolSecDerivatives {
+    periodOfReport: string; // 'YYYY-MM-DD' latest 13F period with option legs
+    callValueUsd: number;
+    putValueUsd: number;
+    holderCount: number; // distinct funds holding options on this ticker
+    netSkew: 'call_skew' | 'put_skew' | 'balanced';
+}
+
 export interface SymbolDetail {
     ticker: string;
     sector: string | null; // from symbol_fundamentals via enriched view; null when absent
@@ -92,4 +105,7 @@ export interface SymbolDetail {
     // Absent when migration 0023 (v_politician_ticker_holders) has not been applied.
     // Empty array when the view exists but no politicians traded this ticker.
     politicianHolders?: SymbolPoliticianHolder[];
+    // Absent when migration 0027 (v_sec_derivatives_exposure) has not been applied.
+    // Null when the view exists but no filer disclosed options on this ticker.
+    secDerivatives?: SymbolSecDerivatives | null;
 }
