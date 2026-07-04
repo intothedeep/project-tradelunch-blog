@@ -279,7 +279,7 @@ class ExtractingAgent(BaseAgent):
         마크다운 파일 파싱 (frontmatter 기반)
 
         Extracts metadata from YAML frontmatter and returns data compatible with PostSchema.
-        Supports fields: title, userId, tags, desc, date, author, status
+        Supports fields: title, userId, tags, desc, date, author, status, priority
         """
         with open(file_path, encoding="utf-8") as f:
             post = frontmatter.load(f)
@@ -291,6 +291,11 @@ class ExtractingAgent(BaseAgent):
         title = metadata.get("title", self._extract_title_from_content(post.content))
 
         # Map frontmatter fields to PostSchema-compatible fields
+        try:
+            priority = int(metadata.get("priority", 100))
+        except (TypeError, ValueError):
+            priority = 100
+
         return {
             "file_path": file_path,
             "title": title,
@@ -304,6 +309,7 @@ class ExtractingAgent(BaseAgent):
             "category": metadata.get("category", ""),
             "content": post.content,
             "raw_frontmatter": metadata,
+            "priority": priority,
         }
 
     def _map_status(self, status_value: Any) -> str:

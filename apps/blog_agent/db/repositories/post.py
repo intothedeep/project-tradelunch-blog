@@ -185,6 +185,7 @@ class PostRepository(BaseRepository[Post]):
         meta_description: str | None = None,
         og_image_url: str | None = None,
         og_image_alt: str | None = None,
+        priority: int = 100,
     ) -> int:
         """
         Insert a new versioned post row using raw SQL.
@@ -205,6 +206,7 @@ class PostRepository(BaseRepository[Post]):
             meta_description: SEO description (max 170 chars).
             og_image_url: OG image URL.
             og_image_alt: OG image alt text.
+            priority: Display order priority (lower = earlier, default 100).
 
         Returns:
             Upserted post ID.
@@ -215,8 +217,8 @@ class PostRepository(BaseRepository[Post]):
             post_id = generate_id()
 
         query = text("""
-            INSERT INTO posts (id, group_id, level, parent_id, user_id, title, slug, content, description, category_id, status, meta_title, meta_description, og_image_url, og_image_alt)
-            VALUES (:id, :id, 0, NULL, :user_id, :title, :slug, :content, :description, :category_id, :status, :meta_title, :meta_description, :og_image_url, :og_image_alt)
+            INSERT INTO posts (id, group_id, level, parent_id, priority, user_id, title, slug, content, description, category_id, status, meta_title, meta_description, og_image_url, og_image_alt)
+            VALUES (:id, :id, 0, NULL, :priority, :user_id, :title, :slug, :content, :description, :category_id, :status, :meta_title, :meta_description, :og_image_url, :og_image_alt)
             RETURNING id
         """)
 
@@ -233,6 +235,7 @@ class PostRepository(BaseRepository[Post]):
             "meta_description": meta_description,
             "og_image_url": og_image_url,
             "og_image_alt": og_image_alt,
+            "priority": priority,
         })
         return result.scalar_one()
 

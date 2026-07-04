@@ -452,6 +452,7 @@ class UploadingAgent(BaseAgent):
                 meta_description=meta_description,
                 og_image_url=og_image_url,
                 og_image_alt=og_image_alt,
+                priority=data.get("priority", 100),
             )
 
             # 3. Link post to all categories in hierarchy
