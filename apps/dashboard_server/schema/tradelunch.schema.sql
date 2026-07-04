@@ -454,7 +454,7 @@ CREATE TABLE IF NOT EXISTS market_rankings (
     CONSTRAINT market_rankings_scope_check CHECK (scope IN ('global', 'sector'))
 );
 CREATE INDEX IF NOT EXISTS idx_market_rankings_asof_scope ON market_rankings(as_of, scope, rank);
-
+CREATE INDEX IF NOT EXISTS idx_market_rankings_scope_asof ON market_rankings (scope, sector, as_of DESC, symbol, rank);
 -- =============================================================================
 -- Phase I (I2.8): per-symbol fundamentals cache (shares + sector).
 -- Mirrors migration 0013_symbol_fundamentals.sql.
