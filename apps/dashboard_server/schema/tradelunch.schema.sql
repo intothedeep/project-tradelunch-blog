@@ -930,3 +930,48 @@ WHERE deleted_at IS NULL
   AND car IS NOT NULL
 GROUP BY signal_type, horizon_days
 ORDER BY signal_type, horizon_days;
+
+-- Mirrors migration 0029_sec_new_positions_mv.sql (Phase R.6 — fast 13F event source).
+-- Materialized is_new 13F positions joined to ticker + original filing_date, so the
+-- signal backtest scans an indexed table instead of the expensive v_sec_position_delta
+-- self-join. Created WITH NO DATA; REFRESH out-of-band (db_sink.refresh_new_positions).
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_sec_new_positions AS
+SELECT d.cik, d.period_of_report, d.cusip, sm.ticker, f.filing_date
+FROM v_sec_position_delta d
+JOIN security_map sm
+    ON sm.cusip = d.cusip AND sm.deleted_at IS NULL
+JOIN (
+    SELECT cik, period_of_report, MIN(filing_date) AS filing_date
+    FROM sec_filings
+    WHERE filing_date IS NOT NULL AND deleted_at IS NULL
+    GROUP BY cik, period_of_report
+) f
+    ON f.cik = d.cik AND f.period_of_report = d.period_of_report
+WHERE d.is_new = true AND sm.ticker IS NOT NULL
+WITH NO DATA;
+
+CREATE UNIQUE INDEX IF NOT EXISTS mv_sec_new_positions_pk
+    ON mv_sec_new_positions (cik, cusip, period_of_report);
+CREATE INDEX IF NOT EXISTS mv_sec_new_positions_filing_idx
+    ON mv_sec_new_positions (filing_date);
+
+-- Mirrors migration 0030_gex_daily.sql (Phase V-collect — gamma exposure daily scalar).
+-- Derived daily GEX per underlying (raw option chains never stored). Dealer-centric
+-- sign: calls +, puts − ; net_gex = call_gex − put_gex ($ per 1% spot move).
+-- call_gex/put_gex stored unsigned (sign is in the column name).
+CREATE TABLE IF NOT EXISTS gex_daily (
+    as_of       DATE    NOT NULL,
+    ticker      TEXT    NOT NULL,
+    net_gex     NUMERIC NOT NULL,
+    call_gex    NUMERIC NOT NULL,
+    put_gex     NUMERIC NOT NULL,
+    spot        NUMERIC NOT NULL,
+    source      TEXT    NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at  TIMESTAMPTZ,
+    PRIMARY KEY (as_of, ticker)
+);
+CREATE INDEX IF NOT EXISTS idx_gex_daily_active_ticker
+    ON gex_daily (ticker, as_of DESC)
+    WHERE deleted_at IS NULL;

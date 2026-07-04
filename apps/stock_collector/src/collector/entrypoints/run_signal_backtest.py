@@ -175,6 +175,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="subtract cap-weighted sector index return (Phase S abnormal return)",
     )
+    parser.add_argument(
+        "--refresh-13f",
+        action="store_true",
+        help="REFRESH mv_sec_new_positions before reading (Phase R.6, slow)",
+    )
     args = parser.parse_args(argv)
 
     if not database_url():
@@ -191,6 +196,11 @@ def main(argv: list[str] | None = None) -> int:
     observations_written = 0
 
     try:
+        if args.refresh_13f:
+            print("[run_signal_backtest] refreshing mv_sec_new_positions (13F) …")
+            ok = db_sink.refresh_new_positions(conn)
+            print(f"[run_signal_backtest] 13F refresh {'ok' if ok else 'skipped'}")
+
         print(
             f"[run_signal_backtest] reading events since={args.since} limit={args.limit}"
             f" sector_neutral={args.sector_neutral} …"

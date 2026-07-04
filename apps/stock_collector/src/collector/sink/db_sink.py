@@ -639,26 +639,13 @@ LIMIT %s
 
 _SEC_NEW_POSITION_EVENTS_SQL = """
 SELECT
-    '13f_new_position'       AS signal_type,
-    sm.ticker,
-    f.filing_date            AS event_date,
-    'buy'                    AS direction
-FROM v_sec_position_delta d
-JOIN security_map sm
-    ON sm.cusip = d.cusip AND sm.deleted_at IS NULL
-JOIN (
-    -- v_sec_position_delta exposes no accession; resolve the original filing
-    -- date per (cik, period) via MIN (amendments file later, ignore them).
-    SELECT cik, period_of_report, MIN(filing_date) AS filing_date
-    FROM sec_filings
-    WHERE filing_date IS NOT NULL AND deleted_at IS NULL
-    GROUP BY cik, period_of_report
-) f
-    ON f.cik = d.cik AND f.period_of_report = d.period_of_report
-WHERE d.is_new = true
-  AND sm.ticker IS NOT NULL
-  AND f.filing_date >= %s
-ORDER BY f.filing_date DESC
+    '13f_new_position'  AS signal_type,
+    ticker,
+    filing_date         AS event_date,
+    'buy'               AS direction
+FROM mv_sec_new_positions
+WHERE filing_date >= %s
+ORDER BY filing_date DESC
 LIMIT %s
 """
 
@@ -737,26 +724,43 @@ def read_signal_events(
             for sig, tick, row_date, direction in cur.fetchall()
         )
 
-    # Guard: v_sec_position_delta may not exist (migration 0020 not applied) and
-    # is an expensive self-join view — on the pooler it exceeds statement_timeout
-    # even for a bounded window, so the 13F axis gracefully skips here (never
-    # crashes). Including 13F needs a materialized new-position source first
-    # (Phase R follow-up); the politician axis is fully functional today.
+    # Guard: mv_sec_new_positions (migration 0029) may be absent or empty (never
+    # REFRESHed). Absent -> this block skips cleanly (politician axis still runs);
+    # empty -> zero 13F events. Reading the materialized view is a fast indexed
+    # scan (the live v_sec_position_delta self-join blew the pooler timeout).
     try:
         with conn.cursor() as cur:
-            # Fail fast (don't hold the connection): the delta view can't beat the
-            # pooler timeout anyway, so cap this probe at 15s and skip cleanly.
-            cur.execute("SET statement_timeout = '15s'")
             cur.execute(_SEC_NEW_POSITION_EVENTS_SQL, (since, limit))
             events.extend(
                 (str(sig), str(tick), row_date, str(direction))
                 for sig, tick, row_date, direction in cur.fetchall()
             )
-    except Exception as exc:  # noqa: BLE001 — view may be absent in older DBs
+    except Exception as exc:  # noqa: BLE001 — MV may be absent/unrefreshed
         conn.rollback()
         print(f"[read_signal_events] skipping 13f events ({type(exc).__name__}: {exc})")
 
     return events
+
+
+def refresh_new_positions(conn: psycopg.Connection) -> bool:
+    """REFRESH mv_sec_new_positions (Phase R.6). Best-effort — never raises.
+
+    The underlying v_sec_position_delta self-join is expensive, so raise the
+    per-statement timeout for this one offline op. Non-concurrent refresh
+    (WITH NO DATA created empty; the first populate can't be CONCURRENT).
+    Returns True on success, False if the MV is absent or the refresh fails.
+    """
+    try:
+        conn.rollback()
+        with conn.cursor() as cur:
+            cur.execute("SET statement_timeout = '600s'")
+            cur.execute("REFRESH MATERIALIZED VIEW mv_sec_new_positions")
+        conn.commit()
+        return True
+    except Exception as exc:  # noqa: BLE001 — MV may not exist (0029 unapplied)
+        conn.rollback()
+        print(f"[refresh_new_positions] skipped ({type(exc).__name__}: {exc})")
+        return False
 
 
 def upsert_signal_backtest(
