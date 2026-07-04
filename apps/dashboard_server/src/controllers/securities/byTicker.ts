@@ -1,15 +1,14 @@
 // controllers/securities/byTicker.ts
 // Purpose: Read-only per-ticker detail (Phase P, STEP 2 / P9 — extended).
 //   Axis 1 — weekly market-cap ranking history (market_rankings, scope='global').
-//   Axis 2 — institutional 13F holders at the ticker's latest filing period
-//             (v_sec_holdings_enriched + fund_registry; Δweight/isNew derived from
-//             sec_holdings aggregates, NOT v_sec_position_delta — see Query B).
+//   Axis 2 — 13F holders (v_sec_holdings_enriched; Δweight/isNew via sec_holdings agg).
 //   Axis 3 — daily price sparkline from market_history (tracked universe only).
 //   Axis 4 — politician 90-day trading activity (v_politician_activity, 0022).
 //   Axis 5 — per-politician PTR holders (v_politician_ticker_holders, 0023).
 //   Axis 6 — committee-relevance on holders (v_politician_sector_oversight, 0025).
 //   Axis 7 — 13F options exposure PUT/CALL (v_sec_derivatives_exposure, 0027).
-//   (Axes 4–7 all presence-guarded — absent view degrades that axis only.)
+//   Axis 8 — GEX gamma-exposure latest row (gex_daily, 0030).
+//   (Axes 4–8 all presence-guarded — absent view/table degrades that axis only.)
 // Invariants:
 //   - Ticker validated by regex before any DB hit.
 //   - Presence guard: absent views/tables → data:null, not 500.
@@ -17,8 +16,7 @@
 //   - BIGINT value_usd → Number in DTO (13F position values < 2^53 — safe).
 //   - CUSIP unresolved (no security_map row) → weight/delta null, isNew false.
 //   - market_history absent/empty → priceHistory: [].
-//   - Any absent view degrades its axis (regression 0): politicianActivity/
-//     secDerivatives → null; politicianHolders → []; committeeRelevant → false.
+//   - Any absent view/table degrades its axis: pActivity/secDerivatives/gexDaily → null.
 // Constraints: raw SQL, no ORM, no side effects beyond pool reads.
 
 import { pool } from '../../database';
@@ -36,6 +34,10 @@ import {
     fetchSecDerivatives,
     type SecDerivativesDto,
 } from '../../helpers/secDerivatives';
+import {
+    fetchGexDaily,
+    type GexDailyDto,
+} from '../../helpers/fetchGexDaily';
 
 export const router = Router();
 
@@ -55,6 +57,7 @@ interface IRawPresence {
     has_politician_holders: boolean;
     has_sector_oversight: boolean;
     has_sec_derivatives: boolean;
+    has_gex_daily: boolean;
 }
 
 async function probePresence(): Promise<{
@@ -65,6 +68,7 @@ async function probePresence(): Promise<{
     hasPoliticianHolders: boolean;
     hasSectorOversight: boolean;
     hasSecDerivatives: boolean;
+    hasGexDaily: boolean;
 }> {
     const { rows } = await pool.query<IRawPresence>(
         `SELECT to_regclass('public.v_sec_holdings_enriched')      IS NOT NULL AS has_holdings,
@@ -73,7 +77,8 @@ async function probePresence(): Promise<{
                 to_regclass('public.v_politician_activity')         IS NOT NULL AS has_politician_activity,
                 to_regclass('public.v_politician_ticker_holders')   IS NOT NULL AS has_politician_holders,
                 to_regclass('public.v_politician_sector_oversight') IS NOT NULL AS has_sector_oversight,
-                to_regclass('public.v_sec_derivatives_exposure')    IS NOT NULL AS has_sec_derivatives`
+                to_regclass('public.v_sec_derivatives_exposure')    IS NOT NULL AS has_sec_derivatives,
+                to_regclass('public.gex_daily')                     IS NOT NULL AS has_gex_daily`
     );
     return {
         hasHoldings:             rows[0]?.has_holdings              ?? false,
@@ -83,6 +88,7 @@ async function probePresence(): Promise<{
         hasPoliticianHolders:    rows[0]?.has_politician_holders    ?? false,
         hasSectorOversight:      rows[0]?.has_sector_oversight      ?? false,
         hasSecDerivatives:       rows[0]?.has_sec_derivatives       ?? false,
+        hasGexDaily:             rows[0]?.has_gex_daily             ?? false,
     };
 }
 
@@ -141,6 +147,7 @@ router.get('/:ticker/by-ticker', async (req, res) => {
             hasPoliticianHolders,
             hasSectorOversight,
             hasSecDerivatives,
+            hasGexDaily,
         } = await probePresence();
 
         // Query A — ranking history (global scope, desc, up to 52 weeks = ~1 year).
@@ -169,9 +176,7 @@ router.get('/:ticker/by-ticker', async (req, res) => {
             );
         }
 
-        // Query B — holders at the ticker's latest 13F period.
-        // sector is sourced from v_sec_holdings_enriched (COALESCE(symbol_fundamentals, security_map)).
-        // weight/delta/isNew are derived below from sec_holdings aggregates (see note).
+        // Query B — holders at the ticker's latest 13F period; sector from enriched view.
         let holders: Array<{
             cik: string;
             label: string;
@@ -184,10 +189,8 @@ router.get('/:ticker/by-ticker', async (req, res) => {
         let periodOfReport: string | null = null;
         let sector: string | null = null;
         if (hasHoldings) {
-            // Holders at the ticker's latest 13F period (enriched view → sector +
-            // fund_registry). Δweight/isNew are derived separately from sec_holdings
-            // aggregates below — never via v_sec_position_delta, which recomputes
-            // every fund's whole portfolio across all quarters (~1.2s).
+            // enriched view → sector + fund_registry; Δweight/isNew via getHolderWeights
+            // (sec_holdings aggregates), NOT v_sec_position_delta (portfolio-wide, slow).
             const { rows: hRows } = await pool.query<IHolderRow>(
                 `WITH latest AS (
                     SELECT MAX(h.period_of_report) AS period
@@ -208,8 +211,7 @@ router.get('/:ticker/by-ticker', async (req, res) => {
                 sector = hRows[0].sector ?? null;
                 const ciks = [...new Set(hRows.map((h) => h.cik))];
 
-                // weight_pct / delta_weight_pct / isNew derived from sec_holdings
-                // aggregates (helpers/holderWeights), NOT v_sec_position_delta.
+                // weight/delta/isNew via getHolderWeights (sec_holdings agg), NOT v_sec_position_delta.
                 const weightByCik = await getHolderWeights(
                     ticker,
                     ciks,
@@ -231,8 +233,7 @@ router.get('/:ticker/by-ticker', async (req, res) => {
             }
         }
 
-        // Query C — price sparkline (tracked universe only).
-        // Fetch DESC then reverse to return ascending bar_time for the client.
+        // Query C — price sparkline (tracked universe only; fetched DESC, reversed for client).
         let priceHistory: Array<{ t: string; close: number }> = [];
         if (hasMarketHistory) {
             const { rows: pRows } = await pool.query<IPriceRow>(
@@ -250,21 +251,20 @@ router.get('/:ticker/by-ticker', async (req, res) => {
             }
         }
 
-        // Query D — politician activity (90-day window, migration 0022).
-        // fetchPoliticianActivity short-circuits to null when view is absent.
+        // Query D — politician activity (90-day, 0022); short-circuits to null when view absent.
         const politicianActivity: PoliticianActivityDto | null =
             await fetchPoliticianActivity(ticker, hasPoliticianActivity);
 
-        // Query E — per-politician PTR holders (migration 0023) + committee-relevance
-        // (Phase Q: v_politician_sector_oversight, migration 0025; absent → false).
-        // sector is available from Query B (null when holdings absent or unmapped).
+        // Query E — PTR holders (0023) + committee-relevance (0025; absent → false).
         const politicianHolders: PoliticianHolderDto[] =
             await fetchPoliticianHolders(ticker, hasPoliticianHolders, sector, hasSectorOversight);
 
-        // Query F — 13F options exposure (migration 0027, Phase U).
-        // fetchSecDerivatives short-circuits to null when the view is absent.
+        // Query F — 13F options exposure (0027, Phase U); short-circuits to null when view absent.
         const secDerivatives: SecDerivativesDto | null =
             await fetchSecDerivatives(ticker, hasSecDerivatives);
+
+        // Query G — GEX gamma-exposure latest row (gex_daily, 0030, Phase V).
+        const gexDaily: GexDailyDto | null = await fetchGexDaily(ticker, hasGexDaily);
 
         // Unknown ticker: no data in any source.
         if (
@@ -273,7 +273,8 @@ router.get('/:ticker/by-ticker', async (req, res) => {
             priceHistory.length === 0 &&
             politicianActivity === null &&
             politicianHolders.length === 0 &&
-            secDerivatives === null
+            secDerivatives === null &&
+            gexDaily === null
         ) {
             return res.json({ success: true, data: null });
         }
@@ -290,6 +291,7 @@ router.get('/:ticker/by-ticker', async (req, res) => {
                 politicianActivity,
                 politicianHolders,
                 secDerivatives,
+                gexDaily,
             },
         });
     } catch {

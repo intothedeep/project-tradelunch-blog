@@ -7,6 +7,7 @@
 //   (pre-migration-0022) still parses without error — lenient-parsing rule.
 //   politicianHolders is .optional() for the same reason (pre-migration-0023).
 //   committeeRelevant is .optional() on each holder (pre-migration-0025 compat).
+//   gexDaily is .optional() for pre-migration-0030 compat (lenient-parse rule).
 // Side effects: none (pure schema declaration).
 
 import { z } from 'zod';
@@ -75,6 +76,16 @@ export const symbolSecDerivativesSchema = z.object({
     netSkew: z.enum(['call_skew', 'put_skew', 'balanced']),
 });
 
+// Phase V: GEX gamma-exposure latest row for the ticker (gex_daily, migration 0030).
+export const symbolGexDailySchema = z.object({
+    netGex: z.number(),
+    callGex: z.number(),
+    putGex: z.number(),
+    spot: z.number().nullable(),
+    asOf: z.string(),
+    source: z.string(),
+});
+
 export const symbolDetailSchema = z.object({
     ticker: z.string(),
     sector: z.string().nullable(),
@@ -88,6 +99,8 @@ export const symbolDetailSchema = z.object({
     politicianHolders: z.array(symbolPoliticianHolderSchema).optional(),
     // Optional: absent when migration 0027 not yet applied (lenient-parse contract).
     secDerivatives: symbolSecDerivativesSchema.nullable().optional(),
+    // Optional: absent when migration 0030 not yet applied (lenient-parse contract).
+    gexDaily: symbolGexDailySchema.nullable().optional(),
 });
 
 export type SymbolDetailSchema = z.infer<typeof symbolDetailSchema>;

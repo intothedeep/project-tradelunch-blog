@@ -8,6 +8,8 @@
 //   empty array when the view exists but no data for this ticker.
 //   committeeRelevant on SymbolPoliticianHolder is absent when Phase Q tables
 //   (migration 0025) are not yet applied; treat undefined as false.
+//   gexDaily is absent when migration 0030 (gex_daily) has not been applied;
+//   null when the table exists but no row for this ticker.
 // Side effects: none (type declarations only).
 
 export interface SymbolRankingEntry {
@@ -92,6 +94,21 @@ export interface SymbolSecDerivatives {
     netSkew: 'call_skew' | 'put_skew' | 'balanced';
 }
 
+/**
+ * GEX (gamma-exposure) latest daily row for the ticker (Phase V, migration 0030).
+ * net_gex / call_gex / put_gex are raw gamma-exposure floats (may be negative).
+ * spot is the underlying price at collection time; null when not recorded.
+ * NOT used in any score — history accumulation required before signal use.
+ */
+export interface SymbolGexDaily {
+    netGex: number;
+    callGex: number;
+    putGex: number;
+    spot: number | null;
+    asOf: string; // 'YYYY-MM-DD'
+    source: string;
+}
+
 export interface SymbolDetail {
     ticker: string;
     sector: string | null; // from symbol_fundamentals via enriched view; null when absent
@@ -108,4 +125,7 @@ export interface SymbolDetail {
     // Absent when migration 0027 (v_sec_derivatives_exposure) has not been applied.
     // Null when the view exists but no filer disclosed options on this ticker.
     secDerivatives?: SymbolSecDerivatives | null;
+    // Absent when migration 0030 (gex_daily) has not been applied.
+    // Null when the table exists but no GEX row for this ticker.
+    gexDaily?: SymbolGexDaily | null;
 }
