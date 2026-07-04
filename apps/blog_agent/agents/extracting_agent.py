@@ -167,12 +167,15 @@ class ExtractingAgent(BaseAgent):
                 fm_tags = list(raw_fm_tags) if raw_fm_tags else []
 
             # Frontmatter description, with deterministic content-excerpt fallback.
+            # `has_fm_desc` distinguishes an author-written desc from the excerpt
+            # fallback, so the LLM path can preserve a real desc verbatim.
             fm_desc = (parsed_data.get("description") or "").strip()
+            has_fm_desc = bool(fm_desc)
             if not fm_desc:
                 fm_desc = self._excerpt_from_content(parsed_data["content"])
 
             if self.enable_llm and self.llm:
-                self._log("Generating tags and description with LLM...")
+                self._log("Generating tags with LLM...")
                 metadata = await self._generate_metadata_with_llm(
                     parsed_data["title"],
                     parsed_data["content"],
@@ -184,18 +187,35 @@ class ExtractingAgent(BaseAgent):
                 llm_summary = (metadata.get("summary") or "").strip()
                 # Never overwrite good frontmatter with LLM empties.
                 tags = llm_tags or fm_tags
-                if not llm_summary or llm_summary == "No summary available.":
+                # Prefer an author-written frontmatter desc verbatim — the LLM is
+                # only trusted to generate tags. Fall back to the LLM summary
+                # (then excerpt) only when there is no authored desc.
+                if has_fm_desc:
+                    summary = fm_desc
+                elif not llm_summary or llm_summary == "No summary available.":
                     summary = fm_desc
                 else:
                     summary = llm_summary
-                self._log(f"✓ Generated {len(tags)} tags and description")
+                self._log(f"✓ Generated {len(tags)} tags (desc from frontmatter)")
             else:
                 # LLM disabled: use frontmatter tags + frontmatter/excerpt description.
                 self._log("LLM disabled: using frontmatter tags/description", "warning")
                 tags = fm_tags
                 summary = fm_desc
 
-            parsed_data["tags"] = tags
+            # Normalize tags to lowercase kebab-case (spaces/underscores -> hyphen),
+            # drop non-alphanumerics, dedupe while preserving order. Keeps
+            # LLM-generated tags (e.g. "Session Management") consistent with the
+            # slug-style tags used elsewhere ("session-management").
+            norm_tags: list[str] = []
+            for tag in tags:
+                slug_tag = re.sub(r"[\s_]+", "-", str(tag).strip().lower())
+                slug_tag = re.sub(r"[^a-z0-9-]", "", slug_tag)
+                slug_tag = re.sub(r"-+", "-", slug_tag).strip("-")
+                if slug_tag and slug_tag not in norm_tags:
+                    norm_tags.append(slug_tag)
+
+            parsed_data["tags"] = norm_tags
             parsed_data["description"] = summary
             parsed_data["summary"] = summary  # Alias for description
 
