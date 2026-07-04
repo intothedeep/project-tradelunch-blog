@@ -17,7 +17,7 @@ AI-assisted engineering workflow. Optimize for correctness, simplicity, maintain
 
 ## Structure & Layering
 
-- Module size ≤ **300 lines** (recommended); split on multiple responsibilities.
+- Module size: **300 lines = soft default** (smell threshold). LOC is a proxy for SRP, not the rule itself — the real test is "one file = one responsibility". Exceeding 300 = **split OR justify**: a single cohesive responsibility where splitting would create artificial seams (shared private state, prop-drilling) may run to **~400**; **400 = hard review line** (split-review beyond). Multiple responsibilities → split regardless of count.
 - Dependency direction (no reverse deps): **UI/API → Service → Domain (pure) → Infrastructure**.
 - Monorepo DAG: **apps → packages → libs**. No circular deps.
 
