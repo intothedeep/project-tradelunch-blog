@@ -42,7 +42,7 @@ z_*
 # doc archive — superseded/verbose docs live here, never committed (see CLAUDE.md doc rule)
 _docs/
 _scripts/
-
+x_*
 
 # agent/claude runtime artifacts (config like .claude/CLAUDE.md, rules, agents stays tracked)
 .agent/
