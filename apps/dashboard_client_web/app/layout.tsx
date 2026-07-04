@@ -13,6 +13,8 @@ import '@/styles/globals.css';
 import CustomNavigation from '@/components/navigation-desktop';
 import { ScrollToTopButton } from '@/app/ScrollToTop';
 import { SITE_URL } from '@/env.schema';
+import { JsonLd } from '@/components/seo/JsonLd.server';
+import { buildWebSiteLd, buildPersonLd } from '@/lib/jsonld';
 
 const ibmPlexMono = IBM_Plex_Mono({
     weight: ['400', '500', '700'],
@@ -30,7 +32,10 @@ export const metadata: Metadata = {
     // Base for resolving relative metadata URLs (canonical, og) to absolute
     // production URLs. Matches the sitemap/robots site-url convention.
     metadataBase: new URL(SITE_URL),
-    title: 'Taek Lim | Software Engineer & Fintech Developer',
+    title: {
+        default: 'Taek Lim | Software Engineer & Fintech Developer',
+        template: '%s | Taek Lim',
+    },
     description:
         'Portfolio of Taek Lim — Software engineer specializing in fintech, databases, and full-stack development. Explore projects in trading systems, web apps, and data engineering.',
     other: {
@@ -43,11 +48,11 @@ export const metadata: Metadata = {
         title: 'Taek Lim | Software Engineer & Fintech Developer',
         description:
             'Portfolio of Taek Lim — Software engineer specializing in fintech, databases, and full-stack development. Explore projects in trading systems, web apps, and data engineering.',
-        url: 'https://my.prettylog.com',
+        url: '/',
         siteName: 'Taek Lim',
         images: [
             {
-                url: 'https://my.prettylog.com/og-image.png',
+                url: '/og-image.png',
                 width: 1200,
                 height: 630,
                 alt: 'Taek Lim | Software Engineer & Fintech Developer',
@@ -61,7 +66,7 @@ export const metadata: Metadata = {
         title: 'Taek Lim | Software Engineer & Fintech Developer',
         description:
             'Portfolio of Taek Lim — Software engineer specializing in fintech, databases, and full-stack development. Explore projects in trading systems, web apps, and data engineering.',
-        images: ['https://my.prettylog.com/og-image.png'],
+        images: ['/og-image.png'],
     },
     icons: {
         icon: [
@@ -120,6 +125,7 @@ export default async function RootLayout({
                         // ibmPlexMono.className
                     )}
                 >
+                    <JsonLd data={[buildWebSiteLd(), buildPersonLd()]} />
                     <NextIntlClientProvider
                         locale={locale}
                         messages={messages}

@@ -6,16 +6,20 @@
 //   - Party/chamber/state chips are neutral (grey/outline), never red/green.
 //   - NEVER renders: held / own / position / portfolio language.
 //   - Totals labeled "as reported by source" — these are source aggregates.
-//   - data:null (unknown filerId / tables absent) → graceful not-found state.
+//   - data:null (unknown filerId / tables absent) → notFound() (real 404).
 //   - PoliticianDisclaimer + coverage footnote always visible.
 //   - timeline empty (pre-backfill) → timeline section hidden entirely.
 //   - committees absent/empty → committee section hidden entirely.
 //   - committeeRelevant badge shown only when true; based on CURRENT membership.
-// Side effects: one Server Action fetch per render.
+// Side effects: one Server Action fetch per render (generateMetadata + page share
+//   the same no-store fetch — two network calls per request).
 
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getPolitician } from '@/app/actions/getPolitician.action';
+import { buildDatasetLd, buildBreadcrumbLd } from '@/lib/jsonld';
+import { JsonLd } from '@/components/seo/JsonLd.server';
 import { PoliticianDisclaimer } from '@/components/symbols/PoliticianDisclaimer';
 import { PoliticianTimeline } from '@/components/politicians/PoliticianTimeline.client';
 import type { PoliticianTicker } from '@/types/politician';
@@ -30,9 +34,23 @@ export async function generateMetadata({
     params,
 }: PageProps): Promise<Metadata> {
     const { filerId } = await params;
+    const result = await getPolitician(filerId);
+
+    if (!result.ok || result.data === null) {
+        return {
+            title: `Politician ${filerId}`,
+            description: `PTR transaction disclosures for ${filerId}.`,
+        };
+    }
+
+    const { filer } = result.data;
+    const name = filer.filerName;
+    const description = `PTR stock trade disclosures for ${name} — transaction history, ticker breakdown, and quarterly activity.`;
+
     return {
-        title: `Politician ${filerId} | Taek Lim`,
-        description: `PTR transaction disclosures for ${filerId}.`,
+        title: `${name} Stock Trade Disclosures`,
+        description,
+        alternates: { canonical: `/politicians/${filerId}` },
     };
 }
 
@@ -75,27 +93,36 @@ export default async function PoliticianPage({ params }: PageProps) {
         );
     }
 
+    // Unknown filerId — backend explicitly returns null. Emit a real 404.
     if (result.data === null) {
-        return (
-            <main className="flex min-h-[60vh] items-center justify-center p-8">
-                <div className="text-center">
-                    <h1 className="text-lg font-semibold">
-                        Politician not found
-                    </h1>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                        No disclosure data found for this filer.
-                    </p>
-                </div>
-            </main>
-        );
+        notFound();
     }
 
     const { filer, tickers, timeline } = result.data;
     const hasCommittees =
         filer.committees !== undefined && filer.committees.length > 0;
 
+    const politicianName = filer.filerName;
+    const description = `PTR stock trade disclosures for ${politicianName} — transaction history, ticker breakdown, and quarterly activity.`;
+
     return (
         <main className="p-4 md:p-8 max-w-screen-xl mx-auto">
+            <JsonLd
+                data={[
+                    buildDatasetLd({
+                        name: `${politicianName} stock trade disclosures`,
+                        description,
+                        url: `/politicians/${filerId}`,
+                    }),
+                    buildBreadcrumbLd([
+                        { name: 'Home', url: '/' },
+                        {
+                            name: politicianName,
+                            url: `/politicians/${filerId}`,
+                        },
+                    ]),
+                ]}
+            />
             {/* Header */}
             <header className="mb-8 flex items-start gap-4">
                 {filer.photoUrl && (

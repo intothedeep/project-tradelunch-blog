@@ -7,6 +7,9 @@ export const metadata: Metadata = {
     title: 'Funds | Taek Lim',
     description:
         'SEC 13F institutional holdings viewer — quarterly snapshots of major fund managers.',
+    alternates: {
+        canonical: '/funds',
+    },
 };
 
 // Render per-request — 13F data is DB-backed and updated monthly by the

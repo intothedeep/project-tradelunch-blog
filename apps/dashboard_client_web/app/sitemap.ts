@@ -1,16 +1,22 @@
 import type { MetadataRoute } from 'next';
 import { getBlogPostsByUsername } from '@/apis/getPosts.api';
+import { getFunds } from '@/app/actions/getFunds.action';
 import { SITE_URL } from '@/env.schema';
 
 // sitemap.xml generator (Next.js 16 MetadataRoute.Sitemap).
 // Scope: indexable CONTENT pages only — the content statics
-// (/, /blog, /about, /resume) plus every published post.
+// (/, /blog, /about, /resume), the finance section indexes
+// (/rankings, /funds, /screener), every published post, and every 13F fund
+// detail page (/funds/[cik], enumerated from the public funds list).
 // Deliberately EXCLUDED (KISS/YAGNI — avoid app noise & duplicate content):
 //   - /dashboard, /dashboard/[username]  → interactive app views, not content
 //   - /blog/@[username] author feeds      → owner's is canonicalized to `/`;
 //                                            never emitted (not enumerated here)
 //   - /(feed)/tags/[tag]                  → thin aggregations, no canonical meta
 //   - all auth/protected routes           → already blocked in robots.ts
+//   - /symbols/[ticker], /politicians/[filerId] → each page is SEO-ready
+//     (generateMetadata) but the backend exposes no full-universe list
+//     endpoint to enumerate them; add one, then emit them here.
 // NOTE: post URLs (/blog/@username/slug) are the canonical post pages and are
 // distinct from the deduped author-feed page — safe to include in full.
 // Without this, sitemap.ts is a build-time-cached static Route Handler:
@@ -47,6 +53,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             changeFrequency: 'monthly',
             priority: 0.7,
         },
+        // Finance section index pages — public, DB-backed content views.
+        {
+            url: `${SITE_URL}/rankings`,
+            lastModified: now,
+            changeFrequency: 'weekly',
+            priority: 0.7,
+        },
+        {
+            url: `${SITE_URL}/funds`,
+            lastModified: now,
+            changeFrequency: 'weekly',
+            priority: 0.7,
+        },
+        {
+            url: `${SITE_URL}/screener`,
+            lastModified: now,
+            changeFrequency: 'weekly',
+            priority: 0.7,
+        },
     ];
 
     // Dynamic published posts: /blog/@[username]/[slug]
@@ -65,5 +90,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         console.error('Failed to fetch posts for sitemap:', error);
     }
 
-    return [...staticPages, ...postPages];
+    // Dynamic 13F fund detail pages: /funds/[cik]. Enumerated from the public
+    // funds list (getFunds returns a typed result — never throws). On backend
+    // failure we emit no fund URLs rather than break the whole sitemap.
+    let fundPages: MetadataRoute.Sitemap = [];
+    const fundsResult = await getFunds();
+    if (fundsResult.ok) {
+        fundPages = fundsResult.data.map((fund) => ({
+            url: `${SITE_URL}/funds/${fund.cik}`,
+            lastModified: fund.periodOfReport
+                ? new Date(fund.periodOfReport)
+                : now,
+            changeFrequency: 'monthly' as const,
+            priority: 0.6,
+        }));
+    }
+
+    return [...staticPages, ...postPages, ...fundPages];
 }

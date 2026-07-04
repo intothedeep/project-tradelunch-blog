@@ -8,6 +8,9 @@ export const metadata: Metadata = {
     title: 'Marketcap Rankings | Taek Lim',
     description:
         'Weekly market-capitalization rankings — global leaders and within-sector leaders.',
+    alternates: {
+        canonical: '/rankings',
+    },
 };
 
 // Render per-request — rankings are DB-backed and refreshed weekly by the

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import {
     Card,
     CardContent,
@@ -9,11 +10,23 @@ import { Badge } from '@/components/ui/badge';
 
 import clsx from 'clsx';
 import ResumeTOC from '@/app/resume/ResumeTOC.client';
+import { JsonLd } from '@/components/seo/JsonLd.server';
+import { buildProfilePageLd } from '@/lib/jsonld';
+
+export const metadata: Metadata = {
+    title: 'Resume',
+    description:
+        'Résumé of Taek Lim — software engineering experience, skills, and education. Download PDF.',
+    alternates: {
+        canonical: '/resume',
+    },
+};
 
 // Resume Image Page Component
 export const ResumePage = () => {
     return (
         <div className="min-h-screen bg-background text-foreground font-mono">
+            <JsonLd data={buildProfilePageLd()} />
             <div className="container mx-auto p-4 md:p-8">
                 <ResumeTOC />
 

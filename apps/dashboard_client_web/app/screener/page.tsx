@@ -17,18 +17,36 @@ import { ScreenerTable } from '@/components/screener/ScreenerTable';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-    title: 'Screener | Taek Lim',
-    description:
-        '13F consensus candidate screener — securities held by multiple active fund managers.',
-};
+interface ScreenerSearchParams {
+    minActiveHolders?: string;
+    maxRank?: string;
+    limit?: string;
+}
+
+// noindex filter-variant URLs (thin-content); canonical always folds to /screener.
+export async function generateMetadata({
+    searchParams,
+}: {
+    searchParams: Promise<ScreenerSearchParams>;
+}): Promise<Metadata> {
+    const sp = await searchParams;
+    const hasFilters = Object.values(sp).some((v) => v != null);
+
+    return {
+        title: 'Screener | Taek Lim',
+        description:
+            '13F consensus candidate screener — securities held by multiple active fund managers.',
+        alternates: {
+            canonical: '/screener',
+        },
+        robots: hasFilters
+            ? { index: false, follow: true }
+            : { index: true, follow: true },
+    };
+}
 
 interface ScreenerPageProps {
-    searchParams: Promise<{
-        minActiveHolders?: string;
-        maxRank?: string;
-        limit?: string;
-    }>;
+    searchParams: Promise<ScreenerSearchParams>;
 }
 
 export default async function ScreenerPage({

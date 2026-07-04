@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { getSymbolDetail } from '@/app/actions/getSymbolDetail.action';
+import { buildDatasetLd, buildBreadcrumbLd } from '@/lib/jsonld';
+import { JsonLd } from '@/components/seo/JsonLd.server';
 import { PriceChart } from '@/components/symbols/PriceChart';
 import { PoliticianActivity } from '@/components/symbols/PoliticianActivity.client';
 import { PoliticianHolders } from '@/components/symbols/PoliticianHolders.client';
@@ -18,6 +21,7 @@ export async function generateMetadata({
     return {
         title: `${symbol} | Taek Lim`,
         description: `Marketcap ranking history and institutional holders for ${symbol}.`,
+        alternates: { canonical: `/symbols/${ticker}` },
     };
 }
 
@@ -39,7 +43,7 @@ function fmtDelta(v: number | null): { label: string; color: string } | null {
 // /symbols/[ticker] — per-ticker detail: marketcap rank history + institutional holders + price sparkline.
 // States:
 //   backend error              → explicit error block
-//   data:null (unknown/absent) → not-found block
+//   data:null (unknown/absent) → notFound() (real 404)
 //   populated                  → rank table + holders table + sparkline
 export default async function SymbolDetailPage({
     params,
@@ -63,20 +67,9 @@ export default async function SymbolDetailPage({
         );
     }
 
+    // Unknown ticker — backend explicitly returns null. Emit a real 404.
     if (result.data === null) {
-        return (
-            <main className="flex min-h-[60vh] items-center justify-center p-8">
-                <div className="text-center">
-                    <h1 className="text-lg font-semibold">
-                        {ticker.toUpperCase()} not found
-                    </h1>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                        No ranking history or institutional data is available
-                        for this ticker.
-                    </p>
-                </div>
-            </main>
-        );
+        notFound();
     }
 
     const {
@@ -90,8 +83,24 @@ export default async function SymbolDetailPage({
         secDerivatives,
     } = result.data;
 
+    const symbol = ticker.toUpperCase();
+    const description = `Marketcap rank history, institutional holders, and congressional trading data for ${symbol}.`;
+
     return (
         <main className="p-4 md:p-8 max-w-screen-xl mx-auto">
+            <JsonLd
+                data={[
+                    buildDatasetLd({
+                        name: `${symbol} market data`,
+                        description,
+                        url: `/symbols/${ticker}`,
+                    }),
+                    buildBreadcrumbLd([
+                        { name: 'Home', url: '/' },
+                        { name: symbol, url: `/symbols/${ticker}` },
+                    ]),
+                ]}
+            />
             <header className="mb-6">
                 <h1 className="text-3xl font-bold tracking-tight">
                     {ticker.toUpperCase()}

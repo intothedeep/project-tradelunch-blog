@@ -1,16 +1,13 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { getFunds } from '@/app/actions/getFunds.action';
 import { getFundRankFlow } from '@/app/actions/getFundRankFlow.action';
+import { buildDatasetLd, buildBreadcrumbLd } from '@/lib/jsonld';
+import { JsonLd } from '@/components/seo/JsonLd.server';
 import FundList from '@/components/funds/FundList';
 import PageMenuRegistrar from '@/components/PageMenuRegistrar.client';
 import RankFlowTable from '@/components/funds/RankFlowTable';
 import FundsEmptyState from '@/components/funds/FundsEmptyState';
-
-export const metadata: Metadata = {
-    title: 'Fund Holdings | Taek Lim',
-    description:
-        'SEC 13F holdings rank-flow detail for a specific institutional filer.',
-};
 
 // Render per-request — holdings are DB-backed and updated monthly.
 export const dynamic = 'force-dynamic';
@@ -19,12 +16,40 @@ interface FundDetailPageProps {
     params: Promise<{ cik: string }>;
 }
 
+export async function generateMetadata({
+    params,
+}: FundDetailPageProps): Promise<Metadata> {
+    const { cik } = await params;
+    const [fundsResult, rankFlowResult] = await Promise.all([
+        getFunds(),
+        getFundRankFlow(cik),
+    ]);
+
+    if (!fundsResult.ok || !rankFlowResult.ok || rankFlowResult.data === null) {
+        return {
+            title: 'Fund Holdings',
+            description:
+                'SEC 13F holdings rank-flow detail for a specific institutional filer.',
+        };
+    }
+
+    const fundLabel = fundsResult.data.find((f) => f.cik === cik)?.label ?? cik;
+    const periodOfReport = rankFlowResult.data.periods[0]?.periodOfReport ?? '';
+    const description = `SEC 13F rank-flow holdings for ${fundLabel}${periodOfReport ? ` · latest period ${periodOfReport}` : ''}.`;
+
+    return {
+        title: `${fundLabel} 13F Holdings`,
+        description,
+        alternates: { canonical: `/funds/${cik}` },
+    };
+}
+
 // /funds/[cik] — fund detail view with rank-flow holdings grid.
 // States:
 //   backend error on funds list → explicit error block
 //   backend error on rankflow   → explicit error block
-//   rankflow data:null          → FundsEmptyState (unknown CIK)
-//   periods empty               → FundsEmptyState (no quarters yet)
+//   rankflow data:null          → notFound() (unknown CIK — real 404)
+//   periods empty               → FundsEmptyState (known CIK, no quarters yet)
 //   populated                   → FundList(activeCik) + RankFlowTable
 export default async function FundDetailPage({ params }: FundDetailPageProps) {
     const { cik } = await params;
@@ -66,10 +91,12 @@ export default async function FundDetailPage({ params }: FundDetailPageProps) {
         );
     }
 
-    if (
-        rankFlowResult.data === null ||
-        rankFlowResult.data.periods.length === 0
-    ) {
+    // Unknown CIK — backend explicitly returns null. Emit a real 404.
+    if (rankFlowResult.data === null) {
+        notFound();
+    }
+
+    if (rankFlowResult.data.periods.length === 0) {
         return (
             <main className="p-4 md:p-8 max-w-screen-xl mx-auto">
                 <div className="md:flex md:gap-8">
@@ -102,8 +129,28 @@ export default async function FundDetailPage({ params }: FundDetailPageProps) {
     const fundLabel =
         fundsResult.data.find((f) => f.cik === fundCik)?.label ?? fundCik;
 
+    const description = `SEC 13F rank-flow holdings for ${fundLabel}${latestPeriodOfReport ? ` · latest period ${latestPeriodOfReport}` : ''}.`;
+
     return (
         <main className="p-4 md:p-8 max-w-screen-xl mx-auto">
+            <JsonLd
+                data={[
+                    buildDatasetLd({
+                        name: `${fundLabel} 13F holdings`,
+                        description,
+                        url: `/funds/${cik}`,
+                        creator: fundLabel,
+                        temporalCoverage: latestPeriodOfReport || undefined,
+                        isBasedOnUrl:
+                            'https://www.sec.gov/cgi-bin/browse-edgar',
+                    }),
+                    buildBreadcrumbLd([
+                        { name: 'Home', url: '/' },
+                        { name: 'Funds', url: '/funds' },
+                        { name: fundLabel, url: `/funds/${cik}` },
+                    ]),
+                ]}
+            />
             <div className="md:flex md:gap-8">
                 <aside className="hidden md:block w-64 shrink-0">
                     <FundList
