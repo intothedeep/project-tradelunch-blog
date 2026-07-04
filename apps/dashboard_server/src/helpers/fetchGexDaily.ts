@@ -50,9 +50,12 @@ export async function fetchGexDaily(
     if (!hasGexDaily) return null;
 
     const { rows } = await pool.query<IRawGexRow>(
+        // deleted_at IS NULL: mask soft-deleted rows at read (soft-delete rule) and
+        // let the planner use the partial idx_gex_daily_active_ticker.
         `SELECT net_gex, call_gex, put_gex, spot, as_of, source
            FROM gex_daily
           WHERE ticker = $1
+            AND deleted_at IS NULL
           ORDER BY as_of DESC
           LIMIT 1`,
         [ticker]
