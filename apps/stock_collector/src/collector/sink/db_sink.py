@@ -672,6 +672,8 @@ ON CONFLICT (signal_type, ticker, as_of, horizon_days) DO UPDATE SET
     updated_at = CURRENT_TIMESTAMP
 """
 
+_UPSERT_CHUNK = 500  # rows per executemany/commit — bounds round-trips + connection lifetime
+
 
 def read_returns_window(
     conn: psycopg.Connection,
@@ -742,6 +744,9 @@ def read_signal_events(
     # (Phase R follow-up); the politician axis is fully functional today.
     try:
         with conn.cursor() as cur:
+            # Fail fast (don't hold the connection): the delta view can't beat the
+            # pooler timeout anyway, so cap this probe at 15s and skip cleanly.
+            cur.execute("SET statement_timeout = '15s'")
             cur.execute(_SEC_NEW_POSITION_EVENTS_SQL, (since, limit))
             events.extend(
                 (str(sig), str(tick), row_date, str(direction))
@@ -758,10 +763,12 @@ def upsert_signal_backtest(
     conn: psycopg.Connection,
     rows: "Sequence[SignalBacktestRow]",  # type: ignore[name-defined]  # noqa: F821
 ) -> int:
-    """UPSERT signal_backtest rows. ON CONFLICT DO UPDATE (idempotent).
+    """UPSERT signal_backtest rows in chunks. ON CONFLICT DO UPDATE (idempotent).
 
-    Uses per-item rollback on error so a single bad row does not abort the batch.
-    Returns the count of rows successfully submitted.
+    Chunked so a full backtest (thousands of rows) is a handful of round-trips
+    with one commit per chunk — a per-row commit loop kept the pooled connection
+    open too long and was dropped mid-run ("connection is lost"). Chunk-level
+    rollback isolates a bad chunk without aborting the rest.
 
     Args:
         conn: psycopg3 connection (prepare_threshold=None from connect()).
@@ -774,21 +781,105 @@ def upsert_signal_backtest(
         return 0
 
     submitted = 0
-    for row in rows:
+    for start in range(0, len(rows), _UPSERT_CHUNK):
+        chunk = rows[start:start + _UPSERT_CHUNK]
         try:
             with conn.cursor() as cur:
-                cur.execute(
+                cur.executemany(
                     _BACKTEST_UPSERT_SQL,
-                    (row.signal_type, row.ticker, row.as_of, row.horizon_days,
-                     row.car, row.is_hit),
+                    [(r.signal_type, r.ticker, r.as_of, r.horizon_days, r.car, r.is_hit)
+                     for r in chunk],
                 )
             conn.commit()
-            submitted += 1
-        except Exception as exc:  # noqa: BLE001 — per-item isolation
+            submitted += len(chunk)
+        except Exception as exc:  # noqa: BLE001 — chunk-level isolation
             conn.rollback()
             print(
-                f"[upsert_signal_backtest] skipped row "
-                f"({row.signal_type},{row.ticker},{row.as_of},{row.horizon_days}): "
-                f"{type(exc).__name__}: {exc}"
+                f"[upsert_signal_backtest] skipped chunk "
+                f"[{start}:{start + len(chunk)}]: {type(exc).__name__}: {exc}"
             )
     return submitted
+
+
+# --- Phase S: sector-relative benchmark reads --------------------------------
+
+_SECTOR_MEMBERS_SQL = """
+WITH ranked AS (
+    SELECT
+        f.symbol,
+        f.shares_outstanding,
+        h.bar_time::date   AS bar_date,
+        h.close,
+        ROW_NUMBER() OVER (PARTITION BY f.symbol ORDER BY h.bar_time ASC) AS rn
+    FROM symbol_fundamentals f
+    JOIN market_history h
+        ON h.label    = f.symbol
+        AND h.interval = %s
+        AND h.bar_time > %s
+    WHERE f.sector              = %s
+      AND f.shares_outstanding IS NOT NULL
+      AND f.deleted_at         IS NULL
+)
+SELECT symbol, shares_outstanding, bar_date, close
+FROM   ranked
+WHERE  rn <= %s
+ORDER  BY symbol, bar_date ASC
+"""
+
+
+def read_sector_members(
+    conn: psycopg.Connection,
+    sector: str,
+    start_date: date,
+    num_bars: int,
+    interval: str = DEFAULT_INTERVAL,
+) -> dict[str, tuple[float, list[tuple[date, float]]]]:
+    """Return {symbol: (shares_outstanding, ascending [(date, close)])} for sector.
+
+    Fetches all active members (deleted_at IS NULL, shares_outstanding NOT NULL)
+    whose market_history has bars strictly after start_date.  Uses a single SQL
+    query with a per-symbol ROW_NUMBER cap (grouped in Python), cheap enough for
+    per-event calls.
+
+    Args:
+        conn:       psycopg3 connection.
+        sector:     sector string from symbol_fundamentals.sector.
+        start_date: exclusive lower bound (bars strictly after this date).
+        num_bars:   per-symbol LIMIT (same buffer as the stock price window).
+        interval:   market_history interval column (default '1d').
+
+    Returns:
+        Dict of symbol -> (shares_outstanding, [(date, close)]); {} when no members.
+    """
+    result: dict[str, tuple[float, list[tuple[date, float]]]] = {}
+    with conn.cursor() as cur:
+        cur.execute(_SECTOR_MEMBERS_SQL, (interval, start_date, sector, num_bars))
+        for symbol, shares, bar_date, close in cur.fetchall():
+            sh = float(shares)
+            if symbol not in result:
+                result[symbol] = (sh, [])
+            result[symbol][1].append((bar_date, float(close)))
+    return result
+
+
+_SYMBOL_SECTOR_SQL = """
+SELECT sector
+FROM   symbol_fundamentals
+WHERE  symbol     = %s
+  AND  deleted_at IS NULL
+"""
+
+
+def read_symbol_sector(conn: psycopg.Connection, ticker: str) -> str | None:
+    """Return the sector string for ``ticker`` from symbol_fundamentals, or None.
+
+    Returns None when the symbol is absent, soft-deleted, or has no sector set.
+
+    Args:
+        conn:   psycopg3 connection.
+        ticker: symbol to look up.
+    """
+    with conn.cursor() as cur:
+        cur.execute(_SYMBOL_SECTOR_SQL, (ticker,))
+        row = cur.fetchone()
+    return str(row[0]) if row and row[0] is not None else None

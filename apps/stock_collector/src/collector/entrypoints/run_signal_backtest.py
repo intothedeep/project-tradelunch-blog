@@ -17,9 +17,15 @@ Guardrail log (always printed):
   observations_computed   — signal_backtest rows built (upserted unless --dry-run)
 
 --dry-run: read + compute + print guardrails; NO DB writes.
+--sector-neutral: subtract cap-weighted sector index return (Phase S).
+  When ON, per event the ticker's sector is resolved and a sector benchmark
+  series is built and passed to cumulative_abnormal_return as benchmark_series.
+  If the sector is unknown or the index is unbuildable, falls back to raw CAR
+  silently — never crashes.
 
 Zero new collection: reads only existing tables (market_history, politician_trades,
-  v_sec_position_delta, security_map, sec_filings). No yfinance / SEC API calls.
+  v_sec_position_delta, security_map, sec_filings, symbol_fundamentals). No
+  yfinance / SEC API calls.
 Re-run idempotent: upsert ON CONFLICT DO UPDATE.
 A ticker with no market_history is skipped (counted in tickers_missing_price),
 never crashes.
@@ -36,7 +42,12 @@ from datetime import date, datetime, timezone
 from collector.config.settings import database_url
 from collector.schema.rows import SignalBacktestRow
 from collector.sink import db_sink
-from collector.transform.event_study import cumulative_abnormal_return, directional_hit
+from collector.transform.event_study import (
+    cumulative_abnormal_return,
+    directional_hit,
+    event_window_start,
+)
+from collector.transform.sector_benchmark import SectorMember, build_sector_index
 
 _HORIZONS = (1, 5, 21)
 _MAX_HORIZON = max(_HORIZONS)
@@ -67,13 +78,16 @@ def _build_observation_rows(
     event_date: date,
     direction: str,
     price_series: list[tuple[date, float]],
+    benchmark_series: list[tuple[date, float]] | None = None,
 ) -> tuple[list[SignalBacktestRow], int]:
     """Build SignalBacktestRow list for all horizons; return (rows, skipped_count).
 
     ``skipped_count`` counts horizons that returned None (insufficient bars).
     Pure computation delegated to event_study transforms.
     """
-    cars = cumulative_abnormal_return(event_date, price_series, horizons=_HORIZONS)
+    cars = cumulative_abnormal_return(
+        event_date, price_series, horizons=_HORIZONS, benchmark_series=benchmark_series
+    )
     rows: list[SignalBacktestRow] = []
     skipped = 0
 
@@ -107,6 +121,32 @@ def _build_observation_rows(
     return rows, skipped
 
 
+def _resolve_benchmark(
+    conn: "psycopg.Connection",  # type: ignore[name-defined]  # noqa: F821
+    ticker: str,
+    event_date: date,
+) -> list[tuple[date, float]] | None:
+    """Resolve cap-weighted sector benchmark series for ``ticker``'s event.
+
+    Returns None when the sector is unknown or the index is unbuildable — the
+    caller falls back to raw CAR.  Never raises.
+    """
+    try:
+        sector = db_sink.read_symbol_sector(conn, ticker)
+        if not sector:
+            return None
+        members_raw = db_sink.read_sector_members(conn, sector, event_date, _PRICE_FETCH_BUFFER)
+        if not members_raw:
+            return None
+        gate = event_window_start(event_date)
+        members = [SectorMember(sh, prices) for sh, prices in members_raw.values()]
+        series = build_sector_index(members, gate, _PRICE_FETCH_BUFFER)
+        return series if series else None
+    except Exception as exc:  # noqa: BLE001 — benchmark is best-effort; never crash the job
+        print(f"[run_signal_backtest] sector benchmark skipped for {ticker}: {exc}")
+        return None
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Compute forward-return signal backtest observations (Phase R)."
@@ -130,6 +170,11 @@ def main(argv: list[str] | None = None) -> int:
         metavar="YYYY-MM-DD",
         help=f"earliest event date (default: {_DEFAULT_SINCE})",
     )
+    parser.add_argument(
+        "--sector-neutral",
+        action="store_true",
+        help="subtract cap-weighted sector index return (Phase S abnormal return)",
+    )
     args = parser.parse_args(argv)
 
     if not database_url():
@@ -146,7 +191,10 @@ def main(argv: list[str] | None = None) -> int:
     observations_written = 0
 
     try:
-        print(f"[run_signal_backtest] reading events since={args.since} limit={args.limit} …")
+        print(
+            f"[run_signal_backtest] reading events since={args.since} limit={args.limit}"
+            f" sector_neutral={args.sector_neutral} …"
+        )
         events = db_sink.read_signal_events(conn, since=args.since, limit=args.limit)
         events_scanned = len(events)
         print(f"[run_signal_backtest] {events_scanned} events loaded")
@@ -161,8 +209,12 @@ def main(argv: list[str] | None = None) -> int:
                 tickers_missing_price += 1
                 continue
 
+            benchmark_series = (
+                _resolve_benchmark(conn, ticker, event_date) if args.sector_neutral else None
+            )
+
             obs_rows, skipped = _build_observation_rows(
-                signal_type, ticker, event_date, direction, price_series
+                signal_type, ticker, event_date, direction, price_series, benchmark_series
             )
             skipped_insufficient += skipped
             all_rows.extend(obs_rows)
