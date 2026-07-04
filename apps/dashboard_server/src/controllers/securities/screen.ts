@@ -19,12 +19,21 @@
 //     set (helpers/priceSignals.ts). Candidates outside the tracked universe (no bars,
 //     or < ~1yr history) keep null terms — the partial-score contract in screenScore.ts.
 //   - Sort (compareScreenCandidates): price-signal-complete tier first, then
-//     score DESC, then holderCountActive DESC; slice to limit. Each candidate
-//     carries hasPriceSignals so the client can render the two data-availability
-//     tiers without re-deriving it. (PM+architect decision 2026-07-02.)
+//     score DESC, then newPositionBreadth DESC (nulls last), then holderCountActive DESC;
+//     slice to limit. Each candidate carries hasPriceSignals so the client can render
+//     the two data-availability tiers without re-deriving it. (PM+architect decision 2026-07-02.)
 //   - notionalTier (0.15 weight in politicalInterestScore): 90d disclosed-value aggregate
 //     from politician_trades. Gated on hasPoliticianActivity (same migration as the view).
 //     notional is a COARSE 3-level proxy — never surfaced as an exact figure to the client.
+//   - mv_sec_new_positions (migration 0031, presence-gated): COUNT(DISTINCT cik) per ticker
+//     at the latest period_of_report. Backtest: 13F new-position 21d sector-neutral t=3.15
+//     (Phase R/S) — validates the event's forward return. Surfaced as newPositionCount (raw)
+//     and components.newPositionBreadth (normalised diagnostic). NOT a weighted score term;
+//     re-weighting blocked pending composite backtest. Absent MV → new_holder_count NULL,
+//     newPositionBreadth NULL — degrades silently, never 500.
+//   - politicalInterestScore: advisory/descriptive only (politician_buy t=0.71 /
+//     politician_sell t=−2.64, below Harvey-Liu-Zhu t>3; no measured forward alpha).
+//     Marked advisoryOnly:true. NEVER blended into the 13F ranking.
 // DEFERRED:
 //   - filing_date lookahead: v_sec_consensus is period-based. A production signal
 //     must gate on sec_filings.filing_date so the screener only runs after all funds
@@ -67,6 +76,7 @@ interface IRawPresence {
     has_market_history: boolean;
     has_politician_activity: boolean;
     has_politician_holders: boolean;
+    has_new_positions: boolean;
 }
 
 async function probePresence(): Promise<{
@@ -76,6 +86,7 @@ async function probePresence(): Promise<{
     hasMarketHistory: boolean;
     hasPoliticianActivity: boolean;
     hasPoliticianHolders: boolean;
+    hasNewPositions: boolean;
 }> {
     const { rows } = await pool.query<IRawPresence>(
         `SELECT to_regclass('public.v_sec_consensus')             IS NOT NULL AS has_consensus,
@@ -83,7 +94,8 @@ async function probePresence(): Promise<{
                 to_regclass('public.market_rankings')             IS NOT NULL AS has_rankings,
                 to_regclass('public.market_history')              IS NOT NULL AS has_market_history,
                 to_regclass('public.v_politician_activity')       IS NOT NULL AS has_politician_activity,
-                to_regclass('public.v_politician_ticker_holders') IS NOT NULL AS has_politician_holders`
+                to_regclass('public.v_politician_ticker_holders') IS NOT NULL AS has_politician_holders,
+                to_regclass('public.mv_sec_new_positions')        IS NOT NULL AS has_new_positions`
     );
     return {
         hasConsensus:          rows[0]?.has_consensus           ?? false,
@@ -92,6 +104,7 @@ async function probePresence(): Promise<{
         hasMarketHistory:      rows[0]?.has_market_history      ?? false,
         hasPoliticianActivity: rows[0]?.has_politician_activity ?? false,
         hasPoliticianHolders:  rows[0]?.has_politician_holders  ?? false,
+        hasNewPositions:       rows[0]?.has_new_positions       ?? false,
     };
 }
 
@@ -230,6 +243,7 @@ interface ICandidateRow {
     politician_buy_member_count: string | null;   // BIGINT → string; null when view absent
     politician_sell_member_count: string | null;  // BIGINT → string; null when view absent
     politician_notional_90d: string | null;       // BIGINT → string; 90d sum from politician_trades
+    new_holder_count: string | null;              // BIGINT → string; null when mv_sec_new_positions absent
 }
 
 // --- Helper ---
@@ -263,6 +277,7 @@ router.get('/screen', async (req, res) => {
             hasMarketHistory,
             hasPoliticianActivity,
             hasPoliticianHolders,
+            hasNewPositions,
         } = await probePresence();
         if (!hasConsensus) {
             return res.json({ success: true, data: null });
@@ -322,6 +337,7 @@ router.get('/screen', async (req, res) => {
         // the ticker join is also present (ticker is the join key).
         // pn: 90d notional aggregate from politician_trades (same gate — no separate migration).
         // notional is a COARSE 3-level tier proxy; never surfaced as an exact $ to the client.
+        // Advisory lens: politician_buy t=0.71 / politician_sell t=−2.64 (below t>3 bar).
         const politicianSelect = hasPoliticianActivity && hasTickerJoin
             ? `pa.traded_by_count AS politician_count_90d, pa.net_direction AS politician_net_direction,
                pa.buy_member_count AS politician_buy_member_count, pa.sell_member_count AS politician_sell_member_count,
@@ -340,6 +356,22 @@ router.get('/screen', async (req, res) => {
                ) pn ON pn.ticker = sm.ticker`
             : '';
 
+        // New-position join (migration 0031, mv_sec_new_positions) — presence-gated on
+        // hasNewPositions AND ticker join. Aggregates distinct funds opening a NEW 13F
+        // position at the latest period. t=3.15 sector-neutral validates the event's
+        // forward return — surfaced as a diagnostic, NOT a weighted score term.
+        const newPositionSelect = hasNewPositions && hasTickerJoin
+            ? `np.new_holder_count`
+            : `NULL::bigint AS new_holder_count`;
+        const newPositionJoin = hasNewPositions && hasTickerJoin
+            ? `LEFT JOIN (
+                   SELECT ticker, COUNT(DISTINCT cik) AS new_holder_count
+                     FROM mv_sec_new_positions
+                    WHERE period_of_report = (SELECT MAX(period_of_report) FROM mv_sec_new_positions)
+                    GROUP BY ticker
+               ) np ON np.ticker = sm.ticker`
+            : '';
+
         const params: (string | number)[] = [periodOfReport, minActiveHolders];
         if (applyRankFilter) params.push(maxRank);
 
@@ -350,11 +382,13 @@ SELECT c.cusip,
        c.holder_count_total,
        ${smSelect},
        ${rankSelect},
-       ${politicianSelect}
+       ${politicianSelect},
+       ${newPositionSelect}
   FROM v_sec_consensus c
   ${smJoin}
   ${rankJoin}
   ${politicianJoin}
+  ${newPositionJoin}
  WHERE c.period_of_report = $1
    AND c.holder_count_active >= $2
    ${rankFilter}
@@ -376,6 +410,10 @@ SELECT c.cusip,
                 rank,
                 momentum: momentum[i],
                 lowVol: lowVol[i],
+                // newHolderCountActive: distinct funds opening a NEW position this period.
+                // t=3.15 sector-neutral (Phase R/S) validates forward return of the event;
+                // surfaced as components.newPositionBreadth (diagnostic), never weighted.
+                newHolderCountActive: r.new_holder_count !== null ? Number(r.new_holder_count) : null,
             });
 
             const politicianCount90d =
@@ -384,9 +422,11 @@ SELECT c.cusip,
                     : null;
             const politicianNetDirection =
                 r.politician_net_direction ?? null;
-            // Political-interest score (separate lens from the 13F score — never blended).
-            // null when migration 0022 absent or tradedByCount is 0.
-            // notional feeds only a coarse 3-level tier (0/0.5/1) — never an exact $ figure.
+
+            // politicalInterestScore: advisory/descriptive lens only.
+            // politician_buy 21d sector-neutral t=0.71 (raw t=5.58 = market-beta artifact);
+            // politician_sell 21d t=−2.64 — both below Harvey-Liu-Zhu t>3 bar.
+            // No measured forward alpha → NEVER blend into the 13F composite score.
             const politicalInterestScore = computePoliticalScore({
                 tradedByCount:
                     r.politician_count_90d !== null ? Number(r.politician_count_90d) : null,
@@ -414,17 +454,23 @@ SELECT c.cusip,
                 holderCountTotal: Number(r.holder_count_total),
                 score,
                 components,
+                // newPositionBreadth propagated directly for compareScreenCandidates tiebreak.
+                newPositionBreadth: components.newPositionBreadth,
                 // Data-availability flag — drives the two-tier /screener view.
                 hasPriceSignals: hasPriceSignals(components),
+                // Raw count of distinct funds opening a new position (null = MV absent).
+                newPositionCount: r.new_holder_count !== null ? Number(r.new_holder_count) : null,
                 // Politician-activity (null when migration 0022 not yet applied).
                 politicianCount90d,
                 politicianNetDirection,
-                // Political-interest score (null when no politician data — separate lens, never blended with 13F score).
+                // Political-interest score — advisory only (no measured alpha); never blended
+                // into the 13F ranking. advisoryOnly marks this contract for clients.
                 politicalInterestScore,
+                advisoryOnly: true as const,
             };
         });
 
-        // Two-tier order: price-signal-complete first, then score/holders desc.
+        // Two-tier order: price-signal-complete first, then score/newPositionBreadth/holders desc.
         scored.sort(compareScreenCandidates);
 
         const sliced = scored.slice(0, limit);

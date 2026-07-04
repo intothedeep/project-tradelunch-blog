@@ -131,3 +131,103 @@ describe('computeScore — price terms (momentum + lowVol)', () => {
         expect(score).toBeCloseTo(0.6 + 0.3 * 0.5 + 0.1 * 0.25);
     });
 });
+
+// --- newPositionBreadth: diagnostic field, never weighted ---
+
+describe('computeScore — newPositionBreadth (diagnostic only, not weighted)', () => {
+    // FROZEN-WEIGHT REGRESSION: supplying newHolderCountActive must NOT change score.
+    it('score is byte-for-byte identical when newHolderCountActive is supplied vs absent', () => {
+        const base = computeScore({
+            holderCountActive: 3, totalActiveFunds: 10, rank: 5, momentum: 0.6, lowVol: 0.4,
+        });
+        const withNew = computeScore({
+            holderCountActive: 3, totalActiveFunds: 10, rank: 5, momentum: 0.6, lowVol: 0.4,
+            newHolderCountActive: 2,
+        });
+        expect(withNew.score).toBe(base.score);
+    });
+
+    it('score is unchanged when newHolderCountActive is 0', () => {
+        const base = computeScore({ holderCountActive: 2, totalActiveFunds: 5, rank: null });
+        const with0 = computeScore({
+            holderCountActive: 2, totalActiveFunds: 5, rank: null,
+            newHolderCountActive: 0,
+        });
+        expect(with0.score).toBe(base.score);
+    });
+
+    it('score is unchanged even at maximum newHolderCountActive', () => {
+        const base = computeScore({
+            holderCountActive: 3, totalActiveFunds: 3, rank: 1, momentum: 1, lowVol: 1,
+        });
+        const withMax = computeScore({
+            holderCountActive: 3, totalActiveFunds: 3, rank: 1, momentum: 1, lowVol: 1,
+            newHolderCountActive: 100,
+        });
+        // Score must remain 1.0 — newPositionBreadth is not a weight.
+        expect(withMax.score).toBe(base.score);
+    });
+
+    // newPositionBreadth value = clamp([0,1]) of newHolderCountActive / totalActiveFunds.
+    it('newPositionBreadth = newHolderCountActive / totalActiveFunds (fractional)', () => {
+        const { components } = computeScore({
+            holderCountActive: 3, totalActiveFunds: 10, rank: null,
+            newHolderCountActive: 4,
+        });
+        expect(components.newPositionBreadth).toBeCloseTo(4 / 10);
+    });
+
+    it('newPositionBreadth clamps to 1 when newHolderCountActive >= totalActiveFunds', () => {
+        const { components } = computeScore({
+            holderCountActive: 3, totalActiveFunds: 5, rank: null,
+            newHolderCountActive: 10,
+        });
+        expect(components.newPositionBreadth).toBe(1);
+    });
+
+    it('newPositionBreadth clamps to 0 when newHolderCountActive is 0', () => {
+        const { components } = computeScore({
+            holderCountActive: 3, totalActiveFunds: 5, rank: null,
+            newHolderCountActive: 0,
+        });
+        expect(components.newPositionBreadth).toBe(0);
+    });
+
+    it('newPositionBreadth is null when newHolderCountActive is null (no MV)', () => {
+        const { components } = computeScore({
+            holderCountActive: 3, totalActiveFunds: 10, rank: null,
+            newHolderCountActive: null,
+        });
+        expect(components.newPositionBreadth).toBeNull();
+    });
+
+    it('newPositionBreadth is null when newHolderCountActive is absent (omitted field)', () => {
+        const { components } = computeScore({
+            holderCountActive: 3, totalActiveFunds: 10, rank: null,
+        });
+        expect(components.newPositionBreadth).toBeNull();
+    });
+
+    it('newPositionBreadth is null when totalActiveFunds <= 0 (guard against divide-by-zero)', () => {
+        const { components } = computeScore({
+            holderCountActive: 0, totalActiveFunds: 0, rank: null,
+            newHolderCountActive: 5,
+        });
+        // Must be null, not NaN or Infinity.
+        expect(components.newPositionBreadth).toBeNull();
+    });
+
+    it('null newPositionBreadth never changes score regardless of other inputs', () => {
+        // Exhaustive check: adding null newHolderCountActive never affects score.
+        const inputs = [
+            { holderCountActive: 1, totalActiveFunds: 5, rank: null },
+            { holderCountActive: 5, totalActiveFunds: 5, rank: 1, momentum: 0.5, lowVol: 0.5 },
+            { holderCountActive: 0, totalActiveFunds: 0, rank: null },
+        ];
+        for (const inp of inputs) {
+            const base = computeScore(inp);
+            const withNull = computeScore({ ...inp, newHolderCountActive: null });
+            expect(withNull.score).toBe(base.score);
+        }
+    });
+});

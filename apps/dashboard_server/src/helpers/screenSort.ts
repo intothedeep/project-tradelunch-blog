@@ -11,6 +11,14 @@
 //   price-signal-complete candidates first, consensus-only after — a DATA-
 //   AVAILABILITY split, NOT a quality verdict (the UI must frame it that way).
 //   The score formula (computeScore) is untouched — functional-core stays pure.
+//
+// newPositionBreadth tiebreak (2026-07-03):
+//   Phase R/S backtest: 13F new-position 21d sector-neutral t=3.15 (above Harvey-
+//   Liu-Zhu t>3 bar). This validates an ORDINAL preference for tickers where more
+//   funds are opening new positions vs. simply holding. It is NOT a composite-score
+//   weight — re-weighting is blocked pending a composite backtest. Applied here as
+//   a tiebreak (tier → score DESC → newPositionBreadth DESC → holderCountActive DESC)
+//   so the underlying score formula remains byte-for-byte identical.
 
 import type { ScoreComponents } from './screenScore';
 
@@ -26,20 +34,37 @@ export function hasPriceSignals(c: ScoreComponents): boolean {
 interface SortableCandidate {
     score: number;
     holderCountActive: number;
+    newPositionBreadth: number | null; // from components.newPositionBreadth; nulls sort last
     components: ScoreComponents;
 }
 
 /**
- * Order: (1) price-signal-complete first, (2) score DESC, (3) holderCountActive
- * DESC. Stable and deterministic for a fixed candidate set.
+ * Order: (1) price-signal-complete first, (2) score DESC,
+ * (3) newPositionBreadth DESC (nulls last — "no data" < any measured value),
+ * (4) holderCountActive DESC.
+ * Stable and deterministic for a fixed candidate set.
  */
 export function compareScreenCandidates(
     a: SortableCandidate,
     b: SortableCandidate
 ): number {
+    // Tier: price-signal-complete candidates rank first.
     const aHas = hasPriceSignals(a.components);
     const bHas = hasPriceSignals(b.components);
     if (aHas !== bHas) return aHas ? -1 : 1;
+
+    // Score DESC.
     if (b.score !== a.score) return b.score - a.score;
+
+    // newPositionBreadth DESC — nulls sort last (no MV = less information, demote).
+    const aNpb = a.newPositionBreadth;
+    const bNpb = b.newPositionBreadth;
+    if (aNpb !== bNpb) {
+        if (aNpb === null) return 1;   // a has no data → a goes later
+        if (bNpb === null) return -1;  // b has no data → b goes later
+        return bNpb - aNpb;            // both present → higher breadth first
+    }
+
+    // holderCountActive DESC — final tiebreak.
     return b.holderCountActive - a.holderCountActive;
 }

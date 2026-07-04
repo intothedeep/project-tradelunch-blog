@@ -15,6 +15,14 @@
 //   - tradedByCount null or 0 → returns null (no politician data → no score; never emit 0).
 //   - notional null → notionalTier = 0 (counts still score; NOT a null-out condition).
 //   - Output in [0,1] for any valid positive integer inputs.
+//
+// BACKTEST RESULTS (Phase R/S, 2026-07-03) — FORMULA FROZEN:
+//   politician_buy  21d sector-neutral t =  0.71  (raw t = 5.58 was market-beta artifact)
+//   politician_sell 21d sector-neutral t = −2.64
+//   Both are below the Harvey-Liu-Zhu t > 3 bar.
+//   → Advisory / descriptive lens ONLY. No measured forward alpha.
+//   → NEVER blend the politicalInterestScore into the 13F ranking or the composite
+//     score in screenScore.ts. It is surfaced as a separate signal for the UI.
 
 export interface PoliticalScoreInput {
     tradedByCount: number | null;

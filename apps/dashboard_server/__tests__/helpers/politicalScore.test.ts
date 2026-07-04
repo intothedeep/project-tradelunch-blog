@@ -174,3 +174,39 @@ describe('computePoliticalScore — determinism', () => {
         expect(computePoliticalScore(input)).toBe(computePoliticalScore(input));
     });
 });
+
+// --- FORMULA-FROZEN GUARD (Phase W) ---
+// These pin exact numeric outputs so any accidental weight change is caught immediately.
+// Formula must remain: 0.55*breadth + 0.30*consensus + 0.15*notionalTier (weights sum to 1.0).
+// Backtest context: politician_buy t=0.71, politician_sell t=−2.64 (below t>3 bar).
+// Advisory lens only — formula is intentionally NOT updated from these backtest results.
+
+describe('computePoliticalScore — formula-frozen guard (Phase W)', () => {
+    it('pinned: count=3, buy=2, sell=1, notional=300_000 → exact value', () => {
+        // breadth=0.6, consensus=2/3, notionalTier=0.5
+        // 0.55*0.6 + 0.30*(2/3) + 0.15*0.5 = 0.33 + 0.20 + 0.075 = 0.605
+        const s = computePoliticalScore({
+            tradedByCount: 3, buyMembers: 2, sellMembers: 1, notional: 300_000,
+        }) as number;
+        expect(s).toBeCloseTo(0.55 * 0.6 + 0.30 * (2 / 3) + 0.15 * 0.5, 10);
+    });
+
+    it('pinned: count=5, buy=5, sell=0, notional=5_000_000 → 1.0 exactly', () => {
+        const s = computePoliticalScore({
+            tradedByCount: 5, buyMembers: 5, sellMembers: 0, notional: 5_000_000,
+        }) as number;
+        expect(s).toBeCloseTo(1.0, 10);
+    });
+
+    it('pinned: count=1, buy=0, sell=0, notional=null → 0.55*0.2 = 0.11', () => {
+        const s = computePoliticalScore({
+            tradedByCount: 1, buyMembers: 0, sellMembers: 0, notional: null,
+        }) as number;
+        expect(s).toBeCloseTo(0.55 * 0.2, 10);
+    });
+
+    it('pinned: weights sum to 1.0 at max inputs (self-documenting invariant)', () => {
+        // W_BREADTH + W_CONSENSUS + W_NOTIONAL = 0.55 + 0.30 + 0.15 = 1.0
+        expect(0.55 + 0.30 + 0.15).toBeCloseTo(1.0, 10);
+    });
+});
