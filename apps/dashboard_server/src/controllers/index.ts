@@ -14,6 +14,7 @@ import categories from './categories';
 import tags from './tags';
 import errorLogs from './errorLogs';
 import politicians from './politicians';
+import { blockCrawlers } from '../middlewares/blockCrawlers';
 
 export const router = Router();
 
@@ -28,16 +29,19 @@ router.use('/api/posts', likes);
 // by a post id matcher. The delete-by-comment-id route mounts separately below.
 router.use('/api/posts', postCommentsRouter);
 router.use('/api/comments', commentsRouter);
-router.use('/api/dashboard', dashboard);
+// Finance routers are PUBLIC to human browsers but crawler-gated: blockCrawlers
+// 403s bot User-Agents BEFORE the DB query (Supabase-egress control). Legit
+// Next SSR calls arrive with the Next server UA and pass through.
+router.use('/api/dashboard', blockCrawlers, dashboard);
 // SEC 13F holdings viewer (GET /api/funds, GET /api/funds/:cik) — PUBLIC read,
 // store-derived; tables-absent guard returns empty (not 500) when 0017 unapplied.
-router.use('/api/funds', funds);
+router.use('/api/funds', blockCrawlers, funds);
 // Cross-fund 13F consensus (GET /api/securities/:cusip/consensus) — PUBLIC read;
 // view-absent guard returns data:null (not 500) when 0020 unapplied.
-router.use('/api/securities', securities);
+router.use('/api/securities', blockCrawlers, securities);
 // Weekly market-cap ranking viewer (GET /api/rankings) — PUBLIC read, derived
 // data; table-absent guard returns data:null (not 500) when 0012 unapplied.
-router.use('/api/rankings', rankings);
+router.use('/api/rankings', blockCrawlers, rankings);
 router.use('/api/users', users);
 router.use('/api/admin', admin);
 router.use('/api/favorites', favorites);
@@ -57,6 +61,6 @@ router.use('/api/likes', likesListRouter);
 router.use('/api/error-logs', errorLogs);
 // Politician PTR profile (GET /api/politicians/:filerId) — PUBLIC read;
 // presence-guarded against 0022/0023 migrations; returns data:null when absent.
-router.use('/api/politicians', politicians);
+router.use('/api/politicians', blockCrawlers, politicians);
 
 export default router;

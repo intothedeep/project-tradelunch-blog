@@ -10,6 +10,31 @@ const isProtectedRoute = createRouteMatcher([
     '/admin(.*)',
 ]);
 
+// The owner's personal finance surfaces — public to human browsers but
+// de-indexed (robots.ts) and crawler-gated below. Blog routes are NOT here, so
+// Googlebot keeps indexing posts.
+const isFinanceRoute = createRouteMatcher([
+    '/dashboard(.*)',
+    '/rankings(.*)',
+    '/funds(.*)',
+    '/screener(.*)',
+    '/symbols(.*)',
+    '/politicians(.*)',
+]);
+
+// Search + AI + SEO crawlers. A bot hitting a finance PAGE is 403'd here before
+// any SSR render → no Express call → no Supabase query (egress control). UA is
+// spoofable, so this stops honest bots (the bulk), not a browser-faking
+// scraper; response caching is the backstop for the residual. Empty UA passes
+// (too broad a signal to block).
+const BOT_UA_RE =
+    /bot\b|crawler|spider|crawling|slurp|googlebot|bingbot|duckduckbot|baiduspider|yandex|sogou|gptbot|chatgpt|ccbot|claudebot|anthropic|bytespider|perplexity|amazonbot|applebot|meta-externalagent|facebookexternalhit|semrush|ahrefs|mj12bot|dotbot|dataforseo|scrapy/i;
+
+function isCrawler(req: NextRequest): boolean {
+    const ua = req.headers.get('user-agent') ?? '';
+    return ua !== '' && BOT_UA_RE.test(ua);
+}
+
 // Pure locale resolution + cookie persistence. Mutates the given response and
 // returns it. Kept identical in behavior to the previous standalone middleware.
 function applyLocale(req: NextRequest, res: NextResponse): NextResponse {
@@ -35,6 +60,14 @@ function applyLocale(req: NextRequest, res: NextResponse): NextResponse {
 }
 
 export default clerkMiddleware(async (auth, req) => {
+    // Crawler gate: block bots from the de-indexed finance pages before any SSR
+    // render, so bot traffic never reaches Express/Supabase. Humans pass.
+    if (isFinanceRoute(req) && isCrawler(req)) {
+        return new NextResponse('Not available to automated crawlers.', {
+            status: 403,
+        });
+    }
+
     if (isProtectedRoute(req)) {
         await auth.protect();
     }
