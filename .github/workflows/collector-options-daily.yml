@@ -1,0 +1,77 @@
+name: collector-options-daily
+
+# DAILY options-chain -> GEX (Phase V.5). Weekdays 22:00 UTC (~1h after the US
+# cash close, so end-of-day open-interest/greeks are settled). Fetches each
+# ticker's option chain via yfinance, computes net/call/put gamma-exposure
+# (dealer-centric), upserts one gex_daily scalar row per ticker + batch_log.
+# GEX is meaningful only for liquid, deeply-optioned names (index ETFs +
+# mega-caps where dealer gamma actually moves the tape) — so the default
+# universe is a curated liquid set, NOT the full tracked universe (most of which
+# is unoptioned KRX/FX). Override via the workflow_dispatch `tickers` input.
+# gex_daily starts empty; this workflow is what accumulates the history a future
+# GEX backtest (and any eventual score integration) depends on.
+on:
+  schedule:
+    - cron: "0 22 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      tickers:
+        description: "Space-separated tickers to override the default liquid set."
+        type: string
+        required: false
+        default: ""
+      dry_run:
+        description: "Fetch + compute only, no DB writes."
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: collector-options-daily
+  cancel-in-progress: false
+
+env:
+  # Curated liquid-options universe (index ETFs + mega-caps) — where dealer
+  # gamma is analytically meaningful. Expand deliberately, not automatically.
+  DEFAULT_TICKERS: "SPY QQQ IWM DIA AAPL MSFT NVDA AMZN META GOOGL TSLA AMD"
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/stock_collector
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      # uv via setup-uv, pinned to an immutable commit SHA (supply-chain hardening)
+      # with warm dependency cache keyed off apps/stock_collector/uv.lock.
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          enable-cache: true
+          working-directory: apps/stock_collector
+      - name: Sync deps
+        run: |
+          uv python install 3.12
+          uv sync
+
+      - name: Fetch chain -> compute GEX -> upsert
+        env:
+          # Session pooler (5432). Either name works; value = Supavisor session pooler.
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+          TICKERS: ${{ inputs.tickers != '' && inputs.tickers || env.DEFAULT_TICKERS }}
+        run: |
+          uv run python -u -m collector.entrypoints.run_gex \
+            --tickers ${TICKERS} \
+            ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          curl -sS -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues" \
+            -d '{"title":"collector-options-daily failed (run ${{ github.run_id }})","body":"The options-chain -> GEX collection failed. See https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}","labels":["collector","ci-failure"]}'
