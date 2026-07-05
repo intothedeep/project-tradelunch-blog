@@ -67,7 +67,7 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
         <Card
             className={cn(
                 'relative',
-                'lg:max-w-2xl',
+                'lg:max-w-2xl lg:mx-auto',
                 'bg-card border-primary transition-all group',
                 'hover:shadow-primary hover:shadow-xs hover:border-primary hover:bg-secondary',
                 isNonPublic && 'border-dashed border-muted-foreground/50'
