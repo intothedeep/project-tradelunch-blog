@@ -1,6 +1,7 @@
 // controllers/politicians/politicians.ts
 // Purpose: Read-only per-politician profile (Q6.2 + Phase Q committee enrichment).
-//   GET /v1/api/politicians/:filerId
+//   GET /v1/api/politicians          → paginated list (filerId, filerName, tradeCount)
+//   GET /v1/api/politicians/:filerId → full profile
 //   Returns filer metadata (politician_registry + 0023 aggregates), all
 //   tickers they disclosed trading (v_politician_ticker_holders), their
 //   current committee memberships (politician_committees, Phase Q), and a
@@ -116,6 +117,48 @@ interface ITickerSectorRow {
 function toIsoDate(d: Date | string): string {
     return typeof d === 'string' ? d.slice(0, 10) : d.toISOString().slice(0, 10);
 }
+
+// --- List route ---
+
+interface IListRow {
+    filer_id: string;
+    filer_name: string;
+    trade_count: number | null;
+}
+
+/**
+ * @api {get} /v1/api/politicians Politician list (sitemap / enumeration)
+ * @apiSuccess {Array} data  [{ filerId, filerName, tradeCount }]
+ */
+router.get('/', async (_req, res) => {
+    try {
+        res.set('Cache-Control', FUNDS_CACHE_CONTROL);
+        const { hasRegistry } = await probePresence();
+
+        if (!hasRegistry) {
+            return res.json({ success: true, data: [] });
+        }
+
+        const { rows } = await pool.query<IListRow>(
+            `SELECT filer_id, filer_name, trade_count
+               FROM politician_registry
+              WHERE deleted_at IS NULL
+              ORDER BY trade_count DESC NULLS LAST
+              LIMIT 5000`
+        );
+
+        const data = rows.map((r) => ({
+            filerId:    r.filer_id,
+            filerName:  r.filer_name,
+            tradeCount: r.trade_count,
+        }));
+
+        return res.json({ success: true, data });
+    } catch {
+        res.set('Cache-Control', FUNDS_CACHE_CONTROL);
+        return res.json({ success: true, data: [] });
+    }
+});
 
 /**
  * @api {get} /v1/api/politicians/:filerId Per-politician profile

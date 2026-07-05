@@ -1,12 +1,25 @@
 import type { Metadata } from 'next';
 import BlogMainPage from '@/app/blog/components/BlogMainPage';
 import { HOME_FEED_AUTHOR } from '@/utils/blog-author';
+import { SITE_URL } from '@/env.schema';
+
+const TITLE = 'Taek Lim — Finance, Markets & Engineering';
+const DESCRIPTION =
+    'Essays and data on 13F institutional flows, congressional trades, market-cap rankings, and software engineering.';
 
 // Home is the CANONICAL representative for the owner's feed. While single-user,
 // `/blog/@<owner>` is duplicate content of `/`, so it canonicalizes here (see
 // app/blog/[username]/page.tsx) — consolidating SEO signals onto the home URL.
 export const metadata: Metadata = {
+    title: TITLE,
+    description: DESCRIPTION,
     alternates: { canonical: '/' },
+    openGraph: {
+        type: 'website',
+        title: TITLE,
+        description: DESCRIPTION,
+        url: SITE_URL,
+    },
 };
 
 // Root of my.prettylog.com. TEMPORARY single-user mode: the home feed focuses on

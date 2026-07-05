@@ -11,6 +11,7 @@ import { getTagFilterItems } from '@/components/blog/filter/getFilterItems.serve
 import { MobileCategory } from '@/components/blog/MobileCategory.client';
 import { HOME_FEED_AUTHOR, stripUsernameAt } from '@/utils/blog-author';
 import { parseFilterState } from '@/utils/filter-state';
+import { getUserProfile } from '@/apis/getUserProfile.api';
 
 type PageProps = {
     params: Promise<{ username: string }>;
@@ -36,7 +37,36 @@ export async function generateMetadata({
         HOME_FEED_AUTHOR && author === HOME_FEED_AUTHOR
             ? '/'
             : `/blog/@${author}`;
-    return { alternates: { canonical } };
+
+    // Enrich with profile data for richer title/description/og — degrade to
+    // raw `author` slug if the profile endpoint is unavailable or unknown user.
+    let displayName: string | undefined;
+    let postCount: number | undefined;
+    try {
+        const profile = await getUserProfile(author);
+        if (profile) {
+            displayName = profile.displayName ?? undefined;
+            postCount = profile.postCount ?? undefined;
+        }
+    } catch {
+        // Non-critical — fall back to raw author slug.
+    }
+
+    const resolvedName = displayName ?? author;
+    const title = `${resolvedName} — Posts | Taek Lim`;
+    const description = `Articles by ${resolvedName}${postCount ? ` — ${postCount} posts` : ''} on finance, markets, and engineering.`;
+
+    return {
+        title,
+        description,
+        alternates: { canonical },
+        openGraph: {
+            type: 'profile',
+            title,
+            description,
+            url: canonical,
+        },
+    };
 }
 
 export default async function BlogPage({ params, searchParams }: PageProps) {

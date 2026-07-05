@@ -1,6 +1,8 @@
 import type { MetadataRoute } from 'next';
 import { getBlogPostsByUsername } from '@/apis/getPosts.api';
 import { getFunds } from '@/app/actions/getFunds.action';
+import { getRankings } from '@/app/actions/getRankings.action';
+import { getPoliticians } from '@/app/actions/getPoliticians.action';
 import { SITE_URL } from '@/env.schema';
 
 // sitemap.xml generator (Next.js 16 MetadataRoute.Sitemap).
@@ -14,9 +16,6 @@ import { SITE_URL } from '@/env.schema';
 //                                            never emitted (not enumerated here)
 //   - /(feed)/tags/[tag]                  → thin aggregations, no canonical meta
 //   - all auth/protected routes           → already blocked in robots.ts
-//   - /symbols/[ticker], /politicians/[filerId] → each page is SEO-ready
-//     (generateMetadata) but the backend exposes no full-universe list
-//     endpoint to enumerate them; add one, then emit them here.
 // NOTE: post URLs (/blog/@username/slug) are the canonical post pages and are
 // distinct from the deduped author-feed page — safe to include in full.
 // Without this, sitemap.ts is a build-time-cached static Route Handler:
@@ -106,5 +105,39 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         }));
     }
 
-    return [...staticPages, ...postPages, ...fundPages];
+    // Dynamic symbol pages: /symbols/[ticker]. Enumerated from the global
+    // rankings top-1000 list (getRankings returns a typed result — never throws).
+    // Emit the ticker verbatim (uppercase) to match the page's self-canonical
+    // (symbols/[ticker]/page.tsx) and every inbound link — URLs are
+    // case-sensitive, so lowercasing here would split into a duplicate page.
+    // On backend failure emit no symbol URLs rather than break the sitemap.
+    let symbolPages: MetadataRoute.Sitemap = [];
+    const rankingsResult = await getRankings({ scope: 'global', limit: 1000 });
+    if (rankingsResult.ok && rankingsResult.data) {
+        symbolPages = rankingsResult.data.rows.map((row) => ({
+            url: `${SITE_URL}/symbols/${row.symbol}`,
+            changeFrequency: 'weekly' as const,
+            priority: 0.6,
+        }));
+    }
+
+    // Dynamic politician pages: /politicians/[filerId]. Enumerated from the
+    // public politicians list. On backend failure emit no politician URLs.
+    let politicianPages: MetadataRoute.Sitemap = [];
+    const politiciansResult = await getPoliticians();
+    if (politiciansResult.ok) {
+        politicianPages = politiciansResult.data.map((p) => ({
+            url: `${SITE_URL}/politicians/${p.filerId}`,
+            changeFrequency: 'monthly' as const,
+            priority: 0.5,
+        }));
+    }
+
+    return [
+        ...staticPages,
+        ...postPages,
+        ...fundPages,
+        ...symbolPages,
+        ...politicianPages,
+    ];
 }

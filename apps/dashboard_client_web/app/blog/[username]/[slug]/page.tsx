@@ -39,8 +39,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         const post = await getPostBySlug({ slug });
         const title = post.title as string;
         const description = buildDescription(post);
-        const image =
-            (post.stored_uri as string | undefined) ?? '/og-image.png';
+        // Only pass stored_uri as an explicit override — when absent, Next.js
+        // auto-injects the colocated opengraph-image.tsx dynamic OG card.
+        // Including a fallback here would create duplicate og:image tags.
+        const storedImage = post.stored_uri as string | undefined;
         const authorName = (post.display_name as string | undefined) ?? author;
 
         return {
@@ -52,7 +54,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
                 title,
                 description,
                 url: canonicalPath,
-                images: [image],
+                ...(storedImage ? { images: [storedImage] } : {}),
                 publishedTime: post.created_at as string | undefined,
                 modifiedTime: post.updated_at as string | undefined,
                 authors: [authorName],
