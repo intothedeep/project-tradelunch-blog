@@ -1,6 +1,6 @@
 // components/politicians/PoliticianTimeline.client.tsx
 // Purpose: 13F-style quarterly pivot of a politician's PTR transaction
-//   disclosures. Rows = tickers, columns = quarters (ASC). Each cell is
+//   disclosures. Rows = tickers, columns = quarters (newest-first). Each cell is
 //   colour-coded by net direction (buy=green, sell=red, mixed=amber) and shows
 //   the disclosed BUY / SELL value bands for that ticker-quarter.
 // Invariants:
@@ -38,7 +38,7 @@ function quarterLabel(isoDate: string): string {
     return `Q${Math.ceil(month / 3)} ${year}`;
 }
 
-/** Distinct quarters, ascending — timeline is already ASC by quarter. */
+/** Distinct quarters, newest-first — timeline arrives ASC, so reverse it. */
 function orderedQuarters(timeline: PoliticianTimelineEntry[]): string[] {
     const seen: string[] = [];
     const set = new Set<string>();
@@ -48,7 +48,7 @@ function orderedQuarters(timeline: PoliticianTimelineEntry[]): string[] {
             seen.push(e.quarter);
         }
     }
-    return seen;
+    return seen.reverse();
 }
 
 /** Tickers ordered by activity: most active quarters first, then alphabetical. */
