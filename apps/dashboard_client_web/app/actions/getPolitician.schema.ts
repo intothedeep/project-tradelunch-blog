@@ -59,6 +59,8 @@ const politicianTimelineEntrySchema = z.object({
     quarter: z.string(),
     ticker: z.string(),
     netValueBand: valueBandSchema,
+    buyValueBand: valueBandSchema,
+    sellValueBand: valueBandSchema,
     direction: z.string(),
 });
 

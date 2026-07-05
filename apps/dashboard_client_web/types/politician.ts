@@ -65,6 +65,10 @@ export interface PoliticianTimelineEntry {
     ticker: string;
     /** Net disclosed transaction band for this ticker/quarter. */
     netValueBand: ValueBand;
+    /** Gross BUY disclosed band this quarter; '—' when no buys (or pre-0033). */
+    buyValueBand: ValueBand;
+    /** Gross SELL disclosed band this quarter; '—' when no sells (or pre-0033). */
+    sellValueBand: ValueBand;
     /** Direction of net activity: 'buy' | 'sell' | 'mixed' (timeline view vocab) */
     direction: string;
 }

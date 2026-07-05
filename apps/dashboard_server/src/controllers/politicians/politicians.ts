@@ -102,6 +102,11 @@ interface ITimelineRow {
     ticker: string;
     net_value_usd: string;
     direction: string;
+    buy_count: string;
+    sell_count: string;
+    // Appended by migration 0033; absent (undefined) on a pre-0033 view.
+    buy_value_usd?: string | null;
+    sell_value_usd?: string | null;
 }
 
 interface ICommitteeRow {
@@ -294,24 +299,52 @@ router.get('/:filerId', async (req, res) => {
             quarter: string;
             ticker: string;
             netValueBand: ReturnType<typeof toValueBand>;
+            buyValueBand: ReturnType<typeof toValueBand>;
+            sellValueBand: ReturnType<typeof toValueBand>;
             direction: string;
         }> = [];
 
         if (hasTimeline) {
-            const { rows: tRows } = await pool.query<ITimelineRow>(
-                `SELECT quarter, ticker, net_value_usd, direction
-                   FROM v_politician_filer_timeline
-                  WHERE filer_id = $1
-                  ORDER BY quarter ASC, ticker ASC`,
-                [filerId]
-            );
+            // buy_value_usd / sell_value_usd land with migration 0033. Try the
+            // enriched shape first; if the deploy is ahead of the migration the
+            // column is missing → fall back to net-only (buy/sell bands = '—').
+            let tRows: ITimelineRow[];
+            try {
+                ({ rows: tRows } = await pool.query<ITimelineRow>(
+                    `SELECT quarter, ticker, net_value_usd, direction,
+                            buy_count, sell_count, buy_value_usd, sell_value_usd
+                       FROM v_politician_filer_timeline
+                      WHERE filer_id = $1
+                      ORDER BY quarter ASC, ticker ASC`,
+                    [filerId]
+                ));
+            } catch {
+                ({ rows: tRows } = await pool.query<ITimelineRow>(
+                    `SELECT quarter, ticker, net_value_usd, direction,
+                            buy_count, sell_count
+                       FROM v_politician_filer_timeline
+                      WHERE filer_id = $1
+                      ORDER BY quarter ASC, ticker ASC`,
+                    [filerId]
+                ));
+            }
 
             const distinctQuarters = new Set(tRows.map((r) => toIsoDate(r.quarter)));
             if (distinctQuarters.size >= 2) {
+                // A side with zero trades that quarter → '—' (not '<$15K'):
+                // toValueBand(0) is a real band, so gate on the count first.
                 timeline = tRows.map((t) => ({
                     quarter: toIsoDate(t.quarter),
                     ticker: t.ticker,
                     netValueBand: toValueBand(Math.abs(Number(t.net_value_usd))),
+                    buyValueBand:
+                        Number(t.buy_count) > 0 && t.buy_value_usd != null
+                            ? toValueBand(Number(t.buy_value_usd))
+                            : '—',
+                    sellValueBand:
+                        Number(t.sell_count) > 0 && t.sell_value_usd != null
+                            ? toValueBand(Number(t.sell_value_usd))
+                            : '—',
                     direction: t.direction,
                 }));
             }
