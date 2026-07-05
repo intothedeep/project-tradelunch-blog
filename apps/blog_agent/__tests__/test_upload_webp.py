@@ -111,7 +111,7 @@ class TestUploadWebp(IsolatedAsyncioTestCase):
         ):
             file_ids = await self.agent._save_file_records(
                 session=MagicMock(), post_id=123, images=images,
-                thumbnail=None, user_id=2,
+                thumbnail=None, user_id=1,
             )
 
         self.assertEqual(file_ids, [999])

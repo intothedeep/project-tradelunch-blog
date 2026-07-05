@@ -122,24 +122,34 @@ class ExtractingAgent(BaseAgent):
 
             # 3. Process images
             if predefined_images:
-                # Use images found by DocumentScanner
+                # Use images found by DocumentScanner / sibling-folder scan.
                 parsed_data["images"] = [
                     {"alt": "", "local_path": img, "s3_url": None} for img in predefined_images
                 ]
-                if thumbnail:
+            else:
+                # No sibling images — scan the markdown body for inline images and
+                # a ![thumbnail](...) fallback.
+                self._log("Extracting images from content...")
+                base_dir = os.path.dirname(file_path)
+                images, detected_thumbnail = self._extract_images(parsed_data["content"], base_dir)
+                parsed_data["images"] = images
+                # A same-name sibling thumbnail (from _detect_article_assets) wins;
+                # the content ![thumbnail] is only a fallback when none exists.
+                if not thumbnail and detected_thumbnail:
+                    thumbnail = detected_thumbnail
+
+            # Apply the resolved thumbnail regardless of whether sibling images
+            # existed — fixes a post with ONLY a same-name thumbnail PNG (no other
+            # images) previously losing its thumbnail and failing upload.
+            if thumbnail:
+                if isinstance(thumbnail, dict):
+                    parsed_data["thumbnail"] = thumbnail
+                else:
                     parsed_data["thumbnail"] = {
                         "alt": f"{parsed_data['title']} thumbnail",
                         "local_path": thumbnail,
                         "s3_url": None,
                     }
-            else:
-                # Extract images from markdown content
-                self._log("Extracting images from content...")
-                base_dir = os.path.dirname(file_path)
-                images, detected_thumbnail = self._extract_images(parsed_data["content"], base_dir)
-                parsed_data["images"] = images
-                if detected_thumbnail:
-                    parsed_data["thumbnail"] = detected_thumbnail
 
             self._log(f"Found {len(parsed_data.get('images', []))} image(s)")
             if parsed_data.get("thumbnail"):
