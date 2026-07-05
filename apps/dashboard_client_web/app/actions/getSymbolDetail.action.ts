@@ -1,11 +1,7 @@
 // Purpose: Server Action returning per-ticker detail (ranking history + holders).
-// Cache: cache:'no-store' — read fresh from Express every render, relying on
-//   Express's own CDN cache (s-maxage=86400) for speed. We deliberately do NOT
-//   use Next's Data Cache here: caching per-ticker responses caches a transient
-//   `data:null` (e.g. a backend outage) for up to 24h and, because the frontend
-//   is a separate Vercel project, a backend-only fix does not purge it — tickers
-//   stay stuck on "not found" long after the backend recovers. no-store + the
-//   Express CDN gives freshness without the double-cache stale-null trap.
+// Cache: ISR revalidate=3600 (1h) — data updates at most once per day via daily
+//   collector crons. 1-hour revalidation collapses repeat-hit Supabase egress to
+//   ~1 DB query per hour per ticker instead of one per request.
 // Invariant: a null data response (unknown ticker / tables absent) passes through
 //   as { ok:true, data:null } — NOT an error. Raw throws are typed network
 //   errors AND forwarded to error_log (source='ssr'). NO mock fallback.
@@ -39,7 +35,7 @@ export async function getSymbolDetail(
     let payload: unknown;
     try {
         const res = await fetch(`${API_BASE}${path}`, {
-            cache: 'no-store',
+            next: { revalidate: 3600 },
         });
         if (!res.ok) {
             await reportSsrError(`symbolDetail HTTP ${res.status}`, path);

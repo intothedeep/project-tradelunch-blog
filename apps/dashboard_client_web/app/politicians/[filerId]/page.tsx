@@ -11,8 +11,8 @@
 //   - timeline empty (pre-backfill) → timeline section hidden entirely.
 //   - committees absent/empty → committee section hidden entirely.
 //   - committeeRelevant badge shown only when true; based on CURRENT membership.
-// Side effects: one Server Action fetch per render (generateMetadata + page share
-//   the same no-store fetch — two network calls per request).
+// Side effects: generateMetadata + page component each call getPolitician; ISR collapses
+//   repeat-hit DB egress to ~1 query per hour per politician page.
 
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -24,7 +24,7 @@ import { PoliticianDisclaimer } from '@/components/symbols/PoliticianDisclaimer'
 import { PoliticianTimeline } from '@/components/politicians/PoliticianTimeline.client';
 import type { PoliticianTicker } from '@/types/politician';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600; // ISR 1h — data is daily-refreshed; caps repeat-hit Supabase egress
 
 interface PageProps {
     params: Promise<{ filerId: string }>;

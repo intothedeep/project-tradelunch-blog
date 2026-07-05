@@ -1,6 +1,6 @@
 // Purpose: Server Action returning the list of 13F funds from the Express backend.
-// Cache: next.revalidate=86400 (24h) — matches Express s-maxage on /v1/api/funds.
-//   Monthly filings change rarely; daily revalidation is more than sufficient.
+// Cache: ISR revalidate=3600 (1h) — monthly 13F filings; 1h is more than fresh enough.
+//   Collapses repeat-hit Supabase egress to ~1 query per hour.
 // Invariant: never throws raw — failures are returned as a typed error result
 //   AND forwarded to the error_log sink (source='ssr'). NO mock fallback.
 // Access: endpoint is public read-only data — no Clerk token forwarded.
@@ -14,7 +14,7 @@ import { fundsListSchema } from '@/app/actions/getFunds.schema';
 import type { Fund } from '@/types/funds';
 
 const FUNDS_ENDPOINT = '/v1/api/funds';
-const REVALIDATE_SECONDS = 86400; // 24h — must match Express s-maxage
+const REVALIDATE_SECONDS = 3600; // 1h ISR — data is daily-refreshed; caps repeat-hit Supabase egress
 
 export type FundsErrorKind = 'network' | 'parse';
 

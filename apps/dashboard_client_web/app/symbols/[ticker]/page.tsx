@@ -7,7 +7,7 @@ import { PriceChart } from '@/components/symbols/PriceChart';
 import { PoliticianActivity } from '@/components/symbols/PoliticianActivity.client';
 import { PoliticianHolders } from '@/components/symbols/PoliticianHolders.client';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600; // ISR 1h — data is daily-refreshed; caps repeat-hit Supabase egress
 
 interface SymbolDetailPageProps {
     params: Promise<{ ticker: string }>;

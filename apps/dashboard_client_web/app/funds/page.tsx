@@ -12,10 +12,10 @@ export const metadata: Metadata = {
     },
 };
 
-// Render per-request — 13F data is DB-backed and updated monthly by the
-// collector. Without force-dynamic this route is baked at build time and
-// serves stale (or absent) data from the Vercel edge cache until next deploy.
-export const dynamic = 'force-dynamic';
+// ISR 1h — 13F data is DB-backed and updated monthly by the collector.
+// Revalidating every hour keeps the page fresh without re-querying Supabase
+// on every bot/human hit; collapse repeat egress to ~1 query per hour.
+export const revalidate = 3600; // ISR 1h — data is daily-refreshed; caps repeat-hit Supabase egress
 
 // /funds — top-level fund list. States:
 //   backend error → explicit error block (no mock fallback)

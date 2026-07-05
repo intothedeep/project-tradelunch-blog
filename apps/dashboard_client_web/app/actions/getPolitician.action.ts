@@ -1,7 +1,8 @@
 // app/actions/getPolitician.action.ts
 // Purpose: Server Action returning per-politician profile (filer + tickers + timeline).
-// Cache: cache:'no-store' — read fresh from Express every render, relying on
-//   Express's own CDN cache (s-maxage=86400). Mirrors getSymbolDetail cache strategy.
+// Cache: ISR revalidate=3600 (1h) — data updates at most once per day via daily
+//   collector crons. 1-hour revalidation collapses repeat-hit Supabase egress to
+//   ~1 DB query per hour per politician page.
 // Invariant: a null data response (unknown filerId / tables absent) passes through
 //   as { ok:true, data:null } — NOT an error. Raw throws are typed network errors
 //   AND forwarded to error_log (source='ssr'). NO mock fallback.
@@ -35,7 +36,7 @@ export async function getPolitician(
     let payload: unknown;
     try {
         const res = await fetch(`${API_BASE}${path}`, {
-            cache: 'no-store',
+            next: { revalidate: 3600 },
         });
         if (!res.ok) {
             await reportSsrError(`politician HTTP ${res.status}`, path);

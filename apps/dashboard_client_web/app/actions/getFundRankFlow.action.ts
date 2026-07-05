@@ -1,5 +1,5 @@
 // Purpose: Server Action returning rank-flow holdings for one fund from Express.
-// Cache: next.revalidate=86400 (24h) — quarterly filings update monthly.
+// Cache: ISR revalidate=3600 (1h) — quarterly 13F filings update monthly; 1h is ample.
 // Params: quarters (default 8), k (default 25 top holdings per quarter).
 // Invariant: a null data response (unknown CIK) passes through as { ok:true, data:null }
 //   — this is NOT an error. Raw throws are returned as typed network errors AND
@@ -15,7 +15,7 @@ import { rankFlowSchema } from '@/app/actions/getFundRankFlow.schema';
 import type { RankFlow } from '@/types/rankFlow';
 
 const FUNDS_ENDPOINT = '/v1/api/funds';
-const REVALIDATE_SECONDS = 86400; // 24h — must match Express s-maxage
+const REVALIDATE_SECONDS = 3600; // 1h ISR — data is daily-refreshed; caps repeat-hit Supabase egress
 
 export type RankFlowErrorKind = 'network' | 'parse';
 

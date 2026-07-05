@@ -9,8 +9,9 @@ import PageMenuRegistrar from '@/components/PageMenuRegistrar.client';
 import RankFlowTable from '@/components/funds/RankFlowTable';
 import FundsEmptyState from '@/components/funds/FundsEmptyState';
 
-// Render per-request — holdings are DB-backed and updated monthly.
-export const dynamic = 'force-dynamic';
+// ISR 1h — holdings are DB-backed and updated monthly by the collector.
+// 1-hour revalidation keeps the page fresh while collapsing repeat-hit Supabase egress.
+export const revalidate = 3600; // ISR 1h — data is daily-refreshed; caps repeat-hit Supabase egress
 
 interface FundDetailPageProps {
     params: Promise<{ cik: string }>;

@@ -1,6 +1,7 @@
 // app/actions/getRankingsFlow.action.ts
 // Purpose: Server Action returning rank-flow data for market_rankings from Express.
-// Cache: next.revalidate=86400 (24h) — weekly rankings update once per week.
+// Cache: ISR revalidate=3600 (1h) — weekly rankings; a new row lands once per week.
+//   1-hour revalidation collapses repeat-hit Supabase egress without staleness risk.
 // Invariant: data:null (no DB data) is NOT an error — passes through as { ok:true, data:null }.
 //   Throws are typed network errors and forwarded to error_log (source='ssr').
 // Access: endpoint is public read-only data — no Clerk token forwarded.
@@ -14,7 +15,7 @@ import { rankingsFlowSchema } from '@/app/actions/getRankingsFlow.schema';
 import type { RankingsFlow } from '@/types/rankingsFlow';
 
 const FLOW_ENDPOINT = '/v1/api/rankings/flow';
-const REVALIDATE_SECONDS = 86400; // 24h — matches Express s-maxage
+const REVALIDATE_SECONDS = 3600; // 1h ISR — data is daily-refreshed; caps repeat-hit Supabase egress
 
 export type RankingsFlowErrorKind = 'network' | 'parse';
 

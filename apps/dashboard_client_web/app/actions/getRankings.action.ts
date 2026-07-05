@@ -1,6 +1,6 @@
 // Purpose: Server Action returning the weekly market-cap ranking from Express.
-// Cache: next.revalidate=86400 (24h) — matches Express s-maxage on /v1/api/rankings.
-//   The series only gains a new row once a week; daily revalidation is ample.
+// Cache: ISR revalidate=3600 (1h) — weekly rankings; a new row lands once per week.
+//   1-hour revalidation collapses repeat-hit Supabase egress without staleness risk.
 // Params: scope ('global'|'sector'), sector (name, when scope=sector), asOf
 //   (YYYY-MM-DD week pin; omitted → latest), limit.
 // Invariant: a null data response (table/weekly data absent) passes through as
@@ -17,7 +17,7 @@ import { rankingsSnapshotSchema } from '@/app/actions/getRankings.schema';
 import type { RankingScope, RankingsSnapshot } from '@/types/rankings';
 
 const RANKINGS_ENDPOINT = '/v1/api/rankings';
-const REVALIDATE_SECONDS = 86400; // 24h — must match Express s-maxage
+const REVALIDATE_SECONDS = 3600; // 1h ISR — data is daily-refreshed; caps repeat-hit Supabase egress
 
 export type RankingsErrorKind = 'network' | 'parse';
 

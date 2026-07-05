@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     },
 };
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600; // ISR 1h — data is daily-refreshed; caps repeat-hit Supabase egress
 
 // Minimum weekly snapshots required to unlock the Flow view.
 const MIN_WEEKS_FOR_FLOW = 8;
