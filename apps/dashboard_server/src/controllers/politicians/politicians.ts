@@ -123,12 +123,19 @@ function toIsoDate(d: Date | string): string {
 interface IListRow {
     filer_id: string;
     filer_name: string;
+    party: string | null;
+    chamber: string | null;
+    state: string | null;
     trade_count: number | null;
+    purchases: number | null;
+    sales: number | null;
 }
 
 /**
- * @api {get} /v1/api/politicians Politician list (sitemap / enumeration)
- * @apiSuccess {Array} data  [{ filerId, filerName, tradeCount }]
+ * @api {get} /v1/api/politicians Politician list (browse UI / sitemap)
+ * @apiSuccess {Array} data  [{ filerId, filerName, party, chamber, state, tradeCount, purchases, sales }]
+ * @apiDescription party/chamber/state feed the browse-page filters; counts are
+ *   "as reported by source". No dollar amounts here (PTR honesty contract).
  */
 router.get('/', async (_req, res) => {
     try {
@@ -140,7 +147,8 @@ router.get('/', async (_req, res) => {
         }
 
         const { rows } = await pool.query<IListRow>(
-            `SELECT filer_id, filer_name, trade_count
+            `SELECT filer_id, filer_name, party, chamber, state,
+                    trade_count, purchases, sales
                FROM politician_registry
               WHERE deleted_at IS NULL
               ORDER BY trade_count DESC NULLS LAST
@@ -150,7 +158,12 @@ router.get('/', async (_req, res) => {
         const data = rows.map((r) => ({
             filerId:    r.filer_id,
             filerName:  r.filer_name,
+            party:      r.party,
+            chamber:    r.chamber,
+            state:      r.state,
             tradeCount: r.trade_count,
+            purchases:  r.purchases,
+            sales:      r.sales,
         }));
 
         return res.json({ success: true, data });
