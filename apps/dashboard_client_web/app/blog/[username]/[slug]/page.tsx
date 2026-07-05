@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import clsx from 'clsx';
+import { auth } from '@clerk/nextjs/server';
 import { getPostBySlug } from '@/apis/getPost.api';
 import { buildBlogPostingLd, buildBreadcrumbLd } from '@/lib/jsonld';
 import { JsonLd } from '@/components/seo/JsonLd.server';
@@ -35,8 +36,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const author = decodeURIComponent(username ?? '').replace(/^@/, '');
     const canonicalPath = `/blog/@${author}/${slug}`;
 
+    // Forward token so the owner gets correct metadata for their own private post.
+    let token: string | null = null;
     try {
-        const post = await getPostBySlug({ slug });
+        const { getToken } = await auth();
+        token = await getToken();
+    } catch {
+        token = null;
+    }
+
+    try {
+        const post = await getPostBySlug({ slug, token });
         const title = post.title as string;
         const description = buildDescription(post);
         // Only pass stored_uri as an explicit override — when absent, Next.js
@@ -78,10 +88,21 @@ export default async function BlogDetailPage({ params }: Props) {
     const ownerUsername = decodeURIComponent(username ?? '').replace(/^@/, '');
     const canonicalPath = `/blog/@${ownerUsername}/${slug}`;
 
-    // cache()-wrapped — no extra network round-trip (deduped with generateMetadata call).
+    // Forward token so the owner gets a correct JSON-LD for their private post.
+    let token: string | null = null;
+    try {
+        const { getToken } = await auth();
+        token = await getToken();
+    } catch {
+        token = null;
+    }
+
+    // Fetches the post again for JSON-LD. NOTE: getPostBySlug's cache() wrapper
+    // keys by object identity, so this does NOT dedupe with the other call sites —
+    // each is a distinct backend round-trip (acceptable: internal, no-store).
     let jsonLd: object[] | null = null;
     try {
-        const post = await getPostBySlug({ slug });
+        const post = await getPostBySlug({ slug, token });
         jsonLd = [
             buildBlogPostingLd({
                 title: post.title as string,
@@ -106,16 +127,7 @@ export default async function BlogDetailPage({ params }: Props) {
     }
 
     return (
-        <section
-            className={clsx(
-                'blog-username-slug'
-                // 'w-full xl:max-w-2xl ',
-                // 'p-4',
-                // 'text-sm',
-                // 'bg-background',
-                // 'border border-primary rounded-xl'
-            )}
-        >
+        <section className={clsx('blog-username-slug')}>
             {jsonLd && <JsonLd data={jsonLd} />}
             <PostContent
                 slug={slug}

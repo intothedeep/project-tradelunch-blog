@@ -25,6 +25,7 @@ import { ShareButton } from '@/app/blog/components/post-card-actions/ShareButton
 import { SaveButton } from '@/app/blog/components/post-card-actions/SaveButton.client';
 import { LikeButton } from '@/app/blog/components/post-card-actions/LikeButton.client';
 import { PostActions } from '@/app/blog/components/post-card-actions/PostActions.client';
+import { StatusBadge } from '@/components/blog/StatusBadge';
 
 interface RecentPostCardProps {
     post: TPost;
@@ -58,13 +59,18 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
               ? [post.category]
               : [];
 
+    // Non-public posts get a subtle dashed ring — owner-only by construction
+    // because non-owners never receive private/draft posts from the backend.
+    const isNonPublic = post.status && post.status !== 'public';
+
     return (
         <Card
             className={cn(
                 'relative',
                 'lg:max-w-2xl',
                 'bg-card border-primary transition-all group',
-                'hover:shadow-primary hover:shadow-xs hover:border-primary hover:bg-secondary'
+                'hover:shadow-primary hover:shadow-xs hover:border-primary hover:bg-secondary',
+                isNonPublic && 'border-dashed border-muted-foreground/50'
             )}
         >
             {href && (
@@ -78,6 +84,14 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
             <CardHeader className={cn('p-3 pb-0 sm:p-4 sm:pb-0')}>
                 {/* Byline only — actions moved to the engagement footer. */}
                 <PostContentHeader post={post} />
+                {/* Visibility badge — shown to the owner only (non-public posts
+                    are never returned to other viewers, so the badge is implicit
+                    owner-only). */}
+                {isNonPublic && (
+                    <div className="mt-1">
+                        <StatusBadge status={post.status} />
+                    </div>
+                )}
             </CardHeader>
 
             <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">

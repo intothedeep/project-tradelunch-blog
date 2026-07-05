@@ -1,5 +1,5 @@
-// Purpose: owner-scoped listing of a user's draft posts, mapped to TDraftSummary.
-// Invariants: bound to user_id = $caller AND status = 'draft' AND deleted_at IS
+// Purpose: owner-scoped listing of a user's draft and private posts, mapped to TDraftSummary.
+// Invariants: bound to user_id = $caller AND status IN ('draft','private') AND deleted_at IS
 //             NULL; newest-updated first. The caller id is the auth seam (tests
 //             inject it directly). DB rows are snake_case; output is camelCase.
 // Side effects: a single parameterized SELECT.
@@ -27,7 +27,7 @@ export async function listDrafts(
     const { rows } = await db.query<TDraftRow>(
         `SELECT id, slug, title, description, status, category_id, created_at, updated_at
          FROM posts
-         WHERE user_id = $1 AND status = 'draft' AND deleted_at IS NULL
+         WHERE user_id = $1 AND status IN ('draft','private') AND deleted_at IS NULL
          ORDER BY updated_at DESC
          LIMIT $2`,
         [userId, limit]

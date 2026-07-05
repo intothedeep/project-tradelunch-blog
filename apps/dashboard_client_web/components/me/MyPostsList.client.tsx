@@ -1,8 +1,8 @@
 // components/me/MyPostsList.client.tsx
-// Purpose: render the signed-in user's drafts (newest-updated first) with a
-// "New post" CTA, plus loading / error / empty states.
-// Constraints: client-only (uses the gated useMyDrafts hook). Drafts-only
-// endpoint, so no status pills are shown.
+// Purpose: render the signed-in user's draft AND private posts (newest-updated
+// first) with a "New post" CTA, plus loading / error / empty states.
+// Constraints: client-only (uses the gated useMyDrafts hook). Each item shows a
+// StatusBadge (Draft / Private) since the endpoint now returns both statuses.
 
 'use client';
 

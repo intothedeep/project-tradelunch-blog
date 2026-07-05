@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { auth } from '@clerk/nextjs/server';
 import { getPostBySlug } from '@/apis/getPost.api';
 import { PostContentHeader } from '@/app/blog/components/PostContentHeader.server';
 import { LikeButton } from '@/app/blog/components/post-card-actions/LikeButton.client';
@@ -9,6 +10,7 @@ import { Comments } from '@/app/blog/components/comments/Comments.server';
 import { RecordRecentView } from '@/app/blog/components/RecordRecentView.client';
 import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer.server';
 import { OwnerEditButton } from '@/components/blog/OwnerEditButton.client';
+import { StatusBadge } from '@/components/blog/StatusBadge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { badgeVariants } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -20,7 +22,18 @@ export const PostContentCard = async ({
     slug: string;
     ownerUsername: string;
 }) => {
-    const post = await getPostBySlug({ slug });
+    // Resolve the Clerk token so the owner can see their own private post.
+    // auth() usage opts this component into dynamic rendering — no static cache
+    // can accidentally serve private content to anonymous viewers.
+    let token: string | null = null;
+    try {
+        const { getToken } = await auth();
+        token = await getToken();
+    } catch {
+        token = null;
+    }
+
+    const post = await getPostBySlug({ slug, token });
     const tags: string[] = Array.isArray(post.tags) ? post.tags : [];
 
     // Record-on-view: minimal summary (id is a STRING — never Number()) feeds
@@ -72,6 +85,15 @@ export const PostContentCard = async ({
                         />
                     </PostActions>
                 </div>
+
+                {/* Visibility badge — only rendered when the post is non-public
+                    (owner-only by construction: non-owners never receive private
+                    posts and therefore never see this badge). */}
+                {post.status && post.status !== 'public' && (
+                    <div className="mt-1">
+                        <StatusBadge status={post.status} />
+                    </div>
+                )}
 
                 {/* Tag chips — Links to the global by-tag feed. Server component,
                     so plain anchors are fine (not nested in any other anchor). */}

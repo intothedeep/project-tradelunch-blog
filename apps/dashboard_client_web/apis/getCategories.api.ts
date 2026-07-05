@@ -3,26 +3,20 @@
 import axios_instance from '@/apis/axios_instance';
 import { TCategoryTreeResponse, TTreeNodeWithChildren } from '@repo/types';
 
-// export type TCategory = {
-//     id: number;
-//     title: string;
-//     slug: string;
-//     parent_id: number;
-//     root_id: number;
-//     level: number;
-//     post_count: number;
-//     type: ETreeNodeType;
-// };
-
 export async function getCategoriesByUsername(
-    username: string
+    username: string,
+    token?: string | null
 ): Promise<{ categories: TTreeNodeWithChildren[] }> {
     try {
+        const config = token
+            ? { headers: { Authorization: `Bearer ${token}` } }
+            : undefined;
+
         const response = await axios_instance.get<
             TCategoryTreeResponse,
             TCategoryTreeResponse,
             { username: string }
-        >(`/v1/api/posts/users/${username}/categories`);
+        >(`/v1/api/posts/users/${username}/categories`, config);
 
         // response.data is TCategoryTreeResponse, check success on data
         if (response.status !== 200) {

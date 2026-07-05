@@ -3,7 +3,8 @@
 //   GET /users/:username/categories              — full category+post tree (hierarchical).
 //   GET /users/:username/category/:categoryId    — keyset-paginated posts within one category.
 // Constraints:
-//   * Both routes are public (no auth middleware) — only public posts are returned.
+//   * optionalAuth resolves the viewer id; -1 means anonymous.
+//   * Owner (p.user_id = $viewer) may see own private posts; anonymous (-1) cannot.
 //   * categoryId is a BIGINT string — never parseInt (precision past 2^53).
 //   * ETreeNodeType / TTreeNode / TCategoryTreeResponse imported from @repo/types.
 // Note: this file is ~175 LOC due to the tree CTE SQL verbatim; faithful move
@@ -11,6 +12,7 @@
 
 import { Router, Request } from 'express';
 import { pool } from '../../database';
+import { optionalAuth } from '../../middlewares/optionalAuth';
 import { ETreeNodeType, TCategoryTreeResponse, TTreeNode } from '@repo/types';
 
 export function registerUserCategoriesRoutes(router: Router): void {
@@ -25,9 +27,12 @@ export function registerUserCategoriesRoutes(router: Router): void {
      * @apiSuccess {Boolean} success Indicates if the request was successful.
      * @apiSuccess {Object[]} categories Hierarchical category tree with post counts.
      */
-    router.get('/users/:username/categories', async (req, res) => {
+    router.get('/users/:username/categories', optionalAuth, async (req, res) => {
         try {
             const { username } = req.params;
+            // Anonymous viewer uses -1 which matches no user_id, yielding
+            // identical output to the previous public-only query.
+            const viewerId = req.auth?.userId ?? -1;
 
             const treeQuery = `
                 WITH RECURSIVE category_tree AS (
@@ -68,6 +73,7 @@ export function registerUserCategoriesRoutes(router: Router): void {
 
                     user_posts AS (
                     -- 지정된 사용자의 게시글만 선택
+                    -- $2 is the viewer id; owner may see own private posts.
                     SELECT
                         p.id,
                         p.seq,
@@ -85,7 +91,7 @@ export function registerUserCategoriesRoutes(router: Router): void {
                     WHERE u.username = $1
                         AND u.deleted_at IS NULL
                         AND p.deleted_at IS NULL
-                        AND p.status = 'public'
+                        AND (p.status = 'public' OR p.user_id = $2)
                     ),
 
                     combined_tree_post AS (
@@ -154,7 +160,7 @@ export function registerUserCategoriesRoutes(router: Router): void {
 
             const { rows: categories } = await pool.query<TTreeNode>(
                 treeQuery,
-                [username]
+                [username, viewerId]
             );
 
             const response: TCategoryTreeResponse = {
@@ -180,6 +186,7 @@ export function registerUserCategoriesRoutes(router: Router): void {
      */
     router.get(
         '/users/:username/category/:categoryId',
+        optionalAuth,
         async (
             req: Request<
                 { username: string; categoryId: string },
@@ -204,6 +211,8 @@ export function registerUserCategoriesRoutes(router: Router): void {
                     50
                 );
                 const fetchLimit = limit + 1;
+                // Anonymous viewer uses -1 which matches no user_id.
+                const viewerId = req.auth?.userId ?? -1;
 
                 const postsQuery = `
                 SELECT
@@ -227,7 +236,7 @@ export function registerUserCategoriesRoutes(router: Router): void {
                     AND p.category_id = $2
                     AND p.deleted_at IS NULL
                     AND u.deleted_at IS NULL
-                    AND p.status = 'public'
+                    AND (p.status = 'public' OR p.user_id = $5)
                     AND p.id < $3
                 ORDER BY p.id DESC
                 LIMIT $4
@@ -240,6 +249,7 @@ export function registerUserCategoriesRoutes(router: Router): void {
                     categoryId,
                     cursorParam,
                     fetchLimit,
+                    viewerId,
                 ]);
 
                 const hasMore = rows.length > limit;

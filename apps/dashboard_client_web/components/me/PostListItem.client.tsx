@@ -1,5 +1,5 @@
 // components/me/PostListItem.client.tsx
-// Purpose: one draft row — title + relative updated time, linking to its editor.
+// Purpose: one draft/private row — title + relative updated time, linking to its editor.
 // Constraints: client-only (renders a relative time computed from the client
 // clock). Pure presentational; receives an already-shaped draft summary.
 
@@ -8,6 +8,7 @@
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
+import { StatusBadge } from '@/components/blog/StatusBadge';
 import type { TDraftSummary } from '@repo/types';
 
 // Localised relative-time formatter (no external deps). Past timestamps only.
@@ -41,7 +42,8 @@ export function PostListItem({ draft }: { draft: TDraftSummary }) {
                 'hover:border-primary hover:bg-primary hover:text-primary-foreground'
             )}
         >
-            <span className="truncate text-sm">
+            <span className="flex items-center gap-2 truncate text-sm">
+                <StatusBadge status={draft.status} />
                 {draft.title.trim() || t('drafts.untitled')}
             </span>
             <span className="shrink-0 text-xs text-muted-foreground">
