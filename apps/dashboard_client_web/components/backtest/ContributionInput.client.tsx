@@ -4,11 +4,23 @@
 // Purpose: DCA recurring-contribution controls (amount + frequency + none).
 // Renders a row of controls that yields a ContributionPlan or undefined.
 
-import type { ContributionPlan, ContributionFreq } from '@/types/backtest';
+import type {
+    ContributionPlan,
+    ContributionFreq,
+    ContributionRoute,
+} from '@/types/backtest';
 
 interface ContributionInputProps {
     value: ContributionPlan | undefined;
+    /** Selectable holding labels, for routing all DCA cash to one asset. */
+    labels: string[];
     onChange: (plan: ContributionPlan | undefined) => void;
+}
+
+const BY_WEIGHT = 'byWeight';
+
+function routeToValue(route: ContributionRoute | undefined): string {
+    return route && route.kind === 'asset' ? route.target : BY_WEIGHT;
 }
 
 const FREQ_OPTIONS: { value: ContributionFreq; label: string }[] = [
@@ -18,11 +30,13 @@ const FREQ_OPTIONS: { value: ContributionFreq; label: string }[] = [
 
 export default function ContributionInput({
     value,
+    labels,
     onChange,
 }: ContributionInputProps) {
     const enabled = value !== undefined;
     const amount = value?.amount ?? 500;
     const freq = value?.freq ?? 'monthly';
+    const route = value?.route;
 
     function handleToggle() {
         onChange(enabled ? undefined : { amount, freq });
@@ -31,11 +45,18 @@ export default function ContributionInput({
     function handleAmount(raw: string) {
         const n = Number(raw);
         if (!isFinite(n) || n <= 0) return;
-        onChange({ amount: n, freq });
+        onChange({ amount: n, freq, route });
     }
 
     function handleFreq(f: ContributionFreq) {
-        onChange({ amount, freq: f });
+        onChange({ amount, freq: f, route });
+    }
+
+    function handleRoute(val: string) {
+        // byWeight is the default → drop the field entirely (URL stays clean).
+        const nextRoute: ContributionRoute | undefined =
+            val === BY_WEIGHT ? undefined : { kind: 'asset', target: val };
+        onChange({ amount, freq, route: nextRoute });
     }
 
     return (
@@ -94,6 +115,33 @@ export default function ContributionInput({
                             </button>
                         ))}
                     </div>
+
+                    {labels.length > 0 && (
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-sm text-muted-foreground">
+                                into
+                            </span>
+                            <select
+                                value={routeToValue(route)}
+                                onChange={(e) => handleRoute(e.target.value)}
+                                aria-label="DCA contribution routing"
+                                title="Where recurring contributions are invested"
+                                className="rounded border bg-background px-1.5 py-1 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring"
+                            >
+                                <option value={BY_WEIGHT}>
+                                    by weight (all)
+                                </option>
+                                {labels.map((l) => (
+                                    <option
+                                        key={l}
+                                        value={l}
+                                    >
+                                        → {l}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

@@ -78,25 +78,38 @@ describe('buildEffectiveTargets', () => {
         expect(Math.abs(sum - 1)).toBeLessThan(EPS);
     });
 
-    it('orphan groupId throws', () => {
+    it('orphan groupId → treated as ungrouped (no throw)', () => {
+        // Reachable UI state: removing a group leaves a dangling groupId, and a
+        // URL can encode a groupId with no matching g: token. Must NOT throw
+        // (would crash the backtest mid-render); fall back to weightPct.
         const holdings: Holding[] = [
             {
                 label: 'A',
-                weightPct: 100,
+                weightPct: 70,
                 groupId: 'GHOST',
                 groupWeightPct: 100,
             },
+            { label: 'B', weightPct: 30 },
         ];
         const policy = makePolicy([]); // no groups defined
-        expect(() => buildEffectiveTargets(holdings, policy)).toThrow(/GHOST/);
+        const r = buildEffectiveTargets(holdings, policy);
+        expect(r.get('A')).toBeCloseTo(0.7, 9);
+        expect(r.get('B')).toBeCloseTo(0.3, 9);
     });
 
-    it('zero groupWeightPct sum throws', () => {
+    it('zero groupWeightPct sum → equal-split within group (no throw)', () => {
+        // Reachable UI state: HoldingAdvancedControls assigns groupId but never
+        // sets groupWeightPct, so the sum is 0. Must NOT throw (would crash the
+        // whole backtest mid-render); instead split the group target equally.
         const holdings: Holding[] = [
-            { label: 'A', weightPct: 100, groupId: 'G1', groupWeightPct: 0 },
+            { label: 'A', weightPct: 50, groupId: 'G1' },
+            { label: 'B', weightPct: 50, groupId: 'G1' },
         ];
         const policy = makePolicy([{ id: 'G1', targetPct: 100 }]);
-        expect(() => buildEffectiveTargets(holdings, policy)).toThrow(/G1/);
+        const r = buildEffectiveTargets(holdings, policy);
+        // Group target 100% split equally → 0.5 / 0.5 after normalization.
+        expect(r.get('A')).toBeCloseTo(0.5, 10);
+        expect(r.get('B')).toBeCloseTo(0.5, 10);
     });
 
     it('deterministic: same input → same output', () => {

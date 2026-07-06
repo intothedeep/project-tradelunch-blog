@@ -130,6 +130,7 @@ export default function BacktestControls({
             />
             <ContributionInput
                 value={contribution}
+                labels={labels}
                 onChange={setContribution}
             />
             <SeedControl
