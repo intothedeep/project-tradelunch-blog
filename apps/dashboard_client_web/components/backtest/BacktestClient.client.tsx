@@ -30,6 +30,10 @@ import Disclaimer from './Disclaimer';
 
 const RISK_FREE_RATE = 0.045; // 4.5% — current T-bill proxy
 const REFERENCE_LABELS = ['^IXIC', '^NDX'];
+// Deep floor for series fetches: pull each asset's FULL history so its true
+// inception (e.g. QLD 2006, QQQ 1999) is discoverable and the picker floor
+// isn't stuck at the selected range start. The engine slices to `range`.
+const HISTORY_FLOOR = '1971-01-01';
 
 interface BacktestClientProps {
     mockedSeries?: TPriceSeriesResponse;
@@ -94,7 +98,11 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
             : from;
     }, [holdings, seriesFirstDate, from]);
 
-    // Fetch asset series whenever labels or range changes (skipped for mock preview).
+    // Fetch each selected asset's FULL history (deep floor → today), NOT bounded
+    // by the selected range — otherwise an asset's true inception (e.g. QLD 2006)
+    // is never discovered and the picker floor stays stuck at the range start.
+    // Refetch only when the label SET changes; range changes are sliced by the
+    // engine client-side (no refetch needed).
     const labelsKey = holdings
         .map((h) => h.label)
         .filter((l) => l)
@@ -107,13 +115,17 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
         const labels = labelsKey.split(',');
         setLoading(true);
         setFetchError(null);
-        getPriceSeriesAction({ labels, from, to })
+        getPriceSeriesAction({
+            labels,
+            from: HISTORY_FLOOR,
+            to: new Date().toISOString().slice(0, 10),
+        })
             .then((res) => {
                 if (res.ok) setSeriesData(toSeriesByLabel(res.data));
                 else setFetchError(res.error.message);
             })
             .finally(() => setLoading(false));
-    }, [labelsKey, from, to, mockedSeries]);
+    }, [labelsKey, mockedSeries]);
 
     // Fetch reference indices once (for DateRangePicker mini chart).
     // from=1971 so the picker backdrop spans the full deep-backfilled index
