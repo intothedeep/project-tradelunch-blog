@@ -4,6 +4,7 @@
 // Purpose: control panel section for BacktestClient — basic + advanced (collapsible).
 // Advanced controls (rebalancing, manual flows, per-holding fields) are hidden by
 // default so the default UI is byte-identical to pre-X2 (ZERO-REGRESSION invariant).
+// Task A: Advanced section is gated to admin only (useMe isAdmin === true).
 
 import { useState } from 'react';
 import type {
@@ -12,6 +13,7 @@ import type {
     RebalancePolicy,
     PricePoint,
 } from '@/types/backtest';
+import { useMe } from '@/hooks/useMe.query.client';
 import BudgetInput from './BudgetInput';
 import AssetPicker from './AssetPicker.client';
 import WeightSliders from './WeightSliders.client';
@@ -70,6 +72,10 @@ export default function BacktestControls({
     onBudgetValidChange,
 }: BacktestControlsProps) {
     const [showAdvanced, setShowAdvanced] = useState(false);
+    // useMe returns {data: undefined} when Clerk is not loaded, signed-out,
+    // or the query hasn't resolved. isAdmin is only true when explicitly set.
+    const { data: me } = useMe();
+    const isAdmin = me?.isAdmin === true;
 
     const hasAdvancedState =
         (rebalance !== undefined && rebalance.freq !== 'never') ||
@@ -138,60 +144,67 @@ export default function BacktestControls({
                 onChange={setSeed}
             />
 
-            {/* ── Advanced toggle ─────────────────────────────────────────────── */}
-            <button
-                type="button"
-                onClick={() => setShowAdvanced((v) => !v)}
-                className="flex items-center gap-1.5 self-start text-xs text-muted-foreground hover:text-foreground transition-colors"
-                aria-expanded={advancedOpen}
-            >
-                <span>{advancedOpen ? '▼' : '▶'}</span>
-                고급 / Advanced
-                {hasAdvancedState && (
-                    <span className="ml-1 rounded-full bg-primary/20 px-1.5 text-primary text-[10px]">
-                        활성
-                    </span>
-                )}
-            </button>
-
-            {/* ── Advanced controls ───────────────────────────────────────────── */}
-            {advancedOpen && (
-                <div className="flex flex-col gap-4 border-t border-border pt-4">
-                    {showPerHolding && (
-                        <div className="flex flex-col gap-3">
-                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                                자산 개별 설정
+            {/* ── Advanced toggle (admin only) ─────────────────────────────────── */}
+            {isAdmin && (
+                <>
+                    <button
+                        type="button"
+                        onClick={() => setShowAdvanced((v) => !v)}
+                        className="flex items-center gap-1.5 self-start text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        aria-expanded={advancedOpen}
+                    >
+                        <span>{advancedOpen ? '▼' : '▶'}</span>
+                        고급 / Advanced
+                        {hasAdvancedState && (
+                            <span className="ml-1 rounded-full bg-primary/20 px-1.5 text-primary text-[10px]">
+                                활성
                             </span>
-                            {holdings.map((h) => (
-                                <div
-                                    key={h.label}
-                                    className="flex flex-col"
-                                >
-                                    <span className="text-xs font-mono font-semibold">
-                                        {h.label}
+                        )}
+                    </button>
+
+                    {/* ── Advanced controls ──────────────────────────────────────── */}
+                    {advancedOpen && (
+                        <div className="flex flex-col gap-4 border-t border-border pt-4">
+                            {showPerHolding && (
+                                <div className="flex flex-col gap-3">
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                        자산 개별 설정
                                     </span>
-                                    <HoldingAdvancedControls
-                                        holding={h}
-                                        groupIds={groupIds}
-                                        onChange={(patch) =>
-                                            updateHolding(h.label, patch)
-                                        }
-                                    />
+                                    {holdings.map((h) => (
+                                        <div
+                                            key={h.label}
+                                            className="flex flex-col"
+                                        >
+                                            <span className="text-xs font-mono font-semibold">
+                                                {h.label}
+                                            </span>
+                                            <HoldingAdvancedControls
+                                                holding={h}
+                                                groupIds={groupIds}
+                                                onChange={(patch) =>
+                                                    updateHolding(
+                                                        h.label,
+                                                        patch
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
+                            )}
+
+                            <RebalancePolicyPanel
+                                policy={rebalance}
+                                labels={labels}
+                                onChange={setRebalance}
+                            />
+                            <ManualFlowsEditor
+                                flows={manualFlows}
+                                onChange={setManualFlows}
+                            />
                         </div>
                     )}
-
-                    <RebalancePolicyPanel
-                        policy={rebalance}
-                        labels={labels}
-                        onChange={setRebalance}
-                    />
-                    <ManualFlowsEditor
-                        flows={manualFlows}
-                        onChange={setManualFlows}
-                    />
-                </div>
+                </>
             )}
         </section>
     );

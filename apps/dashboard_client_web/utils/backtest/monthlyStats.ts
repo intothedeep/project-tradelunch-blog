@@ -30,6 +30,17 @@ export interface MonthlyAssetWeights {
     weightByMonth: Record<string, Record<string, number>>;
 }
 
+/** Per-asset month-end share count (holding MV ÷ month-end price). */
+export interface MonthlyAssetShares {
+    /** Asset labels in the order they were emitted by the engine. */
+    labels: string[];
+    /**
+     * sharesByMonth['YYYY-MM'][label] = fractional share count.
+     * Only months where price > 0 are populated per asset.
+     */
+    sharesByMonth: Record<string, Record<string, number>>;
+}
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 /** Pre-aggregate dividend cash by 'YYYY-MM'. DRIP events (cash: 0) sum to 0 naturally. */
@@ -195,4 +206,57 @@ export function buildMonthlyAssetWeights(
     }
 
     return { labels, weightByMonth };
+}
+
+// ── X2 Task B: per-asset monthly share count ─────────────────────────────────
+
+/**
+ * Derive per-asset month-end share count from perHoldingValues + priceByMonth.
+ *
+ * Algorithm:
+ *   shares = value / price, where value = perHoldingValues[monthEndIdx].values[label]
+ *   and price = priceByMonth['YYYY-MM'][label] (split-adjusted month-end close).
+ *   When price ≤ 0 or absent, the entry is omitted (guard against divide-by-zero).
+ *
+ * - Pure: no I/O, no Date objects, no mutation.
+ * - Returns empty labels + empty sharesByMonth when perHoldingValues is absent.
+ */
+export function buildMonthlyAssetShares(
+    result: BacktestResult,
+    priceByMonth: Record<string, Record<string, number>>
+): MonthlyAssetShares {
+    const { perHoldingValues } = result;
+
+    if (!perHoldingValues || perHoldingValues.length === 0) {
+        return { labels: [], sharesByMonth: {} };
+    }
+
+    const labels = Object.keys(perHoldingValues[0]!.values);
+
+    // Single pass: keep the last index per month-key (ascending timeline invariant).
+    const monthEndIdx = new Map<string, number>();
+    for (let i = 0; i < perHoldingValues.length; i++) {
+        const mo = perHoldingValues[i]!.date.slice(0, 7);
+        monthEndIdx.set(mo, i);
+    }
+
+    const sharesByMonth: Record<string, Record<string, number>> = {};
+
+    for (const [month, idx] of monthEndIdx) {
+        const snap = perHoldingValues[idx]!;
+        const monthShares: Record<string, number> = {};
+        const prices = priceByMonth[month];
+
+        for (const label of labels) {
+            const price = prices?.[label];
+            const value = snap.values[label] ?? 0;
+            if (price !== undefined && price > 0) {
+                monthShares[label] = value / price;
+            }
+        }
+
+        sharesByMonth[month] = monthShares;
+    }
+
+    return { labels, sharesByMonth };
 }

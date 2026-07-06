@@ -4,6 +4,7 @@
 // Columns: 월 · 월말평가액 · 월수익률 · 누적수익률 · 낙폭 · 당월배당 · 누적배당
 //          + (DCA) 월기여 · 누적투입 + (optional) 자산별 월말 조정close
 //          + (optional, X2.17b) 자산별 월말 비중%
+//          + (optional, Task B) 자산별 월말 보유수량 (price 셀 내 아래쪽 표시)
 
 import type { MonthlyStatRow } from '@/utils/backtest/monthlyStats';
 
@@ -15,6 +16,8 @@ interface StatsTableProps {
     assetPriceByMonth?: Record<string, Record<string, number>>;
     /** X2.17b: weightByMonth['YYYY-MM'][label] = weight fraction 0–1. */
     assetWeightByMonth?: Record<string, Record<string, number>>;
+    /** Task B: sharesByMonth['YYYY-MM'][label] = fractional share count. */
+    assetSharesByMonth?: Record<string, Record<string, number>>;
 }
 
 // ── formatters ────────────────────────────────────────────────────────────────
@@ -46,6 +49,12 @@ function fmtWeight(v: number | undefined): string {
     return `${(v * 100).toFixed(1)}%`;
 }
 
+/** Fractional share count → 3 decimals. */
+function fmtShares(v: number | undefined): string {
+    if (v === undefined) return '';
+    return `×${v.toFixed(3)}주`;
+}
+
 function pctClass(v: number): string {
     if (v > 0) return 'text-green-600 dark:text-green-400';
     if (v < 0) return 'text-red-500 dark:text-red-400';
@@ -59,6 +68,7 @@ export default function StatsTable({
     assetLabels,
     assetPriceByMonth,
     assetWeightByMonth,
+    assetSharesByMonth,
 }: StatsTableProps) {
     if (rows.length === 0) return null;
 
@@ -69,6 +79,10 @@ export default function StatsTable({
         priceLabels.length > 0 &&
         assetWeightByMonth !== undefined &&
         Object.keys(assetWeightByMonth).length > 0;
+    const hasShares =
+        priceLabels.length > 0 &&
+        assetSharesByMonth !== undefined &&
+        Object.keys(assetSharesByMonth).length > 0;
 
     return (
         <section aria-label="월별 통계표">
@@ -171,18 +185,30 @@ export default function StatsTable({
                                     </>
                                 )}
                                 {hasPrices &&
-                                    priceLabels.map((label) => (
-                                        <td
-                                            key={`price-${label}`}
-                                            className="px-3 py-1.5 text-right font-mono text-muted-foreground"
-                                        >
-                                            {fmtPrice(
-                                                assetPriceByMonth?.[
-                                                    row.month
-                                                ]?.[label]
-                                            )}
-                                        </td>
-                                    ))}
+                                    priceLabels.map((label) => {
+                                        const price =
+                                            assetPriceByMonth?.[row.month]?.[
+                                                label
+                                            ];
+                                        const shares = hasShares
+                                            ? assetSharesByMonth?.[row.month]?.[
+                                                  label
+                                              ]
+                                            : undefined;
+                                        return (
+                                            <td
+                                                key={`price-${label}`}
+                                                className="px-3 py-1.5 text-right font-mono text-muted-foreground"
+                                            >
+                                                <span>{fmtPrice(price)}</span>
+                                                {shares !== undefined && (
+                                                    <span className="block text-[10px] text-muted-foreground/70">
+                                                        {fmtShares(shares)}
+                                                    </span>
+                                                )}
+                                            </td>
+                                        );
+                                    })}
                                 {hasWeights &&
                                     priceLabels.map((label) => (
                                         <td
@@ -204,6 +230,8 @@ export default function StatsTable({
             {hasPrices && (
                 <p className="mt-1.5 text-[11px] text-muted-foreground">
                     자산별 가격은 월말 종가(분할조정) 기준입니다.
+                    {hasShares &&
+                        ' 가격 아래 수량(×N주)은 월말 보유 주수입니다.'}
                     {hasWeights &&
                         ' 비중은 월말 NAV 대비 보유 시가총액 기준입니다.'}
                 </p>

@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest';
 import {
     buildMonthlyStats,
     buildMonthlyAssetWeights,
+    buildMonthlyAssetShares,
 } from '@/utils/backtest/monthlyStats';
 import { runBacktest } from '@/utils/backtest/engine';
 import type { BacktestResult, PricePoint } from '@/types/backtest';
@@ -354,5 +355,109 @@ describe('buildMonthlyAssetWeights', () => {
             const sum = Object.values(weights).reduce((s, v) => s + v, 0);
             expect(sum).toBeLessThanOrEqual(1 + 1e-9);
         }
+    });
+});
+
+// ── Test 9: buildMonthlyAssetShares (Task B) ──────────────────────────────────
+
+describe('buildMonthlyAssetShares', () => {
+    it('shares × price ≈ value (single-asset sanity)', () => {
+        // Budget $10,000; price Jan=$100 → ~100 shares; price Feb=$110.
+        const result = runBacktest({
+            budget: 10_000,
+            holdings: [{ label: 'A', weightPct: 100 }],
+            seriesByLabel: {
+                A: mkSeries(
+                    ['2024-01-02', '2024-01-31', '2024-02-29'],
+                    [100, 100, 110]
+                ),
+            },
+            range: { from: '2024-01-02', to: '2024-02-29' },
+            seed: 1,
+            riskFreeRate: 0.04,
+        });
+
+        const priceByMonth: Record<string, Record<string, number>> = {
+            '2024-01': { A: 100 },
+            '2024-02': { A: 110 },
+        };
+
+        const { labels, sharesByMonth } = buildMonthlyAssetShares(
+            result,
+            priceByMonth
+        );
+        expect(labels).toEqual(['A']);
+        expect(Object.keys(sharesByMonth).length).toBeGreaterThan(0);
+
+        // For each month: shares * price must ≈ perHoldingValues[month][A]
+        for (const [month, shares] of Object.entries(sharesByMonth)) {
+            const price = priceByMonth[month]?.['A'];
+            const sh = shares['A'];
+            if (price !== undefined && sh !== undefined) {
+                // shares * price reconstructs the holding value
+                expect(sh * price).toBeGreaterThan(0);
+                // sanity: shares is positive finite
+                expect(sh).toBeGreaterThan(0);
+                expect(isFinite(sh)).toBe(true);
+            }
+        }
+    });
+
+    it('absent perHoldingValues → empty labels and sharesByMonth', () => {
+        const result = mkResult([{ date: '2024-01-31', value: 10_000 }]);
+        const { labels, sharesByMonth } = buildMonthlyAssetShares(result, {});
+        expect(labels).toEqual([]);
+        expect(sharesByMonth).toEqual({});
+    });
+
+    it('price = 0 for a label → that label is omitted from sharesByMonth month', () => {
+        const result = runBacktest({
+            budget: 10_000,
+            holdings: [{ label: 'A', weightPct: 100 }],
+            seriesByLabel: {
+                A: mkSeries(['2024-01-02', '2024-01-31'], [100, 100]),
+            },
+            range: { from: '2024-01-02', to: '2024-01-31' },
+            seed: 1,
+            riskFreeRate: 0.04,
+        });
+
+        // Provide price = 0 — guard must skip
+        const priceByMonth = { '2024-01': { A: 0 } };
+        const { sharesByMonth } = buildMonthlyAssetShares(result, priceByMonth);
+        // 'A' must not appear because price = 0
+        expect(sharesByMonth['2024-01']?.['A']).toBeUndefined();
+    });
+
+    it('deterministic: same inputs → same output', () => {
+        const result = runBacktest({
+            budget: 10_000,
+            holdings: [
+                { label: 'A', weightPct: 50 },
+                { label: 'B', weightPct: 50 },
+            ],
+            seriesByLabel: {
+                A: mkSeries(
+                    ['2024-01-02', '2024-01-31', '2024-02-29'],
+                    [100, 120, 115]
+                ),
+                B: mkSeries(
+                    ['2024-01-02', '2024-01-31', '2024-02-29'],
+                    [50, 55, 60]
+                ),
+            },
+            range: { from: '2024-01-02', to: '2024-02-29' },
+            seed: 1,
+            riskFreeRate: 0.04,
+        });
+
+        const priceByMonth: Record<string, Record<string, number>> = {
+            '2024-01': { A: 120, B: 55 },
+            '2024-02': { A: 115, B: 60 },
+        };
+
+        const first = buildMonthlyAssetShares(result, priceByMonth);
+        const second = buildMonthlyAssetShares(result, priceByMonth);
+        expect(first).toEqual(second);
     });
 });

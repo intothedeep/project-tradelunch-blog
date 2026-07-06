@@ -4,6 +4,7 @@
 // Orchestrator: URL-encoded state → price fetch → backtest engine → results.
 // X2 wave-4a: rebalance + manualFlows threaded in; controls in BacktestControls.
 // X2 wave-4b: rebalance summary in MetricsPanel; weight% columns in StatsTable.
+// Task B: per-asset share count columns in StatsTable.
 
 import { useState, useEffect, useMemo } from 'react';
 import { useBacktestUrl } from '@/hooks/useBacktestUrl.hook';
@@ -12,6 +13,7 @@ import { LEVERAGED_LABELS } from '@/utils/backtest/universe';
 import {
     buildMonthlyStats,
     buildMonthlyAssetWeights,
+    buildMonthlyAssetShares,
 } from '@/utils/backtest/monthlyStats';
 import { buildMonthlyAssetPrices } from '@/utils/backtest/monthlyAssetPrices';
 import { buildYearlyStats } from '@/utils/backtest/yearlyStats';
@@ -194,6 +196,14 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
         () => (result ? buildMonthlyAssetWeights(result) : null),
         [result]
     );
+    // Task B: per-asset month-end share count (value ÷ price).
+    const assetShares = useMemo(
+        () =>
+            result
+                ? buildMonthlyAssetShares(result, assetPrices.priceByMonth)
+                : null,
+        [result, assetPrices.priceByMonth]
+    );
     const yearlyRows = useMemo(
         () => (result ? buildYearlyStats(result, budget) : []),
         [result, budget]
@@ -285,6 +295,7 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                                 assetLabels={assetPrices.labels}
                                 assetPriceByMonth={assetPrices.priceByMonth}
                                 assetWeightByMonth={assetWeights?.weightByMonth}
+                                assetSharesByMonth={assetShares?.sharesByMonth}
                             />
                         </div>
                     )}
