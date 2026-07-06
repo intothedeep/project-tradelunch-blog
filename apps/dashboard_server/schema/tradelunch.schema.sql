@@ -996,3 +996,41 @@ CREATE TABLE IF NOT EXISTS gex_daily (
 CREATE INDEX IF NOT EXISTS idx_gex_daily_active_ticker
     ON gex_daily (ticker, as_of DESC)
     WHERE deleted_at IS NULL;
+
+-- =============================================================================
+-- Mirrors migration 0035_sec_consensus_asof.sql (Phase P — filing_date look-ahead gate).
+-- Three-view chain replacing the MAX(period) single-period screener filter.
+-- v_sec_fund_period_public → v_sec_fund_latest_asof → v_sec_consensus_asof.
+-- =============================================================================
+CREATE OR REPLACE VIEW v_sec_fund_period_public AS
+SELECT cik,
+       period_of_report,
+       MIN(filing_date) AS first_filed
+FROM sec_filings
+WHERE filing_date IS NOT NULL
+  AND deleted_at IS NULL
+GROUP BY cik, period_of_report;
+
+CREATE OR REPLACE VIEW v_sec_fund_latest_asof AS
+SELECT DISTINCT ON (cik)
+    cik,
+    period_of_report AS as_of_period,
+    first_filed
+FROM v_sec_fund_period_public
+WHERE first_filed <= CURRENT_DATE
+ORDER BY cik, period_of_report DESC;
+
+CREATE OR REPLACE VIEW v_sec_consensus_asof AS
+SELECT p.cusip,
+       MAX(p.period_of_report)                              AS max_period,
+       MAX(p.name_of_issuer)                                AS name_of_issuer,
+       COUNT(*) FILTER (WHERE r.is_active_manager)          AS holder_count_active,
+       COUNT(*)                                             AS holder_count_total,
+       SUM(p.value_usd) FILTER (WHERE r.is_active_manager)  AS active_value_usd,
+       ARRAY_AGG(p.cik ORDER BY p.value_usd DESC)           AS holder_ciks
+FROM v_sec_fund_latest_asof la
+JOIN v_sec_positions p
+  ON p.cik = la.cik AND p.period_of_report = la.as_of_period
+JOIN fund_registry r
+  ON r.cik = p.cik AND r.deleted_at IS NULL
+GROUP BY p.cusip;

@@ -4,7 +4,14 @@
 //          ranked by composite score (consensus strength + cap tier).
 // Invariants:
 //   - Presence guard: v_sec_consensus absent → data:null, not 500.
-//   - Uses the single latest period_of_report across all securities in v_sec_consensus.
+//   - As-of path (v_sec_consensus_asof, migration 0035): each active fund
+//     contributes its MOST RECENT 13F whose filing_date <= CURRENT_DATE. Periods
+//     are MIXED across funds — correct during the 45-day staggered-filing window.
+//     Fixes (a) look-ahead bias (future-dated filings excluded) and (b) staggered
+//     undercount (the old MAX(period) single-period filter dropped funds mid-cycle).
+//   - Back-compat: when v_sec_consensus_asof is absent (migration not yet applied)
+//     the screener falls back to the legacy v_sec_consensus + single-period filter.
+//     The deploy is safe BEFORE the migration is applied.
 //   - LEFT JOIN security_map: ticker is NULL when CUSIP not yet resolved (0019 not seeded).
 //   - LEFT JOIN LATERAL: most-recent global market_rankings row by ticker.
 //   - LEFT JOIN v_politician_activity (when present, migration 0022): exposes
@@ -34,11 +41,6 @@
 //   - politicalInterestScore: advisory/descriptive only (politician_buy t=0.71 /
 //     politician_sell t=−2.64, below Harvey-Liu-Zhu t>3; no measured forward alpha).
 //     Marked advisoryOnly:true. NEVER blended into the 13F ranking.
-// DEFERRED:
-//   - filing_date lookahead: v_sec_consensus is period-based. A production signal
-//     must gate on sec_filings.filing_date so the screener only runs after all funds
-//     have filed for the period. Not yet implemented. (Live price momentum "as of now"
-//     is current market data, not lookahead — the gap is the 13F period vs filing_date.)
 // Constraints: raw SQL only, parameterized, no ORM, no side effects beyond pool reads.
 
 import { pool } from '../../database';
@@ -76,6 +78,7 @@ function clampParam(
 
 interface IRawPresence {
     has_consensus: boolean;
+    has_consensus_asof: boolean;
     has_secmap: boolean;
     has_rankings: boolean;
     has_market_history: boolean;
@@ -86,6 +89,7 @@ interface IRawPresence {
 
 async function probePresence(): Promise<{
     hasConsensus: boolean;
+    hasConsensusAsof: boolean;
     hasSecmap: boolean;
     hasRankings: boolean;
     hasMarketHistory: boolean;
@@ -95,6 +99,7 @@ async function probePresence(): Promise<{
 }> {
     const { rows } = await pool.query<IRawPresence>(
         `SELECT to_regclass('public.v_sec_consensus')             IS NOT NULL AS has_consensus,
+                to_regclass('public.v_sec_consensus_asof')        IS NOT NULL AS has_consensus_asof,
                 to_regclass('public.security_map')                IS NOT NULL AS has_secmap,
                 to_regclass('public.market_rankings')             IS NOT NULL AS has_rankings,
                 to_regclass('public.market_history')              IS NOT NULL AS has_market_history,
@@ -104,6 +109,7 @@ async function probePresence(): Promise<{
     );
     return {
         hasConsensus: rows[0]?.has_consensus ?? false,
+        hasConsensusAsof: rows[0]?.has_consensus_asof ?? false,
         hasSecmap: rows[0]?.has_secmap ?? false,
         hasRankings: rows[0]?.has_rankings ?? false,
         hasMarketHistory: rows[0]?.has_market_history ?? false,
@@ -267,8 +273,10 @@ function numOrNull(v: string | null): number | null {
  * @apiQuery {Number} [limit=50]           Max candidates returned (clamp 1..200)
  *
  * @apiSuccess {Boolean}     success
- * @apiSuccess {Object|null} data  { periodOfReport, totalActiveFunds, candidates[] }
+ * @apiSuccess {Object|null} data  { periodOfReport, [asOf], totalActiveFunds, candidates[] }
  *                                  or null when v_sec_consensus is absent.
+ *                                  asOf (YYYY-MM-DD) present only when v_sec_consensus_asof
+ *                                  is active — indicates the look-ahead gate date.
  */
 router.get('/screen', async (req, res) => {
     try {
@@ -285,6 +293,7 @@ router.get('/screen', async (req, res) => {
 
         const {
             hasConsensus,
+            hasConsensusAsof,
             hasSecmap,
             hasRankings,
             hasMarketHistory,
@@ -304,18 +313,27 @@ router.get('/screen', async (req, res) => {
         );
         const totalActiveFunds = Number(activeRows[0]?.total_active ?? 0);
 
-        // Latest 13F period. Read it straight from sec_holdings (registry funds,
-        // same put_call/prn filter as v_sec_consensus) — a cheap MAX over a
-        // filtered join, vs computing the entire grouped consensus view just to
-        // find its max period (~2.3s → ~0.7s). The candidate query below still
-        // filters v_sec_consensus by this period.
-        const { rows: periodRows } = await pool.query<ILatestPeriodRow>(
-            `SELECT MAX(h.period_of_report)::text AS period
-               FROM sec_holdings h
-               JOIN fund_registry r ON r.cik = h.cik AND r.deleted_at IS NULL
-              WHERE h.deleted_at IS NULL AND h.put_call = '' AND h.prn_type <> 'PRN'`
-        );
-        const periodOfReport = periodRows[0]?.period ?? null;
+        // Latest 13F period. Two paths:
+        // As-of (migration 0035 applied): MAX(max_period) from v_sec_consensus_asof —
+        //   the newest period contributed by any fund in the as-of view. This is the
+        //   "most advanced public period" across the fund universe.
+        // Legacy: MAX(period_of_report) from sec_holdings filtered to registry funds.
+        //   Cheap but ignores filing_date — kept for back-compat pre-0035.
+        let periodOfReport: string | null;
+        if (hasConsensusAsof) {
+            const { rows: periodRows } = await pool.query<ILatestPeriodRow>(
+                `SELECT MAX(max_period)::text AS period FROM v_sec_consensus_asof`
+            );
+            periodOfReport = periodRows[0]?.period ?? null;
+        } else {
+            const { rows: periodRows } = await pool.query<ILatestPeriodRow>(
+                `SELECT MAX(h.period_of_report)::text AS period
+                   FROM sec_holdings h
+                   JOIN fund_registry r ON r.cik = h.cik AND r.deleted_at IS NULL
+                  WHERE h.deleted_at IS NULL AND h.put_call = '' AND h.prn_type <> 'PRN'`
+            );
+            periodOfReport = periodRows[0]?.period ?? null;
+        }
         if (!periodOfReport) {
             return res.json({ success: true, data: null });
         }
@@ -341,9 +359,6 @@ router.get('/screen', async (req, res) => {
                     ORDER BY r2.as_of DESC
                     LIMIT 1
                ) mr ON TRUE`
-            : '';
-        const rankFilter = applyRankFilter
-            ? `AND (mr.rank IS NULL OR mr.rank <= $3)`
             : '';
 
         // Politician-activity join (migration 0022) — only when view exists AND
@@ -389,7 +404,33 @@ router.get('/screen', async (req, res) => {
                ) np ON np.ticker = sm.ticker`
                 : '';
 
-        const params: (string | number)[] = [periodOfReport, minActiveHolders];
+        // Parameter arrays and WHERE clause differ between the as-of and legacy paths.
+        // As-of path ($1=minActiveHolders, $2=maxRank if used):
+        //   - Sources v_sec_consensus_asof (periods mixed across funds — correct).
+        //   - No period_of_report filter: each fund already contributes its latest
+        //     public filing, so a single-period filter would be wrong.
+        // Legacy path ($1=period, $2=minActiveHolders, $3=maxRank if used):
+        //   - Sources v_sec_consensus + period_of_report = $1 filter.
+        //   - Kept for back-compat when migration 0035 is not yet applied.
+        const consensusSource = hasConsensusAsof
+            ? 'v_sec_consensus_asof'
+            : 'v_sec_consensus';
+
+        // $N for rank filter shifts left by 1 in the as-of path (no period param).
+        const rankFilterIdx = hasConsensusAsof ? 2 : 3;
+        const rankFilter = applyRankFilter
+            ? `AND (mr.rank IS NULL OR mr.rank <= $${rankFilterIdx})`
+            : '';
+
+        // Holder-count filter param and optional period filter per branch.
+        const holderParam = hasConsensusAsof ? '$1' : '$2';
+        const periodFilter = hasConsensusAsof
+            ? ''
+            : `AND c.period_of_report = $1`;
+
+        const params: (string | number)[] = hasConsensusAsof
+            ? [minActiveHolders]
+            : [periodOfReport, minActiveHolders];
         if (applyRankFilter) params.push(maxRank);
 
         const sql = `
@@ -401,13 +442,13 @@ SELECT c.cusip,
        ${rankSelect},
        ${politicianSelect},
        ${newPositionSelect}
-  FROM v_sec_consensus c
+  FROM ${consensusSource} c
   ${smJoin}
   ${rankJoin}
   ${politicianJoin}
   ${newPositionJoin}
- WHERE c.period_of_report = $1
-   AND c.holder_count_active >= $2
+ WHERE c.holder_count_active >= ${holderParam}
+   ${periodFilter}
    ${rankFilter}
 `;
         const { rows } = await pool.query<ICandidateRow>(sql, params);
@@ -518,6 +559,11 @@ SELECT c.cusip,
             success: true,
             data: {
                 periodOfReport: periodOfReport.slice(0, 10),
+                // asOf present only in as-of path: the look-ahead gate date (= today).
+                // Clients may display "holdings as of <asOf>" alongside periodOfReport.
+                ...(hasConsensusAsof
+                    ? { asOf: new Date().toISOString().slice(0, 10) }
+                    : {}),
                 totalActiveFunds,
                 candidates,
             },
