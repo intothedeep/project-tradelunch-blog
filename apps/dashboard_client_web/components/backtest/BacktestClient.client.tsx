@@ -17,6 +17,7 @@ import BudgetInput from './BudgetInput';
 import AssetPicker from './AssetPicker.client';
 import WeightSliders from './WeightSliders.client';
 import DateRangePicker from './DateRangePicker.client';
+import ContributionInput from './ContributionInput.client';
 import MetricsPanel from './MetricsPanel';
 import ResultChart from './ResultChart.client';
 import DividendTable from './DividendTable';
@@ -51,8 +52,10 @@ function getFirstDate(series: PricePoint[]): string {
 }
 
 export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
-    const [urlState, { setBudget, setHoldings, setRange }] = useBacktestUrl();
-    const { budget, holdings, from, to, seed, seedReady } = urlState;
+    const [urlState, { setBudget, setHoldings, setRange, setContribution }] =
+        useBacktestUrl();
+    const { budget, holdings, from, to, seed, seedReady, contribution } =
+        urlState;
 
     const [budgetValid, setBudgetValid] = useState(true);
     const [seriesData, setSeriesData] = useState<Record<string, PricePoint[]>>(
@@ -85,8 +88,6 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
     }, [holdings, seriesFirstDate, from]);
 
     // Fetch asset series whenever labels or range changes (skipped for mock preview).
-    // Sorted label key: stable dep so the fetch re-runs only when the set of
-    // selected symbols (not weights/drip) changes.
     const labelsKey = holdings
         .map((h) => h.label)
         .filter((l) => l)
@@ -108,11 +109,14 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
     }, [labelsKey, from, to, mockedSeries]);
 
     // Fetch reference indices once (for DateRangePicker mini chart).
+    // from=1971 so the picker backdrop spans the full deep-backfilled index
+    // history (^IXIC 1971~ / ^NDX 1985~) — removes the old 2023 floor so
+    // bull/bear regimes are selectable. minAllowedFrom still clamps by asset.
     useEffect(() => {
         if (mockedSeries) return;
         getPriceSeriesAction({
             labels: REFERENCE_LABELS,
-            from: '2023-01-01',
+            from: '1971-01-01',
             to: new Date().toISOString().slice(0, 10),
         }).then((res) => {
             if (res.ok) setRefSeries(toSeriesByLabel(res.data));
@@ -129,8 +133,9 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
             range: { from, to },
             seed,
             riskFreeRate: RISK_FREE_RATE,
+            contribution,
         };
-    }, [budget, holdings, seriesData, from, to, seed]);
+    }, [budget, holdings, seriesData, from, to, seed, contribution]);
 
     const result = useBacktest(backtestInput, seedReady && budgetValid);
 
@@ -172,6 +177,10 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                     ndxSeries={refSeries['^NDX'] ?? []}
                     onChange={setRange}
                 />
+                <ContributionInput
+                    value={contribution}
+                    onChange={setContribution}
+                />
             </section>
 
             <LeverageWarning labels={leveragedSelected} />
@@ -200,6 +209,7 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                         metrics={result.metrics}
                         budget={budget}
                         riskFreeRate={RISK_FREE_RATE}
+                        hasContribution={contribution !== undefined}
                     />
                     <ResultChart
                         result={result}

@@ -1,12 +1,13 @@
 // utils/backtest/projection.ts
 // Purpose: pure projection functions — CAGR forward curve, seeded Monte Carlo fan,
-//          income yield estimate (Phase X, X.6).
+//          income yield estimate (Phase X, X.6 / XE.1).
 // Invariant: NO Math.random() (non-deterministic). Uses mulberry32 seeded PRNG
 //            + Box–Muller transform. Same seed + same input ⇒ identical output.
 // Note: noUncheckedIndexedAccess is enabled — all array access uses for-of or
 //       explicit undefined guards.
 
 import type { ProjectionResult } from '@/types/backtest';
+import { addMonths } from './dateAdd';
 
 // ── Seeded PRNG: mulberry32 ───────────────────────────────────────────────────
 // Returns a closure that yields pseudo-random [0, 1) values.
@@ -30,14 +31,6 @@ function standardNormal(rand: () => number): number {
     return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
 }
 
-// ── Date arithmetic (UTC-safe) ────────────────────────────────────────────────
-// Returns a 'YYYY-MM-DD' string for `months` months after `date`.
-function addMonths(date: string, months: number): string {
-    const d = new Date(date + 'T00:00:00Z');
-    d.setUTCMonth(d.getUTCMonth() + months);
-    return d.toISOString().slice(0, 10);
-}
-
 // ── Linear quantile interpolation ────────────────────────────────────────────
 function quantile(sorted: number[], q: number): number {
     if (sorted.length === 0) return 0;
@@ -54,9 +47,9 @@ function quantile(sorted: number[], q: number): number {
 export interface ProjectionInput {
     vEnd: number; // portfolio value at end of backtest
     cagrValue: number; // annual CAGR fraction
-    logReturns: number[]; // daily log returns from backtest timeline
+    logReturns: number[]; // daily log returns from backtest timeline (flow-corrected)
     cumulativeDividends: number; // total dividend value over backtest period
-    budget: number; // original lump-sum (denominator for yield)
+    capitalBase: number; // total invested capital (budget + contributions) — yield denominator
     years: number; // actual backtest horizon in years
     endDate: string; // last date of backtest ('YYYY-MM-DD')
     seed: number; // PRNG seed; stored in URL state for shareable fan charts
@@ -72,7 +65,7 @@ export function buildProjection(input: ProjectionInput): ProjectionResult {
         cagrValue,
         logReturns,
         cumulativeDividends,
-        budget,
+        capitalBase,
         years,
         endDate,
         seed,
@@ -89,7 +82,7 @@ export function buildProjection(input: ProjectionInput): ProjectionResult {
     }
 
     // ── Monte Carlo fan (seeded, 2000 paths × 120 months) ────────────────────
-    // Estimate μ and σ from the realised daily log returns.
+    // Estimate μ and σ from the realised daily log returns (flow-corrected).
     const n = logReturns.length;
     let muDaily = 0;
     if (n > 0) {
@@ -141,11 +134,11 @@ export function buildProjection(input: ProjectionInput): ProjectionResult {
     }
 
     // ── Income projection (realised yield, annualised) ────────────────────────
-    // Guard: budget=0 or years→0 both produce 0 yield.
+    // Uses capitalBase (total invested) so budget=0 pure-DCA doesn't blow up.
     const safeYears = Math.max(years, 1 / 365);
-    const safeBudget = budget > 0 ? budget : 1;
-    const annualYieldPct = cumulativeDividends / (safeBudget * safeYears);
-    const projectedAnnualCash = budget * annualYieldPct;
+    const safeCapital = capitalBase > 0 ? capitalBase : 1;
+    const annualYieldPct = cumulativeDividends / (safeCapital * safeYears);
+    const projectedAnnualCash = safeCapital * annualYieldPct;
     const projectedMonthlyCash = projectedAnnualCash / 12;
 
     return {

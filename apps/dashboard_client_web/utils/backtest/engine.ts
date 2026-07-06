@@ -1,5 +1,5 @@
 // utils/backtest/engine.ts
-// Purpose: orchestrates the lump-sum buy-and-hold backtest walk (Phase X, X.6).
+// Purpose: orchestrates the backtest walk — lump-sum and/or DCA (Phase X / XE.1).
 // Invariant: pure function — deterministic given input; no I/O, no Date.now(),
 //            no Math.random(). All side-effects are isolated in callers.
 // Note: noUncheckedIndexedAccess is enabled — all array/object access uses
@@ -15,12 +15,15 @@ import type {
 import {
     computeCagr,
     computeMaxDrawdown,
-    computeDailyReturns,
-    computeLogReturns,
+    computeDailyReturnsWithFlows,
+    computeLogReturnsWithFlows,
     computeVolatility,
     computeSharpe,
+    computeXirr,
 } from './metrics';
 import { buildProjection } from './projection';
+import { buildContributionDates } from './contributions';
+import { investCash } from './invest';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -41,6 +44,8 @@ function buildEmptyResult(budget: number): BacktestResult {
             volatility: 0,
             sharpe: null,
             cumulativeDividends: 0,
+            totalContributed: budget,
+            moneyWeightedReturn: null,
         },
         perHolding: [],
         dividends: { byLabel: {}, total: 0, schedule: [] },
@@ -59,10 +64,20 @@ function buildEmptyResult(budget: number): BacktestResult {
 // ── Main engine ───────────────────────────────────────────────────────────────
 
 export function runBacktest(input: BacktestInput): BacktestResult {
-    const { budget, holdings, seriesByLabel, range, seed, riskFreeRate } =
-        input;
+    const {
+        budget,
+        holdings,
+        seriesByLabel,
+        range,
+        seed,
+        riskFreeRate,
+        contribution,
+    } = input;
 
-    if (holdings.length === 0 || budget <= 0) return buildEmptyResult(budget);
+    // Guard: bail on empty holdings OR on zero budget with no DCA plan.
+    if (holdings.length === 0 || (budget <= 0 && !contribution)) {
+        return buildEmptyResult(budget);
+    }
 
     // Build date indexes for O(1) lookup during the walk.
     const dateIndexes = new Map<string, Map<string, PricePoint>>();
@@ -88,47 +103,64 @@ export function runBacktest(input: BacktestInput): BacktestResult {
     const globalTo = sortedDates[sortedDates.length - 1] ?? '';
     if (!globalFrom || !globalTo) return buildEmptyResult(budget);
 
-    // Initial lump-sum allocation at globalFrom.
-    // If a holding has no bar at globalFrom, its budget stays as residual cash.
+    // ── Initial state ─────────────────────────────────────────────────────────
     const shares = new Map<string, number>();
     const initialAlloc = new Map<string, number>();
-    let cash = 0;
-
     for (const h of holdings) {
-        const allocated = budget * (h.weightPct / 100);
-        const idx = dateIndexes.get(h.label);
-        const bar = idx?.get(globalFrom);
-        if (bar && bar.close > 0) {
-            shares.set(h.label, allocated / bar.close);
-            initialAlloc.set(h.label, allocated);
-        } else {
-            shares.set(h.label, 0);
-            initialAlloc.set(h.label, 0);
-            cash += allocated; // residual: no price available at from date
+        shares.set(h.label, 0);
+        initialAlloc.set(h.label, 0);
+    }
+    let cash = 0;
+    let totalContributed = 0;
+
+    // Lump-sum allocation at globalFrom (skipped for pure-DCA where budget = 0).
+    if (budget > 0) {
+        cash = investCash(globalFrom, budget, holdings, dateIndexes, shares);
+        for (const h of holdings) {
+            const alloc = budget * (h.weightPct / 100);
+            const bar = dateIndexes.get(h.label)?.get(globalFrom);
+            if (bar && bar.close > 0) initialAlloc.set(h.label, alloc);
         }
+        totalContributed = budget;
     }
 
-    // ── Date walk ────────────────────────────────────────────────────────────
+    // Contribution schedule (empty Set when no DCA plan).
+    const contributionDates = contribution
+        ? new Set(
+              buildContributionDates(
+                  sortedDates,
+                  globalFrom,
+                  globalTo,
+                  contribution.freq,
+                  budget === 0 // includeStart: true only for pure-DCA
+              )
+          )
+        : new Set<string>();
+
+    // XIRR flows (investor perspective: outflows negative, final value positive).
+    const xirrFlows: { date: string; amount: number }[] = [];
+    if (budget > 0) xirrFlows.push({ date: globalFrom, amount: -budget });
+
+    // ── Date walk ─────────────────────────────────────────────────────────────
     const timeline: { date: string; value: number }[] = [];
     const dividendSchedule: DividendEvent[] = [];
     const dividendsByLabel = new Map<string, number>();
+    const flowsByDate = new Map<string, number>(); // net inflow per date (Modified-Dietz)
     for (const h of holdings) dividendsByLabel.set(h.label, 0);
 
     for (const date of sortedDates) {
+        // 1. Stock splits
         for (const h of holdings) {
             const bar = dateIndexes.get(h.label)?.get(date);
             if (!bar) continue;
+            const cur = shares.get(h.label) ?? 0;
+            if (bar.stockSplits > 0) shares.set(h.label, cur * bar.stockSplits);
+        }
 
-            const currentShares = shares.get(h.label) ?? 0;
-
-            // Apply stock split: yfinance stockSplits=2.0 for a 2:1 split.
-            // Raw close on the split bar is already post-split → multiply shares to keep
-            // value continuous (no cliff).
-            if (bar.stockSplits > 0) {
-                shares.set(h.label, currentShares * bar.stockSplits);
-            }
-
-            // Apply dividend event.
+        // 2. Dividends
+        for (const h of holdings) {
+            const bar = dateIndexes.get(h.label)?.get(date);
+            if (!bar) continue;
             const sharesNow = shares.get(h.label) ?? 0;
             if (bar.dividends > 0 && sharesNow > 0) {
                 const divCash = sharesNow * bar.dividends;
@@ -137,7 +169,6 @@ export function runBacktest(input: BacktestInput): BacktestResult {
                     (dividendsByLabel.get(h.label) ?? 0) + divCash
                 );
                 if (h.drip && bar.close > 0) {
-                    // Reinvest: buy additional fractional shares at today's close.
                     shares.set(h.label, sharesNow + divCash / bar.close);
                     dividendSchedule.push({
                         date,
@@ -157,7 +188,21 @@ export function runBacktest(input: BacktestInput): BacktestResult {
             }
         }
 
-        // Portfolio value at close: sum of all holdings + cash.
+        // 3. Contribution buy (after dividends → new cash skips today's dividend)
+        if (contribution && contributionDates.has(date)) {
+            cash += investCash(
+                date,
+                contribution.amount,
+                holdings,
+                dateIndexes,
+                shares
+            );
+            totalContributed += contribution.amount;
+            flowsByDate.set(date, contribution.amount);
+            xirrFlows.push({ date, amount: -contribution.amount });
+        }
+
+        // 4. Snapshot
         let totalValue = cash;
         for (const h of holdings) {
             const bar = dateIndexes.get(h.label)?.get(date);
@@ -168,23 +213,44 @@ export function runBacktest(input: BacktestInput): BacktestResult {
 
     if (timeline.length === 0) return buildEmptyResult(budget);
 
-    // ── Metrics ──────────────────────────────────────────────────────────────
+    // ── Metrics ───────────────────────────────────────────────────────────────
     const portfolioValues = timeline.map((t) => t.value);
-    // Guard: with the length check above, these are always defined.
     const vStart = portfolioValues[0] ?? budget;
     const vEnd = portfolioValues[portfolioValues.length - 1] ?? budget;
-    // Approximate years from trading-day count (252 days/year convention).
     const years = Math.max(sortedDates.length / 252, 1 / 365);
 
     const cagrValue = computeCagr(vStart, vEnd, years);
     const mdd = computeMaxDrawdown(portfolioValues);
-    const simpleReturns = computeDailyReturns(portfolioValues);
-    const vol = computeVolatility(simpleReturns);
+
+    // Flow-corrected returns (Modified-Dietz): prevents contribution days from
+    // spiking volatility. For lump-only, flowsArray is all-zeros → identical to
+    // computeDailyReturns / computeLogReturns (back-compat guaranteed).
+    const flowsArray = sortedDates.map((d) => flowsByDate.get(d) ?? 0);
+    const flowCorrectedReturns = computeDailyReturnsWithFlows(
+        portfolioValues,
+        flowsArray
+    );
+    const flowCorrectedLogReturns = computeLogReturnsWithFlows(
+        portfolioValues,
+        flowsArray
+    );
+    const vol = computeVolatility(flowCorrectedReturns);
     const sharpeValue = computeSharpe(cagrValue, vol, riskFreeRate);
     const totalDividends = Array.from(dividendsByLabel.values()).reduce(
         (a, b) => a + b,
         0
     );
+
+    // XIRR: append final portfolio value as the positive terminal flow.
+    const moneyWeightedReturn = (() => {
+        if (!contribution) return null;
+        xirrFlows.push({ date: globalTo, amount: vEnd });
+        return computeXirr(xirrFlows);
+    })();
+
+    // Total return vs total invested (lump-only ⇒ identical to old formula when vStart=budget).
+    const totalReturnPct =
+        totalContributed > 0 ? (vEnd - totalContributed) / totalContributed : 0;
 
     // ── Per-holding results ───────────────────────────────────────────────────
     const perHolding: PerHoldingResult[] = holdings.map((h) => {
@@ -201,14 +267,13 @@ export function runBacktest(input: BacktestInput): BacktestResult {
         };
     });
 
-    // ── Projection ───────────────────────────────────────────────────────────
-    const logRets = computeLogReturns(portfolioValues);
+    // ── Projection ────────────────────────────────────────────────────────────
     const projection = buildProjection({
         vEnd,
         cagrValue,
-        logReturns: logRets,
+        logReturns: flowCorrectedLogReturns,
         cumulativeDividends: totalDividends,
-        budget,
+        capitalBase: totalContributed,
         years,
         endDate: globalTo,
         seed,
@@ -218,12 +283,14 @@ export function runBacktest(input: BacktestInput): BacktestResult {
         timeline,
         metrics: {
             finalValue: vEnd,
-            totalReturnPct: vStart > 0 ? (vEnd - vStart) / vStart : 0,
+            totalReturnPct,
             cagr: cagrValue,
             maxDrawdown: mdd,
             volatility: vol,
             sharpe: sharpeValue,
             cumulativeDividends: totalDividends,
+            totalContributed,
+            moneyWeightedReturn,
         },
         perHolding,
         dividends: {

@@ -2,6 +2,13 @@
 // Purpose: domain types for the asset backtest pure engine (Phase X, X.6).
 // No runtime logic — type declarations only.
 
+export type ContributionFreq = 'monthly' | 'yearly';
+
+export interface ContributionPlan {
+    amount: number; // USD per period
+    freq: ContributionFreq;
+}
+
 export interface PricePoint {
     date: string; // 'YYYY-MM-DD', ascending
     close: number;
@@ -16,22 +23,25 @@ export interface Holding {
 }
 
 export interface BacktestInput {
-    budget: number; // initial lump-sum, USD
+    budget: number; // initial lump-sum, USD (0 for pure-DCA)
     holdings: Holding[];
     seriesByLabel: Record<string, PricePoint[]>; // label → sorted ascending
     range: { from: string; to: string }; // 'YYYY-MM-DD'
     seed: number; // deterministic Monte Carlo seed (store in URL-state)
     riskFreeRate: number; // annual fraction, e.g. 0.045
+    contribution?: ContributionPlan; // undefined → lump-sum path unchanged
 }
 
 export interface BacktestMetrics {
     finalValue: number;
-    totalReturnPct: number; // fraction, e.g. 0.35 = +35%
-    cagr: number; // annual fraction
+    totalReturnPct: number; // (finalValue − totalContributed) / totalContributed
+    cagr: number; // annual fraction (time-weighted)
     maxDrawdown: number; // negative fraction, e.g. -0.35
-    volatility: number; // annualised stdev of daily returns
+    volatility: number; // annualised stdev of daily returns (flow-corrected)
     sharpe: number | null; // null when volatility = 0 (guard divide-by-zero)
     cumulativeDividends: number; // total cash dividends received (DRIP value included)
+    totalContributed: number; // budget + Σ contributions; lump-only ⇒ equals budget
+    moneyWeightedReturn: number | null; // XIRR; null when no contributions
 }
 
 export interface DividendEvent {
