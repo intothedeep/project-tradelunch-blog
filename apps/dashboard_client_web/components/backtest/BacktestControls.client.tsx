@@ -91,9 +91,12 @@ export default function BacktestControls({
         );
     }
 
-    const showPerHolding =
-        groupIds.length > 0 ||
-        holdings.some((h) => h.canSell === false || h.groupId !== undefined);
+    // Always show per-holding controls when the advanced panel is open, so the
+    // canSell / sellPriority / group toggles are REACHABLE. (Previously gated on
+    // already-having-state, which made the sell-lock toggle unreachable — you
+    // could never set canSell=false because the control only appeared once it
+    // was already set.)
+    const showPerHolding = holdings.length > 0;
 
     return (
         <section
