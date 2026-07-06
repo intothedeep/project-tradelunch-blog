@@ -7,7 +7,6 @@
     },
 
     "model": "opus",
-    "advisorModel": "fable",
 
     "alwaysThinkingEnabled": true,
     "showThinkingSummaries": true,
