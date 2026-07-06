@@ -16,7 +16,12 @@ function score(
     sellMembers: number | null,
     notional: number | null = null
 ) {
-    return computePoliticalScore({ tradedByCount, buyMembers, sellMembers, notional });
+    return computePoliticalScore({
+        tradedByCount,
+        buyMembers,
+        sellMembers,
+        notional,
+    });
 }
 
 describe('computePoliticalScore — null / zero guard', () => {
@@ -42,37 +47,37 @@ describe('computePoliticalScore — notionalTier boundaries', () => {
     it('notionalTier=0 when notional is null', () => {
         const s = score(1, 1, 0, null) as number;
         // 0.55*0.2 + 0.30*1 + 0.15*0 = 0.11 + 0.30 = 0.41
-        expect(s).toBeCloseTo(0.55 * 0.2 + 0.30 * 1 + 0.15 * 0);
+        expect(s).toBeCloseTo(0.55 * 0.2 + 0.3 * 1 + 0.15 * 0);
     });
 
     it('notionalTier=0 when notional < 250_000', () => {
         const s = score(1, 1, 0, 249_999) as number;
-        expect(s).toBeCloseTo(0.55 * 0.2 + 0.30 * 1 + 0.15 * 0);
+        expect(s).toBeCloseTo(0.55 * 0.2 + 0.3 * 1 + 0.15 * 0);
     });
 
     it('notionalTier=0.5 when notional === 250_000 (lower boundary)', () => {
         const s = score(1, 1, 0, 250_000) as number;
-        expect(s).toBeCloseTo(0.55 * 0.2 + 0.30 * 1 + 0.15 * 0.5);
+        expect(s).toBeCloseTo(0.55 * 0.2 + 0.3 * 1 + 0.15 * 0.5);
     });
 
     it('notionalTier=0.5 when notional is mid-range (1_000_000)', () => {
         const s = score(1, 1, 0, 1_000_000) as number;
-        expect(s).toBeCloseTo(0.55 * 0.2 + 0.30 * 1 + 0.15 * 0.5);
+        expect(s).toBeCloseTo(0.55 * 0.2 + 0.3 * 1 + 0.15 * 0.5);
     });
 
     it('notionalTier=0.5 when notional just below 5_000_000', () => {
         const s = score(1, 1, 0, 4_999_999) as number;
-        expect(s).toBeCloseTo(0.55 * 0.2 + 0.30 * 1 + 0.15 * 0.5);
+        expect(s).toBeCloseTo(0.55 * 0.2 + 0.3 * 1 + 0.15 * 0.5);
     });
 
     it('notionalTier=1 when notional === 5_000_000 (upper boundary)', () => {
         const s = score(1, 1, 0, 5_000_000) as number;
-        expect(s).toBeCloseTo(0.55 * 0.2 + 0.30 * 1 + 0.15 * 1);
+        expect(s).toBeCloseTo(0.55 * 0.2 + 0.3 * 1 + 0.15 * 1);
     });
 
     it('notionalTier=1 when notional > 5_000_000', () => {
         const s = score(1, 1, 0, 50_000_000) as number;
-        expect(s).toBeCloseTo(0.55 * 0.2 + 0.30 * 1 + 0.15 * 1);
+        expect(s).toBeCloseTo(0.55 * 0.2 + 0.3 * 1 + 0.15 * 1);
     });
 
     it('null notional → tier=0; score still computes from counts (NOT null)', () => {
@@ -85,12 +90,12 @@ describe('computePoliticalScore — breadth saturation at count >= 5', () => {
     it('breadth saturates at 1 when tradedByCount === 5 (notional null)', () => {
         // breadth=1, consensus=1, tier=0 → 0.55+0.30+0 = 0.85
         const s = score(5, 5, 0) as number;
-        expect(s).toBeCloseTo(0.55 * 1 + 0.30 * 1 + 0.15 * 0);
+        expect(s).toBeCloseTo(0.55 * 1 + 0.3 * 1 + 0.15 * 0);
     });
 
     it('breadth saturates at 1 when tradedByCount > 5', () => {
         const s10 = score(10, 10, 0);
-        const s5  = score(5,  5,  0);
+        const s5 = score(5, 5, 0);
         // Both should be equal (breadth capped at 1, same notional=null tier).
         expect(s10).toBeCloseTo(s5 as number);
     });
@@ -98,7 +103,7 @@ describe('computePoliticalScore — breadth saturation at count >= 5', () => {
     it('breadth is < 1 when tradedByCount < 5', () => {
         // count=2 → breadth=0.4; all-buy → consensus=1; notional null → tier=0
         const s = score(2, 2, 0) as number;
-        expect(s).toBeCloseTo(0.55 * 0.4 + 0.30 * 1 + 0.15 * 0);
+        expect(s).toBeCloseTo(0.55 * 0.4 + 0.3 * 1 + 0.15 * 0);
     });
 });
 
@@ -106,16 +111,16 @@ describe('computePoliticalScore — consensus for all-buy vs split', () => {
     it('all-buy gives consensus=1 (max agreement)', () => {
         // count=1, buy=1, sell=0, notional=null → 0.55*0.2 + 0.30*1 + 0 = 0.41
         const s = score(1, 1, 0);
-        expect(s).toBeCloseTo(0.55 * 0.2 + 0.30 * 1);
+        expect(s).toBeCloseTo(0.55 * 0.2 + 0.3 * 1);
     });
 
     it('all-sell gives consensus=1 (sell skew is also directional agreement)', () => {
         const s = score(1, 0, 1);
-        expect(s).toBeCloseTo(0.55 * 0.2 + 0.30 * 1);
+        expect(s).toBeCloseTo(0.55 * 0.2 + 0.3 * 1);
     });
 
     it('50/50 split gives lower consensus than all-buy', () => {
-        const split  = score(4, 2, 2);
+        const split = score(4, 2, 2);
         const allBuy = score(4, 4, 0);
         expect(split as number).toBeLessThan(allBuy as number);
     });
@@ -165,12 +170,22 @@ describe('computePoliticalScore — full formula [0,1] range', () => {
 
 describe('computePoliticalScore — determinism', () => {
     it('returns the same value for identical inputs (called twice)', () => {
-        const input = { tradedByCount: 3, buyMembers: 2, sellMembers: 1, notional: 300_000 };
+        const input = {
+            tradedByCount: 3,
+            buyMembers: 2,
+            sellMembers: 1,
+            notional: 300_000,
+        };
         expect(computePoliticalScore(input)).toBe(computePoliticalScore(input));
     });
 
     it('is deterministic with null notional', () => {
-        const input = { tradedByCount: 3, buyMembers: 2, sellMembers: 1, notional: null };
+        const input = {
+            tradedByCount: 3,
+            buyMembers: 2,
+            sellMembers: 1,
+            notional: null,
+        };
         expect(computePoliticalScore(input)).toBe(computePoliticalScore(input));
     });
 });
@@ -186,27 +201,36 @@ describe('computePoliticalScore — formula-frozen guard (Phase W)', () => {
         // breadth=0.6, consensus=2/3, notionalTier=0.5
         // 0.55*0.6 + 0.30*(2/3) + 0.15*0.5 = 0.33 + 0.20 + 0.075 = 0.605
         const s = computePoliticalScore({
-            tradedByCount: 3, buyMembers: 2, sellMembers: 1, notional: 300_000,
+            tradedByCount: 3,
+            buyMembers: 2,
+            sellMembers: 1,
+            notional: 300_000,
         }) as number;
-        expect(s).toBeCloseTo(0.55 * 0.6 + 0.30 * (2 / 3) + 0.15 * 0.5, 10);
+        expect(s).toBeCloseTo(0.55 * 0.6 + 0.3 * (2 / 3) + 0.15 * 0.5, 10);
     });
 
     it('pinned: count=5, buy=5, sell=0, notional=5_000_000 → 1.0 exactly', () => {
         const s = computePoliticalScore({
-            tradedByCount: 5, buyMembers: 5, sellMembers: 0, notional: 5_000_000,
+            tradedByCount: 5,
+            buyMembers: 5,
+            sellMembers: 0,
+            notional: 5_000_000,
         }) as number;
         expect(s).toBeCloseTo(1.0, 10);
     });
 
     it('pinned: count=1, buy=0, sell=0, notional=null → 0.55*0.2 = 0.11', () => {
         const s = computePoliticalScore({
-            tradedByCount: 1, buyMembers: 0, sellMembers: 0, notional: null,
+            tradedByCount: 1,
+            buyMembers: 0,
+            sellMembers: 0,
+            notional: null,
         }) as number;
         expect(s).toBeCloseTo(0.55 * 0.2, 10);
     });
 
     it('pinned: weights sum to 1.0 at max inputs (self-documenting invariant)', () => {
         // W_BREADTH + W_CONSENSUS + W_NOTIONAL = 0.55 + 0.30 + 0.15 = 1.0
-        expect(0.55 + 0.30 + 0.15).toBeCloseTo(1.0, 10);
+        expect(0.55 + 0.3 + 0.15).toBeCloseTo(1.0, 10);
     });
 });

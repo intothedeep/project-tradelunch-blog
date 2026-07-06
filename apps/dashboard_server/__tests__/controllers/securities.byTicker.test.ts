@@ -27,7 +27,11 @@ type CapturedResponse = {
 };
 
 function mockRes(): { res: CapturedResponse; handler: object } {
-    const captured: CapturedResponse = { status: 200, payload: undefined, headers: {} };
+    const captured: CapturedResponse = {
+        status: 200,
+        payload: undefined,
+        headers: {},
+    };
     const res = {
         status(code: number) {
             captured.status = code;
@@ -45,23 +49,34 @@ function mockRes(): { res: CapturedResponse; handler: object } {
     return { res: captured, handler: res };
 }
 
-type AnyRoute = { path: string; methods: Record<string, boolean>; stack: { handle: unknown }[] };
+type AnyRoute = {
+    path: string;
+    methods: Record<string, boolean>;
+    stack: { handle: unknown }[];
+};
 
-function routeByPath(r: { stack: { route?: AnyRoute }[] }, path: string): AnyRoute | undefined {
+function routeByPath(
+    r: { stack: { route?: AnyRoute }[] },
+    path: string
+): AnyRoute | undefined {
     return r.stack
         .filter((l) => !!l.route)
         .map((l) => l.route as AnyRoute)
         .find((rt) => rt.path === path);
 }
 
-function lastHandle(route: AnyRoute): (req: unknown, res: unknown) => Promise<void> {
+function lastHandle(
+    route: AnyRoute
+): (req: unknown, res: unknown) => Promise<void> {
     return route.stack[route.stack.length - 1].handle as (
         req: unknown,
         res: unknown
     ) => Promise<void>;
 }
 
-async function invoke(params: Record<string, string>): Promise<CapturedResponse> {
+async function invoke(
+    params: Record<string, string>
+): Promise<CapturedResponse> {
     const route = routeByPath(byTickerRouter, '/:ticker/by-ticker');
     if (!route) throw new Error('/:ticker/by-ticker route not registered');
     const { res, handler } = mockRes();
@@ -159,7 +174,10 @@ describe('GET /:ticker/by-ticker — happy path', () => {
         mockQuery.mockResolvedValueOnce({ rows: [] });
 
         const result = await invoke({ ticker: 'AAPL' });
-        const body = result.payload as { success: boolean; data: Record<string, unknown> };
+        const body = result.payload as {
+            success: boolean;
+            data: Record<string, unknown>;
+        };
 
         expect(body.success).toBe(true);
         expect(body.data).toMatchObject({
@@ -168,7 +186,9 @@ describe('GET /:ticker/by-ticker — happy path', () => {
             periodOfReport: '2026-03-31',
         });
 
-        const history = body.data.rankingHistory as Array<Record<string, unknown>>;
+        const history = body.data.rankingHistory as Array<
+            Record<string, unknown>
+        >;
         expect(history).toHaveLength(1);
         expect(history[0]).toMatchObject({
             asOf: '2026-06-27',
@@ -216,7 +236,10 @@ describe('GET /:ticker/by-ticker — happy path', () => {
         });
 
         const result = await invoke({ ticker: 'AAPL' });
-        const body = result.payload as { success: boolean; data: Record<string, unknown> };
+        const body = result.payload as {
+            success: boolean;
+            data: Record<string, unknown>;
+        };
 
         expect(body.success).toBe(true);
         expect(body.data).toMatchObject({
@@ -226,7 +249,9 @@ describe('GET /:ticker/by-ticker — happy path', () => {
             holders: [],
         });
 
-        const history = body.data.rankingHistory as Array<Record<string, unknown>>;
+        const history = body.data.rankingHistory as Array<
+            Record<string, unknown>
+        >;
         expect(history).toHaveLength(1);
         expect(mockQuery).toHaveBeenCalledTimes(2);
     });
@@ -241,7 +266,13 @@ describe('GET /:ticker/by-ticker — weight/delta derivation', () => {
 
         // Probe (has_holdings true; hasRankings false → no qA)
         mockQuery.mockResolvedValueOnce({
-            rows: [{ has_holdings: true, has_rankings: false, has_market_history: false }],
+            rows: [
+                {
+                    has_holdings: true,
+                    has_rankings: false,
+                    has_market_history: false,
+                },
+            ],
         });
         // Query B: holder row
         mockQuery.mockResolvedValueOnce({
@@ -261,15 +292,30 @@ describe('GET /:ticker/by-ticker — weight/delta derivation', () => {
         mockQuery.mockResolvedValueOnce({ rows: [{ cusip: '037833100' }] });
         // WEIGHT_LATEST: 123456/1000000*100 = 12.3456%
         mockQuery.mockResolvedValueOnce({
-            rows: [{ cik: '0001067983', total_value: '1000000', cusip_value: '123456' }],
+            rows: [
+                {
+                    cik: '0001067983',
+                    total_value: '1000000',
+                    cusip_value: '123456',
+                },
+            ],
         });
         // WEIGHT_PREV: 135756/1000000*100 = 13.5756% → delta = 12.3456 − 13.5756 = −1.23
         mockQuery.mockResolvedValueOnce({
-            rows: [{ cik: '0001067983', total_value: '1000000', cusip_value: '135756' }],
+            rows: [
+                {
+                    cik: '0001067983',
+                    total_value: '1000000',
+                    cusip_value: '135756',
+                },
+            ],
         });
 
         const result = await invoke({ ticker: 'AAPL' });
-        const body = result.payload as { success: boolean; data: Record<string, unknown> };
+        const body = result.payload as {
+            success: boolean;
+            data: Record<string, unknown>;
+        };
 
         expect(body.success).toBe(true);
         const holders = body.data.holders as Array<Record<string, unknown>>;
@@ -285,7 +331,13 @@ describe('GET /:ticker/by-ticker — weight/delta derivation', () => {
         const period = new Date('2026-03-31');
 
         mockQuery.mockResolvedValueOnce({
-            rows: [{ has_holdings: true, has_rankings: false, has_market_history: false }],
+            rows: [
+                {
+                    has_holdings: true,
+                    has_rankings: false,
+                    has_market_history: false,
+                },
+            ],
         });
         mockQuery.mockResolvedValueOnce({
             rows: [
@@ -303,15 +355,30 @@ describe('GET /:ticker/by-ticker — weight/delta derivation', () => {
         mockQuery.mockResolvedValueOnce({ rows: [{ cusip: '037833100' }] });
         // WEIGHT_LATEST: 3.5%
         mockQuery.mockResolvedValueOnce({
-            rows: [{ cik: '0001350694', total_value: '1000000', cusip_value: '35000' }],
+            rows: [
+                {
+                    cik: '0001350694',
+                    total_value: '1000000',
+                    cusip_value: '35000',
+                },
+            ],
         });
         // WEIGHT_PREV: filed prev but held none of the cusip → cusip_value null
         mockQuery.mockResolvedValueOnce({
-            rows: [{ cik: '0001350694', total_value: '2000000', cusip_value: null }],
+            rows: [
+                {
+                    cik: '0001350694',
+                    total_value: '2000000',
+                    cusip_value: null,
+                },
+            ],
         });
 
         const result = await invoke({ ticker: 'AAPL' });
-        const body = result.payload as { success: boolean; data: Record<string, unknown> };
+        const body = result.payload as {
+            success: boolean;
+            data: Record<string, unknown>;
+        };
         const holders = body.data.holders as Array<Record<string, unknown>>;
         expect(holders[0].isNew).toBe(true);
         // new position: delta = weightLatest − 0 = full current weight (3.5%)
@@ -323,7 +390,14 @@ describe('GET /:ticker/by-ticker — price history', () => {
     it('returns ascending priceHistory when market_history is present', async () => {
         // Probe: only market_history present
         mockQuery.mockResolvedValueOnce({
-            rows: [{ has_holdings: false, has_rankings: false, has_delta: false, has_market_history: true }],
+            rows: [
+                {
+                    has_holdings: false,
+                    has_rankings: false,
+                    has_delta: false,
+                    has_market_history: true,
+                },
+            ],
         });
         // Query C: 3 rows returned DESC (controller reverses them)
         mockQuery.mockResolvedValueOnce({
@@ -335,10 +409,16 @@ describe('GET /:ticker/by-ticker — price history', () => {
         });
 
         const result = await invoke({ ticker: 'AAPL' });
-        const body = result.payload as { success: boolean; data: Record<string, unknown> };
+        const body = result.payload as {
+            success: boolean;
+            data: Record<string, unknown>;
+        };
 
         expect(body.success).toBe(true);
-        const ph = body.data.priceHistory as Array<{ t: string; close: number }>;
+        const ph = body.data.priceHistory as Array<{
+            t: string;
+            close: number;
+        }>;
         expect(ph).toHaveLength(3);
         // After reverse: ascending — 2026-06-25 first, 2026-06-27 last
         expect(ph[0].t).toBe('2026-06-25');
@@ -352,15 +432,32 @@ describe('GET /:ticker/by-ticker — price history', () => {
     it('returns priceHistory:[] when market_history is absent from presence probe', async () => {
         // Probe: rankings only, no market_history
         mockQuery.mockResolvedValueOnce({
-            rows: [{ has_holdings: false, has_rankings: true, has_delta: false, has_market_history: false }],
+            rows: [
+                {
+                    has_holdings: false,
+                    has_rankings: true,
+                    has_delta: false,
+                    has_market_history: false,
+                },
+            ],
         });
         // Query A: one ranking row
         mockQuery.mockResolvedValueOnce({
-            rows: [{ as_of: new Date('2026-06-27'), scope: 'global', rank: 1, market_cap: '3000000000000' }],
+            rows: [
+                {
+                    as_of: new Date('2026-06-27'),
+                    scope: 'global',
+                    rank: 1,
+                    market_cap: '3000000000000',
+                },
+            ],
         });
 
         const result = await invoke({ ticker: 'AAPL' });
-        const body = result.payload as { success: boolean; data: Record<string, unknown> };
+        const body = result.payload as {
+            success: boolean;
+            data: Record<string, unknown>;
+        };
         expect(body.success).toBe(true);
         expect(body.data.priceHistory).toEqual([]);
         // 2 calls: probe + qA (no qC)
@@ -370,17 +467,34 @@ describe('GET /:ticker/by-ticker — price history', () => {
     it('returns priceHistory:[] when market_history table is present but has no rows for ticker', async () => {
         // Probe: market_history present
         mockQuery.mockResolvedValueOnce({
-            rows: [{ has_holdings: false, has_rankings: true, has_delta: false, has_market_history: true }],
+            rows: [
+                {
+                    has_holdings: false,
+                    has_rankings: true,
+                    has_delta: false,
+                    has_market_history: true,
+                },
+            ],
         });
         // Query A: one ranking row
         mockQuery.mockResolvedValueOnce({
-            rows: [{ as_of: new Date('2026-06-27'), scope: 'global', rank: 5, market_cap: '500000000000' }],
+            rows: [
+                {
+                    as_of: new Date('2026-06-27'),
+                    scope: 'global',
+                    rank: 5,
+                    market_cap: '500000000000',
+                },
+            ],
         });
         // Query C: empty
         mockQuery.mockResolvedValueOnce({ rows: [] });
 
         const result = await invoke({ ticker: 'MSFT' });
-        const body = result.payload as { success: boolean; data: Record<string, unknown> };
+        const body = result.payload as {
+            success: boolean;
+            data: Record<string, unknown>;
+        };
         expect(body.success).toBe(true);
         expect(body.data.priceHistory).toEqual([]);
         expect(mockQuery).toHaveBeenCalledTimes(3);

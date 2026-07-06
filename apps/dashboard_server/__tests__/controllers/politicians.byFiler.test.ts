@@ -26,25 +26,47 @@ type CapturedResponse = {
 };
 
 function mockRes(): { res: CapturedResponse; handler: object } {
-    const captured: CapturedResponse = { status: 200, payload: undefined, headers: {} };
+    const captured: CapturedResponse = {
+        status: 200,
+        payload: undefined,
+        headers: {},
+    };
     const handler = {
-        status(code: number) { captured.status = code; return handler; },
-        json(payload: unknown) { captured.payload = payload; return handler; },
-        set(key: string, value: string) { captured.headers[key] = value; return handler; },
+        status(code: number) {
+            captured.status = code;
+            return handler;
+        },
+        json(payload: unknown) {
+            captured.payload = payload;
+            return handler;
+        },
+        set(key: string, value: string) {
+            captured.headers[key] = value;
+            return handler;
+        },
     };
     return { res: captured, handler };
 }
 
-type AnyRoute = { path: string; methods: Record<string, boolean>; stack: { handle: unknown }[] };
+type AnyRoute = {
+    path: string;
+    methods: Record<string, boolean>;
+    stack: { handle: unknown }[];
+};
 
-function routeByPath(r: { stack: { route?: AnyRoute }[] }, path: string): AnyRoute | undefined {
+function routeByPath(
+    r: { stack: { route?: AnyRoute }[] },
+    path: string
+): AnyRoute | undefined {
     return r.stack
         .filter((l) => !!l.route)
         .map((l) => l.route as AnyRoute)
         .find((rt) => rt.path === path);
 }
 
-function lastHandle(route: AnyRoute): (req: unknown, res: unknown) => Promise<void> {
+function lastHandle(
+    route: AnyRoute
+): (req: unknown, res: unknown) => Promise<void> {
     return route.stack[route.stack.length - 1].handle as (
         req: unknown,
         res: unknown
@@ -64,14 +86,26 @@ beforeEach(() => mockQuery.mockReset());
 // Presence probe: registry present, both views present.
 function allPresent() {
     mockQuery.mockResolvedValueOnce({
-        rows: [{ has_registry: true, has_ticker_holders: true, has_timeline: true }],
+        rows: [
+            {
+                has_registry: true,
+                has_ticker_holders: true,
+                has_timeline: true,
+            },
+        ],
     });
 }
 
 // Presence probe: only registry present.
 function registryOnly() {
     mockQuery.mockResolvedValueOnce({
-        rows: [{ has_registry: true, has_ticker_holders: false, has_timeline: false }],
+        rows: [
+            {
+                has_registry: true,
+                has_ticker_holders: false,
+                has_timeline: false,
+            },
+        ],
     });
 }
 
@@ -119,7 +153,15 @@ describe('GET /:filerId — input validation', () => {
 
     it('accepts valid slug (lowercase, digits, underscore)', async () => {
         // Presence probe: registry absent → stops here
-        mockQuery.mockResolvedValueOnce({ rows: [{ has_registry: false, has_ticker_holders: false, has_timeline: false }] });
+        mockQuery.mockResolvedValueOnce({
+            rows: [
+                {
+                    has_registry: false,
+                    has_ticker_holders: false,
+                    has_timeline: false,
+                },
+            ],
+        });
         const result = await invoke('nancy_pelosi_123');
         expect(mockQuery).toHaveBeenCalledTimes(1);
         expect(result.payload).toEqual({ success: true, data: null });
@@ -129,7 +171,13 @@ describe('GET /:filerId — input validation', () => {
 describe('GET /:filerId — presence guard', () => {
     it('returns data:null when politician_registry is absent', async () => {
         mockQuery.mockResolvedValueOnce({
-            rows: [{ has_registry: false, has_ticker_holders: false, has_timeline: false }],
+            rows: [
+                {
+                    has_registry: false,
+                    has_ticker_holders: false,
+                    has_timeline: false,
+                },
+            ],
         });
         const result = await invoke('nancy_pelosi');
         expect(result.payload).toEqual({ success: true, data: null });
@@ -167,21 +215,44 @@ describe('GET /:filerId — happy path', () => {
             ],
         });
         // getFilerTickerShares: TOTAL query
-        mockQuery.mockResolvedValueOnce({ rows: [{ filer_id: 'nancy_pelosi', total_value: '2000000' }] });
+        mockQuery.mockResolvedValueOnce({
+            rows: [{ filer_id: 'nancy_pelosi', total_value: '2000000' }],
+        });
         // getFilerTickerShares: RANK query
         mockQuery.mockResolvedValueOnce({
-            rows: [{ filer_id: 'nancy_pelosi', ticker: 'NVDA', rank_in_filer: '1', total_ticker_count: '1', ticker_value: '2000000' }],
+            rows: [
+                {
+                    filer_id: 'nancy_pelosi',
+                    ticker: 'NVDA',
+                    rank_in_filer: '1',
+                    total_ticker_count: '1',
+                    ticker_value: '2000000',
+                },
+            ],
         });
         // Query C: timeline — 2 distinct quarters
         mockQuery.mockResolvedValueOnce({
             rows: [
-                { quarter: new Date('2025-10-01'), ticker: 'NVDA', net_value_usd: '500000', direction: 'buy' },
-                { quarter: new Date('2026-01-01'), ticker: 'NVDA', net_value_usd: '-200000', direction: 'sell' },
+                {
+                    quarter: new Date('2025-10-01'),
+                    ticker: 'NVDA',
+                    net_value_usd: '500000',
+                    direction: 'buy',
+                },
+                {
+                    quarter: new Date('2026-01-01'),
+                    ticker: 'NVDA',
+                    net_value_usd: '-200000',
+                    direction: 'sell',
+                },
             ],
         });
 
         const result = await invoke('nancy_pelosi');
-        const body = result.payload as { success: boolean; data: Record<string, unknown> };
+        const body = result.payload as {
+            success: boolean;
+            data: Record<string, unknown>;
+        };
 
         expect(body.success).toBe(true);
         const { filer, tickers, timeline } = body.data as {
@@ -228,12 +299,20 @@ describe('GET /:filerId — timeline volume guard', () => {
         // Timeline: only 1 distinct quarter
         mockQuery.mockResolvedValueOnce({
             rows: [
-                { quarter: new Date('2026-01-01'), ticker: 'AAPL', net_value_usd: '100000', direction: 'buy' },
+                {
+                    quarter: new Date('2026-01-01'),
+                    ticker: 'AAPL',
+                    net_value_usd: '100000',
+                    direction: 'buy',
+                },
             ],
         });
 
         const result = await invoke('nancy_pelosi');
-        const body = result.payload as { success: boolean; data: Record<string, unknown> };
+        const body = result.payload as {
+            success: boolean;
+            data: Record<string, unknown>;
+        };
         const { timeline } = body.data as { timeline: unknown[] };
         expect(timeline).toEqual([]);
     });
@@ -246,9 +325,15 @@ describe('GET /:filerId — partial presence (views absent)', () => {
         // No ticker query, no timeline query
 
         const result = await invoke('nancy_pelosi');
-        const body = result.payload as { success: boolean; data: Record<string, unknown> };
+        const body = result.payload as {
+            success: boolean;
+            data: Record<string, unknown>;
+        };
         expect(body.success).toBe(true);
-        const { tickers, timeline } = body.data as { tickers: unknown[]; timeline: unknown[] };
+        const { tickers, timeline } = body.data as {
+            tickers: unknown[];
+            timeline: unknown[];
+        };
         expect(tickers).toEqual([]);
         expect(timeline).toEqual([]);
         // Calls: probe + filer row = 2 only

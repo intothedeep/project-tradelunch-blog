@@ -26,7 +26,10 @@ export function blockCrawlers(
 ): void {
     const ua = req.get('user-agent') ?? '';
     if (ua !== '' && BOT_UA_RE.test(ua)) {
-        res.status(403).json({ success: false, error: 'crawlers not permitted' });
+        res.status(403).json({
+            success: false,
+            error: 'crawlers not permitted',
+        });
         return;
     }
     next();

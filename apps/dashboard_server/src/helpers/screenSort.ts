@@ -60,9 +60,9 @@ export function compareScreenCandidates(
     const aNpb = a.newPositionBreadth;
     const bNpb = b.newPositionBreadth;
     if (aNpb !== bNpb) {
-        if (aNpb === null) return 1;   // a has no data → a goes later
-        if (bNpb === null) return -1;  // b has no data → b goes later
-        return bNpb - aNpb;            // both present → higher breadth first
+        if (aNpb === null) return 1; // a has no data → a goes later
+        if (bNpb === null) return -1; // b has no data → b goes later
+        return bNpb - aNpb; // both present → higher breadth first
     }
 
     // holderCountActive DESC — final tiebreak.

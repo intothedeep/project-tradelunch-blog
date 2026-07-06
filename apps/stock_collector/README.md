@@ -12,16 +12,16 @@ re-run job self-heals.
 
 ## What it does (and why)
 
-| Job | What it writes | Why |
-| --- | --- | --- |
-| **Daily** (`run_daily`) | Daily OHLC bars (Yahoo/yfinance) for the watchlist → `market_history` (interval `1d`, incremental) + `market_snapshots` (latest close + 1-day change). | The dashboard's price/series data. Incremental cursor keeps each run cheap; optional Parquet archive to Storage. |
-| **Weekly** (`run_weekly`) | S&P500-class market-cap ranking, global + per-sector → `market_rankings`; sticky `tracked_symbols` (global top-20 / sector top-10); `symbol_fundamentals` cache (shares / sector / company **name**). | Powers the ranking views and keeps the watchlist self-expanding. Market cap is derived from cached `shares × close` to avoid a per-symbol `.info` call. The company name (`long_name`, migration 0018) rides the SAME quarterly `.info` call as sector and renders under the ticker in `/rankings`. |
-| **Weekly 13F** (`run_monthly`) | SEC EDGAR 13F institutional holdings → `sec_filings` + `sec_holdings`; supersedes earlier amendments for the same period. | Fund holdings / rank-flow views. **L19:** cron is weekly (Mon), but a period-advance guard makes it a cheap no-op except during the 4 quarterly 13F windows. |
-| **13F backfill** (`run_backfill`) | Historical 13F from `--since` (default ~2yr back) across all funds, per period. | One-shot seed of fund history. `--db-keep-quarters` decouples the long Parquet cold-archive from the short free-tier Postgres serving window. |
-| **Security map** (`run_security_map`) | CUSIP → ticker → sector for the ever-top-N 13F holdings (OpenFIGI `/v3/mapping` + `symbol_fundamentals`) → `security_map`. | Phase P join key: 13F is CUSIP-only, prices/rankings are ticker-only. Reads go through the `v_sec_holdings_enriched` view (no `sec_holdings.ticker` backfill). Weekly, 1h after the 13F job. OpenFIGI is keyless-tolerant (`OPENFIGI_API_KEY` raises the limit). |
-| **Rankings archive** (`archive_rankings`) | `market_rankings` → `rankings/{YYYY}.parquet` on Storage. | Rankings are point-in-time and NON-reproducible (no shares-outstanding history). Wired into the weekly job so the current-year cold copy stays fresh — the precondition for the rankings prune. |
-| **OHLC/13F Parquet archive** (`seed_archive`, `upload_archive`) | Full inception history → Parquet on Supabase Storage. | Cold storage that the retention prunes verify against before any delete. |
-| **Retention prunes** | `prune_history` (OHLC 5yr), `prune_holdings` (13F 3yr), `prune_rankings` (10yr), `prune_logs` (`error_log` 7d / `batch_log` 90d). | Keep the free-tier Postgres lean. Domain prunes hard-delete ONLY after confirming the row's Parquet object exists in Storage (all-or-skip). |
+| Job                                                             | What it writes                                                                                                                                                                                        | Why                                                                                                                                                                                                                                                                                                 |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Daily** (`run_daily`)                                         | Daily OHLC bars (Yahoo/yfinance) for the watchlist → `market_history` (interval `1d`, incremental) + `market_snapshots` (latest close + 1-day change).                                                | The dashboard's price/series data. Incremental cursor keeps each run cheap; optional Parquet archive to Storage.                                                                                                                                                                                    |
+| **Weekly** (`run_weekly`)                                       | S&P500-class market-cap ranking, global + per-sector → `market_rankings`; sticky `tracked_symbols` (global top-20 / sector top-10); `symbol_fundamentals` cache (shares / sector / company **name**). | Powers the ranking views and keeps the watchlist self-expanding. Market cap is derived from cached `shares × close` to avoid a per-symbol `.info` call. The company name (`long_name`, migration 0018) rides the SAME quarterly `.info` call as sector and renders under the ticker in `/rankings`. |
+| **Weekly 13F** (`run_monthly`)                                  | SEC EDGAR 13F institutional holdings → `sec_filings` + `sec_holdings`; supersedes earlier amendments for the same period.                                                                             | Fund holdings / rank-flow views. **L19:** cron is weekly (Mon), but a period-advance guard makes it a cheap no-op except during the 4 quarterly 13F windows.                                                                                                                                        |
+| **13F backfill** (`run_backfill`)                               | Historical 13F from `--since` (default ~2yr back) across all funds, per period.                                                                                                                       | One-shot seed of fund history. `--db-keep-quarters` decouples the long Parquet cold-archive from the short free-tier Postgres serving window.                                                                                                                                                       |
+| **Security map** (`run_security_map`)                           | CUSIP → ticker → sector for the ever-top-N 13F holdings (OpenFIGI `/v3/mapping` + `symbol_fundamentals`) → `security_map`.                                                                            | Phase P join key: 13F is CUSIP-only, prices/rankings are ticker-only. Reads go through the `v_sec_holdings_enriched` view (no `sec_holdings.ticker` backfill). Weekly, 1h after the 13F job. OpenFIGI is keyless-tolerant (`OPENFIGI_API_KEY` raises the limit).                                    |
+| **Rankings archive** (`archive_rankings`)                       | `market_rankings` → `rankings/{YYYY}.parquet` on Storage.                                                                                                                                             | Rankings are point-in-time and NON-reproducible (no shares-outstanding history). Wired into the weekly job so the current-year cold copy stays fresh — the precondition for the rankings prune.                                                                                                     |
+| **OHLC/13F Parquet archive** (`seed_archive`, `upload_archive`) | Full inception history → Parquet on Supabase Storage.                                                                                                                                                 | Cold storage that the retention prunes verify against before any delete.                                                                                                                                                                                                                            |
+| **Retention prunes**                                            | `prune_history` (OHLC 5yr), `prune_holdings` (13F 3yr), `prune_rankings` (10yr), `prune_logs` (`error_log` 7d / `batch_log` 90d).                                                                     | Keep the free-tier Postgres lean. Domain prunes hard-delete ONLY after confirming the row's Parquet object exists in Storage (all-or-skip).                                                                                                                                                         |
 
 > **Company-name note:** `long_name` comes from Yahoo `.info` `longName`
 > (`shortName` fallback) — the SAME expensive call already made for `sector`, so
@@ -88,16 +88,16 @@ uv run python -m collector.entrypoints.prune_logs     --dry-run   # error_log 7d
 
 ### Common flags
 
-| Flag | Applies to | Effect |
-| --- | --- | --- |
-| `--limit <int>` | most jobs | cap symbols/funds (`0` = all) |
-| `--dry-run` | all writers/prunes | fetch/count only, no DB writes |
-| `--archive` | `run_daily`, `run_backfill`, `run_monthly` | also write the Parquet archive |
-| `--backfill-days <int>` | `run_daily` | look back N days |
-| `--full` | `run_daily` | full history from inception (yfinance `period='max'`; ignores cursor) |
-| `--since <YYYY[-MM-DD]>` | `run_backfill` | earliest period (default ~2yr back) |
-| `--cik <int>` | `run_backfill`, `run_monthly`, `prune_holdings` | restrict to one fund |
-| `--db-keep-quarters <int>` | `run_backfill` | DB write window (default 12 = 3yr); older periods archive-only |
+| Flag                       | Applies to                                      | Effect                                                                |
+| -------------------------- | ----------------------------------------------- | --------------------------------------------------------------------- |
+| `--limit <int>`            | most jobs                                       | cap symbols/funds (`0` = all)                                         |
+| `--dry-run`                | all writers/prunes                              | fetch/count only, no DB writes                                        |
+| `--archive`                | `run_daily`, `run_backfill`, `run_monthly`      | also write the Parquet archive                                        |
+| `--backfill-days <int>`    | `run_daily`                                     | look back N days                                                      |
+| `--full`                   | `run_daily`                                     | full history from inception (yfinance `period='max'`; ignores cursor) |
+| `--since <YYYY[-MM-DD]>`   | `run_backfill`                                  | earliest period (default ~2yr back)                                   |
+| `--cik <int>`              | `run_backfill`, `run_monthly`, `prune_holdings` | restrict to one fund                                                  |
+| `--db-keep-quarters <int>` | `run_backfill`                                  | DB write window (default 12 = 3yr); older periods archive-only        |
 
 Domain prunes delete a period/year ONLY if its Parquet object is confirmed
 present in Storage (no-op if the archive is off/unreachable). `prune_logs` has
@@ -141,19 +141,19 @@ Secrets the jobs read: `DATABASE_URL` (session pooler),
 
 ## Production schedule (cron, UTC)
 
-| Workflow | Cron | Cadence | Runs |
-| --- | --- | --- | --- |
-| `collector-daily` | `30 21 * * 1-5` | Mon–Fri (after US close) | `run_daily` → `upload_archive` |
-| `collector-weekly` | `0 6 * * 0` | Sun | `run_weekly` → `archive_rankings` |
-| `collector-monthly` (`collector-13f`) | `0 7 * * 1` | Mon (weekly, L19) | `run_monthly` |
-| `collector-security-map` | `0 8 * * 1` | Mon (1h after 13F) | `run_security_map` (CUSIP→ticker) |
-| `collector-prune-logs` | `0 3 * * *` | Daily | `prune_logs` — **LIVE** (no archive gate) |
-| `collector-prune` | `0 7 30 12 *` | Dec 30 | OHLC 5yr **LIVE** + 13F + rankings prune (scheduled = dry-run) |
-| `collector-keepalive` | `0 12 1,15 * *` | 1st & 15th | idle keepalive ping |
-| `supabase-keepalive` | `0 9 * * 1,4` | Mon & Thu | DB write ping (free-tier auto-pause guard) |
-| `collector-backfill` | — | manual (**LIVE by default**) | `run_backfill` (13F history; `-f dry_run=true` to preview) |
-| `collector-seed-archive` | — | manual | `seed_archive` (full inception) → `upload_archive` |
-| `ci` | — | push / PR | build + typecheck + lint + tests |
+| Workflow                              | Cron            | Cadence                      | Runs                                                           |
+| ------------------------------------- | --------------- | ---------------------------- | -------------------------------------------------------------- |
+| `collector-daily`                     | `30 21 * * 1-5` | Mon–Fri (after US close)     | `run_daily` → `upload_archive`                                 |
+| `collector-weekly`                    | `0 6 * * 0`     | Sun                          | `run_weekly` → `archive_rankings`                              |
+| `collector-monthly` (`collector-13f`) | `0 7 * * 1`     | Mon (weekly, L19)            | `run_monthly`                                                  |
+| `collector-security-map`              | `0 8 * * 1`     | Mon (1h after 13F)           | `run_security_map` (CUSIP→ticker)                              |
+| `collector-prune-logs`                | `0 3 * * *`     | Daily                        | `prune_logs` — **LIVE** (no archive gate)                      |
+| `collector-prune`                     | `0 7 30 12 *`   | Dec 30                       | OHLC 5yr **LIVE** + 13F + rankings prune (scheduled = dry-run) |
+| `collector-keepalive`                 | `0 12 1,15 * *` | 1st & 15th                   | idle keepalive ping                                            |
+| `supabase-keepalive`                  | `0 9 * * 1,4`   | Mon & Thu                    | DB write ping (free-tier auto-pause guard)                     |
+| `collector-backfill`                  | —               | manual (**LIVE by default**) | `run_backfill` (13F history; `-f dry_run=true` to preview)     |
+| `collector-seed-archive`              | —               | manual                       | `seed_archive` (full inception) → `upload_archive`             |
+| `ci`                                  | —               | push / PR                    | build + typecheck + lint + tests                               |
 
 **No active Supabase `pg_cron` jobs** — `cron.job` is empty. The former
 `error_log_cleanup` pg_cron purge was retired 2026-06-30 (Phase N); `error_log`

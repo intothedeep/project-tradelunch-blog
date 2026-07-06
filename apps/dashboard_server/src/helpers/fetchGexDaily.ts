@@ -33,7 +33,9 @@ interface IRawGexRow {
 }
 
 function toIsoDate(d: Date | string): string {
-    return typeof d === 'string' ? d.slice(0, 10) : d.toISOString().slice(0, 10);
+    return typeof d === 'string'
+        ? d.slice(0, 10)
+        : d.toISOString().slice(0, 10);
 }
 
 /**
@@ -45,7 +47,7 @@ function toIsoDate(d: Date | string): string {
  */
 export async function fetchGexDaily(
     ticker: string,
-    hasGexDaily: boolean,
+    hasGexDaily: boolean
 ): Promise<GexDailyDto | null> {
     if (!hasGexDaily) return null;
 

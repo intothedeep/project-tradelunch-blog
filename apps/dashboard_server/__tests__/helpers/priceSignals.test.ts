@@ -50,7 +50,9 @@ describe('computeAnnualizedVol', () => {
 
     it('returns a positive annualised vol for a varying series', () => {
         // Alternating up/down closes → non-zero daily-return stdev.
-        const closes = Array.from({ length: 120 }, (_, i) => (i % 2 === 0 ? 100 : 102));
+        const closes = Array.from({ length: 120 }, (_, i) =>
+            i % 2 === 0 ? 100 : 102
+        );
         const vol = computeAnnualizedVol(closes);
         expect(vol).not.toBeNull();
         expect(vol as number).toBeGreaterThan(0);

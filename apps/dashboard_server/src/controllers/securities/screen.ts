@@ -61,7 +61,12 @@ const FUNDS_CACHE_CONTROL =
     'public, s-maxage=86400, stale-while-revalidate=604800';
 
 // Mirrors clampParam from rankflow.ts exactly.
-function clampParam(raw: unknown, defaultVal: number, min: number, max: number): number {
+function clampParam(
+    raw: unknown,
+    defaultVal: number,
+    min: number,
+    max: number
+): number {
     const n = typeof raw === 'string' ? parseInt(raw, 10) : NaN;
     if (isNaN(n)) return defaultVal;
     return Math.min(Math.max(n, min), max);
@@ -98,13 +103,13 @@ async function probePresence(): Promise<{
                 to_regclass('public.mv_sec_new_positions')        IS NOT NULL AS has_new_positions`
     );
     return {
-        hasConsensus:          rows[0]?.has_consensus           ?? false,
-        hasSecmap:             rows[0]?.has_secmap              ?? false,
-        hasRankings:           rows[0]?.has_rankings            ?? false,
-        hasMarketHistory:      rows[0]?.has_market_history      ?? false,
+        hasConsensus: rows[0]?.has_consensus ?? false,
+        hasSecmap: rows[0]?.has_secmap ?? false,
+        hasRankings: rows[0]?.has_rankings ?? false,
+        hasMarketHistory: rows[0]?.has_market_history ?? false,
         hasPoliticianActivity: rows[0]?.has_politician_activity ?? false,
-        hasPoliticianHolders:  rows[0]?.has_politician_holders  ?? false,
-        hasNewPositions:       rows[0]?.has_new_positions       ?? false,
+        hasPoliticianHolders: rows[0]?.has_politician_holders ?? false,
+        hasNewPositions: rows[0]?.has_new_positions ?? false,
     };
 }
 
@@ -186,7 +191,10 @@ async function fetchTopFilersPerTicker(
     tickers: string[],
     hasPoliticianHolders: boolean
 ): Promise<Map<string, Array<{ filerId: string; filerName: string }>>> {
-    const map = new Map<string, Array<{ filerId: string; filerName: string }>>();
+    const map = new Map<
+        string,
+        Array<{ filerId: string; filerName: string }>
+    >();
     if (!hasPoliticianHolders || tickers.length === 0) return map;
 
     try {
@@ -233,17 +241,17 @@ interface ILatestPeriodRow {
 interface ICandidateRow {
     cusip: string;
     name_of_issuer: string;
-    holder_count_active: string;   // BIGINT → string in pg
-    holder_count_total: string;    // BIGINT → string in pg
+    holder_count_active: string; // BIGINT → string in pg
+    holder_count_total: string; // BIGINT → string in pg
     ticker: string | null;
-    rank: number | null;           // INT → number in pg (from market_rankings)
-    market_cap: string | null;     // NUMERIC → string in pg
-    politician_count_90d: string | null;   // BIGINT → string; null when view absent
+    rank: number | null; // INT → number in pg (from market_rankings)
+    market_cap: string | null; // NUMERIC → string in pg
+    politician_count_90d: string | null; // BIGINT → string; null when view absent
     politician_net_direction: string | null;
-    politician_buy_member_count: string | null;   // BIGINT → string; null when view absent
-    politician_sell_member_count: string | null;  // BIGINT → string; null when view absent
-    politician_notional_90d: string | null;       // BIGINT → string; 90d sum from politician_trades
-    new_holder_count: string | null;              // BIGINT → string; null when mv_sec_new_positions absent
+    politician_buy_member_count: string | null; // BIGINT → string; null when view absent
+    politician_sell_member_count: string | null; // BIGINT → string; null when view absent
+    politician_notional_90d: string | null; // BIGINT → string; 90d sum from politician_trades
+    new_holder_count: string | null; // BIGINT → string; null when mv_sec_new_positions absent
 }
 
 // --- Helper ---
@@ -266,9 +274,14 @@ router.get('/screen', async (req, res) => {
     try {
         res.set('Cache-Control', FUNDS_CACHE_CONTROL);
 
-        const minActiveHolders = clampParam(req.query.minActiveHolders, 2, 1, 3);
-        const maxRank          = clampParam(req.query.maxRank,          0, 0, 1000);
-        const limit            = clampParam(req.query.limit,           50, 1, 200);
+        const minActiveHolders = clampParam(
+            req.query.minActiveHolders,
+            2,
+            1,
+            3
+        );
+        const maxRank = clampParam(req.query.maxRank, 0, 0, 1000);
+        const limit = clampParam(req.query.limit, 50, 1, 200);
 
         const {
             hasConsensus,
@@ -308,19 +321,19 @@ router.get('/screen', async (req, res) => {
         }
 
         // Build dynamic SQL — joins only reference tables confirmed present.
-        const hasTickerJoin   = hasSecmap;
-        const hasRankJoin     = hasSecmap && hasRankings;
+        const hasTickerJoin = hasSecmap;
+        const hasRankJoin = hasSecmap && hasRankings;
         const applyRankFilter = maxRank > 0 && hasRankJoin;
 
-        const smSelect   = hasTickerJoin ? 'sm.ticker' : 'NULL::text AS ticker';
+        const smSelect = hasTickerJoin ? 'sm.ticker' : 'NULL::text AS ticker';
         const rankSelect = hasRankJoin
             ? 'mr.rank, mr.market_cap'
             : 'NULL::int AS rank, NULL::numeric AS market_cap';
-        const smJoin     = hasTickerJoin
+        const smJoin = hasTickerJoin
             ? `LEFT JOIN security_map sm ON sm.cusip = c.cusip AND sm.deleted_at IS NULL`
             : '';
         // r2 avoids alias collision with the outer lateral alias 'mr'.
-        const rankJoin   = hasRankJoin
+        const rankJoin = hasRankJoin
             ? `LEFT JOIN LATERAL (
                     SELECT r2.rank, r2.market_cap
                     FROM market_rankings r2
@@ -338,15 +351,17 @@ router.get('/screen', async (req, res) => {
         // pn: 90d notional aggregate from politician_trades (same gate — no separate migration).
         // notional is a COARSE 3-level tier proxy; never surfaced as an exact $ to the client.
         // Advisory lens: politician_buy t=0.71 / politician_sell t=−2.64 (below t>3 bar).
-        const politicianSelect = hasPoliticianActivity && hasTickerJoin
-            ? `pa.traded_by_count AS politician_count_90d, pa.net_direction AS politician_net_direction,
+        const politicianSelect =
+            hasPoliticianActivity && hasTickerJoin
+                ? `pa.traded_by_count AS politician_count_90d, pa.net_direction AS politician_net_direction,
                pa.buy_member_count AS politician_buy_member_count, pa.sell_member_count AS politician_sell_member_count,
                pn.notional_90d AS politician_notional_90d`
-            : `NULL::bigint AS politician_count_90d, NULL::text AS politician_net_direction,
+                : `NULL::bigint AS politician_count_90d, NULL::text AS politician_net_direction,
                NULL::bigint AS politician_buy_member_count, NULL::bigint AS politician_sell_member_count,
                NULL::bigint AS politician_notional_90d`;
-        const politicianJoin = hasPoliticianActivity && hasTickerJoin
-            ? `LEFT JOIN v_politician_activity pa ON pa.ticker = sm.ticker
+        const politicianJoin =
+            hasPoliticianActivity && hasTickerJoin
+                ? `LEFT JOIN v_politician_activity pa ON pa.ticker = sm.ticker
                LEFT JOIN (
                    SELECT ticker, SUM(COALESCE(value_estimate, 0))::bigint AS notional_90d
                      FROM politician_trades
@@ -354,23 +369,25 @@ router.get('/screen', async (req, res) => {
                       AND disclosure_date >= CURRENT_DATE - INTERVAL '90 days'
                     GROUP BY ticker
                ) pn ON pn.ticker = sm.ticker`
-            : '';
+                : '';
 
         // New-position join (migration 0031, mv_sec_new_positions) — presence-gated on
         // hasNewPositions AND ticker join. Aggregates distinct funds opening a NEW 13F
         // position at the latest period. t=3.15 sector-neutral validates the event's
         // forward return — surfaced as a diagnostic, NOT a weighted score term.
-        const newPositionSelect = hasNewPositions && hasTickerJoin
-            ? `np.new_holder_count`
-            : `NULL::bigint AS new_holder_count`;
-        const newPositionJoin = hasNewPositions && hasTickerJoin
-            ? `LEFT JOIN (
+        const newPositionSelect =
+            hasNewPositions && hasTickerJoin
+                ? `np.new_holder_count`
+                : `NULL::bigint AS new_holder_count`;
+        const newPositionJoin =
+            hasNewPositions && hasTickerJoin
+                ? `LEFT JOIN (
                    SELECT ticker, COUNT(DISTINCT cik) AS new_holder_count
                      FROM mv_sec_new_positions
                     WHERE period_of_report = (SELECT MAX(period_of_report) FROM mv_sec_new_positions)
                     GROUP BY ticker
                ) np ON np.ticker = sm.ticker`
-            : '';
+                : '';
 
         const params: (string | number)[] = [periodOfReport, minActiveHolders];
         if (applyRankFilter) params.push(maxRank);
@@ -413,15 +430,17 @@ SELECT c.cusip,
                 // newHolderCountActive: distinct funds opening a NEW position this period.
                 // t=3.15 sector-neutral (Phase R/S) validates forward return of the event;
                 // surfaced as components.newPositionBreadth (diagnostic), never weighted.
-                newHolderCountActive: r.new_holder_count !== null ? Number(r.new_holder_count) : null,
+                newHolderCountActive:
+                    r.new_holder_count !== null
+                        ? Number(r.new_holder_count)
+                        : null,
             });
 
             const politicianCount90d =
                 r.politician_count_90d !== null
                     ? Number(r.politician_count_90d)
                     : null;
-            const politicianNetDirection =
-                r.politician_net_direction ?? null;
+            const politicianNetDirection = r.politician_net_direction ?? null;
 
             // politicalInterestScore: advisory/descriptive lens only.
             // politician_buy 21d sector-neutral t=0.71 (raw t=5.58 = market-beta artifact);
@@ -429,7 +448,9 @@ SELECT c.cusip,
             // No measured forward alpha → NEVER blend into the 13F composite score.
             const politicalInterestScore = computePoliticalScore({
                 tradedByCount:
-                    r.politician_count_90d !== null ? Number(r.politician_count_90d) : null,
+                    r.politician_count_90d !== null
+                        ? Number(r.politician_count_90d)
+                        : null,
                 buyMembers:
                     r.politician_buy_member_count !== null
                         ? Number(r.politician_buy_member_count)
@@ -459,7 +480,10 @@ SELECT c.cusip,
                 // Data-availability flag — drives the two-tier /screener view.
                 hasPriceSignals: hasPriceSignals(components),
                 // Raw count of distinct funds opening a new position (null = MV absent).
-                newPositionCount: r.new_holder_count !== null ? Number(r.new_holder_count) : null,
+                newPositionCount:
+                    r.new_holder_count !== null
+                        ? Number(r.new_holder_count)
+                        : null,
                 // Politician-activity (null when migration 0022 not yet applied).
                 politicianCount90d,
                 politicianNetDirection,
@@ -486,9 +510,8 @@ SELECT c.cusip,
 
         const candidates = sliced.map((c) => ({
             ...c,
-            politicianTopFilers: c.ticker !== null
-                ? (topFilersMap.get(c.ticker) ?? [])
-                : [],
+            politicianTopFilers:
+                c.ticker !== null ? (topFilersMap.get(c.ticker) ?? []) : [],
         }));
 
         return res.json({

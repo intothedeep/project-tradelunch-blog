@@ -54,7 +54,9 @@ interface IRawHolderRow {
 }
 
 function toIsoDate(d: Date | string): string {
-    return typeof d === 'string' ? d.slice(0, 10) : d.toISOString().slice(0, 10);
+    return typeof d === 'string'
+        ? d.slice(0, 10)
+        : d.toISOString().slice(0, 10);
 }
 
 const HOLDER_SQL = `
@@ -85,7 +87,7 @@ export async function fetchPoliticianHolders(
     ticker: string,
     hasPoliticianHolders: boolean,
     tickerSector: string | null = null,
-    hasSectorOversight: boolean = false,
+    hasSectorOversight: boolean = false
 ): Promise<PoliticianHolderDto[]> {
     if (!hasPoliticianHolders) return [];
 
@@ -122,12 +124,17 @@ export async function fetchPoliticianHolders(
             filerName: r.filer_name,
             party: r.party,
             chamber: r.chamber,
-            disclosedValueBand: toValueBand(r.disclosed_value_usd === null ? null : Number(r.disclosed_value_usd)),
+            disclosedValueBand: toValueBand(
+                r.disclosed_value_usd === null
+                    ? null
+                    : Number(r.disclosed_value_usd)
+            ),
             sharePctOfFilerVolume: share?.sharePctOfFilerVolume ?? null,
             rankInFilerVolume: share?.rankInFilerVolume ?? null,
             totalTickerCount: share?.totalTickerCount ?? null,
             tradeCount: Number(r.trade_count),
-            netDirection: r.net_direction as PoliticianHolderDto['netDirection'],
+            netDirection:
+                r.net_direction as PoliticianHolderDto['netDirection'],
             latestDisclosure: toIsoDate(r.latest_disclosure),
             committeeRelevant,
         };

@@ -27,14 +27,17 @@ export function registerUserCategoriesRoutes(router: Router): void {
      * @apiSuccess {Boolean} success Indicates if the request was successful.
      * @apiSuccess {Object[]} categories Hierarchical category tree with post counts.
      */
-    router.get('/users/:username/categories', optionalAuth, async (req, res) => {
-        try {
-            const { username } = req.params;
-            // Anonymous viewer uses -1 which matches no user_id, yielding
-            // identical output to the previous public-only query.
-            const viewerId = req.auth?.userId ?? -1;
+    router.get(
+        '/users/:username/categories',
+        optionalAuth,
+        async (req, res) => {
+            try {
+                const { username } = req.params;
+                // Anonymous viewer uses -1 which matches no user_id, yielding
+                // identical output to the previous public-only query.
+                const viewerId = req.auth?.userId ?? -1;
 
-            const treeQuery = `
+                const treeQuery = `
                 WITH RECURSIVE category_tree AS (
                     -- 루트 카테고리
                     SELECT
@@ -158,25 +161,26 @@ export function registerUserCategoriesRoutes(router: Router): void {
                     ORDER BY path;
             `;
 
-            const { rows: categories } = await pool.query<TTreeNode>(
-                treeQuery,
-                [username, viewerId]
-            );
+                const { rows: categories } = await pool.query<TTreeNode>(
+                    treeQuery,
+                    [username, viewerId]
+                );
 
-            const response: TCategoryTreeResponse = {
-                status: 200,
-                data: { categories },
-            };
+                const response: TCategoryTreeResponse = {
+                    status: 200,
+                    data: { categories },
+                };
 
-            res.status(200).json(response);
-        } catch (error) {
-            console.error('API Error fetching categories:', error);
-            res.status(500).json({
-                status: 500,
-                message: 'Failed to fetch categories',
-            });
+                res.status(200).json(response);
+            } catch (error) {
+                console.error('API Error fetching categories:', error);
+                res.status(500).json({
+                    status: 500,
+                    message: 'Failed to fetch categories',
+                });
+            }
         }
-    });
+    );
 
     // routes/posts.routes.ts
     /**

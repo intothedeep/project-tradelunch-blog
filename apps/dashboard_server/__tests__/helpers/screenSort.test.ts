@@ -85,40 +85,48 @@ describe('compareScreenCandidates', () => {
 
     it('equal tier + equal score → higher newPositionBreadth ranks first', () => {
         const highNpb = cand(0.6, 2, null, null, 0.8);
-        const lowNpb  = cand(0.6, 2, null, null, 0.3);
+        const lowNpb = cand(0.6, 2, null, null, 0.3);
         expect(compareScreenCandidates(highNpb, lowNpb)).toBeLessThan(0);
         expect(compareScreenCandidates(lowNpb, highNpb)).toBeGreaterThan(0);
     });
 
     it('null newPositionBreadth sorts after a non-null value (nulls last)', () => {
         const withData = cand(0.6, 2, null, null, 0.2);
-        const noData   = cand(0.6, 2, null, null, null);
+        const noData = cand(0.6, 2, null, null, null);
         expect(compareScreenCandidates(withData, noData)).toBeLessThan(0);
         expect(compareScreenCandidates(noData, withData)).toBeGreaterThan(0);
     });
 
     it('both null newPositionBreadth → falls back to holderCountActive DESC', () => {
         const manyHolders = cand(0.6, 5, null, null, null);
-        const fewHolders  = cand(0.6, 2, null, null, null);
-        expect(compareScreenCandidates(manyHolders, fewHolders)).toBeLessThan(0);
+        const fewHolders = cand(0.6, 2, null, null, null);
+        expect(compareScreenCandidates(manyHolders, fewHolders)).toBeLessThan(
+            0
+        );
     });
 
     it('equal newPositionBreadth → falls back to holderCountActive DESC', () => {
         const manyHolders = cand(0.6, 5, null, null, 0.5);
-        const fewHolders  = cand(0.6, 2, null, null, 0.5);
-        expect(compareScreenCandidates(manyHolders, fewHolders)).toBeLessThan(0);
+        const fewHolders = cand(0.6, 2, null, null, 0.5);
+        expect(compareScreenCandidates(manyHolders, fewHolders)).toBeLessThan(
+            0
+        );
     });
 
     it('tier takes precedence over newPositionBreadth (full tier ranks before partial even with null npb)', () => {
-        const fullNoNpb   = cand(0.3, 1, 0.1, 0.1, null); // has price signals
+        const fullNoNpb = cand(0.3, 1, 0.1, 0.1, null); // has price signals
         const partialHighNpb = cand(0.9, 1, null, null, 1.0); // no price signals but highest npb
-        expect(compareScreenCandidates(fullNoNpb, partialHighNpb)).toBeLessThan(0);
+        expect(compareScreenCandidates(fullNoNpb, partialHighNpb)).toBeLessThan(
+            0
+        );
     });
 
     it('score DESC takes precedence over newPositionBreadth', () => {
-        const highScore    = cand(0.9, 1, null, null, 0.1);
+        const highScore = cand(0.9, 1, null, null, 0.1);
         const lowScoreHighNpb = cand(0.5, 1, null, null, 1.0);
-        expect(compareScreenCandidates(highScore, lowScoreHighNpb)).toBeLessThan(0);
+        expect(
+            compareScreenCandidates(highScore, lowScoreHighNpb)
+        ).toBeLessThan(0);
     });
 
     it('result is antisymmetric (compare(a,b) === -compare(b,a) sign-wise)', () => {
@@ -136,8 +144,12 @@ describe('compareScreenCandidates', () => {
             cand(0.6, 3, null, null, null),
             cand(0.6, 3, null, null, 0.2),
         ];
-        const sorted1 = [...arr].sort(compareScreenCandidates).map((c) => c.newPositionBreadth);
-        const sorted2 = [...arr].sort(compareScreenCandidates).map((c) => c.newPositionBreadth);
+        const sorted1 = [...arr]
+            .sort(compareScreenCandidates)
+            .map((c) => c.newPositionBreadth);
+        const sorted2 = [...arr]
+            .sort(compareScreenCandidates)
+            .map((c) => c.newPositionBreadth);
         expect(sorted1).toEqual(sorted2);
         // Expected order: 0.8, 0.5, 0.2, null
         expect(sorted1).toEqual([0.8, 0.5, 0.2, null]);

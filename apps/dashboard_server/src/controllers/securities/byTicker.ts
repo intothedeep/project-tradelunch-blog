@@ -34,10 +34,7 @@ import {
     fetchSecDerivatives,
     type SecDerivativesDto,
 } from '../../helpers/secDerivatives';
-import {
-    fetchGexDaily,
-    type GexDailyDto,
-} from '../../helpers/fetchGexDaily';
+import { fetchGexDaily, type GexDailyDto } from '../../helpers/fetchGexDaily';
 
 export const router = Router();
 
@@ -81,14 +78,14 @@ async function probePresence(): Promise<{
                 to_regclass('public.gex_daily')                     IS NOT NULL AS has_gex_daily`
     );
     return {
-        hasHoldings:             rows[0]?.has_holdings              ?? false,
-        hasRankings:             rows[0]?.has_rankings              ?? false,
-        hasMarketHistory:        rows[0]?.has_market_history        ?? false,
-        hasPoliticianActivity:   rows[0]?.has_politician_activity   ?? false,
-        hasPoliticianHolders:    rows[0]?.has_politician_holders    ?? false,
-        hasSectorOversight:      rows[0]?.has_sector_oversight      ?? false,
-        hasSecDerivatives:       rows[0]?.has_sec_derivatives       ?? false,
-        hasGexDaily:             rows[0]?.has_gex_daily             ?? false,
+        hasHoldings: rows[0]?.has_holdings ?? false,
+        hasRankings: rows[0]?.has_rankings ?? false,
+        hasMarketHistory: rows[0]?.has_market_history ?? false,
+        hasPoliticianActivity: rows[0]?.has_politician_activity ?? false,
+        hasPoliticianHolders: rows[0]?.has_politician_holders ?? false,
+        hasSectorOversight: rows[0]?.has_sector_oversight ?? false,
+        hasSecDerivatives: rows[0]?.has_sec_derivatives ?? false,
+        hasGexDaily: rows[0]?.has_gex_daily ?? false,
     };
 }
 
@@ -119,7 +116,9 @@ interface IPriceRow {
 // --- Pure helpers ---
 
 function toIsoDate(d: Date | string): string {
-    return typeof d === 'string' ? d.slice(0, 10) : d.toISOString().slice(0, 10);
+    return typeof d === 'string'
+        ? d.slice(0, 10)
+        : d.toISOString().slice(0, 10);
 }
 
 function numOrNull(v: string | null): number | null {
@@ -245,9 +244,10 @@ router.get('/:ticker/by-ticker', async (req, res) => {
                 [ticker]
             );
             if (pRows.length > 0) {
-                priceHistory = pRows
-                    .reverse()
-                    .map((p) => ({ t: toIsoDate(p.bar_time), close: Number(p.close) }));
+                priceHistory = pRows.reverse().map((p) => ({
+                    t: toIsoDate(p.bar_time),
+                    close: Number(p.close),
+                }));
             }
         }
 
@@ -257,14 +257,22 @@ router.get('/:ticker/by-ticker', async (req, res) => {
 
         // Query E — PTR holders (0023) + committee-relevance (0025; absent → false).
         const politicianHolders: PoliticianHolderDto[] =
-            await fetchPoliticianHolders(ticker, hasPoliticianHolders, sector, hasSectorOversight);
+            await fetchPoliticianHolders(
+                ticker,
+                hasPoliticianHolders,
+                sector,
+                hasSectorOversight
+            );
 
         // Query F — 13F options exposure (0027, Phase U); short-circuits to null when view absent.
         const secDerivatives: SecDerivativesDto | null =
             await fetchSecDerivatives(ticker, hasSecDerivatives);
 
         // Query G — GEX gamma-exposure latest row (gex_daily, 0030, Phase V).
-        const gexDaily: GexDailyDto | null = await fetchGexDaily(ticker, hasGexDaily);
+        const gexDaily: GexDailyDto | null = await fetchGexDaily(
+            ticker,
+            hasGexDaily
+        );
 
         // Unknown ticker: no data in any source.
         if (

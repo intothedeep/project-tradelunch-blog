@@ -55,7 +55,8 @@ export function computeAnnualizedVol(closesAsc: number[]): number | null {
     }
     const mean = rets.reduce((a, b) => a + b, 0) / rets.length;
     const variance =
-        rets.reduce((a, r) => a + (r - mean) * (r - mean), 0) / (rets.length - 1);
+        rets.reduce((a, r) => a + (r - mean) * (r - mean), 0) /
+        (rets.length - 1);
     return Math.sqrt(variance) * Math.sqrt(TRADING_DAYS);
 }
 

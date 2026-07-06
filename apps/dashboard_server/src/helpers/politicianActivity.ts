@@ -30,7 +30,9 @@ interface IRawActivityRow {
 }
 
 function toIsoDate(d: Date | string): string {
-    return typeof d === 'string' ? d.slice(0, 10) : d.toISOString().slice(0, 10);
+    return typeof d === 'string'
+        ? d.slice(0, 10)
+        : d.toISOString().slice(0, 10);
 }
 
 /**

@@ -123,10 +123,7 @@ function bestRank(cells: Record<string, FlowCellDto | null>): number {
 router.get('/flow', async (req, res) => {
     try {
         const rawGran = req.query.granularity;
-        if (
-            typeof rawGran === 'string' &&
-            !VALID_GRANULARITIES.has(rawGran)
-        ) {
+        if (typeof rawGran === 'string' && !VALID_GRANULARITIES.has(rawGran)) {
             return res
                 .status(400)
                 .json({ success: false, message: 'Invalid granularity' });
@@ -180,12 +177,18 @@ ORDER  BY mr.symbol ASC, mr.as_of DESC
         // Derive ordered period keys from the result (newest-first).
         const periodSet = new Set<string>();
         for (const r of rows) periodSet.add(toDateStr(r.as_of));
-        const periodKeys = Array.from(periodSet).sort((a, b) => b.localeCompare(a));
+        const periodKeys = Array.from(periodSet).sort((a, b) =>
+            b.localeCompare(a)
+        );
 
         const flowRows = toFlowRowDtos(rows, periodKeys);
         const periodsDto = periodKeys.map((p) => ({ asOf: p }));
 
-        const data: FlowData = { granularity, periods: periodsDto, rows: flowRows };
+        const data: FlowData = {
+            granularity,
+            periods: periodsDto,
+            rows: flowRows,
+        };
 
         res.set('Cache-Control', RANKINGS_CACHE_CONTROL);
         res.json({ success: true, data });

@@ -92,9 +92,16 @@ const RANK_ALL_TICKERS_SQL = `
     SELECT filer_id, ticker, rank_in_filer, total_ticker_count, ticker_value
       FROM per_ticker`;
 
-function computeShare(row: IRankRow, totalRaw: string | null | undefined): HolderShare {
+function computeShare(
+    row: IRankRow,
+    totalRaw: string | null | undefined
+): HolderShare {
     if (totalRaw == null) {
-        return { sharePctOfFilerVolume: null, rankInFilerVolume: null, totalTickerCount: null };
+        return {
+            sharePctOfFilerVolume: null,
+            rankInFilerVolume: null,
+            totalTickerCount: null,
+        };
     }
     const total = Number(totalRaw);
     const tickerVal = row.ticker_value == null ? 0 : Number(row.ticker_value);
@@ -122,13 +129,19 @@ export async function getPoliticianHolderShares(
         pool.query<IRankRow>(RANK_ONE_TICKER_SQL, [filerIds, ticker]),
     ]);
 
-    const totalByFiler = new Map(totalRes.rows.map((r) => [r.filer_id, r.total_value]));
+    const totalByFiler = new Map(
+        totalRes.rows.map((r) => [r.filer_id, r.total_value])
+    );
     const rankByFiler = new Map(rankRes.rows.map((r) => [r.filer_id, r]));
 
     for (const filerId of filerIds) {
         const rankRow = rankByFiler.get(filerId);
         if (!rankRow) {
-            out.set(filerId, { sharePctOfFilerVolume: null, rankInFilerVolume: null, totalTickerCount: null });
+            out.set(filerId, {
+                sharePctOfFilerVolume: null,
+                rankInFilerVolume: null,
+                totalTickerCount: null,
+            });
             continue;
         }
         out.set(filerId, computeShare(rankRow, totalByFiler.get(filerId)));

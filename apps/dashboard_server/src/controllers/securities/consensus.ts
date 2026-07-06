@@ -35,7 +35,10 @@ async function probePresence(): Promise<IPresence> {
              AND to_regclass('public.fund_registry')        IS NOT NULL AS analytics,
                  to_regclass('public.security_map')          IS NOT NULL AS secmap`
     );
-    return { analytics: rows[0]?.analytics ?? false, secmap: rows[0]?.secmap ?? false };
+    return {
+        analytics: rows[0]?.analytics ?? false,
+        secmap: rows[0]?.secmap ?? false,
+    };
 }
 
 // --- DB row shapes (only columns we SELECT) ---
@@ -65,7 +68,9 @@ interface IHolderRow {
 // --- Pure helpers ---
 
 function toIsoDate(d: Date | string): string {
-    return typeof d === 'string' ? d.slice(0, 10) : d.toISOString().slice(0, 10);
+    return typeof d === 'string'
+        ? d.slice(0, 10)
+        : d.toISOString().slice(0, 10);
 }
 
 function numOrNull(v: string | null): number | null {
@@ -110,7 +115,9 @@ router.get('/:cusip/consensus', async (req, res) => {
                 WHERE c.cusip = $1
                 ORDER BY c.period_of_report DESC
                 LIMIT 1`;
-        const { rows: cRows } = await pool.query<IConsensusRow>(consensusSql, [cusip]);
+        const { rows: cRows } = await pool.query<IConsensusRow>(consensusSql, [
+            cusip,
+        ]);
         const head = cRows[0];
         if (!head) {
             return res.json({ success: true, data: null });

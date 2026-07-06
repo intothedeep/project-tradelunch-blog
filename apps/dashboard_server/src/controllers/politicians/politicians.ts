@@ -62,12 +62,12 @@ async function probePresence(): Promise<{
                 to_regclass('public.v_politician_trades_enriched')  IS NOT NULL AS has_enriched_view`
     );
     return {
-        hasRegistry:       rows[0]?.has_registry        ?? false,
-        hasTickerHolders:  rows[0]?.has_ticker_holders  ?? false,
-        hasTimeline:       rows[0]?.has_timeline         ?? false,
-        hasCommittees:     rows[0]?.has_committees       ?? false,
-        hasSectorOversight:rows[0]?.has_sector_oversight ?? false,
-        hasEnrichedView:   rows[0]?.has_enriched_view    ?? false,
+        hasRegistry: rows[0]?.has_registry ?? false,
+        hasTickerHolders: rows[0]?.has_ticker_holders ?? false,
+        hasTimeline: rows[0]?.has_timeline ?? false,
+        hasCommittees: rows[0]?.has_committees ?? false,
+        hasSectorOversight: rows[0]?.has_sector_oversight ?? false,
+        hasEnrichedView: rows[0]?.has_enriched_view ?? false,
     };
 }
 
@@ -120,7 +120,9 @@ interface ITickerSectorRow {
 }
 
 function toIsoDate(d: Date | string): string {
-    return typeof d === 'string' ? d.slice(0, 10) : d.toISOString().slice(0, 10);
+    return typeof d === 'string'
+        ? d.slice(0, 10)
+        : d.toISOString().slice(0, 10);
 }
 
 // --- List route ---
@@ -161,14 +163,14 @@ router.get('/', async (_req, res) => {
         );
 
         const data = rows.map((r) => ({
-            filerId:    r.filer_id,
-            filerName:  r.filer_name,
-            party:      r.party,
-            chamber:    r.chamber,
-            state:      r.state,
+            filerId: r.filer_id,
+            filerName: r.filer_name,
+            party: r.party,
+            chamber: r.chamber,
+            state: r.state,
             tradeCount: r.trade_count,
-            purchases:  r.purchases,
-            sales:      r.sales,
+            purchases: r.purchases,
+            sales: r.sales,
         }));
 
         return res.json({ success: true, data });
@@ -249,7 +251,9 @@ router.get('/:filerId', async (req, res) => {
                 // committeeRelevant: resolve oversight sectors for this filer.
                 const oversightSectors = new Set<string>();
                 if (hasSectorOversight && f.bioguide_id) {
-                    const { rows: soRows } = await pool.query<{ sector: string }>(
+                    const { rows: soRows } = await pool.query<{
+                        sector: string;
+                    }>(
                         `SELECT sector FROM v_politician_sector_oversight WHERE bioguide_id = $1`,
                         [f.bioguide_id]
                     );
@@ -268,20 +272,26 @@ router.get('/:filerId', async (req, res) => {
                             AND sector IS NOT NULL`,
                         [filerId, tickerList]
                     );
-                    tsRows.forEach((r) => tickerSectorMap.set(r.ticker, r.sector));
+                    tsRows.forEach((r) =>
+                        tickerSectorMap.set(r.ticker, r.sector)
+                    );
                 }
 
                 tickers = hRows.map((h) => {
                     const share = shareMap.get(h.ticker);
                     const tickerSector = tickerSectorMap.get(h.ticker);
                     const committeeRelevant =
-                        tickerSector !== undefined && oversightSectors.has(tickerSector);
+                        tickerSector !== undefined &&
+                        oversightSectors.has(tickerSector);
                     return {
                         ticker: h.ticker,
                         disclosedValueBand: toValueBand(
-                            h.disclosed_value_usd === null ? null : Number(h.disclosed_value_usd)
+                            h.disclosed_value_usd === null
+                                ? null
+                                : Number(h.disclosed_value_usd)
                         ),
-                        sharePctOfFilerVolume: share?.sharePctOfFilerVolume ?? null,
+                        sharePctOfFilerVolume:
+                            share?.sharePctOfFilerVolume ?? null,
                         rankInFilerVolume: share?.rankInFilerVolume ?? null,
                         totalTickerCount: share?.totalTickerCount ?? null,
                         netDirection: h.net_direction,
@@ -329,14 +339,18 @@ router.get('/:filerId', async (req, res) => {
                 ));
             }
 
-            const distinctQuarters = new Set(tRows.map((r) => toIsoDate(r.quarter)));
+            const distinctQuarters = new Set(
+                tRows.map((r) => toIsoDate(r.quarter))
+            );
             if (distinctQuarters.size >= 2) {
                 // A side with zero trades that quarter → '—' (not '<$15K'):
                 // toValueBand(0) is a real band, so gate on the count first.
                 timeline = tRows.map((t) => ({
                     quarter: toIsoDate(t.quarter),
                     ticker: t.ticker,
-                    netValueBand: toValueBand(Math.abs(Number(t.net_value_usd))),
+                    netValueBand: toValueBand(
+                        Math.abs(Number(t.net_value_usd))
+                    ),
                     buyValueBand:
                         Number(t.buy_count) > 0 && t.buy_value_usd != null
                             ? toValueBand(Number(t.buy_value_usd))
@@ -360,7 +374,10 @@ router.get('/:filerId', async (req, res) => {
                   ORDER BY committee_name`,
                 [f.bioguide_id]
             );
-            committees = cRows.map((c) => ({ thomasId: c.thomas_id, name: c.name }));
+            committees = cRows.map((c) => ({
+                thomasId: c.thomas_id,
+                name: c.name,
+            }));
         }
 
         const filer = {
@@ -376,7 +393,9 @@ router.get('/:filerId', async (req, res) => {
             sales: f.sales,
             lateFilings: f.late_filings,
             /** Coarse band — "as reported by kadoa source" */
-            estVolumeBand: toValueBand(f.est_volume === null ? null : Number(f.est_volume)),
+            estVolumeBand: toValueBand(
+                f.est_volume === null ? null : Number(f.est_volume)
+            ),
             committees,
         };
 

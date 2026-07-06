@@ -15,7 +15,13 @@
 //     are well below 2^53.
 // Side effects: none.
 
-export type ValueBand = '<$15K' | '$15K–$50K' | '$50K–$250K' | '$250K–$1M' | '>$1M' | '—';
+export type ValueBand =
+    | '<$15K'
+    | '$15K–$50K'
+    | '$50K–$250K'
+    | '$250K–$1M'
+    | '>$1M'
+    | '—';
 
 /**
  * Converts a raw USD amount to a coarse disclosure band string.

@@ -23,7 +23,11 @@ type CapturedResponse = {
 };
 
 function mockRes(): { res: CapturedResponse; handler: object } {
-    const captured: CapturedResponse = { status: 200, payload: undefined, headers: {} };
+    const captured: CapturedResponse = {
+        status: 200,
+        payload: undefined,
+        headers: {},
+    };
     const res = {
         status(code: number) {
             captured.status = code;
@@ -41,20 +45,34 @@ function mockRes(): { res: CapturedResponse; handler: object } {
     return { res: captured, handler: res };
 }
 
-type AnyRoute = { path: string; methods: Record<string, boolean>; stack: { handle: unknown }[] };
+type AnyRoute = {
+    path: string;
+    methods: Record<string, boolean>;
+    stack: { handle: unknown }[];
+};
 
-function routeByPath(r: { stack: { route?: AnyRoute }[] }, path: string): AnyRoute | undefined {
+function routeByPath(
+    r: { stack: { route?: AnyRoute }[] },
+    path: string
+): AnyRoute | undefined {
     return r.stack
         .filter((l) => !!l.route)
         .map((l) => l.route as AnyRoute)
         .find((rt) => rt.path === path);
 }
 
-function lastHandle(route: AnyRoute): (req: unknown, res: unknown) => Promise<void> {
-    return route.stack[route.stack.length - 1].handle as (req: unknown, res: unknown) => Promise<void>;
+function lastHandle(
+    route: AnyRoute
+): (req: unknown, res: unknown) => Promise<void> {
+    return route.stack[route.stack.length - 1].handle as (
+        req: unknown,
+        res: unknown
+    ) => Promise<void>;
 }
 
-async function invoke(params: Record<string, string>): Promise<CapturedResponse> {
+async function invoke(
+    params: Record<string, string>
+): Promise<CapturedResponse> {
     const route = routeByPath(consensusRouter, '/:cusip/consensus');
     if (!route) throw new Error('/:cusip/consensus route not registered');
     const { res, handler } = mockRes();
@@ -82,7 +100,9 @@ describe('GET /:cusip/consensus — input validation', () => {
 
 describe('GET /:cusip/consensus — view-absence guard', () => {
     it('returns data:null when analytics views are absent', async () => {
-        mockQuery.mockResolvedValueOnce({ rows: [{ analytics: false, secmap: false }] });
+        mockQuery.mockResolvedValueOnce({
+            rows: [{ analytics: false, secmap: false }],
+        });
         const result = await invoke({ cusip: '037833100' });
         expect(result.payload).toEqual({ success: true, data: null });
         expect(mockQuery).toHaveBeenCalledTimes(1);
@@ -91,7 +111,9 @@ describe('GET /:cusip/consensus — view-absence guard', () => {
 
 describe('GET /:cusip/consensus — unknown cusip', () => {
     it('returns data:null when no consensus row exists', async () => {
-        mockQuery.mockResolvedValueOnce({ rows: [{ analytics: true, secmap: true }] });
+        mockQuery.mockResolvedValueOnce({
+            rows: [{ analytics: true, secmap: true }],
+        });
         mockQuery.mockResolvedValueOnce({ rows: [] }); // consensus row empty
         const result = await invoke({ cusip: '999999999' });
         expect(result.payload).toEqual({ success: true, data: null });
@@ -102,7 +124,9 @@ describe('GET /:cusip/consensus — unknown cusip', () => {
 describe('GET /:cusip/consensus — happy path', () => {
     it('returns envelope with active/total counts and per-fund holders', async () => {
         const period = new Date('2026-03-31');
-        mockQuery.mockResolvedValueOnce({ rows: [{ analytics: true, secmap: true }] });
+        mockQuery.mockResolvedValueOnce({
+            rows: [{ analytics: true, secmap: true }],
+        });
         mockQuery.mockResolvedValueOnce({
             rows: [
                 {
@@ -133,7 +157,10 @@ describe('GET /:cusip/consensus — happy path', () => {
         });
 
         const result = await invoke({ cusip: '037833100' });
-        const body = result.payload as { success: boolean; data: Record<string, unknown> };
+        const body = result.payload as {
+            success: boolean;
+            data: Record<string, unknown>;
+        };
         expect(body.success).toBe(true);
         expect(body.data).toMatchObject({
             cusip: '037833100',

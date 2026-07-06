@@ -37,19 +37,21 @@ function computeNotionalTier(notional: number | null): number {
     return 1;
 }
 
-export function computePoliticalScore(input: PoliticalScoreInput): number | null {
+export function computePoliticalScore(
+    input: PoliticalScoreInput
+): number | null {
     const { tradedByCount, buyMembers, sellMembers, notional } = input;
 
     // No politician data → no score.
     if (tradedByCount === null || tradedByCount === 0) return null;
 
-    const safeBuy  = buyMembers  ?? 0;
+    const safeBuy = buyMembers ?? 0;
     const safeSell = sellMembers ?? 0;
 
-    const breadth      = Math.min(1, tradedByCount / 5);
-    const consensus    = Math.max(safeBuy, safeSell) / Math.max(1, tradedByCount);
+    const breadth = Math.min(1, tradedByCount / 5);
+    const consensus = Math.max(safeBuy, safeSell) / Math.max(1, tradedByCount);
     const notionalTier = computeNotionalTier(notional);
-    const score        = 0.55 * breadth + 0.30 * consensus + 0.15 * notionalTier;
+    const score = 0.55 * breadth + 0.3 * consensus + 0.15 * notionalTier;
 
     return score;
 }

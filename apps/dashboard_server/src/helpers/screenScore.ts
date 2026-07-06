@@ -22,28 +22,28 @@
 //   key (see screenSort.ts) — it NEVER enters the score accumulation.
 
 export interface ScoreComponents {
-    consensus: number;           // [0,1] holderCountActive / totalActiveFunds, clamped
-    capTier: number;             // 0 | 0.5 | 1 — derived from global rank tier
-    momentum: number | null;     // [0,1] normalised 12-1M momentum, or null (no history)
-    lowVol: number | null;       // [0,1] normalised inverse-volatility, or null (no history)
+    consensus: number; // [0,1] holderCountActive / totalActiveFunds, clamped
+    capTier: number; // 0 | 0.5 | 1 — derived from global rank tier
+    momentum: number | null; // [0,1] normalised 12-1M momentum, or null (no history)
+    lowVol: number | null; // [0,1] normalised inverse-volatility, or null (no history)
     newPositionBreadth: number | null; // [0,1] distinct-new-position funds / totalActiveFunds;
-                                       // null when newHolderCountActive absent (no MV) — "no data"
-                                       // is distinct from 0 (zero new holders this period)
+    // null when newHolderCountActive absent (no MV) — "no data"
+    // is distinct from 0 (zero new holders this period)
 }
 
 export interface ScoreResult {
-    score: number;          // weighted sum of the PRESENT terms (see header)
+    score: number; // weighted sum of the PRESENT terms (see header)
     components: ScoreComponents;
 }
 
 export interface ScoreInput {
     holderCountActive: number;
-    totalActiveFunds: number;      // COUNT of is_active_manager=true rows in fund_registry
-    rank: number | null;           // global market_rankings rank; null when ticker not resolved
-    momentum?: number | null;      // pre-normalised [0,1]; omit/null when no price history
-    lowVol?: number | null;        // pre-normalised [0,1]; omit/null when no price history
+    totalActiveFunds: number; // COUNT of is_active_manager=true rows in fund_registry
+    rank: number | null; // global market_rankings rank; null when ticker not resolved
+    momentum?: number | null; // pre-normalised [0,1]; omit/null when no price history
+    lowVol?: number | null; // pre-normalised [0,1]; omit/null when no price history
     newHolderCountActive?: number | null; // distinct funds opening a NEW 13F position this period;
-                                          // null/undefined when mv_sec_new_positions is absent
+    // null/undefined when mv_sec_new_positions is absent
 }
 
 const W_CONSENSUS = 0.4;
@@ -51,7 +51,10 @@ const W_MOMENTUM = 0.3;
 const W_CAP_TIER = 0.2;
 const W_LOW_VOL = 0.1;
 
-function computeConsensus(holderCountActive: number, totalActiveFunds: number): number {
+function computeConsensus(
+    holderCountActive: number,
+    totalActiveFunds: number
+): number {
     if (totalActiveFunds <= 0) return 0;
     return Math.min(1, Math.max(0, holderCountActive / totalActiveFunds));
 }
@@ -69,13 +72,17 @@ function computeNewPositionBreadth(
     newHolderCountActive: number | null | undefined,
     totalActiveFunds: number
 ): number | null {
-    if (newHolderCountActive === null || newHolderCountActive === undefined) return null;
+    if (newHolderCountActive === null || newHolderCountActive === undefined)
+        return null;
     if (totalActiveFunds <= 0) return null;
     return Math.min(1, Math.max(0, newHolderCountActive / totalActiveFunds));
 }
 
 export function computeScore(input: ScoreInput): ScoreResult {
-    const consensus = computeConsensus(input.holderCountActive, input.totalActiveFunds);
+    const consensus = computeConsensus(
+        input.holderCountActive,
+        input.totalActiveFunds
+    );
     const capTier = computeCapTier(input.rank);
     const momentum = input.momentum ?? null;
     const lowVol = input.lowVol ?? null;
@@ -91,5 +98,14 @@ export function computeScore(input: ScoreInput): ScoreResult {
         input.totalActiveFunds
     );
 
-    return { score, components: { consensus, capTier, momentum, lowVol, newPositionBreadth } };
+    return {
+        score,
+        components: {
+            consensus,
+            capTier,
+            momentum,
+            lowVol,
+            newPositionBreadth,
+        },
+    };
 }

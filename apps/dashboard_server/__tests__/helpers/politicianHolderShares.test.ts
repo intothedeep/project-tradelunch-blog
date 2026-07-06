@@ -32,8 +32,20 @@ describe('getPoliticianHolderShares — share math', () => {
     it('computes sharePctOfFilerVolume as (ticker_value / total) × 100', async () => {
         // total for filer_a = 200_000, ticker_value for AAPL = 50_000 → 25%
         mockQuery
-            .mockResolvedValueOnce({ rows: [{ filer_id: 'filer_a', total_value: '200000' }] })  // TOTAL
-            .mockResolvedValueOnce({ rows: [{ filer_id: 'filer_a', ticker: 'AAPL', rank_in_filer: '2', total_ticker_count: '5', ticker_value: '50000' }] }); // RANK
+            .mockResolvedValueOnce({
+                rows: [{ filer_id: 'filer_a', total_value: '200000' }],
+            }) // TOTAL
+            .mockResolvedValueOnce({
+                rows: [
+                    {
+                        filer_id: 'filer_a',
+                        ticker: 'AAPL',
+                        rank_in_filer: '2',
+                        total_ticker_count: '5',
+                        ticker_value: '50000',
+                    },
+                ],
+            }); // RANK
 
         const map = await getPoliticianHolderShares('AAPL', ['filer_a']);
         const result = map.get('filer_a')!;
@@ -44,8 +56,20 @@ describe('getPoliticianHolderShares — share math', () => {
 
     it('returns sharePct null when total is 0 (avoid divide-by-zero)', async () => {
         mockQuery
-            .mockResolvedValueOnce({ rows: [{ filer_id: 'filer_a', total_value: '0' }] })
-            .mockResolvedValueOnce({ rows: [{ filer_id: 'filer_a', ticker: 'AAPL', rank_in_filer: '1', total_ticker_count: '1', ticker_value: '0' }] });
+            .mockResolvedValueOnce({
+                rows: [{ filer_id: 'filer_a', total_value: '0' }],
+            })
+            .mockResolvedValueOnce({
+                rows: [
+                    {
+                        filer_id: 'filer_a',
+                        ticker: 'AAPL',
+                        rank_in_filer: '1',
+                        total_ticker_count: '1',
+                        ticker_value: '0',
+                    },
+                ],
+            });
 
         const map = await getPoliticianHolderShares('AAPL', ['filer_a']);
         expect(map.get('filer_a')!.sharePctOfFilerVolume).toBeNull();
@@ -53,7 +77,9 @@ describe('getPoliticianHolderShares — share math', () => {
 
     it('returns null fields when filer has no row in RANK query (not in this ticker)', async () => {
         mockQuery
-            .mockResolvedValueOnce({ rows: [{ filer_id: 'filer_b', total_value: '100000' }] })
+            .mockResolvedValueOnce({
+                rows: [{ filer_id: 'filer_b', total_value: '100000' }],
+            })
             .mockResolvedValueOnce({ rows: [] }); // no row for filer_b on this ticker
 
         const map = await getPoliticianHolderShares('MSFT', ['filer_b']);
@@ -77,12 +103,27 @@ describe('getPoliticianHolderShares — multiple filers', () => {
             })
             .mockResolvedValueOnce({
                 rows: [
-                    { filer_id: 'filer_a', ticker: 'AAPL', rank_in_filer: '2', total_ticker_count: '6', ticker_value: '100000' },
-                    { filer_id: 'filer_b', ticker: 'AAPL', rank_in_filer: '1', total_ticker_count: '3', ticker_value: '80000' },
+                    {
+                        filer_id: 'filer_a',
+                        ticker: 'AAPL',
+                        rank_in_filer: '2',
+                        total_ticker_count: '6',
+                        ticker_value: '100000',
+                    },
+                    {
+                        filer_id: 'filer_b',
+                        ticker: 'AAPL',
+                        rank_in_filer: '1',
+                        total_ticker_count: '3',
+                        ticker_value: '80000',
+                    },
                 ],
             });
 
-        const map = await getPoliticianHolderShares('AAPL', ['filer_a', 'filer_b']);
+        const map = await getPoliticianHolderShares('AAPL', [
+            'filer_a',
+            'filer_b',
+        ]);
         expect(map.get('filer_a')!.sharePctOfFilerVolume).toBeCloseTo(25);
         expect(map.get('filer_b')!.sharePctOfFilerVolume).toBeCloseTo(80);
         expect(map.get('filer_a')!.rankInFilerVolume).toBe(2);
@@ -103,12 +144,27 @@ describe('getPoliticianHolderShares — rank determinism on ties', () => {
             })
             .mockResolvedValueOnce({
                 rows: [
-                    { filer_id: 'filer_x', ticker: 'AAPL', rank_in_filer: '1', total_ticker_count: '2', ticker_value: '50000' },
-                    { filer_id: 'filer_y', ticker: 'AAPL', rank_in_filer: '1', total_ticker_count: '4', ticker_value: '60000' },
+                    {
+                        filer_id: 'filer_x',
+                        ticker: 'AAPL',
+                        rank_in_filer: '1',
+                        total_ticker_count: '2',
+                        ticker_value: '50000',
+                    },
+                    {
+                        filer_id: 'filer_y',
+                        ticker: 'AAPL',
+                        rank_in_filer: '1',
+                        total_ticker_count: '4',
+                        ticker_value: '60000',
+                    },
                 ],
             });
 
-        const map = await getPoliticianHolderShares('AAPL', ['filer_x', 'filer_y']);
+        const map = await getPoliticianHolderShares('AAPL', [
+            'filer_x',
+            'filer_y',
+        ]);
         expect(map.get('filer_x')!.rankInFilerVolume).toBe(1);
         expect(map.get('filer_y')!.rankInFilerVolume).toBe(1);
         expect(map.get('filer_x')!.sharePctOfFilerVolume).toBeCloseTo(100);
@@ -124,11 +180,25 @@ describe('getFilerTickerShares — all tickers for one filer', () => {
     it('returns a Map keyed by ticker', async () => {
         // total = 300_000; AAPL 200_000 (rank 1), MSFT 100_000 (rank 2)
         mockQuery
-            .mockResolvedValueOnce({ rows: [{ filer_id: 'filer_a', total_value: '300000' }] })
+            .mockResolvedValueOnce({
+                rows: [{ filer_id: 'filer_a', total_value: '300000' }],
+            })
             .mockResolvedValueOnce({
                 rows: [
-                    { filer_id: 'filer_a', ticker: 'AAPL', rank_in_filer: '1', total_ticker_count: '2', ticker_value: '200000' },
-                    { filer_id: 'filer_a', ticker: 'MSFT', rank_in_filer: '2', total_ticker_count: '2', ticker_value: '100000' },
+                    {
+                        filer_id: 'filer_a',
+                        ticker: 'AAPL',
+                        rank_in_filer: '1',
+                        total_ticker_count: '2',
+                        ticker_value: '200000',
+                    },
+                    {
+                        filer_id: 'filer_a',
+                        ticker: 'MSFT',
+                        rank_in_filer: '2',
+                        total_ticker_count: '2',
+                        ticker_value: '100000',
+                    },
                 ],
             });
 
