@@ -19,6 +19,17 @@ export interface MonthlyStatRow {
     totalInvestedToDate?: number; // running sum of contributions + budget
 }
 
+/** Per-asset month-end weight% (holding MV ÷ total NAV). */
+export interface MonthlyAssetWeights {
+    /** Asset labels in the order they were emitted by the engine. */
+    labels: string[];
+    /**
+     * weightByMonth['YYYY-MM'][label] = weight fraction 0–1.
+     * Only months that appear in perHoldingValues are populated.
+     */
+    weightByMonth: Record<string, Record<string, number>>;
+}
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 /** Pre-aggregate dividend cash by 'YYYY-MM'. DRIP events (cash: 0) sum to 0 naturally. */
@@ -127,4 +138,61 @@ export function buildMonthlyStats(
     void metrics; // referenced only in tests
 
     return rows;
+}
+
+// ── X2.17b: per-asset monthly weight% ────────────────────────────────────────
+
+/**
+ * Derive per-asset month-end weight% from perHoldingValues.
+ *
+ * Algorithm:
+ *   1. For each bar in perHoldingValues, track the last bar per 'YYYY-MM'.
+ *   2. On the month-end bar, weight[label] = values[label] / nav,
+ *      where nav = timeline[i].value (total NAV including cash).
+ *   3. If nav ≤ 0, all weights are 0 (degenerate edge).
+ *
+ * - Pure: no I/O, no Date objects, no mutation.
+ * - timeline and perHoldingValues must be co-indexed (engine invariant).
+ * - Returns empty labels + empty weightByMonth when perHoldingValues is absent.
+ */
+export function buildMonthlyAssetWeights(
+    result: BacktestResult
+): MonthlyAssetWeights {
+    const { timeline, perHoldingValues } = result;
+
+    if (!perHoldingValues || perHoldingValues.length === 0) {
+        return { labels: [], weightByMonth: {} };
+    }
+
+    // Derive label order from the first snapshot.
+    const labels = Object.keys(perHoldingValues[0]!.values);
+
+    // Single pass: keep the last index per month-key (ascending timeline invariant).
+    const monthEndIdx = new Map<string, number>();
+    for (let i = 0; i < perHoldingValues.length; i++) {
+        const mo = perHoldingValues[i]!.date.slice(0, 7);
+        monthEndIdx.set(mo, i);
+    }
+
+    const weightByMonth: Record<string, Record<string, number>> = {};
+
+    for (const [month, idx] of monthEndIdx) {
+        const snap = perHoldingValues[idx]!;
+        const nav = timeline[idx]!.value;
+        const monthWeights: Record<string, number> = {};
+
+        if (nav > 0) {
+            for (const label of labels) {
+                monthWeights[label] = (snap.values[label] ?? 0) / nav;
+            }
+        } else {
+            for (const label of labels) {
+                monthWeights[label] = 0;
+            }
+        }
+
+        weightByMonth[month] = monthWeights;
+    }
+
+    return { labels, weightByMonth };
 }

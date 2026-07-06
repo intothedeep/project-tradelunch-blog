@@ -4,7 +4,10 @@
 // Note: noUncheckedIndexedAccess — array accesses guarded with ! patterns.
 
 import { describe, it, expect } from 'vitest';
-import { buildMonthlyStats } from '@/utils/backtest/monthlyStats';
+import {
+    buildMonthlyStats,
+    buildMonthlyAssetWeights,
+} from '@/utils/backtest/monthlyStats';
 import { runBacktest } from '@/utils/backtest/engine';
 import type { BacktestResult, PricePoint } from '@/types/backtest';
 
@@ -248,5 +251,108 @@ describe('buildMonthlyStats — edge cases', () => {
     it('empty timeline returns []', () => {
         const result = mkResult([]);
         expect(buildMonthlyStats(result)).toEqual([]);
+    });
+});
+
+// ── Test 8: buildMonthlyAssetWeights (X2.17b) ────────────────────────────────
+
+describe('buildMonthlyAssetWeights', () => {
+    it('weights per month sum to ≤1 and ≈1 when no cash', () => {
+        // 2 assets, no cash (budget fully invested), flat prices.
+        // A=50%, B=50% at all times.
+        const result = runBacktest({
+            budget: 10_000,
+            holdings: [
+                { label: 'A', weightPct: 50 },
+                { label: 'B', weightPct: 50 },
+            ],
+            seriesByLabel: {
+                A: mkSeries(
+                    ['2024-01-02', '2024-01-31', '2024-02-29'],
+                    [100, 100, 100]
+                ),
+                B: mkSeries(
+                    ['2024-01-02', '2024-01-31', '2024-02-29'],
+                    [100, 100, 100]
+                ),
+            },
+            range: { from: '2024-01-02', to: '2024-02-29' },
+            seed: 1,
+            riskFreeRate: 0.04,
+        });
+
+        const { labels, weightByMonth } = buildMonthlyAssetWeights(result);
+        expect(labels).toContain('A');
+        expect(labels).toContain('B');
+
+        for (const [, weights] of Object.entries(weightByMonth)) {
+            const sum = Object.values(weights).reduce((s, v) => s + v, 0);
+            // sum ≤ 1 (cash excluded from perHoldingValues)
+            expect(sum).toBeLessThanOrEqual(1 + 1e-9);
+            // With flat prices and no DCA, almost all NAV is in holdings
+            expect(sum).toBeGreaterThan(0.99);
+        }
+    });
+
+    it('single-asset portfolio: weight ≈ 1 each month', () => {
+        const result = runBacktest({
+            budget: 10_000,
+            holdings: [{ label: 'A', weightPct: 100 }],
+            seriesByLabel: {
+                A: mkSeries(
+                    ['2024-01-02', '2024-01-31', '2024-02-29'],
+                    [100, 110, 120]
+                ),
+            },
+            range: { from: '2024-01-02', to: '2024-02-29' },
+            seed: 1,
+            riskFreeRate: 0.04,
+        });
+
+        const { labels, weightByMonth } = buildMonthlyAssetWeights(result);
+        expect(labels).toEqual(['A']);
+
+        for (const [, weights] of Object.entries(weightByMonth)) {
+            expect(weights['A']).toBeGreaterThan(0.99);
+        }
+    });
+
+    it('absent perHoldingValues → empty labels and weightByMonth', () => {
+        const result = mkResult([{ date: '2024-01-31', value: 10_000 }]);
+        // mkResult does not set perHoldingValues
+        const { labels, weightByMonth } = buildMonthlyAssetWeights(result);
+        expect(labels).toEqual([]);
+        expect(weightByMonth).toEqual({});
+    });
+
+    it('rebalanced 2-asset portfolio: weights still sum to ≤1 per month', () => {
+        const dates = ['2024-01-02', '2024-01-31', '2024-02-29', '2024-03-29'];
+        const result = runBacktest({
+            budget: 10_000,
+            holdings: [
+                { label: 'A', weightPct: 50 },
+                { label: 'B', weightPct: 50 },
+            ],
+            seriesByLabel: {
+                A: mkSeries(dates, [100, 150, 200, 180]),
+                B: mkSeries(dates, [100, 90, 85, 95]),
+            },
+            range: { from: '2024-01-02', to: '2024-03-29' },
+            seed: 1,
+            riskFreeRate: 0.04,
+            rebalance: {
+                freq: 'monthly',
+                band: { kind: 'absolute', pct: 5 },
+                groups: [],
+            },
+        });
+
+        const { weightByMonth } = buildMonthlyAssetWeights(result);
+        expect(Object.keys(weightByMonth).length).toBeGreaterThan(0);
+
+        for (const [, weights] of Object.entries(weightByMonth)) {
+            const sum = Object.values(weights).reduce((s, v) => s + v, 0);
+            expect(sum).toBeLessThanOrEqual(1 + 1e-9);
+        }
     });
 });

@@ -1,27 +1,24 @@
 'use client';
 
 // components/backtest/BacktestClient.client.tsx
-// Purpose: client orchestrator for /backtest. Holds all input state (URL-encoded),
-//   fetches price series via the getPriceSeries server action, runs the pure
-//   backtest engine via useBacktest, and renders all sub-components.
-// The `mockedSeries` prop is used by /backtest/preview to bypass the server action.
+// Orchestrator: URL-encoded state → price fetch → backtest engine → results.
+// X2 wave-4a: rebalance + manualFlows threaded in; controls in BacktestControls.
+// X2 wave-4b: rebalance summary in MetricsPanel; weight% columns in StatsTable.
 
 import { useState, useEffect, useMemo } from 'react';
 import { useBacktestUrl } from '@/hooks/useBacktestUrl.hook';
 import { useBacktest } from '@/hooks/useBacktest.hook';
 import { LEVERAGED_LABELS } from '@/utils/backtest/universe';
-import { buildMonthlyStats } from '@/utils/backtest/monthlyStats';
+import {
+    buildMonthlyStats,
+    buildMonthlyAssetWeights,
+} from '@/utils/backtest/monthlyStats';
 import { buildMonthlyAssetPrices } from '@/utils/backtest/monthlyAssetPrices';
 import { buildYearlyStats } from '@/utils/backtest/yearlyStats';
 import { getPriceSeriesAction } from '@/app/actions/getPriceSeries.action';
 import type { TPriceSeriesResponse } from '@/apis/getPriceSeries.api';
 import type { PricePoint } from '@/types/backtest';
-import BudgetInput from './BudgetInput';
-import AssetPicker from './AssetPicker.client';
-import WeightSliders from './WeightSliders.client';
-import DateRangePicker from './DateRangePicker.client';
-import ContributionInput from './ContributionInput.client';
-import SeedControl from './SeedControl.client';
+import BacktestControls from './BacktestControls.client';
 import MetricsPanel from './MetricsPanel';
 import ResultChart from './ResultChart.client';
 import StatsTable from './StatsTable';
@@ -31,11 +28,9 @@ import IncomeProjection from './IncomeProjection';
 import LeverageWarning from './LeverageWarning';
 import Disclaimer from './Disclaimer';
 
-const RISK_FREE_RATE = 0.045; // 4.5% — current T-bill proxy
+const RISK_FREE_RATE = 0.045;
 const REFERENCE_LABELS = ['^IXIC', '^NDX'];
-// Deep floor for series fetches: pull each asset's FULL history so its true
-// inception (e.g. QLD 2006, QQQ 1999) is discoverable and the picker floor
-// isn't stuck at the selected range start. The engine slices to `range`.
+// Full history floor — engine slices to `range`; enables true inception discovery.
 const HISTORY_FLOOR = '1971-01-01';
 
 interface BacktestClientProps {
@@ -57,18 +52,31 @@ function toSeriesByLabel(
     return result;
 }
 
-function getFirstDate(series: PricePoint[]): string {
-    return series[0]?.date ?? '';
-}
-
 type ResultView = 'chart' | 'table';
 
 export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
     const [
         urlState,
-        { setBudget, setHoldings, setRange, setContribution, setSeed },
+        {
+            setBudget,
+            setHoldings,
+            setRange,
+            setContribution,
+            setSeed,
+            setRebalance,
+            setManualFlows,
+        },
     ] = useBacktestUrl();
-    const { budget, holdings, from, to, seed, contribution } = urlState;
+    const {
+        budget,
+        holdings,
+        from,
+        to,
+        seed,
+        contribution,
+        rebalance,
+        manualFlows,
+    } = urlState;
 
     const [budgetValid, setBudgetValid] = useState(true);
     const [seriesData, setSeriesData] = useState<Record<string, PricePoint[]>>(
@@ -81,17 +89,15 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
     const [loading, setLoading] = useState(false);
     const [resultView, setResultView] = useState<ResultView>('chart');
 
-    // Derive first-available date per selected label
     const seriesFirstDate = useMemo<Record<string, string>>(() => {
         const out: Record<string, string> = {};
         for (const [lbl, pts] of Object.entries(seriesData)) {
-            const d = getFirstDate(pts);
+            const d = pts[0]?.date ?? '';
             if (d) out[lbl] = d;
         }
         return out;
     }, [seriesData]);
 
-    // Earliest date across selected holdings
     const minAllowedFrom = useMemo(() => {
         const dates = holdings
             .map((h) => seriesFirstDate[h.label])
@@ -101,11 +107,6 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
             : from;
     }, [holdings, seriesFirstDate, from]);
 
-    // Fetch each selected asset's FULL history (deep floor → today), NOT bounded
-    // by the selected range — otherwise an asset's true inception (e.g. QLD 2006)
-    // is never discovered and the picker floor stays stuck at the range start.
-    // Refetch only when the label SET changes; range changes are sliced by the
-    // engine client-side (no refetch needed).
     const labelsKey = holdings
         .map((h) => h.label)
         .filter((l) => l)
@@ -115,11 +116,10 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
     useEffect(() => {
         if (mockedSeries) return;
         if (!labelsKey) return;
-        const labels = labelsKey.split(',');
         setLoading(true);
         setFetchError(null);
         getPriceSeriesAction({
-            labels,
+            labels: labelsKey.split(','),
             from: HISTORY_FLOOR,
             to: new Date().toISOString().slice(0, 10),
         })
@@ -130,10 +130,6 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
             .finally(() => setLoading(false));
     }, [labelsKey, mockedSeries]);
 
-    // Fetch reference indices once (for DateRangePicker mini chart).
-    // from=1971 so the picker backdrop spans the full deep-backfilled index
-    // history (^IXIC 1971~ / ^NDX 1985~) — removes the old 2023 floor so
-    // bull/bear regimes are selectable. minAllowedFrom still clamps by asset.
     useEffect(() => {
         if (mockedSeries) return;
         getPriceSeriesAction({
@@ -156,26 +152,33 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
             seed,
             riskFreeRate: RISK_FREE_RATE,
             contribution,
+            rebalance, // X2: undefined = legacy no-rebalance (zero-regression)
+            manualFlows, // X2: undefined = legacy path
         };
-    }, [budget, holdings, seriesData, from, to, seed, contribution]);
+    }, [
+        budget,
+        holdings,
+        seriesData,
+        from,
+        to,
+        seed,
+        contribution,
+        rebalance,
+        manualFlows,
+    ]);
 
-    // seedReady removed (XE.5): seed is always defined via DEFAULT_SEED fallback.
     const result = useBacktest(backtestInput, budgetValid);
 
     const leveragedSelected = holdings
         .filter((h) => LEVERAGED_LABELS.has(h.label))
         .map((h) => h.label);
-
     const weightsValid =
         Math.round(holdings.reduce((s, h) => s + h.weightPct, 0)) === 100;
 
-    // Pre-compute monthly rows (memoised — pure derivation from result).
     const monthlyRows = useMemo(
         () => (result ? buildMonthlyStats(result, result.flowsByDate) : []),
         [result]
     );
-
-    // Per-asset month-end (split-adjusted) close columns for the monthly table.
     const assetPrices = useMemo(
         () =>
             buildMonthlyAssetPrices(
@@ -186,8 +189,11 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
             ),
         [seriesData, holdings, from, to]
     );
-
-    // Yearly rolling-annualised return table (CAGR lump / XIRR DCA).
+    // X2.17b: per-asset month-end weight% derived from perHoldingValues.
+    const assetWeights = useMemo(
+        () => (result ? buildMonthlyAssetWeights(result) : null),
+        [result]
+    );
     const yearlyRows = useMemo(
         () => (result ? buildYearlyStats(result, budget) : []),
         [result, budget]
@@ -195,48 +201,31 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
 
     return (
         <div className="flex flex-col gap-6">
-            {/* ── Controls ─────────────────────────────────────────────────────── */}
-            <section
-                aria-label="Backtest controls"
-                className="flex flex-col gap-4 rounded-lg border bg-card p-4"
-            >
-                <BudgetInput
-                    value={budget}
-                    onChange={(v, valid) => {
-                        setBudget(v);
-                        setBudgetValid(valid);
-                    }}
-                />
-                <AssetPicker
-                    holdings={holdings}
-                    seriesFirstDate={seriesFirstDate}
-                    onChange={setHoldings}
-                />
-                <WeightSliders
-                    holdings={holdings}
-                    onChange={setHoldings}
-                />
-                <DateRangePicker
-                    from={from}
-                    to={to}
-                    minAllowedFrom={minAllowedFrom}
-                    ixicSeries={refSeries['^IXIC'] ?? []}
-                    ndxSeries={refSeries['^NDX'] ?? []}
-                    onChange={setRange}
-                />
-                <ContributionInput
-                    value={contribution}
-                    onChange={setContribution}
-                />
-                <SeedControl
-                    seed={seed}
-                    onChange={setSeed}
-                />
-            </section>
+            <BacktestControls
+                budget={budget}
+                holdings={holdings}
+                from={from}
+                to={to}
+                seed={seed}
+                contribution={contribution}
+                seriesFirstDate={seriesFirstDate}
+                ixicSeries={refSeries['^IXIC'] ?? []}
+                ndxSeries={refSeries['^NDX'] ?? []}
+                minAllowedFrom={minAllowedFrom}
+                rebalance={rebalance}
+                manualFlows={manualFlows}
+                setBudget={setBudget}
+                setHoldings={setHoldings}
+                setRange={setRange}
+                setContribution={setContribution}
+                setSeed={setSeed}
+                setRebalance={setRebalance}
+                setManualFlows={setManualFlows}
+                onBudgetValidChange={setBudgetValid}
+            />
 
             <LeverageWarning labels={leveragedSelected} />
 
-            {/* ── Status ────────────────────────────────────────────────────────── */}
             {loading && (
                 <p className="text-sm text-muted-foreground animate-pulse">
                     Loading price data…
@@ -253,7 +242,6 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                 </p>
             )}
 
-            {/* ── Results ───────────────────────────────────────────────────────── */}
             {result && (
                 <div className="flex flex-col gap-6">
                     <MetricsPanel
@@ -261,32 +249,24 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                         budget={budget}
                         riskFreeRate={RISK_FREE_RATE}
                         hasContribution={contribution !== undefined}
+                        rebalance={result.rebalance}
                     />
 
-                    {/* Chart ↔ Table segmented control */}
                     <div className="flex items-center gap-1 self-start rounded-md border p-0.5">
-                        <button
-                            type="button"
-                            onClick={() => setResultView('chart')}
-                            className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                                resultView === 'chart'
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'text-muted-foreground hover:text-foreground'
-                            }`}
-                        >
-                            차트
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setResultView('table')}
-                            className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                                resultView === 'table'
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'text-muted-foreground hover:text-foreground'
-                            }`}
-                        >
-                            월별 상세
-                        </button>
+                        {(['chart', 'table'] as const).map((view) => (
+                            <button
+                                key={view}
+                                type="button"
+                                onClick={() => setResultView(view)}
+                                className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                                    resultView === view
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'text-muted-foreground hover:text-foreground'
+                                }`}
+                            >
+                                {view === 'chart' ? '차트' : '월별 상세'}
+                            </button>
+                        ))}
                     </div>
 
                     {resultView === 'chart' ? (
@@ -304,6 +284,7 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                                 rows={monthlyRows}
                                 assetLabels={assetPrices.labels}
                                 assetPriceByMonth={assetPrices.priceByMonth}
+                                assetWeightByMonth={assetWeights?.weightByMonth}
                             />
                         </div>
                     )}

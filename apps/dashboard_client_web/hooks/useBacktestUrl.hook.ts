@@ -9,15 +9,30 @@
 // XE.2: dividendRoute replaces drip. 3rd holdings field encodes as:
 //   'same' | 'cash' | '<label>'  (new format)
 //   '1' | '0'                    (legacy — decoded as same/cash, read-only)
+//
+// X2.11: rb= and mf= params added; assets= gains optional trailing positionals.
 
 import { useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import type {
     Holding,
     ContributionPlan,
-    ContributionFreq,
     DividendRoute,
+    RebalancePolicy,
 } from '@/types/backtest';
+import {
+    encodeHoldings,
+    decodeHoldings,
+    encodeContribution,
+    decodeContribution,
+    encodeRebalance,
+    decodeRebalance,
+    encodeManualFlows,
+    decodeManualFlows,
+} from '@/utils/backtest/url-codec';
+
+// Re-export primitives consumed by tests and SeedControl.
+export type { DividendRoute };
 
 export interface BacktestUrlState {
     budget: number;
@@ -26,6 +41,8 @@ export interface BacktestUrlState {
     to: string;
     seed: number;
     contribution: ContributionPlan | undefined;
+    rebalance: RebalancePolicy | undefined;
+    manualFlows: { date: string; amount: number }[] | undefined;
 }
 
 // ── Defaults ─────────────────────────────────────────────────────────────────
@@ -54,82 +71,18 @@ export function decodeSeed(raw: string | null): number {
     return isValidSeed(n) ? n : DEFAULT_SEED;
 }
 
-// ── Codec: holdings ───────────────────────────────────────────────────────────
-// XE.2 format: "LABEL:weight:same|cash|<label>,..."
-// Legacy format: "LABEL:weight:1|0,..." (still decoded; never re-encoded)
-
-function decodeRoute(dStr: string | undefined): DividendRoute {
-    if (dStr === '1' || dStr === 'same') return { kind: 'same' };
-    if (dStr === '0' || dStr === 'cash' || dStr === undefined)
-        return { kind: 'cash' };
-    return { kind: 'asset', target: dStr };
-}
-
-function encodeDividendRoute(h: Holding): string {
-    // Prefer explicit dividendRoute; fall back to legacy drip boolean.
-    const route: DividendRoute =
-        h.dividendRoute !== undefined
-            ? h.dividendRoute
-            : h.drip === true
-              ? { kind: 'same' }
-              : { kind: 'cash' };
-    if (route.kind === 'same') return 'same';
-    if (route.kind === 'cash') return 'cash';
-    return route.target;
-}
-
-function encodeHoldings(holdings: Holding[]): string {
-    return holdings
-        .map((h) => `${h.label}:${h.weightPct}:${encodeDividendRoute(h)}`)
-        .join(',');
-}
-
-function decodeHoldings(raw: string | null): Holding[] | null {
-    if (!raw) return null;
-    try {
-        const parts = raw.split(',');
-        const holdings: Holding[] = [];
-        for (const part of parts) {
-            const [label, wStr, dStr] = part.split(':');
-            if (!label || wStr === undefined) return null;
-            const weightPct = Number(wStr);
-            if (!isFinite(weightPct) || weightPct < 0 || weightPct > 100)
-                return null;
-            holdings.push({
-                label,
-                weightPct,
-                dividendRoute: decodeRoute(dStr),
-            });
-        }
-        return holdings.length > 0 ? holdings : null;
-    } catch {
-        return null;
-    }
-}
-
-// ── Codec: contribution ───────────────────────────────────────────────────────
-// dca=<amount>:<freq>  e.g. "dca=500:monthly"  (absent ⇒ undefined)
-
-const VALID_FREQS = new Set<ContributionFreq>(['monthly', 'yearly']);
-
-function encodeContribution(plan: ContributionPlan): string {
-    return `${plan.amount}:${plan.freq}`;
-}
-
-function decodeContribution(raw: string | null): ContributionPlan | undefined {
-    if (!raw) return undefined;
-    const [amtStr, freqStr] = raw.split(':');
-    const amount = Number(amtStr);
-    if (!isFinite(amount) || amount <= 0) return undefined;
-    if (!freqStr || !VALID_FREQS.has(freqStr as ContributionFreq))
-        return undefined;
-    return { amount, freq: freqStr as ContributionFreq };
-}
-
 // Called only by the Randomize button — never auto-invoked on mount/render.
 export function generateSeed(): number {
     return Math.floor(Math.random() * 0x7fff_ffff);
 }
+
+// Re-export codec helpers for consumers that import them from the hook path.
+export {
+    encodeHoldings,
+    decodeHoldings,
+    encodeContribution,
+    decodeContribution,
+};
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 export function useBacktestUrl(): [
@@ -140,6 +93,10 @@ export function useBacktestUrl(): [
         setRange: (from: string, to: string) => void;
         setContribution: (plan: ContributionPlan | undefined) => void;
         setSeed: (v: number) => void;
+        setRebalance: (policy: RebalancePolicy | undefined) => void;
+        setManualFlows: (
+            flows: { date: string; amount: number }[] | undefined
+        ) => void;
     },
 ] {
     const router = useRouter();
@@ -151,10 +108,13 @@ export function useBacktestUrl(): [
         const from = sp.get('from') ?? DEFAULT_FROM;
         const to = sp.get('to') ?? DEFAULT_TO;
         // seed is ALWAYS defined: use DEFAULT_SEED when URL param is absent.
-        // This eliminates the per-visit re-roll (XE.5 bug fix).
         const seed = decodeSeed(sp.get('seed'));
         const holdings = decodeHoldings(sp.get('assets')) ?? DEFAULT_HOLDINGS;
         const contribution = decodeContribution(sp.get('dca'));
+        // knownLabels allows the rebalance decoder to drop stale trigger labels.
+        const knownLabels = new Set(holdings.map((h) => h.label));
+        const rebalance = decodeRebalance(sp.get('rb'), knownLabels);
+        const manualFlows = decodeManualFlows(sp.get('mf'));
         return {
             budget: isFinite(budget) && budget > 0 ? budget : DEFAULT_BUDGET,
             holdings,
@@ -162,6 +122,8 @@ export function useBacktestUrl(): [
             to,
             seed,
             contribution,
+            rebalance,
+            manualFlows,
         };
     }, [sp]);
 
@@ -203,9 +165,29 @@ export function useBacktestUrl(): [
         (v: number) => push({ seed: String(v) }),
         [push]
     );
+    const setRebalance = useCallback(
+        (policy: RebalancePolicy | undefined) =>
+            push({ rb: policy ? encodeRebalance(policy) : null }),
+        [push]
+    );
+    const setManualFlows = useCallback(
+        (flows: { date: string; amount: number }[] | undefined) =>
+            push({
+                mf: flows && flows.length > 0 ? encodeManualFlows(flows) : null,
+            }),
+        [push]
+    );
 
     return [
         state,
-        { setBudget, setHoldings, setRange, setContribution, setSeed },
+        {
+            setBudget,
+            setHoldings,
+            setRange,
+            setContribution,
+            setSeed,
+            setRebalance,
+            setManualFlows,
+        },
     ];
 }
