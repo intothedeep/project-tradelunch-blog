@@ -83,7 +83,12 @@ export function HoldingCell({
             onClick={() => onToggle(cusip)}
             onKeyDown={handleKeyDown}
             className={cn(
-                'relative rounded p-1.5 cursor-pointer select-none transition-all',
+                // transition-opacity (NOT transition-all): a large grid (funds
+                // with many holdings × quarters = hundreds of cells) animating
+                // every property — including the CSS filter below — spiked GPU
+                // memory and crashed the iOS Safari WebKit process ("A problem
+                // repeatedly occurred"). Only opacity animates now.
+                'relative rounded p-1.5 cursor-pointer select-none transition-opacity',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-ring',
                 // Selected block: fixed coral ring with a background-colored
                 // offset gap. Coral pops over any cusip hue in both light and
@@ -91,11 +96,12 @@ export function HoldingCell({
                 // as unclear; tile-derived color was ~always white).
                 isActive &&
                     'ring-4 ring-[#ff7f50] ring-offset-2 ring-offset-background z-10',
-                // Spotlight: when another cusip is selected, fade + desaturate
-                // this one so the active trail dominates by contrast. We never
-                // repaint the active tile, so its pre-computed text color stays
-                // legible regardless of theme.
-                isDimmed && 'opacity-35 saturate-50'
+                // Spotlight: when another cusip is selected, fade this one so
+                // the active trail dominates by contrast. Opacity ONLY — a CSS
+                // filter (saturate) here promoted every dimmed cell to its own
+                // GPU compositing layer; across hundreds of cells that OOM-
+                // crashed mobile WebKit. Opacity dims enough on its own.
+                isDimmed && 'opacity-35'
             )}
             style={{ backgroundColor: bg, color: textColor }}
             title={`${label} (${cusip})`}
