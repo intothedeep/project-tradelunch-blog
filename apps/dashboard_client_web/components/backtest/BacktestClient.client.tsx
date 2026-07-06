@@ -11,6 +11,8 @@ import { useBacktestUrl } from '@/hooks/useBacktestUrl.hook';
 import { useBacktest } from '@/hooks/useBacktest.hook';
 import { LEVERAGED_LABELS } from '@/utils/backtest/universe';
 import { buildMonthlyStats } from '@/utils/backtest/monthlyStats';
+import { buildMonthlyAssetPrices } from '@/utils/backtest/monthlyAssetPrices';
+import { buildYearlyStats } from '@/utils/backtest/yearlyStats';
 import { getPriceSeriesAction } from '@/app/actions/getPriceSeries.action';
 import type { TPriceSeriesResponse } from '@/apis/getPriceSeries.api';
 import type { PricePoint } from '@/types/backtest';
@@ -23,6 +25,7 @@ import SeedControl from './SeedControl.client';
 import MetricsPanel from './MetricsPanel';
 import ResultChart from './ResultChart.client';
 import StatsTable from './StatsTable';
+import YearlyTable from './YearlyTable';
 import DividendTable from './DividendTable';
 import IncomeProjection from './IncomeProjection';
 import LeverageWarning from './LeverageWarning';
@@ -172,6 +175,24 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
         [result]
     );
 
+    // Per-asset month-end (split-adjusted) close columns for the monthly table.
+    const assetPrices = useMemo(
+        () =>
+            buildMonthlyAssetPrices(
+                seriesData,
+                holdings.map((h) => h.label),
+                from,
+                to
+            ),
+        [seriesData, holdings, from, to]
+    );
+
+    // Yearly rolling-annualised return table (CAGR lump / XIRR DCA).
+    const yearlyRows = useMemo(
+        () => (result ? buildYearlyStats(result, budget) : []),
+        [result, budget]
+    );
+
     return (
         <div className="flex flex-col gap-6">
             {/* ── Controls ─────────────────────────────────────────────────────── */}
@@ -274,7 +295,17 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                             budget={budget}
                         />
                     ) : (
-                        <StatsTable rows={monthlyRows} />
+                        <div className="flex flex-col gap-6">
+                            <YearlyTable
+                                rows={yearlyRows}
+                                isDca={contribution !== undefined}
+                            />
+                            <StatsTable
+                                rows={monthlyRows}
+                                assetLabels={assetPrices.labels}
+                                assetPriceByMonth={assetPrices.priceByMonth}
+                            />
+                        </div>
                     )}
 
                     <IncomeProjection

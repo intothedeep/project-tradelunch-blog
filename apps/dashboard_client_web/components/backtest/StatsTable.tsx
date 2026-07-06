@@ -1,13 +1,17 @@
 // components/backtest/StatsTable.tsx
 // Purpose: render a month-by-month backtest statistics table.
 // Pure Server-compatible component (no hooks/state) — receives pre-computed rows.
-// Columns: 월 · 월말평가액 · 월수익률 · 누적수익률 · 당월배당 · 누적배당
-//          + (DCA) 월기여 · 누적투입
+// Columns: 월 · 월말평가액 · 월수익률 · 누적수익률 · 낙폭 · 당월배당 · 누적배당
+//          + (DCA) 월기여 · 누적투입 + (optional) 자산별 월말 조정close
 
 import type { MonthlyStatRow } from '@/utils/backtest/monthlyStats';
 
 interface StatsTableProps {
     rows: MonthlyStatRow[];
+    /** Selected asset labels to render as trailing price columns (split-adjusted close). */
+    assetLabels?: string[];
+    /** priceByMonth['YYYY-MM'][label] = month-end split-adjusted close. */
+    assetPriceByMonth?: Record<string, Record<string, number>>;
 }
 
 // ── formatters ────────────────────────────────────────────────────────────────
@@ -27,6 +31,12 @@ function fmtDiv(v: number): string {
     return fmtUsd(v);
 }
 
+/** Per-asset split-adjusted close: 2 decimals so sub-$1 adjusted prices stay legible. */
+function fmtPrice(v: number | undefined): string {
+    if (v === undefined) return '—';
+    return `$${v.toFixed(2)}`;
+}
+
 function pctClass(v: number): string {
     if (v > 0) return 'text-green-600 dark:text-green-400';
     if (v < 0) return 'text-red-500 dark:text-red-400';
@@ -35,10 +45,16 @@ function pctClass(v: number): string {
 
 // ── component ─────────────────────────────────────────────────────────────────
 
-export default function StatsTable({ rows }: StatsTableProps) {
+export default function StatsTable({
+    rows,
+    assetLabels,
+    assetPriceByMonth,
+}: StatsTableProps) {
     if (rows.length === 0) return null;
 
     const hasDca = rows[0]?.contribution !== undefined;
+    const priceLabels = assetLabels ?? [];
+    const hasPrices = priceLabels.length > 0 && assetPriceByMonth !== undefined;
 
     return (
         <section aria-label="월별 통계표">
@@ -75,6 +91,15 @@ export default function StatsTable({ rows }: StatsTableProps) {
                                     </th>
                                 </>
                             )}
+                            {hasPrices &&
+                                priceLabels.map((label) => (
+                                    <th
+                                        key={label}
+                                        className="px-3 py-2 font-medium text-right whitespace-nowrap"
+                                    >
+                                        {label} 가격
+                                    </th>
+                                ))}
                         </tr>
                     </thead>
                     <tbody>
@@ -122,11 +147,29 @@ export default function StatsTable({ rows }: StatsTableProps) {
                                         </td>
                                     </>
                                 )}
+                                {hasPrices &&
+                                    priceLabels.map((label) => (
+                                        <td
+                                            key={label}
+                                            className="px-3 py-1.5 text-right font-mono text-muted-foreground"
+                                        >
+                                            {fmtPrice(
+                                                assetPriceByMonth?.[
+                                                    row.month
+                                                ]?.[label]
+                                            )}
+                                        </td>
+                                    ))}
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
+            {hasPrices && (
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                    자산별 가격은 월말 종가(분할조정) 기준입니다.
+                </p>
+            )}
         </section>
     );
 }
