@@ -97,44 +97,31 @@ describe('DRIP', () => {
     });
 });
 
-// ── Test 2: Stock split keeps portfolio value continuous ──────────────────────
-// 2:1 split on day 2: raw close halves, shares double → same value.
+// ── Test 2: Split-adjusted close → engine must NOT re-apply the split ─────────
+// `close` from market_history is already split-adjusted (Yahoo adjusts OHLC at
+// source). The `stockSplits` marker on the split bar is informational; share
+// counts stay constant across it. Re-applying it would double-count the split
+// (a QLD DCA over its six 2:1 splits would inflate 2^6 = 64×).
 
-describe('stock split', () => {
-    it('2:1 split: value on split bar equals value on pre-split bar (no cliff)', () => {
-        // Day 1: close=100 (pre-split); Day 2: close=50 (post-split raw), splits=2; Day 3: close=55
-        const series = mkSeries(
-            ['2020-01-01', '2020-01-02', '2020-01-03'],
-            [100, 50, 55],
-            [0, 0, 0],
-            [0, 2, 0]
-        );
-        const result = runBacktest({
-            ...baseInput(),
-            seriesByLabel: { A: series },
-        });
-
-        const preSplitValue = result.timeline[0]!.value; // day 1
-        const splitDayValue = result.timeline[1]!.value; // day 2 (split applied)
-        expect(splitDayValue).toBeCloseTo(preSplitValue, 6); // no cliff
-    });
-
-    it('2:1 split: post-split shares doubles, day-3 value reflects 2x shares', () => {
+describe('stock split (split-adjusted feed)', () => {
+    it('split marker does not change share count or portfolio value', () => {
         const budget = 10000; // buys 100 shares at $100
+        // Split-adjusted prices are continuous through the split day — no cliff.
         const series = mkSeries(
             ['2020-01-01', '2020-01-02', '2020-01-03'],
-            [100, 50, 60], // day 3 closes at $60 (post-split)
+            [100, 100, 120],
             [0, 0, 0],
-            [0, 2, 0]
+            [0, 2, 0] // 2:1 split marker on day 2 — already reflected in `close`
         );
         const result = runBacktest({
             ...baseInput({ budget }),
             seriesByLabel: { A: series },
         });
 
-        // 100 shares × 2 = 200 post-split shares × $60 = $12000
+        // Shares stay at 100 (split NOT re-applied); day-3 value = 100 × $120.
+        expect(result.perHolding[0]!.shares).toBeCloseTo(100, 6);
+        expect(result.timeline[1]!.value).toBeCloseTo(10000, 4); // no cliff
         expect(result.timeline[2]!.value).toBeCloseTo(12000, 4);
-        expect(result.perHolding[0]!.shares).toBeCloseTo(200, 6);
     });
 });
 

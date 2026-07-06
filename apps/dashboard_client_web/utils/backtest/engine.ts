@@ -150,15 +150,15 @@ export function runBacktest(input: BacktestInput): BacktestResult {
     for (const h of holdings) dividendsByLabel.set(h.label, 0);
 
     for (const date of sortedDates) {
-        // 1. Stock splits
-        for (const h of holdings) {
-            const bar = dateIndexes.get(h.label)?.get(date);
-            if (!bar) continue;
-            const cur = shares.get(h.label) ?? 0;
-            if (bar.stockSplits > 0) shares.set(h.label, cur * bar.stockSplits);
-        }
+        // NOTE: `close` from market_history is SPLIT-ADJUSTED at source (Yahoo
+        // returns split-adjusted OHLC even under yfinance auto_adjust=False —
+        // e.g. QLD's 2006 close is ~$0.31, back-adjusted for its six 2:1 splits).
+        // Share counts therefore stay constant across splits; re-applying the
+        // `stockSplits` ratio here would double-count the split (inflating a QLD
+        // DCA by 2^6 = 64×). Dividends are NOT baked into `close`, so they remain
+        // handled explicitly below.
 
-        // 2. Dividends — 2-phase pure module (XE.2 extraction).
+        // 1. Dividends — 2-phase pure module (XE.2 extraction).
         const { cashDelta, events, dividendAmounts } = applyDividends(
             date,
             holdings,
@@ -171,7 +171,7 @@ export function runBacktest(input: BacktestInput): BacktestResult {
         }
         dividendSchedule.push(...events);
 
-        // 3. Contribution buy (after dividends → new cash skips today's dividend)
+        // 2. Contribution buy (after dividends → new cash skips today's dividend)
         if (contribution && contributionDates.has(date)) {
             cash += investCash(
                 date,
@@ -185,7 +185,7 @@ export function runBacktest(input: BacktestInput): BacktestResult {
             xirrFlows.push({ date, amount: -contribution.amount });
         }
 
-        // 4. Snapshot
+        // 3. Snapshot
         let totalValue = cash;
         for (const h of holdings) {
             const bar = dateIndexes.get(h.label)?.get(date);
