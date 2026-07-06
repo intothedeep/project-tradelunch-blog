@@ -12,8 +12,9 @@ export interface ContributionPlan {
 export interface PricePoint {
     date: string; // 'YYYY-MM-DD', ascending
     close: number; // SPLIT-ADJUSTED close (Yahoo adjusts OHLC for splits at source)
-    dividends: number; // per-share cash dividend (NOT baked into close)
-    stockSplits: number; // informational only — split already reflected in close
+    dividends: number; // RAW per-share cash dividend as paid (NOT baked into close);
+    // engine rebases it onto the split-adjusted basis (see splitAdjustDividends)
+    stockSplits: number; // split ratio on this bar; used only to rebase dividends
 }
 
 /**

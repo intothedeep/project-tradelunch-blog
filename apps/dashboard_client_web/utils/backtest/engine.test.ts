@@ -125,6 +125,48 @@ describe('stock split (split-adjusted feed)', () => {
     });
 });
 
+// ── Test 2b: Pre-split dividend is rebased to the split-adjusted basis ────────
+
+describe('dividend split-adjustment', () => {
+    it('rebases a pre-split dividend by the trailing split factor', () => {
+        // Day 1: $2/sh RAW dividend at close=100. Day 2: 2:1 split (close is
+        // already split-adjusted). Share count is on the split-adjusted basis, so
+        // the Day-1 dividend must be rebased to $1/sh — not over-counted as $2.
+        const series = mkSeries(
+            ['2020-01-01', '2020-01-02'],
+            [100, 100],
+            [2, 0],
+            [0, 2]
+        );
+        const result = runBacktest({
+            ...baseInput(), // budget 10000 → 100 shares @ $100
+            holdings: [{ label: 'A', weightPct: 100, drip: false }],
+            seriesByLabel: { A: series },
+            range: { from: '2020-01-01', to: '2020-01-02' },
+        });
+        // 100 shares × ($2 / 2) = $100, NOT the raw $200.
+        expect(result.metrics.cumulativeDividends).toBeCloseTo(100, 6);
+    });
+
+    it('leaves a post-split dividend unchanged (no trailing split)', () => {
+        // Split on Day 1, dividend on Day 2 → no split after the dividend bar.
+        const series = mkSeries(
+            ['2020-01-01', '2020-01-02'],
+            [100, 100],
+            [0, 2],
+            [2, 0]
+        );
+        const result = runBacktest({
+            ...baseInput(),
+            holdings: [{ label: 'A', weightPct: 100, drip: false }],
+            seriesByLabel: { A: series },
+            range: { from: '2020-01-01', to: '2020-01-02' },
+        });
+        // 100 shares × $2 = $200 (dividend not rebased).
+        expect(result.metrics.cumulativeDividends).toBeCloseTo(200, 6);
+    });
+});
+
 // ── Test 3: Negative CAGR → all metrics & projection finite ──────────────────
 
 describe('negative CAGR / declining series', () => {

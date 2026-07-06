@@ -32,6 +32,31 @@ function buildDateIndex(series: PricePoint[]): Map<string, PricePoint> {
     return new Map(series.map((p) => [p.date, p]));
 }
 
+/**
+ * Put per-share dividends on the SAME basis as `close`.
+ *
+ * market_history feeds split-adjusted `close` but RAW (as-paid) `dividends`
+ * (yfinance auto_adjust=False). Share counts therefore sit on the split-adjusted
+ * basis, so a raw dividend paid before a split is over-counted by that split
+ * factor when multiplied by the (inflated) share count — QLD's six 2:1 splits
+ * over-count a 2006 dividend by 2^6 = 64×. Divide each dividend by the product of
+ * splits that occur strictly AFTER its bar. One reverse pass per series; `close`
+ * and `stockSplits` are left untouched.
+ */
+function splitAdjustDividends(series: PricePoint[]): PricePoint[] {
+    let trailingSplit = 1; // product of splits strictly after the current bar
+    const out = series.slice();
+    for (let i = series.length - 1; i >= 0; i--) {
+        const p = series[i];
+        if (!p) continue;
+        if (p.dividends > 0 && trailingSplit !== 1) {
+            out[i] = { ...p, dividends: p.dividends / trailingSplit };
+        }
+        if (p.stockSplits > 0) trailingSplit *= p.stockSplits;
+    }
+    return out;
+}
+
 // ── Empty result (degenerate input) ──────────────────────────────────────────
 
 function buildEmptyResult(budget: number): BacktestResult {
@@ -80,19 +105,23 @@ export function runBacktest(input: BacktestInput): BacktestResult {
         return buildEmptyResult(budget);
     }
 
-    // Build date indexes for O(1) lookup during the walk.
-    const dateIndexes = new Map<string, Map<string, PricePoint>>();
+    // Put dividends on the split-adjusted basis of `close` before indexing.
+    const adjustedByLabel = new Map<string, PricePoint[]>();
     for (const label of Object.keys(seriesByLabel)) {
         const series = seriesByLabel[label];
         if (series !== undefined)
-            dateIndexes.set(label, buildDateIndex(series));
+            adjustedByLabel.set(label, splitAdjustDividends(series));
+    }
+
+    // Build date indexes for O(1) lookup during the walk.
+    const dateIndexes = new Map<string, Map<string, PricePoint>>();
+    for (const [label, series] of adjustedByLabel) {
+        dateIndexes.set(label, buildDateIndex(series));
     }
 
     // Build the sorted union of all trading dates within the requested range.
     const dateSet = new Set<string>();
-    for (const label of Object.keys(seriesByLabel)) {
-        const series = seriesByLabel[label];
-        if (!series) continue;
+    for (const series of adjustedByLabel.values()) {
         for (const p of series) {
             if (p.date >= range.from && p.date <= range.to) dateSet.add(p.date);
         }
@@ -150,13 +179,12 @@ export function runBacktest(input: BacktestInput): BacktestResult {
     for (const h of holdings) dividendsByLabel.set(h.label, 0);
 
     for (const date of sortedDates) {
-        // NOTE: `close` from market_history is SPLIT-ADJUSTED at source (Yahoo
-        // returns split-adjusted OHLC even under yfinance auto_adjust=False —
-        // e.g. QLD's 2006 close is ~$0.31, back-adjusted for its six 2:1 splits).
-        // Share counts therefore stay constant across splits; re-applying the
-        // `stockSplits` ratio here would double-count the split (inflating a QLD
-        // DCA by 2^6 = 64×). Dividends are NOT baked into `close`, so they remain
-        // handled explicitly below.
+        // NOTE: `close` is SPLIT-ADJUSTED at source (Yahoo splits-adjusts OHLC
+        // even under yfinance auto_adjust=False), so share counts stay constant
+        // across splits — re-applying `stockSplits` here would double-count it
+        // (inflating a QLD DCA by 2^6 = 64×). Dividends are NOT baked into
+        // `close`; they were put on the split-adjusted basis by
+        // splitAdjustDividends() above, then applied explicitly below.
 
         // 1. Dividends — 2-phase pure module (XE.2 extraction).
         const { cashDelta, events, dividendAmounts } = applyDividends(
