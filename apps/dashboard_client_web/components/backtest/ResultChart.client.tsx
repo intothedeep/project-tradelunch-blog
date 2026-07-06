@@ -201,6 +201,13 @@ export default function ResultChart({ result, budget }: ResultChartProps) {
                     </ComposedChart>
                 </ResponsiveContainer>
             </div>
+            {/* Monte Carlo fan disclaimer — period cherry-picking + leveraged asset caveat */}
+            <p className="mt-1 text-[11px] text-muted-foreground leading-tight">
+                Projection fan extrapolated from the{' '}
+                <em>selected period&apos;s</em> realized μ/σ (period
+                cherry-picking risk). For leveraged assets (TQQQ/QLD/SOXL) the
+                iid-normal model does not capture volatility decay.
+            </p>
         </section>
     );
 }

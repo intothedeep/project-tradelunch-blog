@@ -15,6 +15,10 @@ Also provides DB-window gate for backfill decoupling (L17):
   * db_keep_cutoff: earliest period_of_report to allow into Postgres during a
     backfill run; periods older than this skip DB writes but still go to Parquet.
 
+Also provides the backtest universe retention exemption (XE.6):
+  * BACKTEST_RETAIN_LABELS: frozenset of market_history labels that must NEVER
+    be pruned; the /backtest feature relies on their full deep history.
+
 Invariants:
   - prune_cutoff always returns Jan 1 of (today.year - years); bars strictly
     BEFORE this date are prunable (complete years only).
@@ -35,12 +39,33 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 
 __all__ = [
+    "BACKTEST_RETAIN_LABELS",
     "prune_cutoff",
     "prunable_years",
     "holdings_prune_periods",
     "age_cutoff",
     "db_keep_cutoff",
 ]
+
+# WHY: the /backtest feature deep-backfilled these labels to inception
+# (QQQ 1999, SPY 1993, ^IXIC 1971). The Max preset and long-range backtests
+# depend on the full history. Pruning pre-2021 bars would silently break
+# that feature. These labels are PERMANENTLY exempt from the rolling hot-window
+# prune. Failure mode of this exemption is "keeps too much data" (safe),
+# never "deletes something it shouldn't". (#XE.6)
+BACKTEST_RETAIN_LABELS: frozenset[str] = frozenset({
+    "QQQ",
+    "QQQM",
+    "QLD",
+    "TQQQ",
+    "SPY",
+    "SCHD",
+    "JEPQ",
+    "VOO",
+    "VOOG",
+    "NASDAQ Composite",
+    "NASDAQ 100",
+})
 
 
 def prune_cutoff(today: date, years: int) -> date:

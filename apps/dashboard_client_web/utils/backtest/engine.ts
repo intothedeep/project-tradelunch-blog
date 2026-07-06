@@ -24,6 +24,7 @@ import {
 import { buildProjection } from './projection';
 import { buildContributionDates } from './contributions';
 import { investCash } from './invest';
+import { applyDividends } from './dividends';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -157,36 +158,18 @@ export function runBacktest(input: BacktestInput): BacktestResult {
             if (bar.stockSplits > 0) shares.set(h.label, cur * bar.stockSplits);
         }
 
-        // 2. Dividends
-        for (const h of holdings) {
-            const bar = dateIndexes.get(h.label)?.get(date);
-            if (!bar) continue;
-            const sharesNow = shares.get(h.label) ?? 0;
-            if (bar.dividends > 0 && sharesNow > 0) {
-                const divCash = sharesNow * bar.dividends;
-                dividendsByLabel.set(
-                    h.label,
-                    (dividendsByLabel.get(h.label) ?? 0) + divCash
-                );
-                if (h.drip && bar.close > 0) {
-                    shares.set(h.label, sharesNow + divCash / bar.close);
-                    dividendSchedule.push({
-                        date,
-                        label: h.label,
-                        perShare: bar.dividends,
-                        cash: 0,
-                    });
-                } else {
-                    cash += divCash;
-                    dividendSchedule.push({
-                        date,
-                        label: h.label,
-                        perShare: bar.dividends,
-                        cash: divCash,
-                    });
-                }
-            }
+        // 2. Dividends — 2-phase pure module (XE.2 extraction).
+        const { cashDelta, events, dividendAmounts } = applyDividends(
+            date,
+            holdings,
+            dateIndexes,
+            shares
+        );
+        cash += cashDelta;
+        for (const [lbl, amt] of dividendAmounts) {
+            dividendsByLabel.set(lbl, (dividendsByLabel.get(lbl) ?? 0) + amt);
         }
+        dividendSchedule.push(...events);
 
         // 3. Contribution buy (after dividends → new cash skips today's dividend)
         if (contribution && contributionDates.has(date)) {
@@ -279,6 +262,10 @@ export function runBacktest(input: BacktestInput): BacktestResult {
         seed,
     });
 
+    // flowsByDate: expose only when DCA contributions exist (lump-sum → undefined).
+    const flowsByDateRecord: Record<string, number> | undefined =
+        flowsByDate.size > 0 ? Object.fromEntries(flowsByDate) : undefined;
+
     return {
         timeline,
         metrics: {
@@ -299,5 +286,6 @@ export function runBacktest(input: BacktestInput): BacktestResult {
             schedule: dividendSchedule,
         },
         projection,
+        flowsByDate: flowsByDateRecord,
     };
 }

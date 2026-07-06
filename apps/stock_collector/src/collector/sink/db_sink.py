@@ -418,12 +418,17 @@ def read_prune_candidates(
     conn: psycopg.Connection,
     cutoff: date,
     interval: str = DEFAULT_INTERVAL,
+    exempt_labels: frozenset[str] = frozenset(),
 ) -> dict[str, tuple[date, int]]:
     """{label: (min_bar_date, count)} for bars strictly older than ``cutoff``.
 
     Only labels that have at least one bar before the cutoff are returned.
     The caller uses (min_bar_date.year, cutoff) with prunable_years() to derive
     which Parquet objects must exist before any deletion proceeds.
+
+    exempt_labels: labels to exclude from the result (e.g. BACKTEST_RETAIN_LABELS).
+    Filtering is done in Python after fetchall so the SQL stays unchanged.
+    Failure mode of non-empty exempt_labels is 'keeps too much data' (safe). (#XE.6)
     """
     with conn.cursor() as cur:
         cur.execute(
@@ -433,7 +438,11 @@ def read_prune_candidates(
             "GROUP BY label",
             (interval, cutoff),
         )
-        return {label: (min_date, int(cnt)) for label, min_date, cnt in cur.fetchall()}
+        return {
+            label: (min_date, int(cnt))
+            for label, min_date, cnt in cur.fetchall()
+            if label not in exempt_labels
+        }
 
 
 def delete_history_before(

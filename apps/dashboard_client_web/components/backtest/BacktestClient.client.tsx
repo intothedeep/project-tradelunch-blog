@@ -10,6 +10,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useBacktestUrl } from '@/hooks/useBacktestUrl.hook';
 import { useBacktest } from '@/hooks/useBacktest.hook';
 import { LEVERAGED_LABELS } from '@/utils/backtest/universe';
+import { buildMonthlyStats } from '@/utils/backtest/monthlyStats';
 import { getPriceSeriesAction } from '@/app/actions/getPriceSeries.action';
 import type { TPriceSeriesResponse } from '@/apis/getPriceSeries.api';
 import type { PricePoint } from '@/types/backtest';
@@ -18,8 +19,10 @@ import AssetPicker from './AssetPicker.client';
 import WeightSliders from './WeightSliders.client';
 import DateRangePicker from './DateRangePicker.client';
 import ContributionInput from './ContributionInput.client';
+import SeedControl from './SeedControl.client';
 import MetricsPanel from './MetricsPanel';
 import ResultChart from './ResultChart.client';
+import StatsTable from './StatsTable';
 import DividendTable from './DividendTable';
 import IncomeProjection from './IncomeProjection';
 import LeverageWarning from './LeverageWarning';
@@ -51,11 +54,14 @@ function getFirstDate(series: PricePoint[]): string {
     return series[0]?.date ?? '';
 }
 
+type ResultView = 'chart' | 'table';
+
 export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
-    const [urlState, { setBudget, setHoldings, setRange, setContribution }] =
-        useBacktestUrl();
-    const { budget, holdings, from, to, seed, seedReady, contribution } =
-        urlState;
+    const [
+        urlState,
+        { setBudget, setHoldings, setRange, setContribution, setSeed },
+    ] = useBacktestUrl();
+    const { budget, holdings, from, to, seed, contribution } = urlState;
 
     const [budgetValid, setBudgetValid] = useState(true);
     const [seriesData, setSeriesData] = useState<Record<string, PricePoint[]>>(
@@ -66,6 +72,7 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
     );
     const [fetchError, setFetchError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [resultView, setResultView] = useState<ResultView>('chart');
 
     // Derive first-available date per selected label
     const seriesFirstDate = useMemo<Record<string, string>>(() => {
@@ -137,7 +144,8 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
         };
     }, [budget, holdings, seriesData, from, to, seed, contribution]);
 
-    const result = useBacktest(backtestInput, seedReady && budgetValid);
+    // seedReady removed (XE.5): seed is always defined via DEFAULT_SEED fallback.
+    const result = useBacktest(backtestInput, budgetValid);
 
     const leveragedSelected = holdings
         .filter((h) => LEVERAGED_LABELS.has(h.label))
@@ -145,6 +153,12 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
 
     const weightsValid =
         Math.round(holdings.reduce((s, h) => s + h.weightPct, 0)) === 100;
+
+    // Pre-compute monthly rows (memoised — pure derivation from result).
+    const monthlyRows = useMemo(
+        () => (result ? buildMonthlyStats(result, result.flowsByDate) : []),
+        [result]
+    );
 
     return (
         <div className="flex flex-col gap-6">
@@ -181,6 +195,10 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                     value={contribution}
                     onChange={setContribution}
                 />
+                <SeedControl
+                    seed={seed}
+                    onChange={setSeed}
+                />
             </section>
 
             <LeverageWarning labels={leveragedSelected} />
@@ -211,10 +229,42 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                         riskFreeRate={RISK_FREE_RATE}
                         hasContribution={contribution !== undefined}
                     />
-                    <ResultChart
-                        result={result}
-                        budget={budget}
-                    />
+
+                    {/* Chart ↔ Table segmented control */}
+                    <div className="flex items-center gap-1 self-start rounded-md border p-0.5">
+                        <button
+                            type="button"
+                            onClick={() => setResultView('chart')}
+                            className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                                resultView === 'chart'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            차트
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setResultView('table')}
+                            className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                                resultView === 'table'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            월별 상세
+                        </button>
+                    </div>
+
+                    {resultView === 'chart' ? (
+                        <ResultChart
+                            result={result}
+                            budget={budget}
+                        />
+                    ) : (
+                        <StatsTable rows={monthlyRows} />
+                    )}
+
                     <IncomeProjection
                         income={result.projection.income}
                         budget={budget}

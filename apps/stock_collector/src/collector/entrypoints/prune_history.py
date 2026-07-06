@@ -39,7 +39,7 @@ from collector.config.settings import (
 from collector.config.watchlist_loader import load_watchlist
 from collector.sink import db_sink
 from collector.sink.storage_sink import object_exists
-from collector.transform.retention import prune_cutoff, prunable_years
+from collector.transform.retention import BACKTEST_RETAIN_LABELS, prune_cutoff, prunable_years
 from collector.transform.universe_resolve import resolve_universe
 from lib.constants import PROVIDER_YAHOO, safe_symbol
 
@@ -125,7 +125,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         label_ticker = _build_label_ticker_map(conn)
-        candidates = db_sink.read_prune_candidates(conn, cutoff)
+        candidates = db_sink.read_prune_candidates(conn, cutoff, exempt_labels=BACKTEST_RETAIN_LABELS)
 
         labels = list(candidates.keys())
         if args.limit:
@@ -133,6 +133,7 @@ def main(argv: list[str] | None = None) -> int:
 
         print(
             f"[prune_history] cutoff={cutoff} candidates={len(candidates)}"
+            f" exempt={len(BACKTEST_RETAIN_LABELS)} (backtest universe, #XE.6)"
             f" processing={len(labels)} dry_run={args.dry_run}"
         )
 

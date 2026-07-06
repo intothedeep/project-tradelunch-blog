@@ -16,10 +16,24 @@ export interface PricePoint {
     stockSplits: number;
 }
 
+/**
+ * Where to route dividend proceeds for a given holding.
+ *   'same'  — reinvest into the same asset (classic DRIP)
+ *   'cash'  — accumulate as cash
+ *   'asset' — reinvest into a different selected asset (e.g. JEPQ → VOO)
+ */
+export type DividendRoute =
+    | { kind: 'same' }
+    | { kind: 'cash' }
+    | { kind: 'asset'; target: string };
+
 export interface Holding {
     label: string;
     weightPct: number; // 0–100
-    drip: boolean; // per-asset dividend reinvestment toggle
+    /** @deprecated Use dividendRoute instead. Kept for legacy URL decode only. */
+    drip?: boolean;
+    /** Explicit routing descriptor. Takes precedence over drip. Defaults to cash. */
+    dividendRoute?: DividendRoute;
 }
 
 export interface BacktestInput {
@@ -46,9 +60,11 @@ export interface BacktestMetrics {
 
 export interface DividendEvent {
     date: string;
-    label: string;
+    label: string; // source asset (dividend attributed here regardless of route)
     perShare: number; // yfinance per-share amount
-    cash: number; // actual cash received; 0 if reinvested via DRIP
+    cash: number; // actual cash received; 0 if reinvested (DRIP or cross-asset)
+    /** Where the proceeds went. 'cash' | '<target label>' | undefined (same-asset). */
+    routedTo?: string;
 }
 
 export interface DividendSummary {
@@ -81,4 +97,6 @@ export interface BacktestResult {
     perHolding: PerHoldingResult[];
     dividends: DividendSummary;
     projection: ProjectionResult;
+    /** Net external inflow per date (DCA contributions). Absent for lump-sum. */
+    flowsByDate?: Record<string, number>;
 }

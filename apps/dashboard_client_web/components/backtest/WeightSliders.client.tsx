@@ -4,10 +4,12 @@
 // Purpose: per-asset weight % sliders. Weights must sum to 100.
 // Shows running total, "equal split" button, and disables run when invalid.
 // Remainder is assigned to the first asset on equal split.
+// XE.2: drip toggle replaced by DividendRouteSelect (3-way routing).
 
 import { cn } from '@/lib/utils';
-import type { Holding } from '@/types/backtest';
-import DripToggle from './DripToggle';
+import type { DividendRoute, Holding } from '@/types/backtest';
+import { resolveRoute } from '@/utils/backtest/dividends';
+import DividendRouteSelect from './DividendRouteSelect.client';
 
 interface WeightSlidersProps {
     holdings: Holding[];
@@ -27,8 +29,12 @@ export default function WeightSliders({
         );
     }
 
-    function updateDrip(label: string, drip: boolean) {
-        onChange(holdings.map((h) => (h.label === label ? { ...h, drip } : h)));
+    function updateRoute(label: string, dividendRoute: DividendRoute) {
+        onChange(
+            holdings.map((h) =>
+                h.label === label ? { ...h, dividendRoute } : h
+            )
+        );
     }
 
     function equalSplit() {
@@ -76,40 +82,46 @@ export default function WeightSliders({
                 </div>
             </div>
 
-            {holdings.map((h) => (
-                <div
-                    key={h.label}
-                    className="flex flex-col gap-1"
-                >
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono font-semibold">
-                            {h.label}
-                        </span>
-                        <div className="flex items-center gap-2">
-                            <DripToggle
-                                label={h.label}
-                                enabled={h.drip}
-                                onChange={updateDrip}
-                            />
-                            <span className="text-xs tabular-nums w-10 text-right">
-                                {h.weightPct}%
+            {holdings.map((h) => {
+                const otherHoldings = holdings.filter(
+                    (x) => x.label !== h.label
+                );
+                return (
+                    <div
+                        key={h.label}
+                        className="flex flex-col gap-1"
+                    >
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-mono font-semibold">
+                                {h.label}
                             </span>
+                            <div className="flex items-center gap-2">
+                                <DividendRouteSelect
+                                    label={h.label}
+                                    route={resolveRoute(h)}
+                                    otherHoldings={otherHoldings}
+                                    onChange={updateRoute}
+                                />
+                                <span className="text-xs tabular-nums w-10 text-right">
+                                    {h.weightPct}%
+                                </span>
+                            </div>
                         </div>
+                        <input
+                            type="range"
+                            min={1}
+                            max={99}
+                            step={1}
+                            value={h.weightPct}
+                            onChange={(e) =>
+                                updateWeight(h.label, Number(e.target.value))
+                            }
+                            className="w-full accent-primary"
+                            aria-label={`${h.label} weight`}
+                        />
                     </div>
-                    <input
-                        type="range"
-                        min={1}
-                        max={99}
-                        step={1}
-                        value={h.weightPct}
-                        onChange={(e) =>
-                            updateWeight(h.label, Number(e.target.value))
-                        }
-                        className="w-full accent-primary"
-                        aria-label={`${h.label} weight`}
-                    />
-                </div>
-            ))}
+                );
+            })}
 
             {!isValid && (
                 <p className="text-xs text-destructive">

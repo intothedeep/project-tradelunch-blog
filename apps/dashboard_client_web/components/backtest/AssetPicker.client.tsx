@@ -4,6 +4,7 @@
 // Purpose: pick 1–10 assets from the curated buyable universe.
 // Shows data-availability start date (derived from the fetched series).
 // Prevents duplicates. Blocks selection when limit (10) is reached.
+// XE.2: new holdings default to dividendRoute:{kind:'cash'} (replaces drip:false).
 
 import { cn } from '@/lib/utils';
 import { BUYABLE_UNIVERSE } from '@/utils/backtest/universe';
@@ -33,7 +34,14 @@ export default function AssetPicker({
         } else {
             // Add asset (guard limit)
             if (holdings.length >= MAX_ASSETS) return;
-            const next = [...holdings, { label, weightPct: 0, drip: false }];
+            const next = [
+                ...holdings,
+                {
+                    label,
+                    weightPct: 0,
+                    dividendRoute: { kind: 'cash' as const },
+                },
+            ];
             onChange(equaliseWeights(next));
         }
     }

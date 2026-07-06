@@ -1,6 +1,7 @@
 // components/backtest/DividendTable.tsx
 // Purpose: per-payout dividend schedule table + per-asset totals.
 // Shows "no dividends in range" when the schedule is empty.
+// XE.2: adds optional "Routed To" column when any event has routedTo set.
 
 import type { DividendSummary } from '@/types/backtest';
 
@@ -15,6 +16,14 @@ function fmt$(v: number): string {
         minimumFractionDigits: 2,
         maximumFractionDigits: 4,
     });
+}
+
+function modeLabel(cash: number, routedTo?: string): string {
+    if (cash === 0) {
+        if (routedTo !== undefined) return `→ ${routedTo}`;
+        return 'DRIP';
+    }
+    return 'Cash';
 }
 
 export default function DividendTable({ dividends }: DividendTableProps) {
@@ -32,6 +41,10 @@ export default function DividendTable({ dividends }: DividendTableProps) {
     }
 
     const labels = Object.keys(byLabel);
+    // Show "Routed To" column only when any event has cross-asset routing.
+    const hasRouting = schedule.some(
+        (ev) => ev.routedTo !== undefined && ev.routedTo !== 'cash'
+    );
 
     return (
         <section aria-label="Dividend schedule">
@@ -61,6 +74,11 @@ export default function DividendTable({ dividends }: DividendTableProps) {
                             <th className="px-3 py-2 text-right">Per Share</th>
                             <th className="px-3 py-2 text-right">Cash</th>
                             <th className="px-3 py-2 text-left">Mode</th>
+                            {hasRouting && (
+                                <th className="px-3 py-2 text-left">
+                                    Routed To
+                                </th>
+                            )}
                         </tr>
                     </thead>
                     <tbody>
@@ -82,8 +100,15 @@ export default function DividendTable({ dividends }: DividendTableProps) {
                                     {ev.cash > 0 ? fmt$(ev.cash) : '—'}
                                 </td>
                                 <td className="px-3 py-1.5 text-xs text-muted-foreground">
-                                    {ev.cash === 0 ? 'DRIP' : 'Cash'}
+                                    {modeLabel(ev.cash, ev.routedTo)}
                                 </td>
+                                {hasRouting && (
+                                    <td className="px-3 py-1.5 font-mono text-xs text-muted-foreground">
+                                        {ev.routedTo && ev.routedTo !== 'cash'
+                                            ? ev.routedTo
+                                            : '—'}
+                                    </td>
+                                )}
                             </tr>
                         ))}
                     </tbody>
