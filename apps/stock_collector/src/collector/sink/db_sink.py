@@ -62,11 +62,12 @@ def connect() -> psycopg.Connection:
 # --- writes -----------------------------------------------------------------
 
 _HISTORY_SQL = """
-INSERT INTO market_history (label, interval, bar_time, open, high, low, close, volume)
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+INSERT INTO market_history (label, interval, bar_time, open, high, low, close, volume, dividends, stock_splits)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 ON CONFLICT (label, interval, bar_time) DO UPDATE SET
     open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low,
     close = EXCLUDED.close, volume = EXCLUDED.volume,
+    dividends = EXCLUDED.dividends, stock_splits = EXCLUDED.stock_splits,
     updated_at = CURRENT_TIMESTAMP
 """
 
@@ -89,7 +90,8 @@ def load_history(conn: psycopg.Connection, rows: Sequence[HistoryRow]) -> int:
     if not rows:
         return 0
     params = [
-        (r.label, r.interval, r.bar_time, r.open, r.high, r.low, r.close, r.volume)
+        (r.label, r.interval, r.bar_time, r.open, r.high, r.low, r.close, r.volume,
+         r.dividends, r.stock_splits)
         for r in rows
     ]
     with conn.cursor() as cur:

@@ -126,6 +126,31 @@ def _ingest(
     return written, snap_count, skipped, archived
 
 
+def filter_universe(universe, symbols_csv: str):
+    """Narrow the resolved universe to an explicit label/symbol allow-list.
+
+    ``symbols_csv`` = comma-separated, case/space-insensitive; matches a
+    WatchlistEntry by ``label`` OR ``symbol`` (stocks have label==ticker). Empty
+    string = no filter (identity, keeps default behaviour untouched). Any
+    requested name that matches nothing raises — a silent miss would quietly
+    backfill the wrong (or empty) set.
+    """
+    wanted = {s.strip().upper() for s in symbols_csv.split(",") if s.strip()}
+    if not wanted:
+        return universe
+    filtered = [
+        e for e in universe if e.label.upper() in wanted or e.symbol.upper() in wanted
+    ]
+    matched = {e.label.upper() for e in filtered} | {e.symbol.upper() for e in filtered}
+    missing = wanted - matched
+    if missing:
+        raise SystemExit(
+            f"--symbols: no watchlist match for {sorted(missing)} "
+            f"(universe has {len(universe)} labels)"
+        )
+    return filtered
+
+
 def _dry_run(universe, limit) -> int:
     n = limit or 5
     print(f"[dry-run] no DATABASE_URL — fetch-only smoke of {n} symbols")
@@ -155,12 +180,17 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="backfill full history from inception (ignores cursor + backfill-days)",
     )
+    parser.add_argument(
+        "--symbols",
+        default="",
+        help="comma-separated label/ticker allow-list (e.g. QQQ,JEPQ); empty=all",
+    )
     args = parser.parse_args(argv)
 
     entries = load_watchlist()
 
     if args.dry_run or not database_url():
-        universe = resolve_universe(entries, [])
+        universe = filter_universe(resolve_universe(entries, []), args.symbols)
         return _dry_run(universe, args.limit)
 
     archive = args.archive or parquet_archive_enabled()
@@ -170,7 +200,7 @@ def main(argv: list[str] | None = None) -> int:
     status, descr = "success", ""
     try:
         tracked = db_sink.read_tracked_symbols(conn)
-        universe = resolve_universe(entries, tracked)
+        universe = filter_universe(resolve_universe(entries, tracked), args.symbols)
         written, snaps, skipped, archived = _ingest(
             conn, universe, args.backfill_days, args.limit, archive, base, args.full
         )

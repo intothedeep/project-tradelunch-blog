@@ -3,8 +3,13 @@ from datetime import date
 from collector.transform.ohlc import to_history_rows
 
 
-def _candle(d, o, h, low, c, v):
-    return {"date": d, "open": o, "high": h, "low": low, "close": c, "volume": v}
+def _candle(d, o, h, low, c, v, dividends=None, stock_splits=None):
+    base = {"date": d, "open": o, "high": h, "low": low, "close": c, "volume": v}
+    if dividends is not None:
+        base["dividends"] = dividends
+    if stock_splits is not None:
+        base["stock_splits"] = stock_splits
+    return base
 
 
 def test_builds_sorted_rows_with_label_key():
@@ -84,3 +89,50 @@ def test_weekend_bars_kept_for_crypto():
         date(2026, 1, 3),
         date(2026, 1, 4),
     ]
+
+
+# --- X.3: dividends + stock_splits field tests --------------------------------
+
+
+def test_dividends_zero_when_key_absent():
+    # Non-dividend-paying symbols: candle has no 'dividends' key.
+    rows = to_history_rows("QQQ", [_candle("2026-01-02", 1, 2, 0.5, 1.5, 100)])
+    assert rows[0].dividends == 0.0
+
+
+def test_stock_splits_zero_when_key_absent():
+    rows = to_history_rows("QQQ", [_candle("2026-01-02", 1, 2, 0.5, 1.5, 100)])
+    assert rows[0].stock_splits == 0.0
+
+
+def test_dividends_populated_when_present():
+    candle = _candle("2026-01-08", 1, 2, 0.5, 1.5, 100, dividends=0.25)
+    rows = to_history_rows("JEPQ", [candle])
+    assert rows[0].dividends == 0.25
+
+
+def test_stock_splits_populated_when_present():
+    candle = _candle("2026-01-09", 1, 2, 0.5, 1.5, 100, stock_splits=2.0)
+    rows = to_history_rows("AAPL", [candle])
+    assert rows[0].stock_splits == 2.0
+
+
+def test_dividends_nan_defaults_to_zero():
+    # yfinance emits NaN for non-event rows; guard converts to 0.0.
+    candle = _candle("2026-01-05", 1, 2, 0.5, 1.5, 100, dividends=float("nan"))
+    rows = to_history_rows("SCHD", [candle])
+    assert rows[0].dividends == 0.0
+
+
+def test_stock_splits_nan_defaults_to_zero():
+    candle = _candle("2026-01-06", 1, 2, 0.5, 1.5, 100, stock_splits=float("nan"))
+    rows = to_history_rows("SCHD", [candle])
+    assert rows[0].stock_splits == 0.0
+
+
+def test_dividends_and_splits_both_nonzero():
+    # Edge: a bar can theoretically carry both (rare but possible).
+    candle = _candle("2026-01-07", 1, 2, 0.5, 1.5, 100, dividends=0.5, stock_splits=3.0)
+    rows = to_history_rows("SPY", [candle])
+    assert rows[0].dividends == 0.5
+    assert rows[0].stock_splits == 3.0

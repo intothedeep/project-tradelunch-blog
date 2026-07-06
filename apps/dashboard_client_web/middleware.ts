@@ -20,6 +20,7 @@ const isFinanceRoute = createRouteMatcher([
     '/screener(.*)',
     '/symbols(.*)',
     '/politicians(.*)',
+    '/backtest(.*)',
 ]);
 
 // Search + AI + SEO crawlers. A bot hitting a finance PAGE is 403'd here before

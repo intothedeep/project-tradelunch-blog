@@ -1,0 +1,3023 @@
+{
+  "label": "QQQ",
+  "from": "2023-01-03",
+  "to": "2024-12-31",
+  "series": [
+    {
+      "date": "2023-01-03",
+      "close": 264.480010986328,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-01-04",
+      "close": 265.739990234375,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-01-05",
+      "close": 261.579986572266,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-01-06",
+      "close": 268.799987792969,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-01-09",
+      "close": 270.540008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-01-10",
+      "close": 272.829986572266,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-01-11",
+      "close": 277.549987792969,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-01-12",
+      "close": 279.049987792969,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-01-13",
+      "close": 280.970001220703,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-01-17",
+      "close": 281.540008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-01-18",
+      "close": 277.880004882812,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-01-19",
+      "close": 275.149993896484,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-01-20",
+      "close": 282.679992675781,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-01-23",
+      "close": 288.959991455078,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-01-24",
+      "close": 288.369995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-01-25",
+      "close": 287.730010986328,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-01-26",
+      "close": 293.339996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-01-27",
+      "close": 296.260009765625,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-01-30",
+      "close": 290.269989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-01-31",
+      "close": 294.619995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-02-01",
+      "close": 300.920013427734,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-02-02",
+      "close": 311.720001220703,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-02-03",
+      "close": 306.179992675781,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-02-06",
+      "close": 303.589996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-02-07",
+      "close": 309.880004882812,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-02-08",
+      "close": 304.369995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-02-09",
+      "close": 301.679992675781,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-02-10",
+      "close": 299.700012207031,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-02-13",
+      "close": 304.5,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-02-14",
+      "close": 306.75,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-02-15",
+      "close": 309.100006103516,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-02-16",
+      "close": 303.299987792969,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-02-17",
+      "close": 301.160003662109,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-02-21",
+      "close": 294.029998779297,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-02-22",
+      "close": 294.25,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-02-23",
+      "close": 296.820007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-02-24",
+      "close": 291.850006103516,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-02-27",
+      "close": 293.940002441406,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-02-28",
+      "close": 293.559997558594,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-01",
+      "close": 291.200012207031,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-02",
+      "close": 293.609985351562,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-03",
+      "close": 299.679992675781,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-06",
+      "close": 300.019989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-07",
+      "close": 296.339996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-08",
+      "close": 297.820007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-09",
+      "close": 292.660003662109,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-10",
+      "close": 288.549987792969,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-13",
+      "close": 290.690002441406,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-14",
+      "close": 297.369995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-15",
+      "close": 298.929992675781,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-16",
+      "close": 306.809997558594,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-17",
+      "close": 305.359985351562,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-20",
+      "close": 305.970001220703,
+      "dividends": 0.472,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-21",
+      "close": 310.339996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-22",
+      "close": 306.119995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-23",
+      "close": 309.75,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-24",
+      "close": 310.890014648438,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-27",
+      "close": 308.760009765625,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-28",
+      "close": 307.119995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-29",
+      "close": 312.720001220703,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-30",
+      "close": 315.679992675781,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-03-31",
+      "close": 320.929992675781,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-04-03",
+      "close": 320.149993896484,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-04-04",
+      "close": 319.070007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-04-05",
+      "close": 315.920013427734,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-04-06",
+      "close": 318.049987792969,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-04-10",
+      "close": 317.869995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-04-11",
+      "close": 315.829986572266,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-04-12",
+      "close": 313.040008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-04-13",
+      "close": 319.170013427734,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-04-14",
+      "close": 318.570007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-04-17",
+      "close": 318.839996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-04-18",
+      "close": 318.859985351562,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-04-19",
+      "close": 318.709991455078,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-04-20",
+      "close": 316.279998779297,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-04-21",
+      "close": 316.609985351562,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-04-24",
+      "close": 315.950012207031,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-04-25",
+      "close": 309.989990234375,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-04-26",
+      "close": 311.869995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-04-27",
+      "close": 320.350006103516,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-04-28",
+      "close": 322.559997558594,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-01",
+      "close": 322.190002441406,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-02",
+      "close": 319.380004882812,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-03",
+      "close": 317.290008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-04",
+      "close": 316.170013427734,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-05",
+      "close": 322.890014648438,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-08",
+      "close": 323.690002441406,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-09",
+      "close": 321.640014648438,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-10",
+      "close": 325.140014648438,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-11",
+      "close": 326.200012207031,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-12",
+      "close": 325.029998779297,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-15",
+      "close": 326.790008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-16",
+      "close": 327.160003662109,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-17",
+      "close": 331.119995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-18",
+      "close": 337.269989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-19",
+      "close": 336.510009765625,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-22",
+      "close": 337.640014648438,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-23",
+      "close": 333.359985351562,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-24",
+      "close": 331.649993896484,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-25",
+      "close": 339.720001220703,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-26",
+      "close": 348.399993896484,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-30",
+      "close": 349.980010986328,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-05-31",
+      "close": 347.989990234375,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-06-01",
+      "close": 352.010009765625,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-06-02",
+      "close": 354.649993896484,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-06-05",
+      "close": 354.899993896484,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-06-06",
+      "close": 354.839996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-06-07",
+      "close": 348.820007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-06-08",
+      "close": 353.149993896484,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-06-09",
+      "close": 354.5,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-06-12",
+      "close": 360.489990234375,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-06-13",
+      "close": 363.260009765625,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-06-14",
+      "close": 365.899993896484,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-06-15",
+      "close": 370.260009765625,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-06-16",
+      "close": 367.929992675781,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-06-20",
+      "close": 366.899993896484,
+      "dividends": 0.504,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-06-21",
+      "close": 361.899993896484,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-06-22",
+      "close": 366.170013427734,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-06-23",
+      "close": 362.540008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-06-26",
+      "close": 357.679992675781,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-06-27",
+      "close": 363.829986572266,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-06-28",
+      "close": 364.540008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-06-29",
+      "close": 363.809997558594,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-06-30",
+      "close": 369.420013427734,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-07-03",
+      "close": 370.290008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-07-05",
+      "close": 370.279998779297,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-07-06",
+      "close": 367.459991455078,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-07-07",
+      "close": 366.239990234375,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-07-10",
+      "close": 366.359985351562,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-07-11",
+      "close": 368.170013427734,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-07-12",
+      "close": 372.820007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-07-13",
+      "close": 379.149993896484,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-07-14",
+      "close": 379.070007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-07-17",
+      "close": 382.609985351562,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-07-18",
+      "close": 385.739990234375,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-07-19",
+      "close": 385.649993896484,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-07-20",
+      "close": 376.760009765625,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-07-21",
+      "close": 375.630004882812,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-07-24",
+      "close": 376.230010986328,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-07-25",
+      "close": 378.779998779297,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-07-26",
+      "close": 377.519989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-07-27",
+      "close": 376.619995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-07-28",
+      "close": 383.480010986328,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-07-31",
+      "close": 383.679992675781,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-01",
+      "close": 382.790008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-02",
+      "close": 374.390014648438,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-03",
+      "close": 373.790008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-04",
+      "close": 372.040008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-07",
+      "close": 375.190002441406,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-08",
+      "close": 372.0,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-09",
+      "close": 367.910003662109,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-10",
+      "close": 368.589996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-11",
+      "close": 366.239990234375,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-14",
+      "close": 370.350006103516,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-15",
+      "close": 366.420013427734,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-16",
+      "close": 362.540008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-17",
+      "close": 358.579986572266,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-18",
+      "close": 358.130004882812,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-21",
+      "close": 363.899993896484,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-22",
+      "close": 363.380004882812,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-23",
+      "close": 369.109985351562,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-24",
+      "close": 361.220001220703,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-25",
+      "close": 364.019989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-28",
+      "close": 366.760009765625,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-29",
+      "close": 374.769989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-30",
+      "close": 376.859985351562,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-08-31",
+      "close": 377.989990234375,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-09-01",
+      "close": 377.589996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-09-05",
+      "close": 378.070007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-09-06",
+      "close": 374.739990234375,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-09-07",
+      "close": 372.059997558594,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-09-08",
+      "close": 372.579986572266,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-09-11",
+      "close": 376.970001220703,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-09-12",
+      "close": 372.790008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-09-13",
+      "close": 374.209991455078,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-09-14",
+      "close": 377.269989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-09-15",
+      "close": 370.809997558594,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-09-18",
+      "close": 370.660003662109,
+      "dividends": 0.536,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-09-19",
+      "close": 369.869995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-09-20",
+      "close": 364.540008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-09-21",
+      "close": 357.859985351562,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-09-22",
+      "close": 357.910003662109,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-09-25",
+      "close": 359.609985351562,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-09-26",
+      "close": 354.209991455078,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-09-27",
+      "close": 355.040008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-09-28",
+      "close": 358.010009765625,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-09-29",
+      "close": 358.269989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-02",
+      "close": 361.260009765625,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-03",
+      "close": 354.920013427734,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-04",
+      "close": 359.75,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-05",
+      "close": 358.690002441406,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-06",
+      "close": 364.700012207031,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-09",
+      "close": 366.559997558594,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-10",
+      "close": 368.589996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-11",
+      "close": 371.220001220703,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-12",
+      "close": 369.929992675781,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-13",
+      "close": 365.279998779297,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-16",
+      "close": 369.410003662109,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-17",
+      "close": 368.200012207031,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-18",
+      "close": 363.369995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-19",
+      "close": 359.970001220703,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-20",
+      "close": 354.600006103516,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-23",
+      "close": 355.670013427734,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-24",
+      "close": 359.130004882812,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-25",
+      "close": 350.339996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-26",
+      "close": 343.660003662109,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-27",
+      "close": 345.309997558594,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-30",
+      "close": 349.200012207031,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-10-31",
+      "close": 350.869995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-11-01",
+      "close": 356.959991455078,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-11-02",
+      "close": 363.440002441406,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-11-03",
+      "close": 367.709991455078,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-11-06",
+      "close": 369.209991455078,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-11-07",
+      "close": 372.700012207031,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-11-08",
+      "close": 372.940002441406,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-11-09",
+      "close": 370.070007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-11-10",
+      "close": 378.390014648438,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-11-13",
+      "close": 377.209991455078,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-11-14",
+      "close": 385.329986572266,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-11-15",
+      "close": 385.619995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-11-16",
+      "close": 385.950012207031,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-11-17",
+      "close": 386.040008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-11-20",
+      "close": 390.739990234375,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-11-21",
+      "close": 388.470001220703,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-11-22",
+      "close": 390.059997558594,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-11-24",
+      "close": 389.510009765625,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-11-27",
+      "close": 389.170013427734,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-11-28",
+      "close": 390.190002441406,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-11-29",
+      "close": 389.809997558594,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-11-30",
+      "close": 388.829986572266,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-12-01",
+      "close": 389.940002441406,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-12-04",
+      "close": 386.320007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-12-05",
+      "close": 387.290008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-12-06",
+      "close": 385.049987792969,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-12-07",
+      "close": 390.429992675781,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-12-08",
+      "close": 392.170013427734,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-12-11",
+      "close": 395.519989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-12-12",
+      "close": 398.670013427734,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-12-13",
+      "close": 403.739990234375,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-12-14",
+      "close": 403.390014648438,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-12-15",
+      "close": 405.339996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-12-18",
+      "close": 407.079986572266,
+      "dividends": 0.808,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-12-19",
+      "close": 409.160003662109,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-12-20",
+      "close": 403.079986572266,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-12-21",
+      "close": 407.769989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-12-22",
+      "close": 408.380004882812,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-12-26",
+      "close": 410.880004882812,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-12-27",
+      "close": 411.5,
+      "dividends": 0.216,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-12-28",
+      "close": 411.299987792969,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2023-12-29",
+      "close": 409.519989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-01-02",
+      "close": 402.589996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-01-03",
+      "close": 398.329986572266,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-01-04",
+      "close": 396.279998779297,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-01-05",
+      "close": 396.75,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-01-08",
+      "close": 404.950012207031,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-01-09",
+      "close": 405.75,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-01-10",
+      "close": 408.5,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-01-11",
+      "close": 409.350006103516,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-01-12",
+      "close": 409.559997558594,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-01-16",
+      "close": 409.519989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-01-17",
+      "close": 407.209991455078,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-01-18",
+      "close": 412.989990234375,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-01-19",
+      "close": 421.179992675781,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-01-22",
+      "close": 421.730010986328,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-01-23",
+      "close": 423.480010986328,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-01-24",
+      "close": 425.829986572266,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-01-25",
+      "close": 426.350006103516,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-01-26",
+      "close": 423.809997558594,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-01-29",
+      "close": 428.149993896484,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-01-30",
+      "close": 425.299987792969,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-01-31",
+      "close": 416.970001220703,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-02-01",
+      "close": 421.880004882812,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-02-02",
+      "close": 429.010009765625,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-02-05",
+      "close": 428.450012207031,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-02-06",
+      "close": 427.589996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-02-07",
+      "close": 431.989990234375,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-02-08",
+      "close": 432.790008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-02-09",
+      "close": 437.049987792969,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-02-12",
+      "close": 435.339996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-02-13",
+      "close": 428.549987792969,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-02-14",
+      "close": 433.220001220703,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-02-15",
+      "close": 434.510009765625,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-02-16",
+      "close": 430.570007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-02-20",
+      "close": 427.320007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-02-21",
+      "close": 425.609985351562,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-02-22",
+      "close": 438.070007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-02-23",
+      "close": 436.779998779297,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-02-26",
+      "close": 436.549987792969,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-02-27",
+      "close": 437.600006103516,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-02-28",
+      "close": 435.269989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-02-29",
+      "close": 439.0,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-03-01",
+      "close": 445.609985351562,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-03-04",
+      "close": 444.019989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-03-05",
+      "close": 436.049987792969,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-03-06",
+      "close": 438.790008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-03-07",
+      "close": 445.450012207031,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-03-08",
+      "close": 439.019989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-03-11",
+      "close": 437.390014648438,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-03-12",
+      "close": 443.660003662109,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-03-13",
+      "close": 440.25,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-03-14",
+      "close": 439.140014648438,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-03-15",
+      "close": 433.920013427734,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-03-18",
+      "close": 437.480010986328,
+      "dividends": 0.573,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-03-19",
+      "close": 438.570007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-03-20",
+      "close": 443.769989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-03-21",
+      "close": 445.869995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-03-22",
+      "close": 446.380004882812,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-03-25",
+      "close": 444.760009765625,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-03-26",
+      "close": 443.320007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-03-27",
+      "close": 444.829986572266,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-03-28",
+      "close": 444.010009765625,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-01",
+      "close": 444.950012207031,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-02",
+      "close": 441.109985351562,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-03",
+      "close": 442.100006103516,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-04",
+      "close": 435.339996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-05",
+      "close": 440.470001220703,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-08",
+      "close": 440.600006103516,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-09",
+      "close": 442.230010986328,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-10",
+      "close": 438.369995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-11",
+      "close": 445.369995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-12",
+      "close": 438.269989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-15",
+      "close": 431.059997558594,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-16",
+      "close": 431.100006103516,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-17",
+      "close": 425.839996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-18",
+      "close": 423.410003662109,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-19",
+      "close": 414.649993896484,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-22",
+      "close": 418.820007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-23",
+      "close": 425.070007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-24",
+      "close": 426.510009765625,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-25",
+      "close": 424.450012207031,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-26",
+      "close": 431.0,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-29",
+      "close": 432.75,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-04-30",
+      "close": 424.589996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-01",
+      "close": 421.519989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-02",
+      "close": 426.899993896484,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-03",
+      "close": 435.480010986328,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-06",
+      "close": 440.25,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-07",
+      "close": 440.320007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-08",
+      "close": 440.059997558594,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-09",
+      "close": 441.019989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-10",
+      "close": 442.059997558594,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-13",
+      "close": 443.079986572266,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-14",
+      "close": 445.929992675781,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-15",
+      "close": 452.899993896484,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-16",
+      "close": 451.980010986328,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-17",
+      "close": 451.760009765625,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-20",
+      "close": 454.910003662109,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-21",
+      "close": 455.799987792969,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-22",
+      "close": 455.709991455078,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-23",
+      "close": 453.660003662109,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-24",
+      "close": 457.950012207031,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-28",
+      "close": 459.679992675781,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-29",
+      "close": 456.440002441406,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-30",
+      "close": 451.549987792969,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-05-31",
+      "close": 450.709991455078,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-06-03",
+      "close": 453.130004882812,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-06-04",
+      "close": 454.369995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-06-05",
+      "close": 463.529998779297,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-06-06",
+      "close": 463.369995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-06-07",
+      "close": 462.959991455078,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-06-10",
+      "close": 464.829986572266,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-06-11",
+      "close": 468.019989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-06-12",
+      "close": 474.149993896484,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-06-13",
+      "close": 476.720001220703,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-06-14",
+      "close": 479.190002441406,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-06-17",
+      "close": 485.059997558594,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-06-18",
+      "close": 485.209991455078,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-06-20",
+      "close": 481.470001220703,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-06-21",
+      "close": 480.179992675781,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-06-24",
+      "close": 473.959991455078,
+      "dividends": 0.762,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-06-25",
+      "close": 479.380004882812,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-06-26",
+      "close": 480.369995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-06-27",
+      "close": 481.609985351562,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-06-28",
+      "close": 479.109985351562,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-01",
+      "close": 481.920013427734,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-02",
+      "close": 486.980010986328,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-03",
+      "close": 491.040008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-05",
+      "close": 496.160003662109,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-08",
+      "close": 497.339996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-09",
+      "close": 497.769989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-10",
+      "close": 502.959991455078,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-11",
+      "close": 491.929992675781,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-12",
+      "close": 494.820007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-15",
+      "close": 496.149993896484,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-16",
+      "close": 496.339996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-17",
+      "close": 481.769989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-18",
+      "close": 479.489990234375,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-19",
+      "close": 475.239990234375,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-22",
+      "close": 482.320007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-23",
+      "close": 480.619995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-24",
+      "close": 463.380004882812,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-25",
+      "close": 458.269989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-26",
+      "close": 462.970001220703,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-29",
+      "close": 463.899993896484,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-30",
+      "close": 457.529998779297,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-07-31",
+      "close": 471.070007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-01",
+      "close": 459.660003662109,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-02",
+      "close": 448.75,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-05",
+      "close": 435.369995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-06",
+      "close": 439.529998779297,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-07",
+      "close": 434.769989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-08",
+      "close": 448.070007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-09",
+      "close": 450.410003662109,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-12",
+      "close": 451.380004882812,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-13",
+      "close": 462.579986572266,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-14",
+      "close": 462.730010986328,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-15",
+      "close": 474.420013427734,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-16",
+      "close": 475.029998779297,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-19",
+      "close": 481.269989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-20",
+      "close": 480.260009765625,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-21",
+      "close": 482.5,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-22",
+      "close": 474.850006103516,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-23",
+      "close": 480.0,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-26",
+      "close": 475.339996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-27",
+      "close": 476.760009765625,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-28",
+      "close": 471.350006103516,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-29",
+      "close": 470.660003662109,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-08-30",
+      "close": 476.269989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-09-03",
+      "close": 461.809997558594,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-09-04",
+      "close": 460.609985351562,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-09-05",
+      "close": 461.040008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-09-06",
+      "close": 448.690002441406,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-09-09",
+      "close": 454.459991455078,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-09-10",
+      "close": 458.660003662109,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-09-11",
+      "close": 468.619995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-09-12",
+      "close": 473.220001220703,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-09-13",
+      "close": 475.339996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-09-16",
+      "close": 473.239990234375,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-09-17",
+      "close": 473.489990234375,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-09-18",
+      "close": 471.440002441406,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-09-19",
+      "close": 483.359985351562,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-09-20",
+      "close": 482.440002441406,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-09-23",
+      "close": 483.040008544922,
+      "dividends": 0.677,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-09-24",
+      "close": 485.369995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-09-25",
+      "close": 485.820007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-09-26",
+      "close": 489.470001220703,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-09-27",
+      "close": 486.75,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-09-30",
+      "close": 488.070007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-01",
+      "close": 481.269989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-02",
+      "close": 481.950012207031,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-03",
+      "close": 481.589996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-04",
+      "close": 487.320007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-07",
+      "close": 482.100006103516,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-08",
+      "close": 489.299987792969,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-09",
+      "close": 493.149993896484,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-10",
+      "close": 492.589996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-11",
+      "close": 493.359985351562,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-14",
+      "close": 497.5,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-15",
+      "close": 490.850006103516,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-16",
+      "close": 490.910003662109,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-17",
+      "close": 491.25,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-18",
+      "close": 494.470001220703,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-21",
+      "close": 495.420013427734,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-22",
+      "close": 495.959991455078,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-23",
+      "close": 488.359985351562,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-24",
+      "close": 492.320007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-25",
+      "close": 495.320007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-28",
+      "close": 495.399993896484,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-29",
+      "close": 500.160003662109,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-30",
+      "close": 496.380004882812,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-10-31",
+      "close": 483.850006103516,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-11-01",
+      "close": 487.429992675781,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-11-04",
+      "close": 486.010009765625,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-11-05",
+      "close": 492.209991455078,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-11-06",
+      "close": 505.579986572266,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-11-07",
+      "close": 513.539978027344,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-11-08",
+      "close": 514.140014648438,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-11-11",
+      "close": 513.840026855469,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-11-12",
+      "close": 512.909973144531,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-11-13",
+      "close": 512.25,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-11-14",
+      "close": 508.690002441406,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-11-15",
+      "close": 496.570007324219,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-11-18",
+      "close": 500.019989013672,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-11-19",
+      "close": 503.459991455078,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-11-20",
+      "close": 503.170013427734,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-11-21",
+      "close": 504.980010986328,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-11-22",
+      "close": 505.790008544922,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-11-25",
+      "close": 506.589996337891,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-11-26",
+      "close": 509.309997558594,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-11-27",
+      "close": 505.299987792969,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-11-29",
+      "close": 509.739990234375,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-12-02",
+      "close": 515.289978027344,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-12-03",
+      "close": 516.869995117188,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-12-04",
+      "close": 523.260009765625,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-12-05",
+      "close": 521.809997558594,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-12-06",
+      "close": 526.47998046875,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-12-09",
+      "close": 522.380004882812,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-12-10",
+      "close": 520.599975585938,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-12-11",
+      "close": 529.919982910156,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-12-12",
+      "close": 526.5,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-12-13",
+      "close": 530.530029296875,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-12-16",
+      "close": 538.169982910156,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-12-17",
+      "close": 535.799987792969,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-12-18",
+      "close": 516.469970703125,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-12-19",
+      "close": 514.169982910156,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-12-20",
+      "close": 518.659973144531,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-12-23",
+      "close": 522.869995117188,
+      "dividends": 0.835,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-12-24",
+      "close": 529.960021972656,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-12-26",
+      "close": 529.599975585938,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-12-27",
+      "close": 522.559997558594,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-12-30",
+      "close": 515.609985351562,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    },
+    {
+      "date": "2024-12-31",
+      "close": 511.230010986328,
+      "dividends": 0.0,
+      "stockSplits": 0.0
+    }
+  ],
+  "expected": {
+    "pyDrip": 0.9578215504498386,
+    "yfAdjClose": 0.9578840728751261
+  }
+}

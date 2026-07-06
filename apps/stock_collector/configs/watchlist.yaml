@@ -39,6 +39,9 @@ stocks:
   - { symbol: "TQQQ", label: "TQQQ", exchange: "US" }
   - { symbol: "SPY", label: "SPY", exchange: "US" }
   - { symbol: "SCHD", label: "SCHD", exchange: "US" }
+  - { symbol: "JEPQ", label: "JEPQ", exchange: "US" }
+  - { symbol: "VOO", label: "VOO", exchange: "US" }
+  - { symbol: "VOOG", label: "VOOG", exchange: "US" }
   # treasury ETFs
   - { symbol: "SGOV", label: "SGOV", exchange: "US" }
   - { symbol: "SHY", label: "SHY", exchange: "US" }

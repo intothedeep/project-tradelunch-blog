@@ -56,6 +56,12 @@ def _candle_to_row(
         return None  # Sat/Sun bar on a market that is closed weekends — Yahoo artifact
     if math.isnan(open_) or math.isnan(high) or math.isnan(low) or math.isnan(close):
         return None  # provisional/gap bar with a NaN OHLC field — not a real observation
+    # dividends/stock_splits: already fetched by yahoo_fetch (auto_adjust=False).
+    # Default 0.0 when absent or NaN (non-dividend-paying symbols or missing key).
+    raw_div = candle.get("dividends")
+    raw_spl = candle.get("stock_splits")
+    dividends = 0.0 if (raw_div is None or (isinstance(raw_div, float) and math.isnan(raw_div))) else float(raw_div)
+    stock_splits = 0.0 if (raw_spl is None or (isinstance(raw_spl, float) and math.isnan(raw_spl))) else float(raw_spl)
     return HistoryRow(
         label=label,
         interval=interval,
@@ -65,6 +71,8 @@ def _candle_to_row(
         low=low,
         close=close,
         volume=volume,
+        dividends=dividends,
+        stock_splits=stock_splits,
     )
 
 

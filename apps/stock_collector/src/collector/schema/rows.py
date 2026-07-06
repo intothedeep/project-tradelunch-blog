@@ -88,6 +88,8 @@ class HistoryRow:
     low: float
     close: float
     volume: int
+    dividends: float = 0.0
+    stock_splits: float = 0.0
 
 
 @dataclass(frozen=True)

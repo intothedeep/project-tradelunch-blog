@@ -4,7 +4,7 @@ import { SITE_URL } from '@/env.schema';
 // robots.txt generator (Next.js 16 MetadataRoute.Robots).
 // Purpose: keep crawlers on the indexable BLOG content only.
 // The finance surfaces (/dashboard, /rankings, /funds, /screener, /symbols,
-// /politicians) are the owner's personal analysis views — NOT public content.
+// /politicians, /backtest) are the owner's personal analysis views — NOT public content.
 // Crawling them was the dominant Supabase-egress source (thousands of
 // DB-backed detail pages, uncached), so they are Disallowed here AND removed
 // from sitemap.ts. Note: robots is ADVISORY — Googlebot/Bingbot obey it, but
@@ -18,6 +18,7 @@ const FINANCE_DISALLOW = [
     '/screener',
     '/symbols',
     '/politicians',
+    '/backtest',
 ];
 
 // Data/AI scraper bots with no SEO value — blocked wholesale. These are the

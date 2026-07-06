@@ -334,6 +334,8 @@ CREATE TABLE if not exists market_history (
     low         NUMERIC NOT NULL,
     close       NUMERIC NOT NULL,
     volume      BIGINT NOT NULL,
+    dividends   NUMERIC DEFAULT 0,
+    stock_splits NUMERIC DEFAULT 0,
     created_at  TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT market_history_pkey PRIMARY KEY (label, interval, bar_time)
