@@ -17,6 +17,17 @@ export const router = Router();
 const FUNDS_CACHE_CONTROL =
     'public, s-maxage=86400, stale-while-revalidate=604800';
 
+// Brief edge cache on 5xx so a hot error loop (e.g. DB blip) does not re-hit the
+// origin on every request. Short TTL keeps a fixed backend from staying masked.
+const ERROR_CACHE_CONTROL = 'public, s-maxage=10';
+
+// Runaway guard on holdings rows. weight_pct uses SUM(value_usd) OVER () which
+// is computed over the FULL matched set before LIMIT, so weights stay correct;
+// LIMIT only truncates the smallest tail positions of pathologically large
+// filers. No real 13F fund is meaningfully affected — this bounds worst-case
+// payload, not normal output.
+const MAX_HOLDINGS = 5000;
+
 // Guard: probe whether migration 0017 has been applied.
 // Returns false if either table is missing; callers return empty data, not 500.
 async function holdingsTablesPresent(): Promise<boolean> {
@@ -192,8 +203,9 @@ router.get('/:cik', async (req, res) => {
              FROM sec_holdings h
              JOIN target t ON t.accession = h.accession AND h.cik = $1
              WHERE h.deleted_at IS NULL
-             ORDER BY h.value_usd DESC`,
-            [cik, period]
+             ORDER BY h.value_usd DESC
+             LIMIT $3`,
+            [cik, period, MAX_HOLDINGS]
         );
 
         if (rows.length === 0) {
@@ -214,6 +226,7 @@ router.get('/:cik', async (req, res) => {
         });
     } catch (error) {
         console.error('API Error fetching fund holdings:', error);
+        res.set('Cache-Control', ERROR_CACHE_CONTROL);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch fund holdings',

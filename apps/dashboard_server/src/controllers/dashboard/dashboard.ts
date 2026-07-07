@@ -33,6 +33,11 @@ const SNAPSHOT_CACHE_CONTROL =
     'public, s-maxage=1800, stale-while-revalidate=86400'; // 30min fresh / 24h stale
 const HISTORY_CACHE_CONTROL =
     'public, s-maxage=43200, stale-while-revalidate=604800'; // 12h fresh / 7d stale
+// Brief edge cache on 5xx so a hot error loop does not re-hit origin every request.
+const ERROR_CACHE_CONTROL = 'public, s-maxage=10';
+// Defensive ceiling: the snapshot is a small curated watchlist (dozens of rows);
+// this bounds the query if the table ever grows unexpectedly. Never reached normally.
+const MAX_SNAPSHOT_ROWS = 500;
 
 // `range` -> lookback window in days. Whitelisted (no user value reaches SQL):
 // an unknown value falls back to '1y'; 'max' (null) drops the date filter.
@@ -137,13 +142,16 @@ router.get('/snapshot', async (_req, res) => {
                     change_absolute, change_percent, as_of,
                     revalidate_seconds, fetched_at
              FROM market_snapshots
-             ORDER BY category, seq`
+             ORDER BY category, seq
+             LIMIT $1`,
+            [MAX_SNAPSHOT_ROWS]
         );
 
         res.set('Cache-Control', SNAPSHOT_CACHE_CONTROL);
         res.json({ success: true, data: toSnapshot(rows) });
     } catch (error) {
         console.error('API Error fetching dashboard snapshot:', error);
+        res.set('Cache-Control', ERROR_CACHE_CONTROL);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch dashboard snapshot',
