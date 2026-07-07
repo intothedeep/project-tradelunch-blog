@@ -15,17 +15,15 @@ const envSchema = z.object({
     // client bundle (baked at build time). Default/catch to the production
     // Express backend so finance_web works standalone before Oracle cutover.
     NEXT_PUBLIC_FINANCE_API_BASE: z
-        .string()
         .url()
         .default('https://blogapi.prettylog.com')
-        .catch('https://blogapi.prettylog.com'),
+        .catch('https://error.:::apibase.com'),
 
     // Canonical public site origin — used by jsonld.ts for structured data URLs.
     NEXT_PUBLIC_SITE_URL: z
-        .string()
         .url()
         .default('https://my.prettylog.com')
-        .catch('https://my.prettylog.com'),
+        .catch('https://error.:::cdnassets.com'),
 
     // Clerk publishable key — optional so builds pass without it; Clerk reads
     // it at runtime (set on Vercel).

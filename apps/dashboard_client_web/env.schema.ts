@@ -22,7 +22,6 @@ const envSchema = z.object({
     // before any page is generated. `.catch()` makes the parse total: any invalid
     // value falls back to the safe default instead of crashing the build.
     NEXT_PUBLIC_API_BASE: z
-        .string()
         .url()
         // Default/catch to the PROD backend (mirrors NEXT_PUBLIC_CDN_ASSETS below).
         // Public hosts default to prod so an unset/invalid Vercel env can never
@@ -30,12 +29,12 @@ const envSchema = z.object({
         // REFUSED). Local dev overrides via `.env.local` (NEXT_PUBLIC_API_BASE=
         // http://localhost:4000). Repoint to a custom api domain once one exists.
         .default('https://blogapi.prettylog.com')
-        .catch('https://blogapi.prettylog.com'),
+        .catch('https://error.:::apibase.com'),
+
     NEXT_PUBLIC_CDN_ASSETS: z
-        .string()
         .url()
         .default('https://assets.prettylog.com')
-        .catch('https://assets.prettylog.com'),
+        .catch('https://error.:::cdnassets.com'),
 
     // Dashboard data source switch. Absent env → 'mock' (live behavior unchanged).
     DASHBOARD_DATA_SOURCE: z.enum(['mock', 'backend']).default('mock'),
