@@ -3,11 +3,17 @@ import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
 
 // Build-time diagnostic: prints once during `next build` (Vercel build log),
-// NOT in the client bundle. Compares the RAW Vercel env var against the
-// zod-validated value — if they differ, the raw value failed `.url()` and
-// fell back to the default (e.g. quotes/bare-host → old domain).
-console.log('[build] NEXT_PUBLIC_API_BASE (raw)      =', JSON.stringify(process.env.NEXT_PUBLIC_API_BASE));
-console.log('[build] API_BASE (validated, baked in)  =', API_BASE);
+// NOT in the client bundle. Vercel auto-REDACTS any log string equal to an env
+// var value, so we print BOOLEANS/derived facts (never the raw value) — these
+// are not secrets and survive the log scrubber. Reveals whether the baked value
+// is the new host, whether it fell back, and the raw env presence/shape.
+const rawApiBase = process.env.NEXT_PUBLIC_API_BASE;
+console.log('[build] NEXT_PUBLIC_API_BASE present?    =', rawApiBase !== undefined);
+console.log('[build] raw length                       =', rawApiBase?.length ?? 0);
+console.log('[build] raw has quote/space?             =', /["'\s]/.test(rawApiBase ?? ''));
+console.log('[build] raw === validated (no fallback)? =', rawApiBase === API_BASE);
+console.log('[build] baked host = NEW (taeklim)?      =', API_BASE.includes('taeklim'));
+console.log('[build] baked host = OLD (tradelunch)?   =', API_BASE.includes('project-tradelunch'));
 
 // Extract a bare hostname even when CDN_ASSETS carries a path (e.g. a Supabase
 // public-storage base). `remotePatterns.hostname` must be host-only.
