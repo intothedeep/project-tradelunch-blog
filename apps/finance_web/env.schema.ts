@@ -32,12 +32,8 @@ const envSchema = z.object({
 });
 
 export const env = envSchema.parse(process.env);
-
 export const SERVER_PORT = env.PORT;
-
-// that import `API_BASE` from '@/env.schema' resolve without modification.
 export const API_BASE = env.NEXT_PUBLIC_API_BASE;
-console.log('API_BASE::', API_BASE);
-
-// SITE_URL: used by jsonld.ts for absolute URL construction in structured data.
 export const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
+
+console.log('env::', { env, API_BASE });
