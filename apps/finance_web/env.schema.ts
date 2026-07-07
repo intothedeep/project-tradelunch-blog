@@ -14,10 +14,10 @@ const envSchema = z.object({
     // Finance API base URL. The NEXT_PUBLIC_ prefix makes it available to the
     // client bundle (baked at build time). Default/catch to the production
     // Express backend so finance_web works standalone before Oracle cutover.
-    NEXT_PUBLIC_FINANCE_API_BASE: z
+    NEXT_PUBLIC_API_BASE: z
         .url()
         .default('https://blogapi.prettylog.com')
-        .catch('https://error.:::apibase.com'),
+        .catch('https://error.:::cdnassets.com'),
 
     // Canonical public site origin — used by jsonld.ts for structured data URLs.
     NEXT_PUBLIC_SITE_URL: z
@@ -35,12 +35,9 @@ export const env = envSchema.parse(process.env);
 
 export const SERVER_PORT = env.PORT;
 
-// FINANCE_API_BASE: canonical name for this app.
-export const FINANCE_API_BASE = env.NEXT_PUBLIC_FINANCE_API_BASE;
-
-// API_BASE: alias for FINANCE_API_BASE so all copied server actions / fetchers
 // that import `API_BASE` from '@/env.schema' resolve without modification.
-export const API_BASE = env.NEXT_PUBLIC_FINANCE_API_BASE;
+export const API_BASE = env.NEXT_PUBLIC_API_BASE;
+console.log('API_BASE::', API_BASE);
 
 // SITE_URL: used by jsonld.ts for absolute URL construction in structured data.
 export const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
