@@ -1,0 +1,31 @@
+{
+    "name": "finance_api",
+    "version": "0.0.0",
+    "private": true,
+    "scripts": {
+        "dev": "cross-env NODE_ENV=development tsx watch --tsconfig tsconfig.json src/index.ts",
+        "build": "tsc && tsc-alias",
+        "start": "node dist/src/index.js",
+        "check-types": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@clerk/express": "^2.1.32",
+        "@repo/types": "workspace:*",
+        "cors": "^2.8.6",
+        "cross-env": "^10.1.0",
+        "dotenv": "^17.4.2",
+        "express": "^5.2.1",
+        "pg": "^8.22.0",
+        "zod": "^4.4.3"
+    },
+    "devDependencies": {
+        "@repo/typescript-config": "workspace:*",
+        "@types/cors": "^2.8.19",
+        "@types/express": "^5.0.6",
+        "@types/node": "^26.0.1",
+        "@types/pg": "^8.20.0",
+        "tsc-alias": "^1.8.17",
+        "tsx": "^4.22.4",
+        "typescript": "^5.9.3"
+    }
+}

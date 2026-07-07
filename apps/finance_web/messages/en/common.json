@@ -1,0 +1,15 @@
+{
+    "app": {
+        "title": "Finance Dashboard",
+        "subtitle": "Owner tooling"
+    },
+    "nav": {
+        "dashboard": "Dashboard",
+        "funds": "Funds",
+        "rankings": "Rankings",
+        "screener": "Screener",
+        "symbols": "Symbols",
+        "politicians": "Politicians",
+        "backtest": "Backtest"
+    }
+}
