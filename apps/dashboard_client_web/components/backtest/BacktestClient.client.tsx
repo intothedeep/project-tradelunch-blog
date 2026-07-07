@@ -81,15 +81,6 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
         return out;
     }, [seriesData]);
 
-    const minAllowedFrom = useMemo(() => {
-        const dates = holdings
-            .map((h) => seriesFirstDate[h.label])
-            .filter((d): d is string => !!d);
-        return dates.length > 0
-            ? dates.reduce((a, b) => (a > b ? a : b))
-            : from;
-    }, [holdings, seriesFirstDate, from]);
-
     const labelsKey = holdings
         .map((h) => h.label)
         .filter((l) => l)
@@ -138,6 +129,20 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
         manualFlows,
         budgetValid
     );
+
+    // Earliest selectable start = latest first-date across holdings, computed from
+    // the DISPLAY series so an active synth splice (JEPQ) extends the floor back
+    // to the chosen base's inception. Recomputes on base change → picker min/max
+    // track the selected assets + base range. `from` is NOT auto-moved; the user
+    // picks within the recalculated bounds (Max preset jumps to this floor).
+    const minAllowedFrom = useMemo(() => {
+        const dates = holdings
+            .map((h) => displaySeriesData[h.label]?.[0]?.date)
+            .filter((d): d is string => !!d);
+        return dates.length > 0
+            ? dates.reduce((a, b) => (a > b ? a : b))
+            : from;
+    }, [holdings, displaySeriesData, from]);
 
     useEffect(() => {
         if (mockedSeries) return;

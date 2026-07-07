@@ -13,6 +13,9 @@
 // years). A deeper requested capYears is clamped to that ceiling and `cappedAt`
 // is set to the effective (applied) cap in years. A shallower request tightens
 // the span (and also sets cappedAt to record the applied bound).
+// `fullSpan` (config) bypasses the cap entirely — synthesize back to the base
+// asset's earliest bar. Opt-in; used by the backtest feature so the date-range
+// floor matches the chosen base's inception.
 
 import type { PricePoint } from '@/types/backtest';
 import type { OverlapResult, SynthConfig, SynthResult } from './types';
@@ -50,8 +53,13 @@ function subtractYears(date: string, years: number): string {
 function applyHorizonCap(
     points: PricePoint[],
     overlap: OverlapResult,
-    capYears: number | undefined
+    capYears: number | undefined,
+    fullSpan: boolean | undefined
 ): { points: PricePoint[]; cappedAt?: number } {
+    // fullSpan opts out of the horizon cap entirely — keep the full base
+    // pre-inception span (used by the backtest feature so the picker floor
+    // reaches the base's inception).
+    if (fullSpan) return { points };
     const overlapBars = overlap.bars;
     const overlapYears =
         overlapBars.length >= 2
@@ -82,7 +90,7 @@ function applyHorizonCap(
 
 /** Method 1 (regression proxy): two-regime OLS + block-bootstrap residuals. */
 function buildRegression(config: SynthConfig): SynthResult {
-    const { short, base, seed, capYears, shortLabel } = config;
+    const { short, base, seed, capYears, fullSpan, shortLabel } = config;
 
     const overlap = alignOverlap(short, base); // throws on empty overlap
     const fit = fitRegression(overlap);
@@ -97,7 +105,7 @@ function buildRegression(config: SynthConfig): SynthResult {
         shortLabel,
     });
 
-    const capped = applyHorizonCap(raw, overlap, capYears);
+    const capped = applyHorizonCap(raw, overlap, capYears, fullSpan);
     const points = synthesizeDividends(capped.points, overlap.shortAnnualYield);
 
     const result: SynthResult = {
@@ -116,7 +124,8 @@ function buildRegression(config: SynthConfig): SynthResult {
  * — so synthesizeDividends is intentionally NOT applied (no income double-count).
  */
 function buildStructural(config: SynthConfig): SynthResult {
-    const { short, base, capYears, volVxn, volVix, riskFreeRate } = config;
+    const { short, base, capYears, fullSpan, volVxn, volVix, riskFreeRate } =
+        config;
     if (!volVxn || !volVix) {
         throw new Error(
             "buildSyntheticHistory: method 'str' requires volVxn + volVix inputs"
@@ -150,7 +159,7 @@ function buildStructural(config: SynthConfig): SynthResult {
         rf,
     });
 
-    const capped = applyHorizonCap(raw, overlap, capYears);
+    const capped = applyHorizonCap(raw, overlap, capYears, fullSpan);
     const result: SynthResult = {
         points: capped.points,
         realInception: overlap.realInception,

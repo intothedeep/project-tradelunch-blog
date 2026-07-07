@@ -45,6 +45,14 @@ export interface SynthConfig {
     seed: number; // deterministic bootstrap seed
     /** Requested synthetic depth in years; clamped to 2×overlap by default. */
     capYears?: number;
+    /**
+     * Bypass the horizon cap and synthesize the FULL base pre-inception span
+     * (back to the base asset's earliest bar, e.g. QQQ ~1999). Set by the
+     * backtest feature so the date picker floor matches the chosen base's
+     * inception. Overrides capYears. Extrapolation beyond ~2×overlap is
+     * statistically aggressive — opt-in only.
+     */
+    fullSpan?: boolean;
     method: SynthMethod;
     /** Label of the short asset — decorrelates the per-asset bootstrap seed. */
     shortLabel: string;
