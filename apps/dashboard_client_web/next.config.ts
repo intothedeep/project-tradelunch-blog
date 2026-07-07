@@ -12,8 +12,8 @@ console.log('[build] NEXT_PUBLIC_API_BASE present?    =', rawApiBase !== undefin
 console.log('[build] raw length                       =', rawApiBase?.length ?? 0);
 console.log('[build] raw has quote/space?             =', /["'\s]/.test(rawApiBase ?? ''));
 console.log('[build] raw === validated (no fallback)? =', rawApiBase === API_BASE);
-console.log('[build] baked host = NEW (taeklim)?      =', API_BASE.includes('taeklim'));
-console.log('[build] baked host = OLD (tradelunch)?   =', API_BASE.includes('project-tradelunch'));
+console.log('[build] baked host = NEW (taeklim)?      =', API_BASE.includes('blogapi'));
+console.log('[build] baked host = OLD (tradelunch)?   =', API_BASE.includes('prettylog.com'));
 
 // Extract a bare hostname even when CDN_ASSETS carries a path (e.g. a Supabase
 // public-storage base). `remotePatterns.hostname` must be host-only.
