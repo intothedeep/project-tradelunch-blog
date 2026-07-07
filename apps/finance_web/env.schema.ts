@@ -16,13 +16,13 @@ const envSchema = z.object({
     // Express backend so finance_web works standalone before Oracle cutover.
     NEXT_PUBLIC_API_BASE: z
         .url()
-        .default('https://blogapi.prettylog.com')
+        .default('https://deafult-local-API_BASE---.com')
         .catch('https://error.:::cdnassets.com'),
 
     // Canonical public site origin — used by jsonld.ts for structured data URLs.
     NEXT_PUBLIC_SITE_URL: z
         .url()
-        .default('https://my.prettylog.com')
+        .default('https://deafult-local-SITE_URL---.com')
         .catch('https://error.:::cdnassets.com'),
 
     // Clerk publishable key — optional so builds pass without it; Clerk reads
