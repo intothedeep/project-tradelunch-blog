@@ -1,5 +1,5 @@
 // utils/backtest/url-codec-synth.test.ts
-// Acceptance tests for X2-P2.8 synth= codec.
+// Acceptance tests for X2-P2.8 / X2-P2b.8 synth= codec.
 
 import { describe, it, expect } from 'vitest';
 import { encodeSynth, decodeSynth } from './url-codec-synth';
@@ -17,13 +17,43 @@ describe('encodeSynth / decodeSynth — round-trip', () => {
         expect(decodeSynth(encodeSynth(s))).toEqual(s);
     });
 
-    it('produces expected string format', () => {
+    it('round-trips str method', () => {
+        const s: SynthUrlState = {
+            shortLabel: 'JEPQ',
+            base: 'QQQ',
+            method: 'str',
+        };
+        expect(decodeSynth(encodeSynth(s))).toEqual(s);
+    });
+
+    it('round-trips cmp method', () => {
+        const s: SynthUrlState = {
+            shortLabel: 'JEPQ',
+            base: 'QQQ',
+            method: 'cmp',
+        };
+        expect(decodeSynth(encodeSynth(s))).toEqual(s);
+    });
+
+    it('produces expected string format for reg', () => {
         const s: SynthUrlState = {
             shortLabel: 'JEPQ',
             base: 'QQQ',
             method: 'reg',
         };
         expect(encodeSynth(s)).toBe('JEPQ:QQQ:reg');
+    });
+
+    it('produces expected string format for str', () => {
+        expect(
+            encodeSynth({ shortLabel: 'JEPQ', base: 'QQQ', method: 'str' })
+        ).toBe('JEPQ:QQQ:str');
+    });
+
+    it('produces expected string format for cmp', () => {
+        expect(
+            encodeSynth({ shortLabel: 'JEPQ', base: 'QQQ', method: 'cmp' })
+        ).toBe('JEPQ:QQQ:cmp');
     });
 });
 
@@ -39,18 +69,26 @@ describe('decodeSynth — absent param', () => {
     });
 });
 
-// ── Reserved methods decode as synth OFF ──────────────────────────────────────
+// ── Active methods (X2-P2b.8) ─────────────────────────────────────────────────
 
-describe('decodeSynth — reserved methods', () => {
-    it("'str' → undefined (reserved, no throw)", () => {
-        expect(decodeSynth('JEPQ:QQQ:str')).toBeUndefined();
+describe('decodeSynth — activated methods', () => {
+    it("'str' → decoded object (active from X2-P2b.8)", () => {
+        expect(decodeSynth('JEPQ:QQQ:str')).toEqual({
+            shortLabel: 'JEPQ',
+            base: 'QQQ',
+            method: 'str',
+        });
     });
 
-    it("'cmp' → undefined (reserved, no throw)", () => {
-        expect(decodeSynth('JEPQ:QQQ:cmp')).toBeUndefined();
+    it("'cmp' → decoded object (active from X2-P2b.8)", () => {
+        expect(decodeSynth('JEPQ:QQQ:cmp')).toEqual({
+            shortLabel: 'JEPQ',
+            base: 'QQQ',
+            method: 'cmp',
+        });
     });
 
-    it('unknown method → undefined', () => {
+    it('unknown method → undefined (no throw)', () => {
         expect(decodeSynth('JEPQ:QQQ:future')).toBeUndefined();
     });
 });

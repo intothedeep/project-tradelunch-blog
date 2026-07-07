@@ -1,5 +1,5 @@
 // utils/backtest/synth/types.ts
-// Purpose: local domain types for synthetic pre-inception history (Phase 2a).
+// Purpose: local domain types for synthetic pre-inception history (Phase 2a/2b).
 // No runtime logic — type declarations only. Additive to types/backtest.ts.
 
 import type { PricePoint } from '@/types/backtest';
@@ -48,6 +48,15 @@ export interface SynthConfig {
     method: SynthMethod;
     /** Label of the short asset — decorrelates the per-asset bootstrap seed. */
     shortLabel: string;
+    // ── Method 'str' (structural covered-call synth) inputs ───────────────────
+    // REQUIRED for method:'str' (throws if absent); IGNORED for method:'reg'.
+    // The UI wave wires these fetches (VXN ~2001+, VIX ~1990+) — see resolveVol.
+    /** Implied-vol series: CBOE VXN (Nasdaq-100 vol). close = index level. */
+    volVxn?: PricePoint[];
+    /** Implied-vol series: CBOE VIX (S&P-500 vol), the pre-VXN proxy source. */
+    volVix?: PricePoint[];
+    /** Annual risk-free rate for Black–Scholes premium pricing. Default 0.04. */
+    riskFreeRate?: number;
 }
 
 /** Output of the orchestrator. */
@@ -57,4 +66,38 @@ export interface SynthResult {
     r2: number; // fit quality
     /** Set only when capYears requested a deeper span than 2×overlap allows. */
     cappedAt?: number; // the effective cap in years actually applied
+    /**
+     * true when method='str' and ≥1 pre-inception bar used k·VIX proxy vol
+     * (VXN unavailable pre-~2001). Surfaced for UI proxy warning (Wave-C).
+     */
+    hasProxy?: boolean;
+}
+
+// ── Method 'str' (structural) domain types ────────────────────────────────────
+
+/** Resolved implied vol for one date. sigma = annualized IV as a fraction. */
+export interface VolPoint {
+    sigma: number; // e.g. 0.20 for a 20-vol
+    isProxy: boolean; // true when derived from k·VIX (pre-VXN dates)
+}
+
+/**
+ * Structural covered-call parameters (calibrated by grid/coordinate descent).
+ *   beta      — equity-sleeve participation in the base's return
+ *   moneyness — call strike offset OTM (fraction, e.g. 0.01 = 1% above spot)
+ *   coverage  — fraction of notional written as calls (caps upside above strike)
+ *   haircut   — fraction of theoretical BS premium actually captured
+ */
+export interface StructuralParams {
+    beta: number;
+    moneyness: number;
+    coverage: number;
+    haircut: number;
+}
+
+/** Output of calibrateStructural — fitted params + in-sample quality. */
+export interface StructuralFit {
+    params: StructuralParams;
+    r2: number; // 1 − SSres/SStot of synth vs actual total-return path, ∈ [0,1]
+    trackingError: number; // RMS daily total-return error (≥ 0)
 }

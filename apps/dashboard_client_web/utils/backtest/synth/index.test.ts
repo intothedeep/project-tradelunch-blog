@@ -1,4 +1,4 @@
-// index.test.ts — X2-P2.6 orchestrator
+// index.test.ts — X2-P2.6 orchestrator (reg) + X2-P2b str-guard
 import { describe, expect, it } from 'vitest';
 import { buildSyntheticHistory } from './index';
 import type { PricePoint } from '@/types/backtest';
@@ -49,10 +49,10 @@ const baseCfg: Omit<SynthConfig, 'capYears'> = {
 const EXPECTED_EARLIEST = '2016-04-01';
 
 describe('buildSyntheticHistory', () => {
-    it("method 'str' throws (not implemented)", () => {
+    it("method 'str' throws without vol inputs (no longer 'not implemented')", () => {
         expect(() =>
             buildSyntheticHistory({ ...baseCfg, method: 'str' })
-        ).toThrow(/not implemented \(Phase 2b\)/);
+        ).toThrow(/requires volVxn \+ volVix/);
     });
 
     it('default span = 2×overlap (cap boundary exact)', () => {

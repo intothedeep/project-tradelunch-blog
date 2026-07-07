@@ -30,6 +30,10 @@ indices:
   - { symbol: "^KS11", label: "KOSPI" }
   - { symbol: "^KS200", label: "KOSPI 200" }
   - { symbol: "^KQ11", label: "KOSDAQ" }
+  # Volatility indices — synth inputs for backtest structural-synth method (X2-P2b).
+  # Raw-symbol labels intentional: not user-facing holdings; client fetch uses label as key.
+  - { symbol: "^VXN", label: "^VXN" }
+  - { symbol: "^VIX", label: "^VIX" }
 
 stocks:
   # equity ETFs

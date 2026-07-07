@@ -5,7 +5,8 @@
 // Advanced controls (rebalancing, manual flows, per-holding fields) are hidden by
 // default so the default UI is byte-identical to pre-X2 (ZERO-REGRESSION invariant).
 // Task A: Advanced section is gated to admin only (useMe isAdmin === true).
-// X2-P2.9: synthetic history toggle + base select + method stub (JEPQ only, admin-gated).
+// X2-P2.9: synthetic history toggle + base select + method selector (JEPQ only,
+//   admin-gated). Extracted to SynthControls.client.tsx (Wave-C LOC cleanup).
 
 import { useState } from 'react';
 import type {
@@ -25,25 +26,7 @@ import SeedControl from './SeedControl.client';
 import RebalancePolicyPanel from './RebalancePolicyPanel.client';
 import ManualFlowsEditor from './ManualFlowsEditor.client';
 import HoldingAdvancedControls from './HoldingAdvancedControls.client';
-
-// Base options for synthetic history regression.
-const SYNTH_BASE_OPTIONS: { value: string; label: string }[] = [
-    { value: 'QQQ', label: 'QQQ' },
-    { value: 'SPY', label: 'SPY' },
-    { value: '^IXIC', label: 'NASDAQ Composite (^IXIC)' },
-    { value: '^NDX', label: 'NASDAQ 100 (^NDX)' },
-    {
-        value: 'QLD',
-        label: 'QLD (validation only — 2× leverage, opposite profile)',
-    },
-    {
-        value: 'TQQQ',
-        label: 'TQQQ (validation only — 2× leverage, opposite profile)',
-    },
-];
-
-// Short assets eligible for synthetic history (v1: JEPQ only).
-const SYNTH_ELIGIBLE = new Set(['JEPQ']);
+import SynthControls from './SynthControls.client';
 
 interface BacktestControlsProps {
     budget: number;
@@ -117,32 +100,6 @@ export default function BacktestControls({
     const groupIds = rebalance?.groups.map((g) => g.id) ?? [];
     const labels = holdings.map((h) => h.label);
 
-    // Synth: derived from URL state — no local state needed.
-    const eligibleLabel = holdings.find((h) =>
-        SYNTH_ELIGIBLE.has(h.label)
-    )?.label;
-    const synthActive =
-        synth?.shortLabel === eligibleLabel && eligibleLabel !== undefined;
-    const synthBase = synthActive ? synth!.base : 'QQQ';
-
-    function handleSynthToggle() {
-        if (!eligibleLabel) return;
-        if (synthActive) {
-            setSynth(undefined);
-        } else {
-            setSynth({
-                shortLabel: eligibleLabel,
-                base: synthBase,
-                method: 'reg',
-            });
-        }
-    }
-
-    function handleBaseChange(base: string) {
-        if (!eligibleLabel) return;
-        setSynth({ shortLabel: eligibleLabel, base, method: 'reg' });
-    }
-
     function updateHolding(label: string, patch: Partial<Holding>) {
         setHoldings(
             holdings.map((h) => (h.label === label ? { ...h, ...patch } : h))
@@ -150,10 +107,7 @@ export default function BacktestControls({
     }
 
     // Always show per-holding controls when the advanced panel is open, so the
-    // canSell / sellPriority / group toggles are REACHABLE. (Previously gated on
-    // already-having-state, which made the sell-lock toggle unreachable — you
-    // could never set canSell=false because the control only appeared once it
-    // was already set.)
+    // canSell / sellPriority / group toggles are REACHABLE.
     const showPerHolding = holdings.length > 0;
 
     return (
@@ -256,64 +210,11 @@ export default function BacktestControls({
                             />
 
                             {/* ── Synthetic history (JEPQ only, v1) ─────────────── */}
-                            {eligibleLabel && (
-                                <div className="flex flex-col gap-2">
-                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                                        합성 과거 (Synthetic History)
-                                    </span>
-                                    <label className="flex items-center gap-2 text-xs cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={synthActive}
-                                            onChange={handleSynthToggle}
-                                            className="h-3.5 w-3.5"
-                                        />
-                                        <span>
-                                            {eligibleLabel} 합성 과거 활성화
-                                        </span>
-                                    </label>
-                                    {synthActive && (
-                                        <>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs text-muted-foreground w-14 shrink-0">
-                                                    베이스
-                                                </span>
-                                                <select
-                                                    value={synthBase}
-                                                    onChange={(e) =>
-                                                        handleBaseChange(
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    className="text-xs rounded border bg-background px-2 py-1 flex-1 min-w-0"
-                                                >
-                                                    {SYNTH_BASE_OPTIONS.map(
-                                                        (o) => (
-                                                            <option
-                                                                key={o.value}
-                                                                value={o.value}
-                                                            >
-                                                                {o.label}
-                                                            </option>
-                                                        )
-                                                    )}
-                                                </select>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs text-muted-foreground w-14 shrink-0">
-                                                    방법
-                                                </span>
-                                                <select
-                                                    disabled
-                                                    className="text-xs rounded border bg-background px-2 py-1 flex-1 min-w-0 opacity-50 cursor-not-allowed"
-                                                >
-                                                    <option>Regression</option>
-                                                </select>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            )}
+                            <SynthControls
+                                holdings={holdings}
+                                synth={synth}
+                                setSynth={setSynth}
+                            />
                         </div>
                     )}
                 </>

@@ -1,12 +1,12 @@
 'use client';
 
 // components/backtest/ResultChart.client.tsx
-// Purpose: recharts area/line chart rendering:
-//   - Historical portfolio value (solid line)
-//   - CAGR projection curve (dashed, visually separated beyond the last date)
-//   - Monte Carlo p10/p90 shaded band + p50 median line
-// A clear vertical boundary separates historical from projected regions.
+// Purpose: recharts area/line chart rendering — historical portfolio value,
+// CAGR projection, Monte Carlo fan, synthetic span overlay.
 // X2-P2.10: synthetic span shading + non-dismissible SYNTHETIC banner.
+// X2-P2b.12: cmp mode — overlay BOTH synthetic lines (reg + str) with distinct
+//   styles over the synthetic span; real line stays solid.
+//   Shared guardrail: SYNTHETIC banner rendered via SynthBanner (no bypass).
 
 import {
     ComposedChart,
@@ -22,65 +22,21 @@ import {
     ReferenceArea,
 } from 'recharts';
 import type { BacktestResult } from '@/types/backtest';
-import type { SynthBacktestMeta } from '@/hooks/useSyntheticBacktest.hook';
+import type { SynthPassMeta } from '@/utils/backtest/synth-passes';
+import { SynthBanner } from './SynthGuardrail';
+import { fmt$, buildChartData, buildCmpChartData } from './resultChartData';
 
 interface ResultChartProps {
     result: BacktestResult;
     budget: number;
     /** Synth metadata — when present, renders shading + banner. */
-    synthMeta?: SynthBacktestMeta;
-    /** Full-span timeline (synthetic + real); used for chart when synth active. */
+    synthMeta?: SynthPassMeta;
+    /** Full-span timeline (reg or str); used for single-method synth chart. */
     fullTimeline?: BacktestResult['timeline'];
-}
-
-function fmt$(v: number): string {
-    if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(2)}M`;
-    if (v >= 1_000) return `$${(v / 1_000).toFixed(1)}K`;
-    return `$${v.toFixed(0)}`;
-}
-
-// Merge historical timeline + projection into a unified chart dataset.
-// Projection points carry undefined for historicalValue so the historical
-// line terminates cleanly at the boundary.
-interface ChartPoint {
-    date: string;
-    historicalValue?: number;
-    cagrValue?: number;
-    p10?: number;
-    p50?: number;
-    p90?: number;
-}
-
-function buildChartData(
-    result: BacktestResult,
-    timelineOverride?: BacktestResult['timeline']
-): {
-    data: ChartPoint[];
-    boundaryDate: string;
-} {
-    const timeline = timelineOverride ?? result.timeline;
-    const boundaryDate = timeline[timeline.length - 1]?.date ?? '';
-
-    const histPoints: ChartPoint[] = timeline.map((t) => ({
-        date: t.date,
-        historicalValue: t.value,
-    }));
-
-    // Take every 3rd projection month (quarterly) to keep chart readable.
-    const projLen = result.projection.cagrCurve.length;
-    const step = Math.max(1, Math.floor(projLen / 40));
-
-    const projPoints: ChartPoint[] = result.projection.cagrCurve
-        .filter((_, i) => i % step === 0 || i === projLen - 1)
-        .map((pt, i) => ({
-            date: pt.date,
-            cagrValue: pt.value,
-            p10: result.projection.monteCarlo[i * step]?.p10,
-            p50: result.projection.monteCarlo[i * step]?.p50,
-            p90: result.projection.monteCarlo[i * step]?.p90,
-        }));
-
-    return { data: [...histPoints, ...projPoints], boundaryDate };
+    /** str full-span timeline — only provided in cmp mode. */
+    strFullTimeline?: BacktestResult['timeline'];
+    /** Active synth method — drives cmp overlay logic. */
+    synthMethod?: 'reg' | 'str' | 'cmp';
 }
 
 export default function ResultChart({
@@ -88,22 +44,36 @@ export default function ResultChart({
     budget,
     synthMeta,
     fullTimeline,
+    strFullTimeline,
+    synthMethod,
 }: ResultChartProps) {
-    const { data, boundaryDate } = buildChartData(result, fullTimeline);
+    const isCmp =
+        synthMethod === 'cmp' &&
+        fullTimeline !== undefined &&
+        strFullTimeline !== undefined &&
+        synthMeta !== undefined;
+
+    const { data, boundaryDate } = isCmp
+        ? buildCmpChartData(
+              result,
+              fullTimeline!,
+              strFullTimeline!,
+              synthMeta!.realInception
+          )
+        : buildChartData(result, fullTimeline);
+
     const hasDividends = result.dividends.total > 0;
-    const synthStart = fullTimeline?.[0]?.date;
+    const synthStart = isCmp ? fullTimeline![0]?.date : fullTimeline?.[0]?.date;
 
     return (
         <section aria-label="Portfolio performance chart">
-            {/* X2-P2.10: permanent non-dismissible SYNTHETIC banner */}
+            {/* Shared SYNTHETIC guardrail banner — rendered via SynthBanner; no bypass. */}
             {synthMeta && (
-                <div
-                    role="alert"
-                    className="mb-2 rounded border border-amber-500/60 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400"
-                >
-                    SYNTHETIC — modeled, not real &nbsp;/&nbsp; 합성 — 실제
-                    데이터 아님 ({synthMeta.realInception} 이전은 모델 추정치)
-                </div>
+                <SynthBanner
+                    method={synthMethod ?? 'reg'}
+                    meta={synthMeta}
+                    className="mb-2"
+                />
             )}
             <h2 className="text-sm font-semibold mb-2">
                 Performance &amp; 10-Year Projection
@@ -151,7 +121,7 @@ export default function ResultChart({
                         />
                         <Legend wrapperStyle={{ fontSize: 11 }} />
 
-                        {/* X2-P2.10: shade synthetic span (before realInception) */}
+                        {/* Shade synthetic span (both methods) */}
                         {synthMeta && synthStart && (
                             <ReferenceArea
                                 x1={synthStart}
@@ -192,7 +162,6 @@ export default function ResultChart({
                             />
                         )}
 
-                        {/* Budget baseline */}
                         <ReferenceLine
                             y={budget}
                             stroke="#aaa"
@@ -217,7 +186,35 @@ export default function ResultChart({
                             legendType="none"
                         />
 
-                        {/* Historical portfolio value */}
+                        {/* M1 Regression synth line (cmp mode only, over synth span) */}
+                        {isCmp && (
+                            <Line
+                                type="monotone"
+                                dataKey="synthRegValue"
+                                stroke="#f97316"
+                                strokeWidth={1.5}
+                                strokeDasharray="4 2"
+                                dot={false}
+                                name="M1 Reg (synth)"
+                                connectNulls={false}
+                            />
+                        )}
+
+                        {/* M2 Structural synth line (cmp mode only, over synth span) */}
+                        {isCmp && (
+                            <Line
+                                type="monotone"
+                                dataKey="synthStrValue"
+                                stroke="#a78bfa"
+                                strokeWidth={1.5}
+                                strokeDasharray="2 4"
+                                dot={false}
+                                name="M2 Str (synth)"
+                                connectNulls={false}
+                            />
+                        )}
+
+                        {/* Historical portfolio value (solid — real data) */}
                         <Line
                             type="monotone"
                             dataKey="historicalValue"
@@ -254,7 +251,6 @@ export default function ResultChart({
                     </ComposedChart>
                 </ResponsiveContainer>
             </div>
-            {/* Monte Carlo fan disclaimer — period cherry-picking + leveraged asset caveat */}
             <p className="mt-1 text-[11px] text-muted-foreground leading-tight">
                 Projection fan extrapolated from the{' '}
                 <em>selected period&apos;s</em> realized μ/σ (period

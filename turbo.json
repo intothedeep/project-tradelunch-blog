@@ -1,6 +1,7 @@
 {
     "$schema": "https://turborepo.com/schema.json",
     "ui": "tui",
+    "globalEnv": ["FINANCE_ADMIN_ONLY"],
     "tasks": {
         "build": {
             "dependsOn": ["^build"],

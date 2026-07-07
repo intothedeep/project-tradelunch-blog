@@ -53,6 +53,7 @@ __all__ = [
 # that feature. These labels are PERMANENTLY exempt from the rolling hot-window
 # prune. Failure mode of this exemption is "keeps too much data" (safe),
 # never "deletes something it shouldn't". (#XE.6)
+# ^VXN / ^VIX added X2-P2b.1: structural-synth backtest needs deep vol history.
 BACKTEST_RETAIN_LABELS: frozenset[str] = frozenset({
     "QQQ",
     "QQQM",
@@ -65,6 +66,8 @@ BACKTEST_RETAIN_LABELS: frozenset[str] = frozenset({
     "VOOG",
     "NASDAQ Composite",
     "NASDAQ 100",
+    "^VXN",
+    "^VIX",
 })
 
 

@@ -1,7 +1,7 @@
 """Spec: backtest universe exemption from market_history prune (XE.6).
 
 Tests:
-  1. BACKTEST_RETAIN_LABELS contains exactly the 11 expected labels (pure).
+  1. BACKTEST_RETAIN_LABELS contains exactly the 13 expected labels (pure).
   2. read_prune_candidates with exempt_labels excludes an exempt label (QQQ)
      even when the DB would return it.
   3. read_prune_candidates without exempt_labels still returns all labels
@@ -51,19 +51,25 @@ _DB_ROWS = [
 # ---------------------------------------------------------------------------
 
 class TestBacktestRetainLabels:
-    def test_contains_exactly_11_labels(self):
-        assert len(BACKTEST_RETAIN_LABELS) == 11
+    def test_contains_exactly_13_labels(self):
+        assert len(BACKTEST_RETAIN_LABELS) == 13
 
     def test_contains_all_expected_labels(self):
         expected = {
             "QQQ", "QQQM", "QLD", "TQQQ",
             "SPY", "SCHD", "JEPQ", "VOO", "VOOG",
             "NASDAQ Composite", "NASDAQ 100",
+            "^VXN", "^VIX",
         }
         assert BACKTEST_RETAIN_LABELS == expected
 
     def test_is_frozenset(self):
         assert isinstance(BACKTEST_RETAIN_LABELS, frozenset)
+
+    def test_vol_indices_included(self):
+        """^VXN and ^VIX must be exempt so structural-synth backtest history is preserved."""
+        assert "^VXN" in BACKTEST_RETAIN_LABELS
+        assert "^VIX" in BACKTEST_RETAIN_LABELS
 
 
 # ---------------------------------------------------------------------------
@@ -85,7 +91,7 @@ class TestExemptLabelNotPruned:
             assert label != "QQQ"
 
     def test_all_backtest_labels_excluded(self):
-        """All 11 backtest labels are excluded when BACKTEST_RETAIN_LABELS is passed."""
+        """All 13 backtest labels are excluded when BACKTEST_RETAIN_LABELS is passed."""
         rows = [(label, date(2000, 1, 1), 100) for label in BACKTEST_RETAIN_LABELS]
         rows.append(("MSFT", date(2015, 1, 1), 500))  # non-exempt
         conn = _mock_conn(rows)
@@ -93,6 +99,19 @@ class TestExemptLabelNotPruned:
         for label in BACKTEST_RETAIN_LABELS:
             assert label not in result
         assert "MSFT" in result
+
+    def test_vol_indices_excluded_from_candidates(self):
+        """^VXN and ^VIX with deep history are excluded when exempt_labels is passed."""
+        rows = [
+            ("^VXN", date(2001, 1, 2), 6500),
+            ("^VIX", date(1990, 1, 2), 9000),
+            ("AAPL", date(2018, 1, 2), 1825),
+        ]
+        conn = _mock_conn(rows)
+        result = read_prune_candidates(conn, _CUTOFF, exempt_labels=BACKTEST_RETAIN_LABELS)
+        assert "^VXN" not in result
+        assert "^VIX" not in result
+        assert "AAPL" in result
 
 
 # ---------------------------------------------------------------------------

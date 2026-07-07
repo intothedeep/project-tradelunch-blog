@@ -1,24 +1,15 @@
 'use client';
 
 // components/backtest/BacktestClient.client.tsx
-// Orchestrator: URL-encoded state → price fetch → backtest engine → results.
-// X2 wave-4a: rebalance + manualFlows threaded in; controls in BacktestControls.
-// X2 wave-4b: rebalance summary in MetricsPanel; weight% columns in StatsTable.
-// Task B: per-asset share count columns in StatsTable.
-// X2-P2.7/8: synth URL param → splice + double-pass via useSyntheticBacktest.
-// X2-P2.9/10/11: synth toggle wired; chart/table/metrics labeling.
+// Orchestrator: URL state → price fetch → backtest engine → results.
+// X2-P2b.12: cmp mode — ComparisonPanel + dual synth lines in ResultChart.
+// Wave-C LOC: 5 memos extracted to useBacktestStats; SynthControls extracted.
 
 import { useState, useEffect, useMemo } from 'react';
 import { useBacktestUrl } from '@/hooks/useBacktestUrl.hook';
 import { useSyntheticBacktest } from '@/hooks/useSyntheticBacktest.hook';
+import { useBacktestStats } from '@/hooks/useBacktestStats.hook';
 import { LEVERAGED_LABELS } from '@/utils/backtest/universe';
-import {
-    buildMonthlyStats,
-    buildMonthlyAssetWeights,
-    buildMonthlyAssetShares,
-} from '@/utils/backtest/monthlyStats';
-import { buildMonthlyAssetPrices } from '@/utils/backtest/monthlyAssetPrices';
-import { buildYearlyStats } from '@/utils/backtest/yearlyStats';
 import { getPriceSeriesAction } from '@/app/actions/getPriceSeries.action';
 import { toSeriesByLabel } from '@/utils/backtest/seriesMapper';
 import type { TPriceSeriesResponse } from '@/apis/getPriceSeries.api';
@@ -32,10 +23,11 @@ import DividendTable from './DividendTable';
 import IncomeProjection from './IncomeProjection';
 import LeverageWarning from './LeverageWarning';
 import Disclaimer from './Disclaimer';
+import ComparisonPanel from './ComparisonPanel';
 
 const RISK_FREE_RATE = 0.045;
 const REFERENCE_LABELS = ['^IXIC', '^NDX'];
-const HISTORY_FLOOR = '1971-01-01'; // engine slices to `range`; enables true inception discovery
+const HISTORY_FLOOR = '1971-01-01';
 
 interface BacktestClientProps {
     mockedSeries?: TPriceSeriesResponse;
@@ -121,28 +113,40 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
             .finally(() => setLoading(false));
     }, [labelsKey, mockedSeries]);
 
-    const { result, displaySeriesData, synthBaseLabel, synthMeta, fullResult } =
-        useSyntheticBacktest(
-            synth,
-            budget,
-            holdings,
-            seriesData,
-            refSeries,
-            from,
-            to,
-            seed,
-            contribution,
-            rebalance,
-            manualFlows,
-            budgetValid
-        );
+    const {
+        result,
+        displaySeriesData,
+        synthBaseLabel,
+        synthMeta,
+        fullResult,
+        synthError,
+        cmpRegFullResult,
+        cmpStrFullResult,
+        cmpRegMeta,
+        cmpStrMeta,
+    } = useSyntheticBacktest(
+        synth,
+        budget,
+        holdings,
+        seriesData,
+        refSeries,
+        from,
+        to,
+        seed,
+        contribution,
+        rebalance,
+        manualFlows,
+        budgetValid
+    );
 
-    // Fetch reference series + the synth base label (when active) together.
     useEffect(() => {
         if (mockedSeries) return;
-        const refLabels = synthBaseLabel
-            ? [...REFERENCE_LABELS, synthBaseLabel]
-            : REFERENCE_LABELS;
+        const volNeeded = synth?.method === 'str' || synth?.method === 'cmp';
+        const refLabels = [
+            ...REFERENCE_LABELS,
+            ...(synthBaseLabel ? [synthBaseLabel] : []),
+            ...(volNeeded ? ['^VXN', '^VIX'] : []),
+        ];
         getPriceSeriesAction({
             labels: refLabels,
             from: HISTORY_FLOOR,
@@ -150,43 +154,21 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
         }).then((res) => {
             if (res.ok) setRefSeries(toSeriesByLabel(res.data));
         });
-    }, [mockedSeries, synthBaseLabel]);
+    }, [mockedSeries, synthBaseLabel, synth?.method]);
 
     const leveragedSelected = holdings
         .filter((h) => LEVERAGED_LABELS.has(h.label))
         .map((h) => h.label);
     const weightsValid =
         Math.round(holdings.reduce((s, h) => s + h.weightPct, 0)) === 100;
-
-    const monthlyRows = useMemo(
-        () => (result ? buildMonthlyStats(result, result.flowsByDate) : []),
-        [result]
-    );
-    const assetPrices = useMemo(
-        () =>
-            buildMonthlyAssetPrices(
-                displaySeriesData,
-                holdings.map((h) => h.label),
-                from,
-                to
-            ),
-        [displaySeriesData, holdings, from, to]
-    );
-    const assetWeights = useMemo(
-        () => (result ? buildMonthlyAssetWeights(result) : null),
-        [result]
-    );
-    const assetShares = useMemo(
-        () =>
-            result
-                ? buildMonthlyAssetShares(result, assetPrices.priceByMonth)
-                : null,
-        [result, assetPrices.priceByMonth]
-    );
-    const yearlyRows = useMemo(
-        () => (result ? buildYearlyStats(result, budget) : []),
-        [result, budget]
-    );
+    const { monthlyRows, assetPrices, assetWeights, assetShares, yearlyRows } =
+        useBacktestStats(result, displaySeriesData, holdings, from, to, budget);
+    const isCmp =
+        synth?.method === 'cmp' &&
+        !!cmpRegFullResult &&
+        !!cmpStrFullResult &&
+        !!cmpRegMeta &&
+        !!cmpStrMeta;
 
     return (
         <div className="flex flex-col gap-6">
@@ -214,9 +196,7 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                 setSynth={setSynth}
                 onBudgetValidChange={setBudgetValid}
             />
-
             <LeverageWarning labels={leveragedSelected} />
-
             {loading && (
                 <p className="text-sm text-muted-foreground animate-pulse">
                     Loading price data…
@@ -225,6 +205,11 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
             {fetchError && (
                 <div className="rounded border border-destructive px-4 py-3 text-sm text-destructive">
                     {fetchError}
+                </div>
+            )}
+            {synthError && (
+                <div className="rounded border border-destructive px-4 py-3 text-sm text-destructive">
+                    {synthError}
                 </div>
             )}
             {!weightsValid && (
@@ -244,7 +229,6 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                         fullMetrics={fullResult?.metrics}
                         synthMeta={synthMeta}
                     />
-
                     <div className="flex items-center gap-1 self-start rounded-md border p-0.5">
                         {(['chart', 'table'] as const).map((view) => (
                             <button
@@ -261,13 +245,14 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                             </button>
                         ))}
                     </div>
-
                     {resultView === 'chart' ? (
                         <ResultChart
                             result={result}
                             budget={budget}
                             synthMeta={synthMeta}
                             fullTimeline={fullResult?.timeline}
+                            strFullTimeline={cmpStrFullResult?.timeline}
+                            synthMethod={synth?.method}
                         />
                     ) : (
                         <div className="flex flex-col gap-6">
@@ -286,7 +271,17 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                             />
                         </div>
                     )}
-
+                    {isCmp && (
+                        <ComparisonPanel
+                            realResult={result}
+                            regFullResult={cmpRegFullResult!}
+                            strFullResult={cmpStrFullResult!}
+                            regMeta={cmpRegMeta!}
+                            strMeta={cmpStrMeta!}
+                            riskFreeRate={RISK_FREE_RATE}
+                            hasContribution={contribution !== undefined}
+                        />
+                    )}
                     <IncomeProjection
                         income={result.projection.income}
                         budget={budget}
