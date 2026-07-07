@@ -2,8 +2,10 @@
 // Purpose: summary statistics from BacktestMetrics.
 // Shows CAGR (lump-only) or XIRR (DCA). Always shows totalContributed.
 // X2.14: when rebalance present, shows event count, total turnover, warnings.
+// X2-P2.11: dual metrics (real-only headline + full-span advisory) + synth warnings.
 
 import type { BacktestMetrics, BacktestResult } from '@/types/backtest';
+import type { SynthBacktestMeta } from '@/hooks/useSyntheticBacktest.hook';
 
 interface MetricsPanelProps {
     metrics: BacktestMetrics;
@@ -12,6 +14,10 @@ interface MetricsPanelProps {
     hasContribution?: boolean;
     /** X2.14 — rebalance audit trail; absent = no rebalance section rendered. */
     rebalance?: BacktestResult['rebalance'];
+    /** X2-P2.11: full-span (synthetic) metrics for advisory display. */
+    fullMetrics?: BacktestMetrics;
+    /** X2-P2.11: synth metadata for R²/cap warnings. */
+    synthMeta?: SynthBacktestMeta;
 }
 
 function fmt$(v: number): string {
@@ -30,20 +36,122 @@ interface CardProps {
     value: string;
     positive?: boolean;
     negative?: boolean;
+    dim?: boolean;
 }
 
-function Card({ label, value, positive, negative }: CardProps) {
+function Card({ label, value, positive, negative, dim }: CardProps) {
     const color = positive
         ? 'text-green-600 dark:text-green-400'
         : negative
           ? 'text-red-600 dark:text-red-400'
           : '';
     return (
-        <div className="flex flex-col gap-0.5 rounded-md border bg-card p-3">
+        <div
+            className={`flex flex-col gap-0.5 rounded-md border bg-card p-3 ${dim ? 'opacity-60' : ''}`}
+        >
             <span className="text-xs text-muted-foreground">{label}</span>
             <span className={`text-lg font-semibold tabular-nums ${color}`}>
                 {value}
             </span>
+        </div>
+    );
+}
+
+// ── metrics grid (reusable for both passes) ────────────────────────────────────
+
+interface MetricsGridProps {
+    metrics: BacktestMetrics;
+    riskFreeRate: number;
+    hasContribution?: boolean;
+    dim?: boolean;
+}
+
+function MetricsGrid({
+    metrics,
+    riskFreeRate,
+    hasContribution,
+    dim,
+}: MetricsGridProps) {
+    const {
+        finalValue,
+        totalReturnPct,
+        cagr,
+        maxDrawdown,
+        cumulativeDividends,
+        sharpe,
+        totalContributed,
+        moneyWeightedReturn,
+    } = metrics;
+
+    const profit = finalValue - totalContributed;
+
+    return (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
+            <Card
+                label="Final Value"
+                value={fmt$(finalValue)}
+                positive={profit > 0}
+                negative={profit < 0}
+                dim={dim}
+            />
+            <Card
+                label="Total Invested"
+                value={fmt$(totalContributed)}
+                dim={dim}
+            />
+            <Card
+                label={hasContribution ? 'vs Invested' : 'Total Return'}
+                value={fmtPct(totalReturnPct)}
+                positive={totalReturnPct > 0}
+                negative={totalReturnPct < 0}
+                dim={dim}
+            />
+            {hasContribution ? (
+                <Card
+                    label="Money-Weighted Return (XIRR)"
+                    value={
+                        moneyWeightedReturn !== null
+                            ? fmtPct(moneyWeightedReturn)
+                            : '—'
+                    }
+                    positive={
+                        moneyWeightedReturn !== null && moneyWeightedReturn > 0
+                    }
+                    negative={
+                        moneyWeightedReturn !== null && moneyWeightedReturn < 0
+                    }
+                    dim={dim}
+                />
+            ) : (
+                <Card
+                    label="CAGR"
+                    value={fmtPct(cagr)}
+                    positive={cagr > 0}
+                    negative={cagr < 0}
+                    dim={dim}
+                />
+            )}
+            <Card
+                label="Max Drawdown"
+                value={fmtPct(maxDrawdown)}
+                negative={maxDrawdown < 0}
+                dim={dim}
+            />
+            <Card
+                label="Dividends Received"
+                value={fmt$(cumulativeDividends)}
+                positive={cumulativeDividends > 0}
+                dim={dim}
+            />
+            {sharpe !== null && (
+                <Card
+                    label={`Sharpe (rf=${(riskFreeRate * 100).toFixed(1)}%)`}
+                    value={sharpe.toFixed(2)}
+                    positive={sharpe > 1}
+                    negative={sharpe < 0}
+                    dim={dim}
+                />
+            )}
         </div>
     );
 }
@@ -96,6 +204,39 @@ function RebalanceSummary({ rebalance }: RebalanceSummaryProps) {
     );
 }
 
+// ── X2-P2.11: synth warnings (R² floor + horizon cap) ─────────────────────────
+
+interface SynthWarningsProps {
+    meta: SynthBacktestMeta;
+}
+
+function SynthWarnings({ meta }: SynthWarningsProps) {
+    const warnings: string[] = [];
+    if (meta.r2 < 0.8) {
+        warnings.push(
+            `낮은 적합도 — 합성 신뢰도 낮음 (R²=${meta.r2.toFixed(3)}, 임계값 0.80 미만)`
+        );
+    }
+    if (meta.cappedAt !== undefined) {
+        warnings.push(
+            `합성 기간 상한 적용됨 — ${meta.cappedAt.toFixed(1)}년 (overlap 2× 규칙)`
+        );
+    }
+    if (warnings.length === 0) return null;
+    return (
+        <ul className="flex flex-col gap-0.5 mt-1">
+            {warnings.map((w, i) => (
+                <li
+                    key={i}
+                    className="text-[11px] font-medium text-red-600 dark:text-red-400"
+                >
+                    ⚠ {w}
+                </li>
+            ))}
+        </ul>
+    );
+}
+
 // ── main component ────────────────────────────────────────────────────────────
 
 export default function MetricsPanel({
@@ -103,19 +244,10 @@ export default function MetricsPanel({
     riskFreeRate,
     hasContribution,
     rebalance,
+    fullMetrics,
+    synthMeta,
 }: MetricsPanelProps) {
-    const {
-        finalValue,
-        totalReturnPct,
-        cagr,
-        maxDrawdown,
-        cumulativeDividends,
-        sharpe,
-        totalContributed,
-        moneyWeightedReturn,
-    } = metrics;
-
-    const profit = finalValue - totalContributed;
+    const isSynthActive = synthMeta !== undefined && fullMetrics !== undefined;
 
     return (
         <section
@@ -123,67 +255,37 @@ export default function MetricsPanel({
             className="flex flex-col gap-3"
         >
             <h2 className="text-sm font-semibold">Summary</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
-                <Card
-                    label="Final Value"
-                    value={fmt$(finalValue)}
-                    positive={profit > 0}
-                    negative={profit < 0}
-                />
-                <Card
-                    label="Total Invested"
-                    value={fmt$(totalContributed)}
-                />
-                <Card
-                    label={hasContribution ? 'vs Invested' : 'Total Return'}
-                    value={fmtPct(totalReturnPct)}
-                    positive={totalReturnPct > 0}
-                    negative={totalReturnPct < 0}
-                />
-                {hasContribution ? (
-                    <Card
-                        label="Money-Weighted Return (XIRR)"
-                        value={
-                            moneyWeightedReturn !== null
-                                ? fmtPct(moneyWeightedReturn)
-                                : '—'
-                        }
-                        positive={
-                            moneyWeightedReturn !== null &&
-                            moneyWeightedReturn > 0
-                        }
-                        negative={
-                            moneyWeightedReturn !== null &&
-                            moneyWeightedReturn < 0
-                        }
+
+            {/* Real-only headline (always the primary row) */}
+            {isSynthActive && (
+                <p className="text-xs font-medium text-foreground">
+                    실제 데이터 기준 (Real-only · {synthMeta!.realInception}{' '}
+                    이후)
+                </p>
+            )}
+            <MetricsGrid
+                metrics={metrics}
+                riskFreeRate={riskFreeRate}
+                hasContribution={hasContribution}
+            />
+
+            {/* Full-span advisory row (synth active only) */}
+            {isSynthActive && (
+                <div className="flex flex-col gap-1">
+                    <p className="text-xs text-muted-foreground">
+                        합성 포함 (modeled · full synthetic span — advisory
+                        only)
+                    </p>
+                    <MetricsGrid
+                        metrics={fullMetrics!}
+                        riskFreeRate={riskFreeRate}
+                        hasContribution={hasContribution}
+                        dim
                     />
-                ) : (
-                    <Card
-                        label="CAGR"
-                        value={fmtPct(cagr)}
-                        positive={cagr > 0}
-                        negative={cagr < 0}
-                    />
-                )}
-                <Card
-                    label="Max Drawdown"
-                    value={fmtPct(maxDrawdown)}
-                    negative={maxDrawdown < 0}
-                />
-                <Card
-                    label="Dividends Received"
-                    value={fmt$(cumulativeDividends)}
-                    positive={cumulativeDividends > 0}
-                />
-                {sharpe !== null && (
-                    <Card
-                        label={`Sharpe (rf=${(riskFreeRate * 100).toFixed(1)}%)`}
-                        value={sharpe.toFixed(2)}
-                        positive={sharpe > 1}
-                        negative={sharpe < 0}
-                    />
-                )}
-            </div>
+                    {synthMeta && <SynthWarnings meta={synthMeta} />}
+                </div>
+            )}
+
             {rebalance && <RebalanceSummary rebalance={rebalance} />}
         </section>
     );

@@ -5,31 +5,11 @@
 //            + Box–Muller transform. Same seed + same input ⇒ identical output.
 // Note: noUncheckedIndexedAccess is enabled — all array access uses for-of or
 //       explicit undefined guards.
+// X2-P2.1: mulberry32/standardNormal extracted to prng.ts (byte-identical).
 
 import type { ProjectionResult } from '@/types/backtest';
 import { addMonths } from './dateAdd';
-
-// ── Seeded PRNG: mulberry32 ───────────────────────────────────────────────────
-// Returns a closure that yields pseudo-random [0, 1) values.
-// Identical seed ⇒ identical sequence (deterministic).
-function mulberry32(seed: number): () => number {
-    let s = seed >>> 0;
-    return (): number => {
-        s = (s + 0x6d2b79f5) >>> 0;
-        let t = Math.imul(s ^ (s >>> 15), 1 | s);
-        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) >>> 0;
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-}
-
-// ── Box–Muller normal deviate ─────────────────────────────────────────────────
-// Produces one N(0,1) sample from two uniforms.
-// Clamps u1 away from 0 to guard log(0) = -Infinity.
-function standardNormal(rand: () => number): number {
-    const u1 = Math.max(rand(), 1e-10);
-    const u2 = rand();
-    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-}
+import { mulberry32, standardNormal } from './prng';
 
 // ── Linear quantile interpolation ────────────────────────────────────────────
 function quantile(sorted: number[], q: number): number {

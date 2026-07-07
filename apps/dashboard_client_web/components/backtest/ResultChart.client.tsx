@@ -6,6 +6,7 @@
 //   - CAGR projection curve (dashed, visually separated beyond the last date)
 //   - Monte Carlo p10/p90 shaded band + p50 median line
 // A clear vertical boundary separates historical from projected regions.
+// X2-P2.10: synthetic span shading + non-dismissible SYNTHETIC banner.
 
 import {
     ComposedChart,
@@ -18,12 +19,18 @@ import {
     Legend,
     ResponsiveContainer,
     ReferenceLine,
+    ReferenceArea,
 } from 'recharts';
 import type { BacktestResult } from '@/types/backtest';
+import type { SynthBacktestMeta } from '@/hooks/useSyntheticBacktest.hook';
 
 interface ResultChartProps {
     result: BacktestResult;
     budget: number;
+    /** Synth metadata — when present, renders shading + banner. */
+    synthMeta?: SynthBacktestMeta;
+    /** Full-span timeline (synthetic + real); used for chart when synth active. */
+    fullTimeline?: BacktestResult['timeline'];
 }
 
 function fmt$(v: number): string {
@@ -44,14 +51,17 @@ interface ChartPoint {
     p90?: number;
 }
 
-function buildChartData(result: BacktestResult): {
+function buildChartData(
+    result: BacktestResult,
+    timelineOverride?: BacktestResult['timeline']
+): {
     data: ChartPoint[];
     boundaryDate: string;
 } {
-    const boundaryDate =
-        result.timeline[result.timeline.length - 1]?.date ?? '';
+    const timeline = timelineOverride ?? result.timeline;
+    const boundaryDate = timeline[timeline.length - 1]?.date ?? '';
 
-    const histPoints: ChartPoint[] = result.timeline.map((t) => ({
+    const histPoints: ChartPoint[] = timeline.map((t) => ({
         date: t.date,
         historicalValue: t.value,
     }));
@@ -73,12 +83,28 @@ function buildChartData(result: BacktestResult): {
     return { data: [...histPoints, ...projPoints], boundaryDate };
 }
 
-export default function ResultChart({ result, budget }: ResultChartProps) {
-    const { data, boundaryDate } = buildChartData(result);
+export default function ResultChart({
+    result,
+    budget,
+    synthMeta,
+    fullTimeline,
+}: ResultChartProps) {
+    const { data, boundaryDate } = buildChartData(result, fullTimeline);
     const hasDividends = result.dividends.total > 0;
+    const synthStart = fullTimeline?.[0]?.date;
 
     return (
         <section aria-label="Portfolio performance chart">
+            {/* X2-P2.10: permanent non-dismissible SYNTHETIC banner */}
+            {synthMeta && (
+                <div
+                    role="alert"
+                    className="mb-2 rounded border border-amber-500/60 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400"
+                >
+                    SYNTHETIC — modeled, not real &nbsp;/&nbsp; 합성 — 실제
+                    데이터 아님 ({synthMeta.realInception} 이전은 모델 추정치)
+                </div>
+            )}
             <h2 className="text-sm font-semibold mb-2">
                 Performance &amp; 10-Year Projection
                 {hasDividends && (
@@ -125,6 +151,17 @@ export default function ResultChart({ result, budget }: ResultChartProps) {
                         />
                         <Legend wrapperStyle={{ fontSize: 11 }} />
 
+                        {/* X2-P2.10: shade synthetic span (before realInception) */}
+                        {synthMeta && synthStart && (
+                            <ReferenceArea
+                                x1={synthStart}
+                                x2={synthMeta.realInception}
+                                fill="#f59e0b"
+                                fillOpacity={0.07}
+                                strokeOpacity={0}
+                            />
+                        )}
+
                         {/* Historical/projected boundary */}
                         {boundaryDate && (
                             <ReferenceLine
@@ -135,6 +172,22 @@ export default function ResultChart({ result, budget }: ResultChartProps) {
                                     value: 'Today',
                                     position: 'insideTopRight',
                                     fontSize: 10,
+                                }}
+                            />
+                        )}
+
+                        {/* Synthetic inception boundary */}
+                        {synthMeta && (
+                            <ReferenceLine
+                                x={synthMeta.realInception}
+                                stroke="#f59e0b"
+                                strokeDasharray="3 3"
+                                strokeWidth={1.5}
+                                label={{
+                                    value: 'Real start',
+                                    position: 'insideTopLeft',
+                                    fontSize: 9,
+                                    fill: '#f59e0b',
                                 }}
                             />
                         )}

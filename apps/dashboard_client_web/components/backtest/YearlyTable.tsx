@@ -3,6 +3,7 @@
 //   (누적 연환산 CAGR). Pure component — receives pre-computed rows.
 // Semantics: lump-sum → time-weighted CAGR-to-date; DCA → XIRR-to-date (matches
 //   the MetricsPanel headline, so the last row reconciles). See yearlyStats.ts.
+// X2-P2.11: rows where year < realInception year get a SYNTH tag.
 
 import type { YearlyStatRow } from '@/utils/backtest/yearlyStats';
 
@@ -10,6 +11,8 @@ interface YearlyTableProps {
     rows: YearlyStatRow[];
     /** true when the run has DCA contributions → header labels the metric as XIRR. */
     isDca?: boolean;
+    /** X2-P2.11: rows where year < realInception's YYYY are tagged SYNTH. */
+    realInception?: string;
 }
 
 function fmtUsd(v: number): string {
@@ -30,10 +33,18 @@ function pctClass(v: number | null): string {
     return '';
 }
 
-export default function YearlyTable({ rows, isDca }: YearlyTableProps) {
+export default function YearlyTable({
+    rows,
+    isDca,
+    realInception,
+}: YearlyTableProps) {
     if (rows.length === 0) return null;
 
     const cagrLabel = isDca ? '누적 연환산 (XIRR)' : '누적 연환산 CAGR';
+    // X2-P2.11: year boundary (exclusive) — 'YYYY' string.
+    const synthYearBound = realInception
+        ? realInception.slice(0, 4)
+        : undefined;
 
     return (
         <section aria-label="연도별 통계표">
@@ -52,24 +63,34 @@ export default function YearlyTable({ rows, isDca }: YearlyTableProps) {
                         </tr>
                     </thead>
                     <tbody>
-                        {rows.map((row) => (
-                            <tr
-                                key={row.year}
-                                className="border-b last:border-0 hover:bg-muted/30 transition-colors"
-                            >
-                                <td className="px-3 py-1.5 font-mono text-muted-foreground">
-                                    {row.year}
-                                </td>
-                                <td className="px-3 py-1.5 text-right font-mono">
-                                    {fmtUsd(row.endValue)}
-                                </td>
-                                <td
-                                    className={`px-3 py-1.5 text-right font-mono ${pctClass(row.annualizedReturnPct)}`}
+                        {rows.map((row) => {
+                            const isSynth =
+                                synthYearBound !== undefined &&
+                                row.year < synthYearBound;
+                            return (
+                                <tr
+                                    key={row.year}
+                                    className="border-b last:border-0 hover:bg-muted/30 transition-colors"
                                 >
-                                    {fmtPct(row.annualizedReturnPct)}
-                                </td>
-                            </tr>
-                        ))}
+                                    <td className="px-3 py-1.5 font-mono text-muted-foreground">
+                                        {row.year}
+                                        {isSynth && (
+                                            <span className="ml-1 rounded bg-amber-500/20 px-1 text-[9px] font-semibold text-amber-600 dark:text-amber-400">
+                                                SYNTH
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="px-3 py-1.5 text-right font-mono">
+                                        {fmtUsd(row.endValue)}
+                                    </td>
+                                    <td
+                                        className={`px-3 py-1.5 text-right font-mono ${pctClass(row.annualizedReturnPct)}`}
+                                    >
+                                        {fmtPct(row.annualizedReturnPct)}
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>

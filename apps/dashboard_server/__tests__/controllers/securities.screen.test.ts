@@ -433,13 +433,15 @@ describe('GET /screen — clamp params', () => {
 describe('GET /screen — as-of path (has_consensus_asof=true)', () => {
     const period = '2026-03-31';
 
-    function mockAsofPath(opts: {
-        hasSecmap?: boolean;
-        hasRankings?: boolean;
-        candidateRows?: unknown[];
-        minActiveHolders?: string;
-        maxRank?: string;
-    } = {}): void {
+    function mockAsofPath(
+        opts: {
+            hasSecmap?: boolean;
+            hasRankings?: boolean;
+            candidateRows?: unknown[];
+            minActiveHolders?: string;
+            maxRank?: string;
+        } = {}
+    ): void {
         const {
             hasSecmap = false,
             hasRankings = false,
@@ -464,7 +466,8 @@ describe('GET /screen — as-of path (has_consensus_asof=true)', () => {
         mockQuery.mockResolvedValueOnce({ rows: [{ period }] });
         // 4. candidates
         mockQuery.mockResolvedValueOnce({ rows: candidateRows });
-        void minActiveHolders; void maxRank; // consumed via invoke() query string
+        void minActiveHolders;
+        void maxRank; // consumed via invoke() query string
     }
 
     it('period query targets v_sec_consensus_asof (SELECT MAX(max_period))', async () => {
@@ -491,7 +494,10 @@ describe('GET /screen — as-of path (has_consensus_asof=true)', () => {
         mockAsofPath();
         await invoke(); // default minActiveHolders=2
 
-        const [, candidateParams] = mockQuery.mock.calls[3] as [string, unknown[]];
+        const [, candidateParams] = mockQuery.mock.calls[3] as [
+            string,
+            unknown[],
+        ];
         // First (and only) param is minActiveHolders=2 (number)
         expect(candidateParams).toHaveLength(1);
         expect(candidateParams[0]).toBe(2);
@@ -501,7 +507,10 @@ describe('GET /screen — as-of path (has_consensus_asof=true)', () => {
         mockAsofPath();
         await invoke({ minActiveHolders: '3' });
 
-        const [candidateSql, candidateParams] = mockQuery.mock.calls[3] as [string, unknown[]];
+        const [candidateSql, candidateParams] = mockQuery.mock.calls[3] as [
+            string,
+            unknown[],
+        ];
         expect(candidateSql).toContain('$1');
         // No $2 when there is no rank filter
         expect(candidateSql).not.toMatch(/\$2/);
@@ -512,7 +521,10 @@ describe('GET /screen — as-of path (has_consensus_asof=true)', () => {
         mockAsofPath({ hasSecmap: true, hasRankings: true });
         await invoke({ maxRank: '100' });
 
-        const [candidateSql, candidateParams] = mockQuery.mock.calls[3] as [string, unknown[]];
+        const [candidateSql, candidateParams] = mockQuery.mock.calls[3] as [
+            string,
+            unknown[],
+        ];
         // $1 = minActiveHolders, $2 = maxRank (no period $1 in as-of path)
         expect(candidateSql).toContain('$2');
         expect(candidateSql).not.toMatch(/\$3/);
@@ -560,7 +572,10 @@ describe('GET /screen — legacy back-compat (has_consensus_asof=false)', () => 
 
         await invoke();
 
-        const [candidateSql, candidateParams] = mockQuery.mock.calls[3] as [string, unknown[]];
+        const [candidateSql, candidateParams] = mockQuery.mock.calls[3] as [
+            string,
+            unknown[],
+        ];
         expect(candidateSql).toContain('v_sec_consensus');
         expect(candidateSql).not.toContain('v_sec_consensus_asof');
         expect(candidateSql).toContain('period_of_report = $1');
@@ -586,12 +601,15 @@ describe('GET /screen — legacy back-compat (has_consensus_asof=false)', () => 
 
         await invoke({ maxRank: '50' });
 
-        const [candidateSql, candidateParams] = mockQuery.mock.calls[3] as [string, unknown[]];
+        const [candidateSql, candidateParams] = mockQuery.mock.calls[3] as [
+            string,
+            unknown[],
+        ];
         expect(candidateSql).toContain('$3');
         expect(candidateParams).toHaveLength(3);
         expect(candidateParams[0]).toBe('2026-03-31'); // period
-        expect(candidateParams[1]).toBe(2);            // minActiveHolders
-        expect(candidateParams[2]).toBe(50);           // maxRank
+        expect(candidateParams[1]).toBe(2); // minActiveHolders
+        expect(candidateParams[2]).toBe(50); // maxRank
     });
 
     it('response does NOT include asOf field in legacy path', async () => {
@@ -621,7 +639,9 @@ describe('GET /screen — legacy back-compat (has_consensus_asof=false)', () => 
     it('undefined has_consensus_asof defaults to false (legacy path)', async () => {
         // Simulates older probe rows that do not include the has_consensus_asof column.
         mockQuery.mockResolvedValueOnce({
-            rows: [{ has_consensus: true, has_secmap: false, has_rankings: false }],
+            rows: [
+                { has_consensus: true, has_secmap: false, has_rankings: false },
+            ],
         });
         mockQuery.mockResolvedValueOnce({ rows: [{ total_active: '3' }] });
         mockQuery.mockResolvedValueOnce({ rows: [{ period }] });

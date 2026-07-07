@@ -5,10 +5,12 @@
 // X2 wave-4a: rebalance + manualFlows threaded in; controls in BacktestControls.
 // X2 wave-4b: rebalance summary in MetricsPanel; weight% columns in StatsTable.
 // Task B: per-asset share count columns in StatsTable.
+// X2-P2.7/8: synth URL param → splice + double-pass via useSyntheticBacktest.
+// X2-P2.9/10/11: synth toggle wired; chart/table/metrics labeling.
 
 import { useState, useEffect, useMemo } from 'react';
 import { useBacktestUrl } from '@/hooks/useBacktestUrl.hook';
-import { useBacktest } from '@/hooks/useBacktest.hook';
+import { useSyntheticBacktest } from '@/hooks/useSyntheticBacktest.hook';
 import { LEVERAGED_LABELS } from '@/utils/backtest/universe';
 import {
     buildMonthlyStats,
@@ -18,6 +20,7 @@ import {
 import { buildMonthlyAssetPrices } from '@/utils/backtest/monthlyAssetPrices';
 import { buildYearlyStats } from '@/utils/backtest/yearlyStats';
 import { getPriceSeriesAction } from '@/app/actions/getPriceSeries.action';
+import { toSeriesByLabel } from '@/utils/backtest/seriesMapper';
 import type { TPriceSeriesResponse } from '@/apis/getPriceSeries.api';
 import type { PricePoint } from '@/types/backtest';
 import BacktestControls from './BacktestControls.client';
@@ -32,26 +35,10 @@ import Disclaimer from './Disclaimer';
 
 const RISK_FREE_RATE = 0.045;
 const REFERENCE_LABELS = ['^IXIC', '^NDX'];
-// Full history floor — engine slices to `range`; enables true inception discovery.
-const HISTORY_FLOOR = '1971-01-01';
+const HISTORY_FLOOR = '1971-01-01'; // engine slices to `range`; enables true inception discovery
 
 interface BacktestClientProps {
     mockedSeries?: TPriceSeriesResponse;
-}
-
-function toSeriesByLabel(
-    resp: TPriceSeriesResponse
-): Record<string, PricePoint[]> {
-    const result: Record<string, PricePoint[]> = {};
-    for (const [label, bars] of Object.entries(resp.series)) {
-        result[label] = bars.map((b) => ({
-            date: b.date,
-            close: b.close,
-            dividends: b.dividends,
-            stockSplits: b.stockSplits,
-        }));
-    }
-    return result;
 }
 
 type ResultView = 'chart' | 'table';
@@ -67,6 +54,7 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
             setSeed,
             setRebalance,
             setManualFlows,
+            setSynth,
         },
     ] = useBacktestUrl();
     const {
@@ -78,6 +66,7 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
         contribution,
         rebalance,
         manualFlows,
+        synth,
     } = urlState;
 
     const [budgetValid, setBudgetValid] = useState(true);
@@ -132,44 +121,36 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
             .finally(() => setLoading(false));
     }, [labelsKey, mockedSeries]);
 
+    const { result, displaySeriesData, synthBaseLabel, synthMeta, fullResult } =
+        useSyntheticBacktest(
+            synth,
+            budget,
+            holdings,
+            seriesData,
+            refSeries,
+            from,
+            to,
+            seed,
+            contribution,
+            rebalance,
+            manualFlows,
+            budgetValid
+        );
+
+    // Fetch reference series + the synth base label (when active) together.
     useEffect(() => {
         if (mockedSeries) return;
+        const refLabels = synthBaseLabel
+            ? [...REFERENCE_LABELS, synthBaseLabel]
+            : REFERENCE_LABELS;
         getPriceSeriesAction({
-            labels: REFERENCE_LABELS,
-            from: '1971-01-01',
+            labels: refLabels,
+            from: HISTORY_FLOOR,
             to: new Date().toISOString().slice(0, 10),
         }).then((res) => {
             if (res.ok) setRefSeries(toSeriesByLabel(res.data));
         });
-    }, [mockedSeries]);
-
-    const backtestInput = useMemo(() => {
-        if (holdings.length === 0 || Object.keys(seriesData).length === 0)
-            return null;
-        return {
-            budget,
-            holdings,
-            seriesByLabel: seriesData,
-            range: { from, to },
-            seed,
-            riskFreeRate: RISK_FREE_RATE,
-            contribution,
-            rebalance, // X2: undefined = legacy no-rebalance (zero-regression)
-            manualFlows, // X2: undefined = legacy path
-        };
-    }, [
-        budget,
-        holdings,
-        seriesData,
-        from,
-        to,
-        seed,
-        contribution,
-        rebalance,
-        manualFlows,
-    ]);
-
-    const result = useBacktest(backtestInput, budgetValid);
+    }, [mockedSeries, synthBaseLabel]);
 
     const leveragedSelected = holdings
         .filter((h) => LEVERAGED_LABELS.has(h.label))
@@ -184,19 +165,17 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
     const assetPrices = useMemo(
         () =>
             buildMonthlyAssetPrices(
-                seriesData,
+                displaySeriesData,
                 holdings.map((h) => h.label),
                 from,
                 to
             ),
-        [seriesData, holdings, from, to]
+        [displaySeriesData, holdings, from, to]
     );
-    // X2.17b: per-asset month-end weight% derived from perHoldingValues.
     const assetWeights = useMemo(
         () => (result ? buildMonthlyAssetWeights(result) : null),
         [result]
     );
-    // Task B: per-asset month-end share count (value ÷ price).
     const assetShares = useMemo(
         () =>
             result
@@ -224,6 +203,7 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                 minAllowedFrom={minAllowedFrom}
                 rebalance={rebalance}
                 manualFlows={manualFlows}
+                synth={synth}
                 setBudget={setBudget}
                 setHoldings={setHoldings}
                 setRange={setRange}
@@ -231,6 +211,7 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                 setSeed={setSeed}
                 setRebalance={setRebalance}
                 setManualFlows={setManualFlows}
+                setSynth={setSynth}
                 onBudgetValidChange={setBudgetValid}
             />
 
@@ -260,6 +241,8 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                         riskFreeRate={RISK_FREE_RATE}
                         hasContribution={contribution !== undefined}
                         rebalance={result.rebalance}
+                        fullMetrics={fullResult?.metrics}
+                        synthMeta={synthMeta}
                     />
 
                     <div className="flex items-center gap-1 self-start rounded-md border p-0.5">
@@ -283,12 +266,15 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                         <ResultChart
                             result={result}
                             budget={budget}
+                            synthMeta={synthMeta}
+                            fullTimeline={fullResult?.timeline}
                         />
                     ) : (
                         <div className="flex flex-col gap-6">
                             <YearlyTable
                                 rows={yearlyRows}
                                 isDca={contribution !== undefined}
+                                realInception={synthMeta?.realInception}
                             />
                             <StatsTable
                                 rows={monthlyRows}
@@ -296,6 +282,7 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                                 assetPriceByMonth={assetPrices.priceByMonth}
                                 assetWeightByMonth={assetWeights?.weightByMonth}
                                 assetSharesByMonth={assetShares?.sharesByMonth}
+                                realInception={synthMeta?.realInception}
                             />
                         </div>
                     )}

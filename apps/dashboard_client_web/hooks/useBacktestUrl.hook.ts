@@ -11,6 +11,7 @@
 //   '1' | '0'                    (legacy — decoded as same/cash, read-only)
 //
 // X2.11: rb= and mf= params added; assets= gains optional trailing positionals.
+// X2-P2.8: synth= param added (shortLabel:base:method).
 
 import { useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
@@ -30,6 +31,11 @@ import {
     encodeManualFlows,
     decodeManualFlows,
 } from '@/utils/backtest/url-codec';
+import {
+    encodeSynth,
+    decodeSynth,
+    type SynthUrlState,
+} from '@/utils/backtest/url-codec-synth';
 
 // Re-export primitives consumed by tests and SeedControl.
 export type { DividendRoute };
@@ -43,6 +49,7 @@ export interface BacktestUrlState {
     contribution: ContributionPlan | undefined;
     rebalance: RebalancePolicy | undefined;
     manualFlows: { date: string; amount: number }[] | undefined;
+    synth: SynthUrlState | undefined;
 }
 
 // ── Defaults ─────────────────────────────────────────────────────────────────
@@ -82,7 +89,10 @@ export {
     decodeHoldings,
     encodeContribution,
     decodeContribution,
+    encodeSynth,
+    decodeSynth,
 };
+export type { SynthUrlState };
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 export function useBacktestUrl(): [
@@ -97,6 +107,7 @@ export function useBacktestUrl(): [
         setManualFlows: (
             flows: { date: string; amount: number }[] | undefined
         ) => void;
+        setSynth: (s: SynthUrlState | undefined) => void;
     },
 ] {
     const router = useRouter();
@@ -115,6 +126,7 @@ export function useBacktestUrl(): [
         const knownLabels = new Set(holdings.map((h) => h.label));
         const rebalance = decodeRebalance(sp.get('rb'), knownLabels);
         const manualFlows = decodeManualFlows(sp.get('mf'));
+        const synth = decodeSynth(sp.get('synth'));
         return {
             budget: isFinite(budget) && budget > 0 ? budget : DEFAULT_BUDGET,
             holdings,
@@ -124,6 +136,7 @@ export function useBacktestUrl(): [
             contribution,
             rebalance,
             manualFlows,
+            synth,
         };
     }, [sp]);
 
@@ -177,6 +190,11 @@ export function useBacktestUrl(): [
             }),
         [push]
     );
+    const setSynth = useCallback(
+        (s: SynthUrlState | undefined) =>
+            push({ synth: s ? encodeSynth(s) : null }),
+        [push]
+    );
 
     return [
         state,
@@ -188,6 +206,7 @@ export function useBacktestUrl(): [
             setSeed,
             setRebalance,
             setManualFlows,
+            setSynth,
         },
     ];
 }

@@ -5,6 +5,7 @@
 //          + (DCA) 월기여 · 누적투입 + (optional) 자산별 월말 조정close
 //          + (optional, X2.17b) 자산별 월말 비중%
 //          + (optional, Task B) 자산별 월말 보유수량 (price 셀 내 아래쪽 표시)
+// X2-P2.11: rows in the synthetic span (< realInception month) get a SYNTH tag.
 
 import type { MonthlyStatRow } from '@/utils/backtest/monthlyStats';
 
@@ -18,6 +19,8 @@ interface StatsTableProps {
     assetWeightByMonth?: Record<string, Record<string, number>>;
     /** Task B: sharesByMonth['YYYY-MM'][label] = fractional share count. */
     assetSharesByMonth?: Record<string, Record<string, number>>;
+    /** X2-P2.11: rows where month < realInception's YYYY-MM are tagged SYNTH. */
+    realInception?: string;
 }
 
 // ── formatters ────────────────────────────────────────────────────────────────
@@ -69,6 +72,7 @@ export default function StatsTable({
     assetPriceByMonth,
     assetWeightByMonth,
     assetSharesByMonth,
+    realInception,
 }: StatsTableProps) {
     if (rows.length === 0) return null;
 
@@ -83,6 +87,11 @@ export default function StatsTable({
         priceLabels.length > 0 &&
         assetSharesByMonth !== undefined &&
         Object.keys(assetSharesByMonth).length > 0;
+
+    // X2-P2.11: synthetic month boundary (exclusive) — 'YYYY-MM' prefix.
+    const synthMonthBound = realInception
+        ? realInception.slice(0, 7)
+        : undefined;
 
     return (
         <section aria-label="월별 통계표">
@@ -140,90 +149,102 @@ export default function StatsTable({
                         </tr>
                     </thead>
                     <tbody>
-                        {rows.map((row) => (
-                            <tr
-                                key={row.month}
-                                className="border-b last:border-0 hover:bg-muted/30 transition-colors"
-                            >
-                                <td className="px-3 py-1.5 font-mono text-muted-foreground">
-                                    {row.month}
-                                </td>
-                                <td className="px-3 py-1.5 text-right font-mono">
-                                    {fmtUsd(row.endValue)}
-                                </td>
-                                <td
-                                    className={`px-3 py-1.5 text-right font-mono ${pctClass(row.monthReturnPct)}`}
+                        {rows.map((row) => {
+                            const isSynth =
+                                synthMonthBound !== undefined &&
+                                row.month < synthMonthBound;
+                            return (
+                                <tr
+                                    key={row.month}
+                                    className="border-b last:border-0 hover:bg-muted/30 transition-colors"
                                 >
-                                    {fmtPct(row.monthReturnPct)}
-                                </td>
-                                <td
-                                    className={`px-3 py-1.5 text-right font-mono ${pctClass(row.cumulativeReturnPct)}`}
-                                >
-                                    {fmtPct(row.cumulativeReturnPct)}
-                                </td>
-                                <td
-                                    className={`px-3 py-1.5 text-right font-mono ${row.drawdownPct < 0 ? 'text-red-500 dark:text-red-400' : ''}`}
-                                >
-                                    {fmtPct(row.drawdownPct)}
-                                </td>
-                                <td className="px-3 py-1.5 text-right font-mono">
-                                    {fmtDiv(row.dividendCash)}
-                                </td>
-                                <td className="px-3 py-1.5 text-right font-mono">
-                                    {fmtDiv(row.cumulativeDividend)}
-                                </td>
-                                {hasDca && (
-                                    <>
-                                        <td className="px-3 py-1.5 text-right font-mono">
-                                            {fmtDiv(row.contribution ?? 0)}
-                                        </td>
-                                        <td className="px-3 py-1.5 text-right font-mono">
-                                            {fmtUsd(
-                                                row.totalInvestedToDate ?? 0
-                                            )}
-                                        </td>
-                                    </>
-                                )}
-                                {hasPrices &&
-                                    priceLabels.map((label) => {
-                                        const price =
-                                            assetPriceByMonth?.[row.month]?.[
-                                                label
-                                            ];
-                                        const shares = hasShares
-                                            ? assetSharesByMonth?.[row.month]?.[
-                                                  label
-                                              ]
-                                            : undefined;
-                                        return (
-                                            <td
-                                                key={`price-${label}`}
-                                                className="px-3 py-1.5 text-right font-mono text-muted-foreground"
-                                            >
-                                                <span>{fmtPrice(price)}</span>
-                                                {shares !== undefined && (
-                                                    <span className="block text-[10px] text-muted-foreground/70">
-                                                        {fmtShares(shares)}
-                                                    </span>
+                                    <td className="px-3 py-1.5 font-mono text-muted-foreground">
+                                        {row.month}
+                                        {isSynth && (
+                                            <span className="ml-1 rounded bg-amber-500/20 px-1 text-[9px] font-semibold text-amber-600 dark:text-amber-400">
+                                                SYNTH
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="px-3 py-1.5 text-right font-mono">
+                                        {fmtUsd(row.endValue)}
+                                    </td>
+                                    <td
+                                        className={`px-3 py-1.5 text-right font-mono ${pctClass(row.monthReturnPct)}`}
+                                    >
+                                        {fmtPct(row.monthReturnPct)}
+                                    </td>
+                                    <td
+                                        className={`px-3 py-1.5 text-right font-mono ${pctClass(row.cumulativeReturnPct)}`}
+                                    >
+                                        {fmtPct(row.cumulativeReturnPct)}
+                                    </td>
+                                    <td
+                                        className={`px-3 py-1.5 text-right font-mono ${row.drawdownPct < 0 ? 'text-red-500 dark:text-red-400' : ''}`}
+                                    >
+                                        {fmtPct(row.drawdownPct)}
+                                    </td>
+                                    <td className="px-3 py-1.5 text-right font-mono">
+                                        {fmtDiv(row.dividendCash)}
+                                    </td>
+                                    <td className="px-3 py-1.5 text-right font-mono">
+                                        {fmtDiv(row.cumulativeDividend)}
+                                    </td>
+                                    {hasDca && (
+                                        <>
+                                            <td className="px-3 py-1.5 text-right font-mono">
+                                                {fmtDiv(row.contribution ?? 0)}
+                                            </td>
+                                            <td className="px-3 py-1.5 text-right font-mono">
+                                                {fmtUsd(
+                                                    row.totalInvestedToDate ?? 0
                                                 )}
                                             </td>
-                                        );
-                                    })}
-                                {hasWeights &&
-                                    priceLabels.map((label) => (
-                                        <td
-                                            key={`weight-${label}`}
-                                            className="px-3 py-1.5 text-right font-mono text-muted-foreground"
-                                        >
-                                            {fmtWeight(
-                                                assetWeightByMonth?.[
+                                        </>
+                                    )}
+                                    {hasPrices &&
+                                        priceLabels.map((label) => {
+                                            const price =
+                                                assetPriceByMonth?.[
                                                     row.month
-                                                ]?.[label]
-                                            )}
-                                        </td>
-                                    ))}
-                            </tr>
-                        ))}
+                                                ]?.[label];
+                                            const shares = hasShares
+                                                ? assetSharesByMonth?.[
+                                                      row.month
+                                                  ]?.[label]
+                                                : undefined;
+                                            return (
+                                                <td
+                                                    key={`price-${label}`}
+                                                    className="px-3 py-1.5 text-right font-mono text-muted-foreground"
+                                                >
+                                                    <span>
+                                                        {fmtPrice(price)}
+                                                    </span>
+                                                    {shares !== undefined && (
+                                                        <span className="block text-[10px] text-muted-foreground/70">
+                                                            {fmtShares(shares)}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                            );
+                                        })}
+                                    {hasWeights &&
+                                        priceLabels.map((label) => (
+                                            <td
+                                                key={`weight-${label}`}
+                                                className="px-3 py-1.5 text-right font-mono text-muted-foreground"
+                                            >
+                                                {fmtWeight(
+                                                    assetWeightByMonth?.[
+                                                        row.month
+                                                    ]?.[label]
+                                                )}
+                                            </td>
+                                        ))}
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
