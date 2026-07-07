@@ -24,6 +24,7 @@ import IncomeProjection from './IncomeProjection';
 import LeverageWarning from './LeverageWarning';
 import Disclaimer from './Disclaimer';
 import ComparisonPanel from './ComparisonPanel';
+import SynthBasisToggle, { type SynthBasis } from './SynthBasisToggle.client';
 
 const RISK_FREE_RATE = 0.045;
 const REFERENCE_LABELS = ['^IXIC', '^NDX'];
@@ -71,6 +72,9 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
     const [fetchError, setFetchError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [resultView, setResultView] = useState<ResultView>('chart');
+    // Synth display basis: 'real' = real-only headline (pinned to realInception);
+    // 'full' = selected-range backtest incl. synthetic history (honours `from`).
+    const [synthBasis, setSynthBasis] = useState<SynthBasis>('real');
 
     const seriesFirstDate = useMemo<Record<string, string>>(() => {
         const out: Record<string, string> = {};
@@ -144,6 +148,31 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
             : from;
     }, [holdings, displaySeriesData, from]);
 
+    // Start-date shortcuts: one per holding's inception + the synth base's
+    // inception (e.g. QQQ ~1999) when synth is active — lets the user snap the
+    // range start to any selected asset's first data date.
+    const startDateOptions = useMemo(() => {
+        const opts = holdings
+            .map((h) => ({ label: h.label, date: seriesFirstDate[h.label] }))
+            .filter((o): o is { label: string; date: string } => !!o.date);
+        if (synth) {
+            const baseDate = refSeries[synth.base]?.[0]?.date;
+            if (baseDate && !opts.some((o) => o.label === synth.base)) {
+                opts.push({ label: synth.base, date: baseDate });
+            }
+        }
+        return opts;
+    }, [holdings, seriesFirstDate, synth, refSeries]);
+
+    // The 실제/합성 toggle applies to single-method synth (reg/str). cmp keeps its
+    // own ComparisonPanel, so basis stays 'real' there.
+    const canToggleBasis =
+        !!synth && synth.method !== 'cmp' && fullResult !== undefined;
+    const displayResult =
+        canToggleBasis && synthBasis === 'full' && fullResult
+            ? fullResult
+            : result;
+
     useEffect(() => {
         if (mockedSeries) return;
         const volNeeded = synth?.method === 'str' || synth?.method === 'cmp';
@@ -167,7 +196,14 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
     const weightsValid =
         Math.round(holdings.reduce((s, h) => s + h.weightPct, 0)) === 100;
     const { monthlyRows, assetPrices, assetWeights, assetShares, yearlyRows } =
-        useBacktestStats(result, displaySeriesData, holdings, from, to, budget);
+        useBacktestStats(
+            displayResult,
+            displaySeriesData,
+            holdings,
+            from,
+            to,
+            budget
+        );
     const isCmp =
         synth?.method === 'cmp' &&
         !!cmpRegFullResult &&
@@ -185,6 +221,7 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                 seed={seed}
                 contribution={contribution}
                 seriesFirstDate={seriesFirstDate}
+                startDateOptions={startDateOptions}
                 ixicSeries={refSeries['^IXIC'] ?? []}
                 ndxSeries={refSeries['^NDX'] ?? []}
                 minAllowedFrom={minAllowedFrom}
@@ -225,14 +262,21 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
 
             {result && (
                 <div className="flex flex-col gap-6">
+                    {canToggleBasis && (
+                        <SynthBasisToggle
+                            basis={synthBasis}
+                            onChange={setSynthBasis}
+                        />
+                    )}
                     <MetricsPanel
                         metrics={result.metrics}
                         budget={budget}
                         riskFreeRate={RISK_FREE_RATE}
                         hasContribution={contribution !== undefined}
-                        rebalance={result.rebalance}
+                        rebalance={(displayResult ?? result).rebalance}
                         fullMetrics={fullResult?.metrics}
                         synthMeta={synthMeta}
+                        basis={canToggleBasis ? synthBasis : 'real'}
                     />
                     <div className="flex items-center gap-1 self-start rounded-md border p-0.5">
                         {(['chart', 'table'] as const).map((view) => (
@@ -252,10 +296,14 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                     </div>
                     {resultView === 'chart' ? (
                         <ResultChart
-                            result={result}
+                            result={displayResult ?? result}
                             budget={budget}
                             synthMeta={synthMeta}
-                            fullTimeline={fullResult?.timeline}
+                            fullTimeline={
+                                synthBasis === 'full' && canToggleBasis
+                                    ? undefined
+                                    : fullResult?.timeline
+                            }
                             strFullTimeline={cmpStrFullResult?.timeline}
                             synthMethod={synth?.method}
                         />

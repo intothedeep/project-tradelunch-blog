@@ -18,6 +18,12 @@ interface MetricsPanelProps {
     fullMetrics?: BacktestMetrics;
     /** X2-P2.11: synth metadata for R²/cap warnings. */
     synthMeta?: SynthBacktestMeta;
+    /**
+     * Which pass is the primary (headline) row when synth is active:
+     * 'real' = real-only (default), 'full' = selected-range synthetic-inclusive.
+     * The other pass renders as the dimmed advisory row.
+     */
+    basis?: 'real' | 'full';
 }
 
 function fmt$(v: number): string {
@@ -239,6 +245,10 @@ function SynthWarnings({ meta }: SynthWarningsProps) {
 
 // ── main component ────────────────────────────────────────────────────────────
 
+const REAL_LABEL = (realInception: string) =>
+    `실제 데이터 기준 (Real-only · ${realInception} 이후)`;
+const FULL_LABEL = '합성 포함 (선택 범위 · modeled synthetic history)';
+
 export default function MetricsPanel({
     metrics,
     riskFreeRate,
@@ -246,8 +256,20 @@ export default function MetricsPanel({
     rebalance,
     fullMetrics,
     synthMeta,
+    basis = 'real',
 }: MetricsPanelProps) {
     const isSynthActive = synthMeta !== undefined && fullMetrics !== undefined;
+
+    // Primary = the selected basis; advisory = the other pass (dimmed).
+    const showFullPrimary = isSynthActive && basis === 'full';
+    const primaryMetrics = showFullPrimary ? fullMetrics! : metrics;
+    const advisoryMetrics = showFullPrimary ? metrics : fullMetrics!;
+    const primaryLabel = showFullPrimary
+        ? FULL_LABEL
+        : REAL_LABEL(synthMeta?.realInception ?? '');
+    const advisoryLabel = showFullPrimary
+        ? REAL_LABEL(synthMeta?.realInception ?? '')
+        : FULL_LABEL;
 
     return (
         <section
@@ -256,28 +278,26 @@ export default function MetricsPanel({
         >
             <h2 className="text-sm font-semibold">Summary</h2>
 
-            {/* Real-only headline (always the primary row) */}
+            {/* Primary headline row */}
             {isSynthActive && (
                 <p className="text-xs font-medium text-foreground">
-                    실제 데이터 기준 (Real-only · {synthMeta!.realInception}{' '}
-                    이후)
+                    {primaryLabel}
                 </p>
             )}
             <MetricsGrid
-                metrics={metrics}
+                metrics={primaryMetrics}
                 riskFreeRate={riskFreeRate}
                 hasContribution={hasContribution}
             />
 
-            {/* Full-span advisory row (synth active only) */}
+            {/* Advisory row = the other pass (synth active only) */}
             {isSynthActive && (
                 <div className="flex flex-col gap-1">
                     <p className="text-xs text-muted-foreground">
-                        합성 포함 (modeled · full synthetic span — advisory
-                        only)
+                        {advisoryLabel} — advisory only
                     </p>
                     <MetricsGrid
-                        metrics={fullMetrics!}
+                        metrics={advisoryMetrics}
                         riskFreeRate={riskFreeRate}
                         hasContribution={hasContribution}
                         dim

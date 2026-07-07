@@ -36,6 +36,7 @@ interface BacktestControlsProps {
     seed: number;
     contribution: ContributionPlan | undefined;
     seriesFirstDate: Record<string, string>;
+    startDateOptions: { label: string; date: string }[];
     ixicSeries: PricePoint[];
     ndxSeries: PricePoint[];
     minAllowedFrom: string;
@@ -63,6 +64,7 @@ export default function BacktestControls({
     seed,
     contribution,
     seriesFirstDate,
+    startDateOptions,
     ixicSeries,
     ndxSeries,
     minAllowedFrom,
@@ -136,6 +138,7 @@ export default function BacktestControls({
                 from={from}
                 to={to}
                 minAllowedFrom={minAllowedFrom}
+                startDateOptions={startDateOptions}
                 ixicSeries={ixicSeries}
                 ndxSeries={ndxSeries}
                 onChange={setRange}
