@@ -17,8 +17,8 @@ const envSchema = z.object({
     NEXT_PUBLIC_FINANCE_API_BASE: z
         .string()
         .url()
-        .default('https://project-tradelunch-blog-server.vercel.app')
-        .catch('https://project-tradelunch-blog-server.vercel.app'),
+        .default('https://taeklim-blog-server.vercel.app')
+        .catch('https://taeklim-blog-server.vercel.app'),
 
     // Canonical public site origin — used by jsonld.ts for structured data URLs.
     NEXT_PUBLIC_SITE_URL: z

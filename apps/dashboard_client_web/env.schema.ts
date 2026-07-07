@@ -29,8 +29,8 @@ const envSchema = z.object({
         // bake `localhost:4000` into the client bundle (favorites etc. → CONN
         // REFUSED). Local dev overrides via `.env.local` (NEXT_PUBLIC_API_BASE=
         // http://localhost:4000). Repoint to a custom api domain once one exists.
-        .default('https://project-tradelunch-blog-server.vercel.app')
-        .catch('https://project-tradelunch-blog-server.vercel.app'),
+        .default('https://taeklim-blog-server.vercel.app')
+        .catch('https://taeklim-blog-server.vercel.app'),
     NEXT_PUBLIC_CDN_ASSETS: z
         .string()
         .url()
