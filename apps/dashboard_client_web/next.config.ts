@@ -1,6 +1,13 @@
-import { CDN_ASSETS } from '@/env.schema';
+import { API_BASE, CDN_ASSETS } from '@/env.schema';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
+
+// Build-time diagnostic: prints once during `next build` (Vercel build log),
+// NOT in the client bundle. Compares the RAW Vercel env var against the
+// zod-validated value — if they differ, the raw value failed `.url()` and
+// fell back to the default (e.g. quotes/bare-host → old domain).
+console.log('[build] NEXT_PUBLIC_API_BASE (raw)      =', JSON.stringify(process.env.NEXT_PUBLIC_API_BASE));
+console.log('[build] API_BASE (validated, baked in)  =', API_BASE);
 
 // Extract a bare hostname even when CDN_ASSETS carries a path (e.g. a Supabase
 // public-storage base). `remotePatterns.hostname` must be host-only.

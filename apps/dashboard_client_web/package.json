@@ -10,7 +10,7 @@
         "build": "pnpm run build:dev",
         "start:server": "next start -p 3000",
         "start:old": "cross-env pm2 start \"next start -p 3000\" --name dashboard_client_web",
-        "start:pm2": "pm2 start npm --name dashboard_client_web -- run start:server",
+        "start:pm2": "pm2 start pnpm --name dashboard_client_web -- run start:server",
         "status": "pm2 ps",
         "logs": "pm2 logs",
         "stop": "pm2 stop",
