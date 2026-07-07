@@ -3,7 +3,12 @@ import { z } from 'zod';
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load default .env first
+// Load .env.local FIRST — dotenv keeps the first value it sees, so this gives
+// local secrets/overrides highest priority (same habit as the Next apps). On
+// Vercel there is no .env.local, so this is a harmless no-op in production.
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+
+// Load default .env next
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 export const IS_DEVELOPMENT = process.env.NODE_ENV == 'development';

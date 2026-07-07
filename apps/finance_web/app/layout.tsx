@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ClerkProvider } from '@clerk/nextjs';
+import { ClerkProvider, SignInButton, UserButton } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import { ReactQueryProvider } from '@/components/providers/ReactQueryProvider.client';
@@ -27,7 +28,7 @@ const FINANCE_NAV = [
     { title: 'backtest', href: '/backtest' },
 ] as const;
 
-function FinanceNav() {
+function FinanceNav({ isSignedIn }: { isSignedIn: boolean }) {
     return (
         <nav className="border-b border-border bg-background px-4 py-2">
             <div className="mx-auto flex max-w-7xl items-center gap-6">
@@ -45,6 +46,18 @@ function FinanceNav() {
                         </Link>
                     ))}
                 </div>
+                {/* Auth UI — UserButton (signed in, incl. Sign out) / Sign in link. */}
+                <div className="ml-auto flex items-center gap-3">
+                    {isSignedIn ? (
+                        <UserButton />
+                    ) : (
+                        <SignInButton mode="modal">
+                            <button className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+                                Sign in
+                            </button>
+                        </SignInButton>
+                    )}
+                </div>
             </div>
         </nav>
     );
@@ -57,6 +70,7 @@ export default async function RootLayout({
 }) {
     const locale = await getLocale();
     const messages = await getMessages();
+    const { userId } = await auth();
 
     return (
         <ClerkProvider>
@@ -64,7 +78,7 @@ export default async function RootLayout({
                 <body className="flex min-h-screen flex-col bg-background text-foreground antialiased">
                     <NextIntlClientProvider locale={locale} messages={messages}>
                         <ReactQueryProvider>
-                            <FinanceNav />
+                            <FinanceNav isSignedIn={!!userId} />
                             <main className="flex-1">{children}</main>
                         </ReactQueryProvider>
                     </NextIntlClientProvider>

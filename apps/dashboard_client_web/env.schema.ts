@@ -57,7 +57,22 @@ const envSchema = z.object({
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().optional(),
 });
 
-export const env = envSchema.parse(process.env);
+// Dot-access each var so Next inlines the NEXT_PUBLIC_* ones into the CLIENT
+// bundle. Passing the bare `process.env` object does NOT inline them, so in the
+// browser they'd be undefined and fall back to the default/catch (e.g. API_BASE
+// silently became the prod default even when .env.local set localhost). The
+// explicit references below are what make client-side reads honor the real env.
+export const env = envSchema.parse({
+    NODE_ENV: process.env.NODE_ENV,
+    PORT: process.env.PORT,
+    HOST_NAME: process.env.HOST_NAME,
+    NEXT_PUBLIC_API_BASE: process.env.NEXT_PUBLIC_API_BASE,
+    NEXT_PUBLIC_CDN_ASSETS: process.env.NEXT_PUBLIC_CDN_ASSETS,
+    DASHBOARD_DATA_SOURCE: process.env.DASHBOARD_DATA_SOURCE,
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
+        process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+});
 
 export const SERVER_PORT = env.PORT;
 export const HOST_NAME = env.HOST_NAME;

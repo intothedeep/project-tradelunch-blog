@@ -3,12 +3,17 @@ import { z } from 'zod';
 import dotenv from 'dotenv';
 import path from 'path';
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+// Load env files in Next-style priority. dotenv keeps the FIRST value it sees,
+// so load the highest-priority file first: .env.local > .env.<mode> > .env.
+// This lets you keep secrets in .env.local (same habit as finance_web) — the
+// previous version only read .env / .env.<mode>, so values placed in .env.local
+// were silently ignored ("injected env (0)").
+const cwd = process.cwd();
+const mode = process.env.NODE_ENV === 'production' ? 'production' : 'development';
 
-const dotEnvConfigPath =
-    process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
-
-dotenv.config({ path: path.resolve(process.cwd(), dotEnvConfigPath) });
+dotenv.config({ path: path.resolve(cwd, '.env.local') });
+dotenv.config({ path: path.resolve(cwd, `.env.${mode}`) });
+dotenv.config({ path: path.resolve(cwd, '.env') });
 
 const envSchema = z.object({
     NODE_ENV: z
@@ -28,8 +33,11 @@ const envSchema = z.object({
     POSTGRES_URL: z.string().optional(),
     POSTGRES_URL_NON_POOLING: z.string().optional(),
 
-    // Clerk — secret key for Express request auth.
+    // Clerk — Express auth needs BOTH keys. @clerk/express's clerkMiddleware
+    // reads these from process.env directly (verifies the request token +
+    // resolves the instance from the publishable key).
     CLERK_SECRET_KEY: z.string().optional(),
+    CLERK_PUBLISHABLE_KEY: z.string().optional(),
 
     // CORS — comma-separated list of allowed frontend origins.
     ALLOWED_ORIGINS: z.string().default(''),
@@ -49,6 +57,7 @@ export const DATABASE_URL = env.POSTGRES_URL;
 export const DATABASE_URL_DIRECT = env.POSTGRES_URL_NON_POOLING;
 
 export const CLERK_SECRET_KEY = env.CLERK_SECRET_KEY;
+export const CLERK_PUBLISHABLE_KEY = env.CLERK_PUBLISHABLE_KEY;
 
 export const ALLOWED_ORIGINS = env.ALLOWED_ORIGINS;
 export const ALLOWED_ORIGINS_LIST: string[] = ALLOWED_ORIGINS.split(',')

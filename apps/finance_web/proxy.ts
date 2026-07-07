@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
-import { clerkMiddleware } from '@clerk/nextjs/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+
+// Public routes — the Clerk sign-in/up flows. Must bypass auth.protect() below,
+// or redirecting an unauthenticated user to /sign-in would loop.
+const isPublicRoute = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)']);
 
 // finance_web is owner-only tooling — EVERY route requires an authenticated
 // Clerk session. When FINANCE_ADMIN_ONLY is on (the default), it ALSO requires
@@ -22,6 +26,11 @@ function isAdminClaim(sessionClaims: unknown): boolean {
 }
 
 export default clerkMiddleware(async (auth, req) => {
+    // Sign-in/up pages are public — skip the gate to avoid a redirect loop.
+    if (isPublicRoute(req)) {
+        return NextResponse.next();
+    }
+
     // Require any authenticated session (stops anonymous requests before SSR).
     await auth.protect();
 

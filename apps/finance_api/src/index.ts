@@ -1,7 +1,15 @@
 // apps/finance_api — Express skeleton.
 import express, { Request, Response } from 'express';
 import cors, { CorsOptions } from 'cors';
-import { SERVER_PORT, HOST_NAME, ALLOWED_ORIGINS_LIST } from './config/env.schema';
+import { clerkMiddleware } from '@clerk/express';
+import {
+    SERVER_PORT,
+    HOST_NAME,
+    ALLOWED_ORIGINS_LIST,
+    IS_DEVELOPMENT,
+    CLERK_SECRET_KEY,
+    CLERK_PUBLISHABLE_KEY,
+} from './config/env.schema';
 import { pool } from './database';
 import { blockCrawlers } from './middlewares/blockCrawlers';
 import dashboardRouter from './controllers/dashboard/index';
@@ -10,6 +18,7 @@ import securitiesRouter from './controllers/securities/index';
 import rankingsRouter from './controllers/rankings/index';
 import politiciansRouter from './controllers/politicians/index';
 import errorLogsRouter from './controllers/errorLogs/index';
+import usersRouter from './controllers/users/index';
 
 const app = express();
 
@@ -18,10 +27,18 @@ const corsOptions: CorsOptions = {
         origin: string | undefined,
         callback: (err: Error | null, allow?: boolean) => void
     ) => {
-        if (!origin || ALLOWED_ORIGINS_LIST.includes(origin)) {
+        // Allow: no-origin (curl/server), explicitly-listed origins, and — in
+        // dev only — any localhost origin so local frontends work regardless of
+        // ALLOWED_ORIGINS being set. Prod stays strict (listed origins only).
+        const isLocalhost = !!origin && /^https?:\/\/localhost(:\d+)?$/.test(origin);
+        if (
+            !origin ||
+            ALLOWED_ORIGINS_LIST.includes(origin) ||
+            (IS_DEVELOPMENT && isLocalhost)
+        ) {
             callback(null, true);
         } else {
-            callback(new Error('Not allowed by CORS'));
+            callback(new Error(`CORS: origin ${origin} not allowed`));
         }
     },
     credentials: true,
@@ -34,20 +51,36 @@ app.use(cors(corsOptions));
 app.options('*every', cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+// Attach Clerk auth to every request. Keys passed EXPLICITLY (not left to
+// @clerk/express's implicit process.env lookup) so a missing/misnamed env var
+// fails loudly at boot, not per-request. Non-authed requests still pass;
+// getAuth(req) is empty then. Only /users/me consumes it — data routes stay public.
+console.log('Clerk keys loaded:', {
+    secret: !!CLERK_SECRET_KEY,
+    publishable: !!CLERK_PUBLISHABLE_KEY,
+});
+app.use(
+    clerkMiddleware({
+        secretKey: CLERK_SECRET_KEY,
+        publishableKey: CLERK_PUBLISHABLE_KEY,
+    })
+);
 
-// Health check — used by Oracle VM process monitor and Clerk webhook verify.
+// Health check — used by the Oracle VM process monitor.
 app.get('/health', (_req: Request, res: Response) => {
     res.json({ ok: true });
 });
 
-// Finance domain routers — all gated by blockCrawlers except error-logs
-// (error-logs is server-to-server from the Next runtime, never a browser/bot hit).
-app.use('/api/dashboard', blockCrawlers, dashboardRouter);
-app.use('/api/funds', blockCrawlers, fundsRouter);
-app.use('/api/securities', blockCrawlers, securitiesRouter);
-app.use('/api/rankings', blockCrawlers, rankingsRouter);
-app.use('/api/politicians', blockCrawlers, politiciansRouter);
-app.use('/api/error-logs', errorLogsRouter);
+// Finance domain routers, mounted under /v1/api to match the finance_web
+// fetchers (which call /v1/api/*). blockCrawlers on the public data routes;
+// error-logs is server-to-server; users/me is Clerk-gated inside the router.
+app.use('/v1/api/dashboard', blockCrawlers, dashboardRouter);
+app.use('/v1/api/funds', blockCrawlers, fundsRouter);
+app.use('/v1/api/securities', blockCrawlers, securitiesRouter);
+app.use('/v1/api/rankings', blockCrawlers, rankingsRouter);
+app.use('/v1/api/politicians', blockCrawlers, politiciansRouter);
+app.use('/v1/api/error-logs', errorLogsRouter);
+app.use('/v1/api/users', usersRouter);
 
 async function shutdown(signal: string): Promise<void> {
     console.log(`${signal} received`);
@@ -62,6 +95,7 @@ async function shutdown(signal: string): Promise<void> {
 
 app.listen(SERVER_PORT, () => {
     console.log(`finance_api listening on http://${HOST_NAME}:${SERVER_PORT}/health`);
+    console.log('CORS allowed origins:', ALLOWED_ORIGINS_LIST, '| dev-localhost:', IS_DEVELOPMENT);
 });
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
