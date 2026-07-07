@@ -3,7 +3,7 @@
 // SSL: Oracle VM presents a self-signed cert — rejectUnauthorized:false accepts it.
 // Side effects: opens TCP connections on first query.
 import { Pool } from 'pg';
-import { FINANCE_DATABASE_URL } from './config/env.schema';
+import { DATABASE_URL } from './config/env.schema';
 
 function stripSslmode(url?: string): string | undefined {
     if (!url) return url;
@@ -18,7 +18,7 @@ function stripSslmode(url?: string): string | undefined {
 }
 
 export const pool = new Pool({
-    connectionString: stripSslmode(FINANCE_DATABASE_URL),
+    connectionString: stripSslmode(DATABASE_URL),
     max: 10,
     ssl: { rejectUnauthorized: false },
 });

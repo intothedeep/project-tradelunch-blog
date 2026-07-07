@@ -17,10 +17,16 @@ const envSchema = z.object({
     PORT: z.coerce.number().default(4000),
     HOST_NAME: z.string().default('localhost'),
 
-    // Finance Postgres (Oracle VM PG17).
-    // Use the pooled URL for runtime queries; the non-pooling URL for migrations.
-    FINANCE_POSTGRES_URL: z.string().optional(),
-    FINANCE_POSTGRES_URL_NON_POOLING: z.string().optional(),
+    // Postgres — SAME env-var names as the rest of the repo (the Vercel↔Supabase
+    // integration injects these). The NAME is common; the VALUE differs per
+    // environment: Supabase locally, Oracle VM PG17 in production.
+    //   POSTGRES_URL             = pooled (transaction pooler, :6543) → pg Pool
+    //   POSTGRES_URL_NON_POOLING = direct (:5432) → migrations / direct queries
+    // Discrete POSTGRES_USER/HOST/… and SUPABASE_* are intentionally NOT parsed
+    // (redundant with POSTGRES_URL*; zod ignores unknown keys so the full repo
+    // env block can be pasted verbatim).
+    POSTGRES_URL: z.string().optional(),
+    POSTGRES_URL_NON_POOLING: z.string().optional(),
 
     // Clerk — secret key for Express request auth.
     CLERK_SECRET_KEY: z.string().optional(),
@@ -38,8 +44,9 @@ export const IS_PRODUCTION = env.NODE_ENV === 'production';
 export const SERVER_PORT = env.PORT;
 export const HOST_NAME = env.HOST_NAME;
 
-export const FINANCE_DATABASE_URL = env.FINANCE_POSTGRES_URL;
-export const FINANCE_DATABASE_URL_DIRECT = env.FINANCE_POSTGRES_URL_NON_POOLING;
+// Resolved from the common POSTGRES_URL* vars (mirrors dashboard_server).
+export const DATABASE_URL = env.POSTGRES_URL;
+export const DATABASE_URL_DIRECT = env.POSTGRES_URL_NON_POOLING;
 
 export const CLERK_SECRET_KEY = env.CLERK_SECRET_KEY;
 
