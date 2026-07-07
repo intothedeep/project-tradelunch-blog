@@ -22,5 +22,12 @@
         "types/**/*",
         "**/*.d.ts"
     ],
-    "exclude": ["node_modules", "dist", "coverage", "**/x_*"]
+    "exclude": [
+        "node_modules",
+        "dist",
+        "coverage",
+        "**/x_*",
+        "**/*.test.ts",
+        "**/*.test.tsx"
+    ]
 }

@@ -1,0 +1,54 @@
+// types/screener.ts
+// Purpose: Shared TS interfaces for the 13F consensus screener endpoint contract.
+// Invariant: mirrors GET /v1/api/securities/screen exactly.
+//   data:null is valid (views absent) → { ok:true, data:null }.
+// momentum + lowVol are cross-sectionally-normalised [0,1] price signals, or
+//   null when the security is outside the tracked price universe / has < ~1yr
+//   of history (partial-score contract — those terms are omitted from the sum).
+// politicianCount90d / politicianNetDirection: absent when migration 0022
+//   (v_politician_activity) has not been applied; clients must treat undefined
+//   and null identically (show empty cell).
+// politicianTopFilers: absent when migration 0023 (v_politician_ticker_holders)
+//   has not been applied; empty array when view exists but no politicians traded
+//   this ticker. Each entry links to /politicians/[filerId].
+// Side effects: none (type declarations only).
+
+export interface ScoreComponents {
+    consensus: number; // [0,1] holderCountActive / totalActiveFunds
+    capTier: number; // 0 | 0.5 | 1 — derived from global rank tier
+    momentum: number | null; // [0,1] normalised 12-1M momentum, or null (no price history)
+    lowVol: number | null; // [0,1] normalised inverse-volatility, or null (no price history)
+}
+
+export interface ScreenerCandidate {
+    cusip: string;
+    name: string;
+    ticker: string | null; // null when security_map not yet seeded for this CUSIP
+    rank: number | null; // global market_rankings rank; null when ticker absent
+    marketCap: number | null;
+    holderCountActive: number;
+    holderCountTotal: number;
+    score: number; // 0.4*consensus + 0.3*momentum + 0.2*capTier + 0.1*lowVol (present terms only)
+    components: ScoreComponents;
+    // Data-availability tier flag: true when both price terms are present.
+    // Drives the two-section /screener view (NOT a quality verdict).
+    hasPriceSignals: boolean;
+    // Politician-activity (absent when migration 0022 not yet applied).
+    // null when view exists but no trades in the 90-day window for this ticker.
+    politicianCount90d?: number | null;
+    politicianNetDirection?: string | null;
+    // Top filers (absent when migration 0023 not yet applied).
+    // Empty array when view exists but no politicians traded this ticker.
+    politicianTopFilers?: Array<{ filerId: string; filerName: string }>;
+    // Political-interest score [0,1] (absent when migration 0022 not yet applied).
+    // Measures breadth + directional consensus of DISCLOSED politician transactions (90d).
+    // Separate transparency lens — NEVER blended with the 13F score field above.
+    // null when no politician data for this ticker.
+    politicalInterestScore?: number | null;
+}
+
+export interface ScreenerData {
+    periodOfReport: string; // 'YYYY-MM-DD'
+    totalActiveFunds: number; // count of is_active_manager=true in fund_registry
+    candidates: ScreenerCandidate[];
+}

@@ -1,0 +1,89 @@
+export interface ChartPalette {
+    bg: string;
+    textPrimary: string;
+    textSecondary: string;
+    gridLine: string;
+    candleUp: string;
+    candleDown: string;
+    ma5: string;
+    ma20: string;
+    ma50: string;
+    ma100: string;
+    ma200: string;
+    volumeUp: string;
+    volumeDown: string;
+    rsi: string;
+    rsiOverbought: string;
+    rsiOversold: string;
+    macd: string;
+    macdSignal: string;
+    macdHistUp: string;
+    macdHistDown: string;
+    ichimokuTenkan: string;
+    ichimokuKijun: string;
+    ichimokuSpanA: string;
+    ichimokuSpanB: string;
+    ichimokuChikou: string;
+    ichimokuCloudUp: string;
+    ichimokuCloudDown: string;
+}
+
+export const TV_DARK: ChartPalette = {
+    bg: '#131722',
+    textPrimary: '#d1d4dc',
+    textSecondary: '#787b86',
+    gridLine: '#2a2e39',
+    candleUp: '#26a69a',
+    candleDown: '#ef5350',
+    ma5: '#f5b942',
+    ma20: '#2962ff',
+    ma50: '#ab47bc',
+    ma100: '#00b8d4',
+    ma200: '#ec407a',
+    volumeUp: 'rgba(38,166,154,0.5)',
+    volumeDown: 'rgba(239,83,80,0.5)',
+    rsi: '#9c27b0',
+    rsiOverbought: 'rgba(239,83,80,0.5)',
+    rsiOversold: 'rgba(38,166,154,0.5)',
+    macd: '#2962ff',
+    macdSignal: '#ff9800',
+    macdHistUp: 'rgba(38,166,154,0.6)',
+    macdHistDown: 'rgba(239,83,80,0.6)',
+    ichimokuTenkan: '#2962ff',
+    ichimokuKijun: '#ef5350',
+    ichimokuSpanA: '#26a69a',
+    ichimokuSpanB: '#ec407a',
+    ichimokuChikou: '#9c27b0',
+    ichimokuCloudUp: 'rgba(38,166,154,0.18)',
+    ichimokuCloudDown: 'rgba(236,64,122,0.18)',
+};
+
+export const TV_LIGHT: ChartPalette = {
+    bg: '#ffffff',
+    textPrimary: '#131722',
+    textSecondary: '#787b86',
+    gridLine: '#e0e3eb',
+    candleUp: '#26a69a',
+    candleDown: '#ef5350',
+    ma5: '#f5b942',
+    ma20: '#2962ff',
+    ma50: '#ab47bc',
+    ma100: '#00b8d4',
+    ma200: '#ec407a',
+    volumeUp: 'rgba(38,166,154,0.5)',
+    volumeDown: 'rgba(239,83,80,0.5)',
+    rsi: '#9c27b0',
+    rsiOverbought: 'rgba(239,83,80,0.5)',
+    rsiOversold: 'rgba(38,166,154,0.5)',
+    macd: '#2962ff',
+    macdSignal: '#ff9800',
+    macdHistUp: 'rgba(38,166,154,0.6)',
+    macdHistDown: 'rgba(239,83,80,0.6)',
+    ichimokuTenkan: '#2962ff',
+    ichimokuKijun: '#ef5350',
+    ichimokuSpanA: '#26a69a',
+    ichimokuSpanB: '#ec407a',
+    ichimokuChikou: '#9c27b0',
+    ichimokuCloudUp: 'rgba(38,166,154,0.22)',
+    ichimokuCloudDown: 'rgba(236,64,122,0.22)',
+};
