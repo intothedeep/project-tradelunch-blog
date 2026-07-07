@@ -2,6 +2,7 @@ import axios from 'axios';
 import { API_BASE } from '@/env.schema';
 
 // Env is loaded by Next.js automatically; API_BASE is validated in @/env.schema.
+console.log('axios::API_BASE::', API_BASE);
 export const axios_instance = axios.create({
     baseURL: API_BASE,
     timeout: 5000,
