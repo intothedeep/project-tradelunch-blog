@@ -1,12 +1,15 @@
 // controllers/users/index.ts
 // GET /v1/api/users/me — the signed-in user's profile for finance_web.
 // Auth: Clerk token (attached by clerkMiddleware in index.ts).
-// isAdmin source: Clerk publicMetadata.isAdmin — NOT a DB users table. This
-//   keeps finance_api decoupled from the blog's Supabase users table, so it
-//   works unchanged against the Oracle VM PG17 instance (which has no users).
-//   To grant admin: Clerk dashboard → user → publicMetadata { "isAdmin": true }.
+// isAdmin source: OUR finance `users` table (see 0002_users.sql), NOT Clerk
+//   publicMetadata. Clerk stays the identity/auth provider (signin/signup); on
+//   first authenticated request we lazily mirror the Clerk user into our DB
+//   (provisionUser), then read role from that row. Per-user domain data FKs to
+//   users.id. To grant admin: SQL `UPDATE users SET is_admin=true WHERE ...`.
 import { Router } from 'express';
 import { getAuth, clerkClient } from '@clerk/express';
+import { pool } from '../../database';
+import { provisionUser } from '../../helpers/provisionUser';
 import { sendOk, sendError } from '../../helpers/response';
 
 export const router = Router();
@@ -20,16 +23,34 @@ router.get('/me', async (req, res) => {
         }
 
         const user = await clerkClient.users.getUser(userId);
-        const isAdmin = user.publicMetadata?.isAdmin === true;
         const displayName =
             [user.firstName, user.lastName].filter(Boolean).join(' ') || null;
+        const primaryEmail =
+            user.emailAddresses.find(
+                (e) => e.id === user.primaryEmailAddressId
+            )?.emailAddress ??
+            user.emailAddresses[0]?.emailAddress ??
+            null;
+
+        // Mirror Clerk identity into our DB (lazy, idempotent) and read role from it.
+        const row = await provisionUser(pool, {
+            clerkUserId: userId,
+            username: user.username ?? null,
+            displayName,
+            avatarUrl: user.imageUrl ?? null,
+            email: primaryEmail,
+        });
+        if (!row) {
+            sendError(res, 401, 'unprovisioned');
+            return;
+        }
 
         sendOk(res, {
             userId,
             username: user.username ?? null,
             displayName,
             avatarUrl: user.imageUrl ?? null,
-            isAdmin,
+            isAdmin: row.is_admin,
             needsOnboarding: false,
         });
     } catch (error) {
