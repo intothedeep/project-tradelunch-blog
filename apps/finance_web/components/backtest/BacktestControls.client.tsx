@@ -117,31 +117,36 @@ export default function BacktestControls({
             aria-label="Backtest controls"
             className="flex flex-col gap-4 rounded-lg border bg-card p-4"
         >
-            {/* ── Apply / Reset bar ──────────────────────────────────────────── */}
-            {dirty && (
-                <div className="sticky top-0 z-10 flex items-center gap-2 rounded-md border border-border bg-card/95 px-3 py-2 backdrop-blur-sm">
-                    <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                        미적용 변경 있음
-                    </span>
-                    <div className="ml-auto flex items-center gap-2">
-                        <button
-                            type="button"
-                            onClick={reset}
-                            className="rounded px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors border border-border"
-                        >
-                            되돌리기
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => onCommit(draft)}
-                            disabled={!canApply}
-                            className="rounded bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground transition-opacity disabled:opacity-40"
-                        >
-                            적용
-                        </button>
-                    </div>
+            {/* ── Apply / Reset bar (always visible; enabled only when dirty & valid) ── */}
+            <div className="sticky top-0 z-10 flex items-center gap-2 rounded-md border border-border bg-card/95 px-3 py-2 backdrop-blur-sm">
+                <span
+                    className={`text-xs font-medium ${
+                        dirty
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-muted-foreground'
+                    }`}
+                >
+                    {dirty ? '미적용 변경 있음' : '변경 없음'}
+                </span>
+                <div className="ml-auto flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={reset}
+                        disabled={!dirty}
+                        className="rounded px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors border border-border disabled:opacity-40 disabled:hover:text-muted-foreground"
+                    >
+                        되돌리기
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => onCommit(draft)}
+                        disabled={!canApply}
+                        className="rounded bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground transition-opacity disabled:opacity-40"
+                    >
+                        적용
+                    </button>
                 </div>
-            )}
+            </div>
 
             {/* ── Basic controls ─────────────────────────────────────────────── */}
             <BudgetInput
