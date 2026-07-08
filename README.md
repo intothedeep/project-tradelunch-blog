@@ -18,7 +18,6 @@ apps/
   stock_collector/        Python (uv) — Yahoo OHLC collector → market data (GitHub Actions cron)
 packages/
   @repo/ui                Shared React components
-  @repo/axios             Shared axios client
   @repo/markdown-parsing  Markdown → HTML pipeline (GFM, KaTeX, prism)
   @repo/assets            Static assets
   @repo/types             Shared TypeScript types
