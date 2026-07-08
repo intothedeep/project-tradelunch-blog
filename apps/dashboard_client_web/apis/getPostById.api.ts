@@ -6,28 +6,23 @@
 // is the correct hydration source for /write/<id>.
 // Constraints: requires a bearer token; non-2xx (404 not-owner/not-found)
 // surfaces as ApiError; pure I/O, no hidden state.
+// Express GET /v1/api/posts/:postid returns { success, data: post }.
 
-import axios_instance from '@/apis/axios_instance';
-import { toApiError } from '@/utils/apiError.util';
+import { clientRequest } from '@/apis/http.client';
 import type { TPost } from '@/apis/blog.types';
 
 // GET /v1/api/posts/:postid responds { success, data: post } — the row is
 // snake_case, matching the read-side TPost shape.
 type TPostByIdResponse = { success: boolean; data: TPost };
 
-// The response interceptor unwraps `response.data`, so the resolved value is
-// the JSON envelope; we return its `data` post row.
 export async function getPostById(
     token: string,
     postId: string
 ): Promise<TPost> {
-    try {
-        const envelope = await axios_instance.get<unknown, TPostByIdResponse>(
-            `/v1/api/posts/${postId}`,
-            { headers: { Authorization: `Bearer ${token}` } }
-        );
-        return envelope.data;
-    } catch (error) {
-        throw toApiError(error, 'Failed to load post');
-    }
+    const envelope = await clientRequest<TPostByIdResponse>({
+        path: `/v1/api/posts/${postId}`,
+        token,
+        fallbackError: 'Failed to load post',
+    });
+    return envelope.data;
 }

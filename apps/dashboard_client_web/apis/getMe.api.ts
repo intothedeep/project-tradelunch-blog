@@ -1,8 +1,9 @@
 // apis/getMe.api.ts
 // Purpose: fetch the authenticated user's profile from the backend.
 // Constraints: requires a Clerk bearer token; pure I/O, no hidden state.
+//   Express GET /v1/api/users/me returns { success, data: TMe } envelope.
 
-import axios_instance from '@/apis/axios_instance';
+import { clientRequest } from '@/apis/http.client';
 
 export type TMe = {
     userId: string;
@@ -13,9 +14,11 @@ export type TMe = {
     needsOnboarding: boolean;
 };
 
-// The response interceptor unwraps `response.data`, so the resolved value is TMe.
 export async function getMe(token: string): Promise<TMe> {
-    return axios_instance.get<unknown, TMe>('/v1/api/users/me', {
-        headers: { Authorization: `Bearer ${token}` },
+    const env = await clientRequest<{ success: boolean; data: TMe }>({
+        path: '/v1/api/users/me',
+        token,
+        fallbackError: 'Failed to load profile',
     });
+    return env.data;
 }

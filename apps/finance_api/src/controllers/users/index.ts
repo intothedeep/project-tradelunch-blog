@@ -7,6 +7,7 @@
 //   To grant admin: Clerk dashboard → user → publicMetadata { "isAdmin": true }.
 import { Router } from 'express';
 import { getAuth, clerkClient } from '@clerk/express';
+import { sendOk, sendError } from '../../helpers/response';
 
 export const router = Router();
 
@@ -14,7 +15,7 @@ router.get('/me', async (req, res) => {
     try {
         const { userId } = getAuth(req);
         if (!userId) {
-            res.status(401).json({ success: false, message: 'unauthenticated' });
+            sendError(res, 401, 'unauthenticated');
             return;
         }
 
@@ -23,7 +24,7 @@ router.get('/me', async (req, res) => {
         const displayName =
             [user.firstName, user.lastName].filter(Boolean).join(' ') || null;
 
-        res.json({
+        sendOk(res, {
             userId,
             username: user.username ?? null,
             displayName,
@@ -33,10 +34,7 @@ router.get('/me', async (req, res) => {
         });
     } catch (error) {
         console.error('GET /v1/api/users/me error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'failed to load profile',
-        });
+        sendError(res, 500, 'failed to load profile');
     }
 });
 

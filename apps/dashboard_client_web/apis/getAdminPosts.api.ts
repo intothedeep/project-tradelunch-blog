@@ -2,11 +2,9 @@
 // Purpose: list all posts (incl. draft/private) for admin moderation, keyset
 // cursor pagination.
 // Constraints: requires a Clerk bearer token; non-admin → 403; non-2xx
-// surfaces as ApiError. The response interceptor unwraps the HTTP body to
-// { success, data }, so the contract payload is read from `.data`.
+// surfaces as ApiError. Express returns { success, data: TAdminPostListResponse }.
 
-import axios_instance from '@/apis/axios_instance';
-import { toApiError } from '@/utils/apiError.util';
+import { clientRequest } from '@/apis/http.client';
 import type { TAdminPostListResponse } from '@repo/types';
 
 interface TAdminPostsEnvelope {
@@ -23,16 +21,11 @@ export async function getAdminPosts(
     token: string,
     params: TGetAdminPostsParams = {}
 ): Promise<TAdminPostListResponse> {
-    try {
-        const envelope = await axios_instance.get<unknown, TAdminPostsEnvelope>(
-            '/v1/api/admin/posts',
-            {
-                params,
-                headers: { Authorization: `Bearer ${token}` },
-            }
-        );
-        return envelope.data;
-    } catch (error) {
-        throw toApiError(error, 'Failed to load admin posts');
-    }
+    const envelope = await clientRequest<TAdminPostsEnvelope>({
+        path: '/v1/api/admin/posts',
+        token,
+        query: params as Record<string, string | number | boolean | undefined>,
+        fallbackError: 'Failed to load admin posts',
+    });
+    return envelope.data;
 }

@@ -5,8 +5,7 @@
 // Constraints: requires a Clerk bearer token; non-2xx surfaces as ApiError.
 //   The comment id stays a STRING (Snowflake precision) — never Number().
 
-import axios_instance from '@/apis/axios_instance';
-import { toApiError } from '@/utils/apiError.util';
+import { clientRequest } from '@/apis/http.client';
 import type { TComment } from '@repo/types';
 
 interface TEnvelope {
@@ -18,13 +17,11 @@ export async function deleteComment(
     token: string,
     commentId: string
 ): Promise<TComment> {
-    try {
-        const envelope = await axios_instance.delete<unknown, TEnvelope>(
-            `/v1/api/comments/${commentId}`,
-            { headers: { Authorization: `Bearer ${token}` } }
-        );
-        return envelope.data;
-    } catch (error) {
-        throw toApiError(error, 'Failed to delete comment');
-    }
+    const envelope = await clientRequest<TEnvelope>({
+        path: `/v1/api/comments/${commentId}`,
+        method: 'DELETE',
+        token,
+        fallbackError: 'Failed to delete comment',
+    });
+    return envelope.data;
 }

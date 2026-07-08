@@ -3,9 +3,9 @@
 //   resulting state and returns the live like count).
 // Constraints: requires a Clerk bearer token; non-2xx surfaces as ApiError. The
 //   postId stays a STRING (Snowflake precision) — never Number()/parseInt.
+//   Express POST /v1/api/posts/:postId/like returns { success, data: TLikeToggleResponse }.
 
-import axios_instance from '@/apis/axios_instance';
-import { toApiError } from '@/utils/apiError.util';
+import { clientRequest } from '@/apis/http.client';
 import type { TLikeToggleResponse } from '@repo/types';
 
 type TEnvelope = { success: boolean; data: TLikeToggleResponse };
@@ -14,14 +14,11 @@ export async function toggleLike(
     token: string,
     postId: string
 ): Promise<TLikeToggleResponse> {
-    try {
-        const body = await axios_instance.post<unknown, TEnvelope>(
-            `/v1/api/posts/${postId}/like`,
-            undefined,
-            { headers: { Authorization: `Bearer ${token}` } }
-        );
-        return body.data;
-    } catch (error) {
-        throw toApiError(error, 'Failed to toggle like');
-    }
+    const body = await clientRequest<TEnvelope>({
+        path: `/v1/api/posts/${postId}/like`,
+        method: 'POST',
+        token,
+        fallbackError: 'Failed to toggle like',
+    });
+    return body.data;
 }

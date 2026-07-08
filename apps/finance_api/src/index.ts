@@ -12,6 +12,7 @@ import {
 } from './config/env.schema';
 import { pool } from './database';
 import { blockCrawlers } from './middlewares/blockCrawlers';
+import { errorHandler } from './middlewares/errorHandler';
 import dashboardRouter from './controllers/dashboard/index';
 import fundsRouter from './controllers/funds/index';
 import securitiesRouter from './controllers/securities/index';
@@ -81,6 +82,10 @@ app.use('/v1/api/rankings', blockCrawlers, rankingsRouter);
 app.use('/v1/api/politicians', blockCrawlers, politiciansRouter);
 app.use('/v1/api/error-logs', errorLogsRouter);
 app.use('/v1/api/users', usersRouter);
+
+// Terminal global error handler — MUST stay last. Catches anything a route did
+// not handle (incl. Express-5 async rejections) → generic 500.
+app.use(errorHandler);
 
 async function shutdown(signal: string): Promise<void> {
     console.log(`${signal} received`);

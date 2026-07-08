@@ -2,10 +2,11 @@
 // Purpose: claim a username for the authenticated user.
 // Constraints: requires a Clerk bearer token. Surfaces 400/409 as a typed
 // error (UsernameClaimError) carrying the HTTP status + server message so the
-// caller can render inline validation without re-inspecting axios internals.
+// caller can render inline validation without re-inspecting internals.
+// Express POST /v1/api/users/me/username returns { success, data: { userId, username } } envelope on 200.
 
-import axios from 'axios';
-import axios_instance from '@/apis/axios_instance';
+import { clientRequest } from '@/apis/http.client';
+import { ApiError } from '@/utils/apiError.util';
 
 export type TUsernameClaim = { userId: string; username: string };
 
@@ -24,18 +25,17 @@ export async function postUsername(
     username: string
 ): Promise<TUsernameClaim> {
     try {
-        return await axios_instance.post<unknown, TUsernameClaim>(
-            '/v1/api/users/me/username',
-            { username },
-            { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const env = await clientRequest<{ success: boolean; data: TUsernameClaim }>({
+            path: '/v1/api/users/me/username',
+            method: 'POST',
+            body: { username },
+            token,
+            fallbackError: 'Failed to claim username',
+        });
+        return env.data;
     } catch (error) {
-        if (axios.isAxiosError(error) && error.response) {
-            const status = error.response.status;
-            const message =
-                (error.response.data as { message?: string } | undefined)
-                    ?.message ?? 'Failed to claim username';
-            throw new UsernameClaimError(status, message);
+        if (error instanceof ApiError) {
+            throw new UsernameClaimError(error.status, error.message);
         }
         throw error;
     }

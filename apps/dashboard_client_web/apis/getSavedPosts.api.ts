@@ -3,12 +3,10 @@
 //   keyset-paginated with optional title/description search.
 // Constraints: requires a Clerk bearer token; pure I/O, no hidden state. The
 //   keyset cursor is a STRING (the previous page's saved_at) and post ids are
-//   STRINGS (Snowflake precision) — never Number()/parseInt them. The response
-//   interceptor unwraps the HTTP body to { success, data }, so the contract
-//   payload is read from `.data`.
+//   STRINGS (Snowflake precision) — never Number()/parseInt them.
+//   Express GET /v1/api/favorites/posts returns { success, data: TSavedPostsResponse }.
 
-import axios_instance from '@/apis/axios_instance';
-import { toApiError } from '@/utils/apiError.util';
+import { clientRequest } from '@/apis/http.client';
 import type { TPost } from '@/apis/blog.types';
 
 export interface TSavedPostsResponse {
@@ -31,16 +29,11 @@ export async function getSavedPosts(
     token: string,
     params: TGetSavedPostsParams = {}
 ): Promise<TSavedPostsResponse> {
-    try {
-        const envelope = await axios_instance.get<unknown, TSavedPostsEnvelope>(
-            '/v1/api/favorites/posts',
-            {
-                params,
-                headers: { Authorization: `Bearer ${token}` },
-            }
-        );
-        return envelope.data;
-    } catch (error) {
-        throw toApiError(error, 'Failed to load saved posts');
-    }
+    const envelope = await clientRequest<TSavedPostsEnvelope>({
+        path: '/v1/api/favorites/posts',
+        token,
+        query: params as Record<string, string | number | boolean | undefined>,
+        fallbackError: 'Failed to load saved posts',
+    });
+    return envelope.data;
 }

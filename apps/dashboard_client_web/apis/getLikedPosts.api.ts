@@ -6,17 +6,18 @@
 //   is resolved client-side here instead.
 // Constraints: requires a Clerk bearer token; pure I/O, no hidden state. Post
 //   ids stay STRINGS end-to-end (Snowflake precision) — never Number()/parseInt.
+//   Express returns { success, data: TLikedResponse }.
 
-import axios_instance from '@/apis/axios_instance';
+import { clientRequest } from '@/apis/http.client';
 import type { TLikedResponse } from '@repo/types';
 
 type TEnvelope = { success: boolean; data: TLikedResponse };
 
-// The response interceptor unwraps `response.data`, so the resolved value is the
-// full envelope; we return its inner `data`.
 export async function getLikedPosts(token: string): Promise<TLikedResponse> {
-    const body = await axios_instance.get<unknown, TEnvelope>('/v1/api/likes', {
-        headers: { Authorization: `Bearer ${token}` },
+    const body = await clientRequest<TEnvelope>({
+        path: '/v1/api/likes',
+        token,
+        fallbackError: 'Failed to load liked posts',
     });
     return body.data;
 }

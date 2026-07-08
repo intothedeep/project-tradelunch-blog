@@ -6,14 +6,15 @@
 //   * optionalAuth resolves the viewer id; -1 means anonymous.
 //   * Owner (p.user_id = $viewer) may see own private posts; anonymous (-1) cannot.
 //   * categoryId is a BIGINT string — never parseInt (precision past 2^53).
-//   * ETreeNodeType / TTreeNode / TCategoryTreeResponse imported from @repo/types.
+//   * ETreeNodeType / TTreeNode imported from @repo/types.
 // Note: this file is ~175 LOC due to the tree CTE SQL verbatim; faithful move
 //   required to keep SQL byte-for-byte identical per refactor contract.
 
 import { Router, Request } from 'express';
 import { pool } from '../../database';
 import { optionalAuth } from '../../middlewares/optionalAuth';
-import { ETreeNodeType, TCategoryTreeResponse, TTreeNode } from '@repo/types';
+import { ETreeNodeType, TTreeNode } from '@repo/types';
+import { sendOk, sendError } from '../../helpers/response';
 
 export function registerUserCategoriesRoutes(router: Router): void {
     // routes/posts.routes.ts
@@ -166,18 +167,10 @@ export function registerUserCategoriesRoutes(router: Router): void {
                     [username, viewerId]
                 );
 
-                const response: TCategoryTreeResponse = {
-                    status: 200,
-                    data: { categories },
-                };
-
-                res.status(200).json(response);
+                sendOk(res, { categories });
             } catch (error) {
                 console.error('API Error fetching categories:', error);
-                res.status(500).json({
-                    status: 500,
-                    message: 'Failed to fetch categories',
-                });
+                sendError(res, 500, 'Failed to fetch categories');
             }
         }
     );

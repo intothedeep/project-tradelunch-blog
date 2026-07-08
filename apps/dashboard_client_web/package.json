@@ -34,7 +34,6 @@
         "@repo/types": "workspace:*",
         "@tanstack/react-query": "^5.101.1",
         "@uiw/react-md-editor": "4.1.1",
-        "axios": "^1.18.1",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "cmdk": "^1.1.1",

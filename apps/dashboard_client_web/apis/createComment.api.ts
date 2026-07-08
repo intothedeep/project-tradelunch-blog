@@ -6,8 +6,7 @@
 // Constraints: requires a Clerk bearer token; non-2xx surfaces as ApiError.
 //   post/parent ids stay STRINGS (Snowflake precision) — never Number().
 
-import axios_instance from '@/apis/axios_instance';
-import { toApiError } from '@/utils/apiError.util';
+import { clientRequest } from '@/apis/http.client';
 import type { TComment, TCommentCreateRequest } from '@repo/types';
 
 interface TEnvelope {
@@ -20,14 +19,12 @@ export async function createComment(
     postId: string,
     input: TCommentCreateRequest
 ): Promise<TComment> {
-    try {
-        const envelope = await axios_instance.post<unknown, TEnvelope>(
-            `/v1/api/posts/${postId}/comments`,
-            input,
-            { headers: { Authorization: `Bearer ${token}` } }
-        );
-        return envelope.data;
-    } catch (error) {
-        throw toApiError(error, 'Failed to create comment');
-    }
+    const envelope = await clientRequest<TEnvelope>({
+        path: `/v1/api/posts/${postId}/comments`,
+        method: 'POST',
+        body: input,
+        token,
+        fallbackError: 'Failed to create comment',
+    });
+    return envelope.data;
 }

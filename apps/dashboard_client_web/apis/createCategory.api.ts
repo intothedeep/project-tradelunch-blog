@@ -5,9 +5,8 @@
 // Constraints: requires a Clerk bearer token; other non-2xx surfaces as ApiError.
 // Category ids stay STRINGS (BIGINT-safe) — never Number() them.
 
-import axios from 'axios';
-import axios_instance from '@/apis/axios_instance';
-import { toApiError } from '@/utils/apiError.util';
+import { clientRequest } from '@/apis/http.client';
+import { ApiError } from '@/utils/apiError.util';
 import type { TCategoryNode, TCreateCategoryInput } from '@repo/types';
 
 interface TEnvelope {
@@ -21,18 +20,21 @@ export async function createCategory(
     input: TCreateCategoryInput
 ): Promise<TCategoryNode> {
     try {
-        const envelope = await axios_instance.post<unknown, TEnvelope>(
-            '/v1/api/categories',
-            input,
-            { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const envelope = await clientRequest<TEnvelope>({
+            path: '/v1/api/categories',
+            method: 'POST',
+            body: input,
+            token,
+            fallbackError: 'Failed to create category',
+        });
         return envelope.data;
     } catch (error) {
-        if (axios.isAxiosError(error) && error.response?.status === 409) {
-            const existing = (error.response.data as TEnvelope | undefined)
-                ?.data;
+        // 409 conflict: the server returns the existing node in the error body;
+        // resolve it as success so the caller selects the pre-existing category.
+        if (error instanceof ApiError && error.status === 409) {
+            const existing = (error.body as TEnvelope | undefined)?.data;
             if (existing) return existing;
         }
-        throw toApiError(error, 'Failed to create category');
+        throw error;
     }
 }

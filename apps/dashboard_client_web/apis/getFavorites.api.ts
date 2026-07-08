@@ -2,18 +2,18 @@
 // Purpose: fetch the authenticated user's favorited post ids from the backend.
 // Constraints: requires a Clerk bearer token; pure I/O, no hidden state. Post
 //   ids stay STRINGS end-to-end (Snowflake precision) — never Number()/parseInt.
+//   Express returns { success, data: TFavoritesResponse }.
 
-import axios_instance from '@/apis/axios_instance';
+import { clientRequest } from '@/apis/http.client';
 import type { TFavoritesResponse } from '@repo/types';
 
 type TEnvelope = { success: boolean; data: TFavoritesResponse };
 
-// The response interceptor unwraps `response.data`, so the resolved value is the
-// full envelope; we return its inner `data`.
 export async function getFavorites(token: string): Promise<TFavoritesResponse> {
-    const body = await axios_instance.get<unknown, TEnvelope>(
-        '/v1/api/favorites',
-        { headers: { Authorization: `Bearer ${token}` } }
-    );
+    const body = await clientRequest<TEnvelope>({
+        path: '/v1/api/favorites',
+        token,
+        fallbackError: 'Failed to load favorites',
+    });
     return body.data;
 }

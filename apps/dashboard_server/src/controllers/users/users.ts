@@ -10,6 +10,7 @@ import { requireAuth } from '../../middlewares/requireAuth';
 import { validateUsername } from '../../helpers/validateUsername';
 import { claimUsername } from '../../helpers/claimUsername';
 import { listDrafts } from '../../helpers/listDrafts';
+import { sendOk, sendError } from '../../helpers/response';
 
 export const router = Router();
 
@@ -36,11 +37,11 @@ router.get('/me', requireAuth, async (req, res) => {
 
         const user = rows[0];
         if (!user) {
-            res.status(404).json({ success: false, message: 'user not found' });
+            sendError(res, 404, 'user not found');
             return;
         }
 
-        res.json({
+        sendOk(res, {
             userId: user.id,
             username: user.username,
             displayName: user.display_name,
@@ -50,10 +51,7 @@ router.get('/me', requireAuth, async (req, res) => {
         });
     } catch (error) {
         console.error('GET /api/users/me error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'failed to load profile',
-        });
+        sendError(res, 500, 'failed to load profile');
     }
 });
 
@@ -66,16 +64,13 @@ router.post('/me/username', requireAuth, async (req, res) => {
     try {
         const raw = (req.body as { username?: unknown } | undefined)?.username;
         if (typeof raw !== 'string') {
-            res.status(400).json({
-                success: false,
-                message: 'username is required',
-            });
+            sendError(res, 400, 'username is required');
             return;
         }
 
         const parsed = validateUsername(raw);
         if (!parsed.ok) {
-            res.status(400).json({ success: false, message: parsed.reason });
+            sendError(res, 400, parsed.reason);
             return;
         }
 
@@ -85,23 +80,17 @@ router.post('/me/username', requireAuth, async (req, res) => {
             parsed.value
         );
         if (!result.ok) {
-            res.status(result.status).json({
-                success: false,
-                message: result.reason,
-            });
+            sendError(res, result.status, result.reason);
             return;
         }
 
-        res.status(200).json({
+        sendOk(res, {
             userId: req.auth!.userId,
             username: result.username,
         });
     } catch (error) {
         console.error('POST /api/users/me/username error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'failed to claim username',
-        });
+        sendError(res, 500, 'failed to claim username');
     }
 });
 

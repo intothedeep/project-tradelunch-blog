@@ -1,15 +1,13 @@
 // apis/getComments.api.ts
 // Purpose: fetch ONE page of the public comment tree for a post as a FLAT
-//   pre-order array (50 root comments + their subtrees), plus the cursor cursor
+//   pre-order array (50 root comments + their subtrees), plus the cursor
 //   metadata (nextCursor + hasMore) for "Load more" pagination.
 // Constraints: PUBLIC read — no token required (isomorphic; usable from a Server
 //   Component). post/comment ids stay STRINGS (Snowflake precision) — never
-//   Number()/parseInt. The response interceptor unwraps the HTTP body to
-//   { success, data }, so the payload is read from `.data`. Omit `cursor` when
-//   undefined so the server falls back to its first-page sentinel.
+//   Number()/parseInt. Omit `cursor` when undefined so the server falls back to
+//   its first-page sentinel. Express returns { success, data: TCommentListResponse }.
 
-import axios_instance from '@/apis/axios_instance';
-import { toApiError } from '@/utils/apiError.util';
+import { clientRequest } from '@/apis/http.client';
 import type { TCommentListResponse } from '@repo/types';
 
 interface TEnvelope {
@@ -26,17 +24,14 @@ export async function getComments(
     postId: string,
     opts?: TGetCommentsOpts
 ): Promise<TCommentListResponse> {
-    try {
-        const params: Record<string, string | number> = {};
-        if (opts?.cursor !== undefined) params.cursor = opts.cursor;
-        if (opts?.limit !== undefined) params.limit = opts.limit;
+    const query: Record<string, string | number | boolean | undefined> = {};
+    if (opts?.cursor !== undefined) query.cursor = opts.cursor;
+    if (opts?.limit !== undefined) query.limit = opts.limit;
 
-        const envelope = await axios_instance.get<unknown, TEnvelope>(
-            `/v1/api/posts/${postId}/comments`,
-            { params }
-        );
-        return envelope.data;
-    } catch (error) {
-        throw toApiError(error, 'Failed to load comments');
-    }
+    const envelope = await clientRequest<TEnvelope>({
+        path: `/v1/api/posts/${postId}/comments`,
+        query,
+        fallbackError: 'Failed to load comments',
+    });
+    return envelope.data;
 }

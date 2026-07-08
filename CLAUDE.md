@@ -26,7 +26,6 @@ apps/
   dashboard_server/       Express 5 + Sequelize/pg + AWS S3 + SSH tunnel, serves blog content
 packages/
   @repo/ui                Shared React components (built to dist/, tsc + tailwind)
-  @repo/axios             Shared axios client (rollup → dist/)
   @repo/markdown-parsing  Markdown pipeline (rollup → dist/, has Jest tests)
   @repo/assets            Static assets (images, fonts, icons)
   @repo/types             Shared types
@@ -138,7 +137,7 @@ Per `.claude/CLAUDE.md` "rm -rf" rule: never delete files directly. Rename with 
 
 ## Environment
 
-`.env`, `.env.local`, `.env.production`, `.env.example` exist per app and in `packages/axios`. Config precedence: env vars > config files > defaults. Zod is in `dashboard_client_web` deps but no `env.schema.ts` validator exists yet.
+`.env`, `.env.local`, `.env.production`, `.env.example` exist per app. Config precedence: env vars > config files > defaults.
 
 ### Database connection vars (Supabase)
 
