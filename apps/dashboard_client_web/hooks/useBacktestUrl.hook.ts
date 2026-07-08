@@ -14,6 +14,8 @@
 // X2-P2.8: synth= param added (shortLabel:base:method).
 // Per-source weights: dcaPct/divPct round-trip via T4 keyed tokens;
 //   dividendReinvestByWeight stored in drw= (absent→false).
+// Draft/Apply: commitAll batches all fields into a single router.replace so a
+// single Apply click never clobbers sibling fields via stale URLSearchParams.
 
 import { useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
@@ -114,6 +116,7 @@ export function useBacktestUrl(): [
         ) => void;
         setSynth: (s: SynthUrlState | undefined) => void;
         setDividendReinvestByWeight: (v: boolean) => void;
+        commitAll: (next: BacktestUrlState) => void;
     },
 ] {
     const router = useRouter();
@@ -208,6 +211,57 @@ export function useBacktestUrl(): [
         [push]
     );
 
+    // Batched commit: encodes ALL fields into ONE URLSearchParams and does ONE
+    // router.replace. Per-field setters each close over a stale `sp` snapshot
+    // and would clobber each other when chained — this avoids that entirely.
+    const commitAll = useCallback(
+        (next: BacktestUrlState) => {
+            const params = new URLSearchParams(sp.toString());
+
+            params.set('budget', String(next.budget));
+            params.set('assets', encodeHoldings(next.holdings));
+            params.set('from', next.from);
+            params.set('to', next.to);
+            params.set('seed', String(next.seed));
+
+            if (next.contribution) {
+                params.set('dca', encodeContribution(next.contribution));
+            } else {
+                params.delete('dca');
+            }
+
+            if (next.rebalance) {
+                params.set('rb', encodeRebalance(next.rebalance));
+            } else {
+                params.delete('rb');
+            }
+
+            if (next.manualFlows && next.manualFlows.length > 0) {
+                params.set('mf', encodeManualFlows(next.manualFlows));
+            } else {
+                params.delete('mf');
+            }
+
+            if (next.synth) {
+                params.set('synth', encodeSynth(next.synth));
+            } else {
+                params.delete('synth');
+            }
+
+            const drw = encodeDrw(next.dividendReinvestByWeight);
+            if (drw !== null) {
+                params.set('drw', drw);
+            } else {
+                params.delete('drw');
+            }
+
+            router.replace(`${pathname}?${params.toString()}`, {
+                scroll: false,
+            });
+        },
+        [sp, router, pathname]
+    );
+
     return [
         state,
         {
@@ -220,6 +274,7 @@ export function useBacktestUrl(): [
             setManualFlows,
             setSynth,
             setDividendReinvestByWeight,
+            commitAll,
         },
     ];
 }
