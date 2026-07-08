@@ -1,56 +1,26 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { useSetAtom } from 'jotai';
 import { NavMenu } from '@/components/nav-menu.client';
 import { MenuDrawer } from '@/components/MenuDrawer.client';
 import { TopBar } from '@/components/topbar/TopBar.client';
 import { isMenuDrawerOpenAtom } from '@/store/menu.atom';
-import { useNavLinks } from '@/hooks/useNavLinks.hook';
-import { cn } from '@/lib/utils';
 
-// Chart dashboard routes hide the top bar entirely so charts reclaim the full
-// navbar band; navigation there happens via the in-chart menu button that opens
-// the shared MenuDrawer. The preview grid eval routes keep the normal bar so
-// they never lose navigation.
-const isChartDashboard = (pathname: string | null): boolean => {
-    if (pathname === null || !pathname.startsWith('/dashboard')) return false;
-    return (
-        pathname !== '/dashboard/preview/cards' &&
-        pathname !== '/dashboard/preview/table'
-    );
-};
-
-// Desktop Navigation: the single global top bar. Removed on the chart dashboard
-// (nav lives in the chart header there); rendered everywhere else.
+// Desktop Navigation: the single global top bar, rendered on every route.
 export const DesktopNavigation = () => {
-    const pathname = usePathname();
-
-    if (isChartDashboard(pathname)) return null;
-
     return <TopBar />;
 };
 
 // Mobile Navigation: top bar + floating button that opens the shared MenuDrawer.
 export const MobileNavigation = () => {
-    const links = useNavLinks();
     const openMenu = useSetAtom(isMenuDrawerOpenAtom);
-    const pathname = usePathname();
-
-    // On the chart dashboard the top bar is removed too (reclaim space); the
-    // floating button below still opens the drawer so nav stays reachable.
-    const showTopBar = !isChartDashboard(pathname);
 
     return (
         <>
-            {/* Mobile Header Bar — logo left, theme + auth right.
-                Hidden entirely on the chart dashboard; shown on mobile elsewhere. */}
+            {/* Mobile Header Bar — logo left, theme + auth right. */}
             <nav
-                className={cn(
-                    'flex h-14 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-4',
-                    showTopBar ? 'md:hidden' : 'hidden'
-                )}
+                className="flex h-14 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-4 md:hidden"
             >
                 <Link
                     href="/"
@@ -63,10 +33,7 @@ export const MobileNavigation = () => {
                         Taek Lim
                     </span>
                 </Link>
-                <NavMenu
-                    links={links}
-                    showNavLinks
-                />
+                <NavMenu showNavLinks />
             </nav>
 
             {/* Menu Button - Bottom Left */}

@@ -3,7 +3,13 @@ import { nextJsConfig } from '@repo/eslint-config/next-js';
 
 const eslintConfig = defineConfig([
     ...nextJsConfig,
-    globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts']),
+    globalIgnores([
+        '.next/**',
+        'out/**',
+        'build/**',
+        'next-env.d.ts',
+        '**/x_*/**',
+    ]),
 ]);
 
 export default eslintConfig;

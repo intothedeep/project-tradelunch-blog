@@ -4,11 +4,9 @@
 // desktop bar, the mobile bar, and the slide-up MenuDrawer. Keeping it here
 // (not in a component) avoids a circular import between those components.
 //
-// Two link sets live here:
-//   - buildNavLinks / useNavLinks   → the legacy compact bar set (unchanged).
-//   - buildPrimaryNavLinks / usePrimaryNavLinks → the P4 PrimaryNav set
-//     (Home / All posts / About / Resume / Write / Saved / My blog). Pure builder
-//     is testable; the hook resolves Clerk username + auth state.
+// buildPrimaryNavLinks / usePrimaryNavLinks → the P4 PrimaryNav set
+// (Home / All posts / About / Resume / Write / Saved / My blog). Pure builder
+// is testable; the hook resolves Clerk username + auth state.
 
 import { useUser } from '@clerk/nextjs';
 
@@ -22,22 +20,6 @@ export type NavLink = {
     disabled?: boolean;
     requiresAuth?: boolean;
 };
-
-// Pure: the header bar's market destinations. About / blog / resume live in the
-// left-rail primary nav, so the header carries only the finance surfaces — the
-// chart dashboard, the SEC 13F funds viewer, the weekly market-cap rankings, the
-// 13F consensus candidate screener (Phase P), the politician PTR directory,
-// and the asset backtest tool.
-// Desktop renders these inside a single "MARKETS" dropdown (TopBar); the mobile
-// drawer lists them flat via NavMenu. No username needed.
-export const buildNavLinks = (): NavLink[] => [
-    { title: 'dashboard', href: '/dashboard' },
-    { title: 'SEC 13F funds', href: '/funds' },
-    { title: 'marketcap rankings', href: '/rankings' },
-    { title: 'screener', href: '/screener' },
-    { title: 'politicians', href: '/politicians' },
-    { title: 'backtest', href: '/backtest' },
-];
 
 // Pure: build the primary nav set consumed by the P4 PrimaryNav.
 // `blogUsername` empty/undefined ⇒ "My blog" is omitted (no /blog/@undefined).
@@ -106,10 +88,6 @@ export const buildPrimaryNavLinks = (
 
     return links;
 };
-
-// The header link set is static (dashboard + resume); kept as a hook so call
-// sites stay stable if it grows user-dependent again.
-export const useNavLinks = (): NavLink[] => buildNavLinks();
 
 // Resolve the P4 primary set with auth gating applied (single source for every
 // consumer: left rail + mobile drawer). Auth-only entries (Write / Saved / My

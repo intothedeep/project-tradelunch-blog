@@ -18,7 +18,7 @@ import { useTranslations } from 'next-intl';
 type NavLink = { title: string; href: string };
 
 type NavMenuProps = {
-    links: NavLink[];
+    links?: NavLink[];
     showNavLinks?: boolean;
     align?: 'start' | 'end';
 };
@@ -63,7 +63,7 @@ function ThemeMenuItem() {
 
 // Unified header dropdown: theme toggle + auth actions, plus nav links on mobile.
 export function NavMenu({
-    links,
+    links = [],
     showNavLinks = false,
     align = 'end',
 }: NavMenuProps) {
