@@ -278,6 +278,9 @@ export default function MetricsPanel({
 }: MetricsPanelProps) {
     // Present value = Final Value discounted by the chosen annual inflation over
     // the backtest span (real value in start-date purchasing power).
+    // NOTE: inflation is a manual user input for now. Future: collect a CPI
+    // series (e.g. FRED CPIAUCSL) via stock_collector and derive real PV from
+    // actual CPI, keeping this manual % as a fallback. See 00.tasks.md backlog.
     const presentValue =
         years !== undefined && years > 0 && inflationPct !== undefined
             ? metrics.finalValue / Math.pow(1 + inflationPct / 100, years)
