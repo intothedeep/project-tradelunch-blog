@@ -1,5 +1,10 @@
 # DB 마이그레이션 런북 — Supabase → Oracle Cloud (self-hosted PostgreSQL)
 
+> ⚠️ **범위 변경(2026-07-08):** 이 문서는 "Supabase 전체 → Oracle" 초안입니다. 확정 범위는
+> **blog DB→새 Supabase / finance DB→Oracle PG17(1GB+swap) / 모든 storage→Oracle**로 바뀌었습니다.
+> **실제 실행은 [`scripts/migration/RUNBOOK.md`](./scripts/migration/RUNBOOK.md)를 따르세요.**
+> 이 문서는 SSL·PgBouncer·env 상세 등 **참고 레퍼런스**로만 사용(스텝 순서는 RUNBOOK이 최신).
+>
 > 이 문서는 일회성 운영 런북입니다. 완료 후에는 `_docs/archive/`로 이동하세요.
 > (living docs 3종 규칙과 별개인 operational runbook)
 

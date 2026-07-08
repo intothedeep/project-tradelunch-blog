@@ -60,3 +60,5 @@ apps/stock_collector/.pytest_cache/
 apps/stock_collector/uv.lock
 apps/stock_collector/**/__pycache__/
 apps/stock_collector/**/*.pyc
+scripts/migration/00_env.sh
+scripts/migration/_dumps/
