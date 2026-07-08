@@ -254,6 +254,53 @@ describe('buildMonthlyStats — DRIP gross (T1)', () => {
     });
 });
 
+describe('buildMonthlyStats — dividendPerShare (2-line 당월 배당)', () => {
+    it('aggregates per-share by label; sums repeats; omits perShare<=0', () => {
+        const result = mkResult(
+            [{ date: '2024-01-31', value: 10_000 }],
+            [
+                {
+                    date: '2024-01-10',
+                    label: 'A',
+                    perShare: 0.5,
+                    cash: 5,
+                    gross: 5,
+                },
+                {
+                    date: '2024-01-20',
+                    label: 'A',
+                    perShare: 0.3,
+                    cash: 3,
+                    gross: 3,
+                },
+                {
+                    date: '2024-01-15',
+                    label: 'B',
+                    perShare: 0.02,
+                    cash: 2,
+                    gross: 2,
+                },
+                {
+                    date: '2024-01-25',
+                    label: 'C',
+                    perShare: 0,
+                    cash: 0,
+                    gross: 0,
+                },
+            ]
+        );
+        const ps = buildMonthlyStats(result)[0]!.dividendPerShare!;
+        expect(ps['A']).toBeCloseTo(0.8, 6); // 0.5 + 0.3
+        expect(ps['B']).toBeCloseTo(0.02, 6);
+        expect('C' in ps).toBe(false); // perShare 0 → omitted
+    });
+
+    it('month with no dividend events → dividendPerShare undefined', () => {
+        const result = mkResult([{ date: '2024-02-29', value: 10_000 }], []);
+        expect(buildMonthlyStats(result)[0]!.dividendPerShare).toBeUndefined();
+    });
+});
+
 // ── Test 5: string-slice TZ safety ───────────────────────────────────────────
 
 describe('buildMonthlyStats — string-slice month bucketing', () => {

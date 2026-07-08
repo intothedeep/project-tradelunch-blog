@@ -15,6 +15,9 @@ export interface MonthlyStatRow {
     drawdownPct: number; // endValue / runningPeak - 1 (≤ 0)
     dividendCash: number; // sum of schedule.gross in month (DRIP gross included via T1)
     cumulativeDividend: number; // running total of dividendCash
+    /** label → summed per-share dividend that month (events with perShare>0 only).
+     *  Shown as a 2nd line under 당월 배당. Absent when no asset paid that month. */
+    dividendPerShare?: Record<string, number>;
     contribution?: number; // present only when flowsByDate given (DCA)
     totalInvestedToDate?: number; // running sum of contributions + budget
 }
@@ -70,6 +73,25 @@ function buildDivByMonth(
     return out;
 }
 
+/**
+ * Per-asset summed per-share dividend by 'YYYY-MM' (events with perShare > 0).
+ * A high-yield asset paying nothing in a month simply won't appear — which also
+ * makes a missing/zeroed recent-month dividend visible in the UI.
+ */
+function buildDivPerShareByMonth(
+    schedule: BacktestResult['dividends']['schedule']
+): Map<string, Record<string, number>> {
+    const out = new Map<string, Record<string, number>>();
+    for (const ev of schedule) {
+        if (!(ev.perShare > 0)) continue;
+        const mo = ev.date.slice(0, 7);
+        const row = out.get(mo) ?? {};
+        row[ev.label] = (row[ev.label] ?? 0) + ev.perShare;
+        out.set(mo, row);
+    }
+    return out;
+}
+
 /** Pre-aggregate contribution flows by 'YYYY-MM'. */
 function buildFlowByMonth(
     flowsByDate: Record<string, number>
@@ -99,6 +121,7 @@ export function buildMonthlyStats(
 
     // Pre-aggregate dividends and flows by month.
     const divByMonth = buildDivByMonth(dividends.schedule);
+    const divPerShareByMonth = buildDivPerShareByMonth(dividends.schedule);
     const hasDca =
         flowsByDate !== undefined && Object.keys(flowsByDate).length > 0;
     const flowByMonth = hasDca
@@ -147,6 +170,9 @@ export function buildMonthlyStats(
             dividendCash,
             cumulativeDividend,
         };
+
+        const perShare = divPerShareByMonth.get(month);
+        if (perShare) row.dividendPerShare = perShare;
 
         if (hasDca) {
             const contrib = flowByMonth.get(month) ?? 0;

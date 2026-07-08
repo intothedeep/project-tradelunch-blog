@@ -192,7 +192,19 @@ export default function StatsTable({
                                         {fmtPct(row.drawdownPct)}
                                     </td>
                                     <td className="px-3 py-1.5 text-right font-mono">
-                                        {fmtDiv(row.dividendCash)}
+                                        <span>{fmtDiv(row.dividendCash)}</span>
+                                        {row.dividendPerShare && (
+                                            <span className="block text-[10px] text-muted-foreground/70">
+                                                {Object.entries(
+                                                    row.dividendPerShare
+                                                )
+                                                    .map(
+                                                        ([lbl, ps]) =>
+                                                            `${lbl} $${ps.toFixed(2)}/주`
+                                                    )
+                                                    .join(' · ')}
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="px-3 py-1.5 text-right font-mono">
                                         {fmtDiv(row.cumulativeDividend)}
