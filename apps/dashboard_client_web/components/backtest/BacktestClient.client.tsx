@@ -291,6 +291,9 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                         budget={budget}
                         riskFreeRate={RISK_FREE_RATE}
                         hasContribution={contribution !== undefined}
+                        initialValue={
+                            (displayResult ?? result).timeline[0]?.value
+                        }
                         rebalance={(displayResult ?? result).rebalance}
                         synthMeta={synthMeta}
                     />

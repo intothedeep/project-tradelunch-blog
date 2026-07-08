@@ -12,6 +12,8 @@ interface MetricsPanelProps {
     budget: number;
     riskFreeRate: number;
     hasContribution?: boolean;
+    /** Portfolio value at the start of the range (first timeline bar). */
+    initialValue?: number;
     /** X2.14 — rebalance audit trail; absent = no rebalance section rendered. */
     rebalance?: BacktestResult['rebalance'];
     /** X2-P2.11: synth metadata for R²/cap warnings (shown when synth active). */
@@ -61,6 +63,8 @@ interface MetricsGridProps {
     metrics: BacktestMetrics;
     riskFreeRate: number;
     hasContribution?: boolean;
+    /** Portfolio value at the start of the range (first timeline bar). */
+    initialValue?: number;
     dim?: boolean;
 }
 
@@ -68,6 +72,7 @@ function MetricsGrid({
     metrics,
     riskFreeRate,
     hasContribution,
+    initialValue,
     dim,
 }: MetricsGridProps) {
     const {
@@ -84,7 +89,14 @@ function MetricsGrid({
     const profit = finalValue - totalContributed;
 
     return (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-2">
+            {initialValue !== undefined && (
+                <Card
+                    label="시작 평가액"
+                    value={fmt$(initialValue)}
+                    dim={dim}
+                />
+            )}
             <Card
                 label="Final Value"
                 value={fmt$(finalValue)}
@@ -241,6 +253,7 @@ export default function MetricsPanel({
     metrics,
     riskFreeRate,
     hasContribution,
+    initialValue,
     rebalance,
     synthMeta,
 }: MetricsPanelProps) {
@@ -255,6 +268,7 @@ export default function MetricsPanel({
                 metrics={metrics}
                 riskFreeRate={riskFreeRate}
                 hasContribution={hasContribution}
+                initialValue={initialValue}
             />
 
             {/* Synth reliability warnings (R² floor / horizon cap) when active. */}
