@@ -25,4 +25,4 @@ INI
 
 echo '"app" "SCRAM_OR_MD5_HASH_HERE"' | sudo tee /etc/pgbouncer/userlist.txt
 sudo systemctl enable --now pgbouncer
-echo "pgbouncer up on :6432 (transaction mode). Point POSTGRES_URL/FINANCE_POSTGRES_URL here."
+echo "pgbouncer up on :6432 (transaction mode). Point POSTGRES_URL here."

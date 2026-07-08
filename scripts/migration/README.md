@@ -64,7 +64,7 @@ Cutover finance first (private/lower-risk), then blog.
 |---|---|---|
 | dashboard_server | `POSTGRES_URL` / `_NON_POOLING` | DST-SB |
 | dashboard_server / blog_agent / collector | `SUPABASE_*` | `OCI_S3_*` (+ `STORAGE_BUCKET`) |
-| finance_api (Oracle VM) | `FINANCE_POSTGRES_URL` | ORA `:6432`/`:5432` |
+| finance_api (Oracle VM) | `POSTGRES_URL` | ORA `:6432`/`:5432` |
 | blog_agent | `POSTGRES_URL_NON_POOLING` / `POSTGRES_URL` | DST-SB |
 | stock_collector + GH secrets | `DATABASE_URL` | ORA session `:5432 ?sslmode=require` |
 | GH Actions `supabase-keepalive.yml` | `DATABASE_URL` | **repoint** to new blog Supabase via `BLOG_SUPABASE_DATABASE_URL` (blog still auto-pauses; NOT deleted) |

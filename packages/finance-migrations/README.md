@@ -21,7 +21,7 @@ migrations/   (future incremental DDL — not yet created)
 ## Applying the initial migration
 
 ```sh
-psql $FINANCE_POSTGRES_URL_NON_POOLING -f 0001_finance_init.sql
+psql $POSTGRES_URL_NON_POOLING -f 0001_finance_init.sql
 ```
 
-Use `FINANCE_POSTGRES_URL_NON_POOLING` (direct connection, port 5432) — never the pooled URL.
+Use `POSTGRES_URL_NON_POOLING` (direct connection, port 5432) — never the pooled URL.

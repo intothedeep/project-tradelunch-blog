@@ -46,7 +46,7 @@ Legend: 🖥️ = run a script · ✋ = manual action (console/dashboard) · ✅
 - [ ] ✋ Repoint secrets → Oracle **session** DSN (`:5432 ?sslmode=require`):
   - `stock_collector` local `.env`: `DATABASE_URL`
   - GitHub Actions secrets: `DATABASE_URL`, `POSTGRES_URL_NON_POOLING` (collector workflows — YAML unchanged, values only)
-  - `finance_api` (or `dashboard_server` finance pool): `FINANCE_POSTGRES_URL` → ORA `:6432`/`:5432`
+  - `finance_api` (or `dashboard_server` finance pool): `POSTGRES_URL` → ORA `:6432`/`:5432`
 - [ ] 🖥️ `60_smoke.sh` + collector dry-run (`DATABASE_URL=$ORA_DIRECT uv run ... read_tracked_symbols`).
 - [ ] ✋ Re-enable collector crons (or manually `gh workflow run collector-daily.yml`) → confirm one green run against ORA.
 
