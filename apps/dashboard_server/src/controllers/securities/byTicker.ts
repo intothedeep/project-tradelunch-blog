@@ -17,6 +17,8 @@
 //   - CUSIP unresolved (no security_map row) → weight/delta null, isNew false.
 //   - market_history absent/empty → priceHistory: [].
 //   - Any absent view/table degrades its axis: pActivity/secDerivatives/gexDaily → null.
+//   - A fund may hold multiple CUSIPs that resolve to the same ticker (e.g. share
+//     classes). Query B groups by CIK so each fund appears once with summed value_usd.
 // Constraints: raw SQL, no ORM, no side effects beyond pool reads.
 
 import { pool } from '../../database';
@@ -98,6 +100,7 @@ interface IRankingRow {
     market_cap: string | null;
 }
 
+// cusip removed: Query B groups by cik — value_usd is summed across share classes.
 interface IHolderRow {
     cik: string;
     label: string;
@@ -105,7 +108,6 @@ interface IHolderRow {
     value_usd: string;
     period_of_report: Date | string;
     sector: string | null;
-    cusip: string | null;
 }
 
 interface IPriceRow {
@@ -176,6 +178,10 @@ router.get('/:ticker/by-ticker', async (req, res) => {
         }
 
         // Query B — holders at the ticker's latest 13F period; sector from enriched view.
+        // GROUP BY cik to fold multiple CUSIPs that resolve to the same ticker (e.g.
+        // share classes like GOOGL+GOOG) into a single per-fund row with summed value_usd.
+        // Without the group-by, a fund holding n share classes would produce n duplicate
+        // cik rows, causing React "duplicate key" warnings on the frontend.
         let holders: Array<{
             cik: string;
             label: string;
@@ -197,18 +203,20 @@ router.get('/:ticker/by-ticker', async (req, res) => {
                     WHERE h.mapped_ticker = $1
                 )
                 SELECT h.cik, r.label, r.is_active_manager,
-                       h.value_usd, h.period_of_report, h.sector, h.cusip
+                       SUM(h.value_usd) AS value_usd,
+                       h.period_of_report, MIN(h.sector) AS sector
                   FROM v_sec_holdings_enriched h
                   JOIN fund_registry r ON r.cik = h.cik AND r.deleted_at IS NULL
                   JOIN latest l ON h.period_of_report = l.period
                  WHERE h.mapped_ticker = $1
-                 ORDER BY h.value_usd DESC`,
+                 GROUP BY h.cik, r.label, r.is_active_manager, h.period_of_report
+                 ORDER BY SUM(h.value_usd) DESC`,
                 [ticker]
             );
             if (hRows.length > 0) {
                 periodOfReport = toIsoDate(hRows[0].period_of_report);
                 sector = hRows[0].sector ?? null;
-                const ciks = [...new Set(hRows.map((h) => h.cik))];
+                const ciks = hRows.map((h) => h.cik);
 
                 // weight/delta/isNew via getHolderWeights (sec_holdings agg), NOT v_sec_position_delta.
                 const weightByCik = await getHolderWeights(
