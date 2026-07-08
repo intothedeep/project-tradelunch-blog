@@ -12,6 +12,8 @@
 //
 // X2.11: rb= and mf= params added; assets= gains optional trailing positionals.
 // X2-P2.8: synth= param added (shortLabel:base:method).
+// Per-source weights: dcaPct/divPct round-trip via T4 keyed tokens;
+//   dividendReinvestByWeight stored in drw= (absent→false).
 
 import { useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
@@ -30,6 +32,8 @@ import {
     decodeRebalance,
     encodeManualFlows,
     decodeManualFlows,
+    encodeDrw,
+    decodeDrw,
 } from '@/utils/backtest/url-codec';
 import {
     encodeSynth,
@@ -50,6 +54,7 @@ export interface BacktestUrlState {
     rebalance: RebalancePolicy | undefined;
     manualFlows: { date: string; amount: number }[] | undefined;
     synth: SynthUrlState | undefined;
+    dividendReinvestByWeight: boolean;
 }
 
 // ── Defaults ─────────────────────────────────────────────────────────────────
@@ -108,6 +113,7 @@ export function useBacktestUrl(): [
             flows: { date: string; amount: number }[] | undefined
         ) => void;
         setSynth: (s: SynthUrlState | undefined) => void;
+        setDividendReinvestByWeight: (v: boolean) => void;
     },
 ] {
     const router = useRouter();
@@ -127,6 +133,7 @@ export function useBacktestUrl(): [
         const rebalance = decodeRebalance(sp.get('rb'), knownLabels);
         const manualFlows = decodeManualFlows(sp.get('mf'));
         const synth = decodeSynth(sp.get('synth'));
+        const dividendReinvestByWeight = decodeDrw(sp.get('drw'));
         return {
             budget: isFinite(budget) && budget > 0 ? budget : DEFAULT_BUDGET,
             holdings,
@@ -137,6 +144,7 @@ export function useBacktestUrl(): [
             rebalance,
             manualFlows,
             synth,
+            dividendReinvestByWeight,
         };
     }, [sp]);
 
@@ -195,6 +203,10 @@ export function useBacktestUrl(): [
             push({ synth: s ? encodeSynth(s) : null }),
         [push]
     );
+    const setDividendReinvestByWeight = useCallback(
+        (v: boolean) => push({ drw: encodeDrw(v) }),
+        [push]
+    );
 
     return [
         state,
@@ -207,6 +219,7 @@ export function useBacktestUrl(): [
             setRebalance,
             setManualFlows,
             setSynth,
+            setDividendReinvestByWeight,
         },
     ];
 }

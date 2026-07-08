@@ -3,6 +3,7 @@
 // components/backtest/ContributionInput.client.tsx
 // Purpose: DCA recurring-contribution controls (amount + frequency + none).
 // Renders a row of controls that yields a ContributionPlan or undefined.
+// Route selector: 'by weight (all)' | 'by DCA weight' | '→ <label>'.
 
 import type {
     ContributionPlan,
@@ -18,9 +19,12 @@ interface ContributionInputProps {
 }
 
 const BY_WEIGHT = 'byWeight';
+const BY_DCA_WEIGHT = 'byDcaWeight';
 
 function routeToValue(route: ContributionRoute | undefined): string {
-    return route && route.kind === 'asset' ? route.target : BY_WEIGHT;
+    if (!route || route.kind === 'byWeight') return BY_WEIGHT;
+    if (route.kind === 'byDcaWeight') return BY_DCA_WEIGHT;
+    return route.target;
 }
 
 const FREQ_OPTIONS: { value: ContributionFreq; label: string }[] = [
@@ -53,9 +57,14 @@ export default function ContributionInput({
     }
 
     function handleRoute(val: string) {
-        // byWeight is the default → drop the field entirely (URL stays clean).
-        const nextRoute: ContributionRoute | undefined =
-            val === BY_WEIGHT ? undefined : { kind: 'asset', target: val };
+        let nextRoute: ContributionRoute | undefined;
+        if (val === BY_WEIGHT) {
+            nextRoute = undefined; // byWeight = default → drop field (URL stays clean)
+        } else if (val === BY_DCA_WEIGHT) {
+            nextRoute = { kind: 'byDcaWeight' };
+        } else {
+            nextRoute = { kind: 'asset', target: val };
+        }
         onChange({ amount, freq, route: nextRoute });
     }
 
@@ -130,6 +139,9 @@ export default function ContributionInput({
                             >
                                 <option value={BY_WEIGHT}>
                                     by weight (all)
+                                </option>
+                                <option value={BY_DCA_WEIGHT}>
+                                    by DCA weight
                                 </option>
                                 {labels.map((l) => (
                                     <option

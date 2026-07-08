@@ -7,10 +7,12 @@ export type ContributionFreq = 'monthly' | 'yearly';
 /**
  * Route for how a DCA contribution is invested.
  *   byWeight (default) — spread proportionally by holding weightPct (legacy behaviour).
+ *   byDcaWeight — spread proportionally by holding dcaPct (falls back to weightPct when blank).
  *   {kind:'asset',target} — ALL the cash goes to a single named label.
  */
 export type ContributionRoute =
     | { kind: 'byWeight' }
+    | { kind: 'byDcaWeight' }
     | { kind: 'asset'; target: string };
 
 export interface ContributionPlan {
@@ -51,6 +53,16 @@ export interface Holding {
     sellPriority?: number;
     groupId?: string;
     groupWeightPct?: number;
+    /**
+     * DCA weight (0–100). Governs how periodic contributions are split.
+     * Blank/undefined ⇒ falls back to weightPct at compute time (never persisted).
+     */
+    dcaPct?: number;
+    /**
+     * Dividend reinvest weight (0–100). Governs pooled cash-routed dividend reinvestment.
+     * Blank/undefined ⇒ falls back to weightPct at compute time (never persisted).
+     */
+    divPct?: number;
 }
 
 export interface BacktestInput {
@@ -68,6 +80,12 @@ export interface BacktestInput {
      * Absent ⇒ byte-identical output to pre-X2.18.
      */
     manualFlows?: { date: string; amount: number }[];
+    /**
+     * When true, pool cash-routed dividends on each bar and reinvest them
+     * proportionally by holding.divPct (falls back to weightPct when blank).
+     * Absent or false ⇒ legacy behaviour (cash-routed dividends stay as cash).
+     */
+    dividendReinvestByWeight?: boolean;
 }
 
 export interface BacktestMetrics {

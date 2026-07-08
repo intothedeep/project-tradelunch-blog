@@ -54,6 +54,7 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
             setRebalance,
             setManualFlows,
             setSynth,
+            setDividendReinvestByWeight,
         },
     ] = useBacktestUrl();
     const {
@@ -66,6 +67,7 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
         rebalance,
         manualFlows,
         synth,
+        dividendReinvestByWeight,
     } = urlState;
 
     const [budgetValid, setBudgetValid] = useState(true);
@@ -136,7 +138,8 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
         contribution,
         rebalance,
         manualFlows,
-        budgetValid
+        budgetValid,
+        dividendReinvestByWeight
     );
 
     // Earliest selectable start = latest first-date across holdings, computed from
@@ -263,6 +266,7 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                 rebalance={rebalance}
                 manualFlows={manualFlows}
                 synth={synth}
+                dividendReinvestByWeight={dividendReinvestByWeight}
                 setBudget={setBudget}
                 setHoldings={setHoldings}
                 setRange={setRange}
@@ -271,6 +275,7 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                 setRebalance={setRebalance}
                 setManualFlows={setManualFlows}
                 setSynth={setSynth}
+                setDividendReinvestByWeight={setDividendReinvestByWeight}
                 onBudgetValidChange={setBudgetValid}
             />
             <LeverageWarning labels={leveragedSelected} />

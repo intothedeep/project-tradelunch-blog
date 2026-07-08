@@ -73,7 +73,8 @@ export function useSyntheticBacktest(
     contribution: ContributionPlan | undefined,
     rebalance: RebalancePolicy | undefined,
     manualFlows: BacktestInput['manualFlows'],
-    ready: boolean
+    ready: boolean,
+    dividendReinvestByWeight?: boolean
 ): SynthBacktestOut {
     // For ALL methods, the base series must be fetched as a reference.
     const synthBaseLabel = synth ? synth.base : undefined;
@@ -92,6 +93,7 @@ export function useSyntheticBacktest(
             contribution,
             rebalance,
             manualFlows,
+            dividendReinvestByWeight: dividendReinvestByWeight || undefined,
         };
     }, [
         budget,
@@ -103,6 +105,7 @@ export function useSyntheticBacktest(
         contribution,
         rebalance,
         manualFlows,
+        dividendReinvestByWeight,
     ]);
 
     // Synth splice + pass orchestration (null when synth off or prerequisites missing).

@@ -14,6 +14,7 @@ import type {
 } from '@/types/backtest';
 import { investCash } from './invest';
 import { applyDividends } from './dividends';
+import { reinvestDividendPool } from './dividend-pool';
 import { buildInitialState } from './initial-state';
 import { rebalanceIfDue } from './rebalance';
 import { splitAdjustDividends } from './split-adjust';
@@ -147,6 +148,23 @@ export function runBacktest(input: BacktestInput): BacktestResult {
         // or the source label (same-asset DRIP, routedTo undefined).
         for (const ev of events) {
             if (ev.cash === 0) addBuy(date, ev.routedTo ?? ev.label, ev.gross);
+        }
+
+        // 1b. Pooled dividend reinvestment (dividendReinvestByWeight flag).
+        // cashDelta is the cash-routed portion produced by applyDividends above.
+        // same/asset DividendRoutes produce cashDelta=0 (already reinvested) —
+        // only the cash-routed slice is pooled here.
+        if (input.dividendReinvestByWeight && cashDelta > 0) {
+            const residual = reinvestDividendPool(
+                date,
+                cashDelta,
+                holdings,
+                dateIndexes,
+                shares,
+                (lbl, usd) => addBuy(date, lbl, usd)
+            );
+            // Only the reinvested portion leaves cash; residual stays as cash.
+            cash -= cashDelta - residual;
         }
 
         // 2. Contribution buy (after dividends → new cash skips today's dividend)

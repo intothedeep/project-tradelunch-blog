@@ -11,6 +11,7 @@ import type { ContributionRoute, Holding, PricePoint } from '@/types/backtest';
  *
  * @param route - How to allocate the cash. Defaults to byWeight (legacy behaviour).
  *   byWeight: spread proportionally by holding.weightPct (original behaviour — identical output).
+ *   byDcaWeight: spread proportionally by holding.dcaPct (falls back to weightPct when blank).
  *   {kind:'asset',target}: ALL cash → one named label.
  *
  * Returns any residual cash that could not be invested because no price bar
@@ -34,6 +35,25 @@ export function investCash(
         let residual = 0;
         for (const h of holdings) {
             const alloc = amount * (h.weightPct / 100);
+            const bar = dateIndexes.get(h.label)?.get(date);
+            if (bar && bar.close > 0) {
+                shares.set(
+                    h.label,
+                    (shares.get(h.label) ?? 0) + alloc / bar.close
+                );
+                onBuy?.(h.label, alloc);
+            } else {
+                residual += alloc;
+            }
+        }
+        return residual;
+    }
+
+    // byDcaWeight: spread by dcaPct, fall back to weightPct when blank
+    if (route.kind === 'byDcaWeight') {
+        let residual = 0;
+        for (const h of holdings) {
+            const alloc = amount * ((h.dcaPct ?? h.weightPct) / 100);
             const bar = dateIndexes.get(h.label)?.get(date);
             if (bar && bar.close > 0) {
                 shares.set(

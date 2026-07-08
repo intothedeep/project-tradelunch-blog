@@ -7,6 +7,7 @@
 // Task A: Advanced section is gated to admin only (useMe isAdmin === true).
 // X2-P2.9: synthetic history toggle + base select + method selector (JEPQ only,
 //   admin-gated). Extracted to SynthControls.client.tsx (Wave-C LOC cleanup).
+// Per-source weights: PerSourceWeights rendered after WeightSliders (all users).
 
 import { useState } from 'react';
 import type {
@@ -20,6 +21,7 @@ import type { SynthUrlState } from '@/hooks/useBacktestUrl.hook';
 import BudgetInput from './BudgetInput';
 import AssetPicker from './AssetPicker.client';
 import WeightSliders from './WeightSliders.client';
+import PerSourceWeights from './PerSourceWeights.client';
 import DateRangePicker from './DateRangePicker.client';
 import ContributionInput from './ContributionInput.client';
 import SeedControl from './SeedControl.client';
@@ -43,6 +45,7 @@ interface BacktestControlsProps {
     rebalance: RebalancePolicy | undefined;
     manualFlows: { date: string; amount: number }[] | undefined;
     synth: SynthUrlState | undefined;
+    dividendReinvestByWeight: boolean;
     setBudget: (v: number) => void;
     setHoldings: (v: Holding[]) => void;
     setRange: (from: string, to: string) => void;
@@ -53,6 +56,7 @@ interface BacktestControlsProps {
         flows: { date: string; amount: number }[] | undefined
     ) => void;
     setSynth: (s: SynthUrlState | undefined) => void;
+    setDividendReinvestByWeight: (v: boolean) => void;
     onBudgetValidChange: (valid: boolean) => void;
 }
 
@@ -71,6 +75,7 @@ export default function BacktestControls({
     rebalance,
     manualFlows,
     synth,
+    dividendReinvestByWeight,
     setBudget,
     setHoldings,
     setRange,
@@ -79,6 +84,7 @@ export default function BacktestControls({
     setRebalance,
     setManualFlows,
     setSynth,
+    setDividendReinvestByWeight,
     onBudgetValidChange,
 }: BacktestControlsProps) {
     const [showAdvanced, setShowAdvanced] = useState(false);
@@ -106,11 +112,25 @@ export default function BacktestControls({
         setHoldings(
             holdings.map((h) => (h.label === label ? { ...h, ...patch } : h))
         );
+        // M1: when a dcaPct value is entered and DCA is active but route is not
+        // byDcaWeight, auto-switch so the entered weight actually takes effect.
+        if (
+            patch.dcaPct !== undefined &&
+            contribution !== undefined &&
+            contribution.route?.kind !== 'byDcaWeight'
+        ) {
+            setContribution({
+                ...contribution,
+                route: { kind: 'byDcaWeight' },
+            });
+        }
     }
 
     // Always show per-holding controls when the advanced panel is open, so the
     // canSell / sellPriority / group toggles are REACHABLE.
     const showPerHolding = holdings.length > 0;
+
+    const dcaActive = contribution !== undefined;
 
     return (
         <section
@@ -133,6 +153,13 @@ export default function BacktestControls({
             <WeightSliders
                 holdings={holdings}
                 onChange={setHoldings}
+            />
+            <PerSourceWeights
+                holdings={holdings}
+                dcaActive={dcaActive}
+                divActive={dividendReinvestByWeight}
+                onUpdateHolding={updateHolding}
+                onToggleDiv={setDividendReinvestByWeight}
             />
             <DateRangePicker
                 from={from}
