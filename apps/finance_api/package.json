@@ -10,7 +10,6 @@
     },
     "dependencies": {
         "@clerk/express": "^2.1.32",
-        "@repo/types": "workspace:*",
         "cors": "^2.8.6",
         "cross-env": "^10.1.0",
         "dotenv": "^17.4.2",

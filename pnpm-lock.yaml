@@ -387,9 +387,6 @@ importers:
       '@clerk/express':
         specifier: ^2.1.32
         version: 2.1.32(express@5.2.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@repo/types':
-        specifier: workspace:*
-        version: link:../../packages/types
       cors:
         specifier: ^2.8.6
         version: 2.8.6
@@ -472,9 +469,6 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.2.10
         version: 1.2.10(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@repo/types':
-        specifier: workspace:*
-        version: link:../../packages/types
       '@tanstack/react-query':
         specifier: ^5.101.1
         version: 5.101.1(react@19.2.7)
