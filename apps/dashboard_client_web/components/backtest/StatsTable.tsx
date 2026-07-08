@@ -82,9 +82,11 @@ export default function StatsTable({
 
     return (
         <section aria-label="월별 통계표">
-            <div className="overflow-x-auto rounded-lg border">
+            <div className="max-h-[70vh] overflow-auto rounded-lg border">
                 <table className="w-full text-xs">
-                    <thead>
+                    {/* Sticky header: arbitrary variant pins every <th> to the
+                        top of the scroll container with an opaque bg. */}
+                    <thead className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-muted">
                         <tr className="border-b bg-muted/50 text-left text-muted-foreground">
                             <th className="px-3 py-2 font-medium">월</th>
                             <th className="px-3 py-2 font-medium text-right">
