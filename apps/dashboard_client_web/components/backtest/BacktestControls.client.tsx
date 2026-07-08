@@ -7,7 +7,7 @@
 // Task A: Advanced section is gated to admin only (useMe isAdmin === true).
 // X2-P2.9: synthetic history toggle + base select + method selector (JEPQ only,
 //   admin-gated). Extracted to SynthControls.client.tsx (Wave-C LOC cleanup).
-// Per-source weights: PerSourceWeights rendered after WeightSliders (all users).
+// Per-source weights: PerSourceWeights owns Original%+DRIP+DCA+Div (unified grid).
 
 import { useState } from 'react';
 import type {
@@ -20,7 +20,6 @@ import { useMe } from '@/hooks/useMe.query.client';
 import type { SynthUrlState } from '@/hooks/useBacktestUrl.hook';
 import BudgetInput from './BudgetInput';
 import AssetPicker from './AssetPicker.client';
-import WeightSliders from './WeightSliders.client';
 import PerSourceWeights from './PerSourceWeights.client';
 import DateRangePicker from './DateRangePicker.client';
 import ContributionInput from './ContributionInput.client';
@@ -148,10 +147,6 @@ export default function BacktestControls({
             <AssetPicker
                 holdings={holdings}
                 seriesFirstDate={seriesFirstDate}
-                onChange={setHoldings}
-            />
-            <WeightSliders
-                holdings={holdings}
                 onChange={setHoldings}
             />
             <PerSourceWeights

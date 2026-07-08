@@ -1,15 +1,17 @@
 'use client';
 
 // components/backtest/PerSourceWeights.client.tsx
-// Purpose: three-column per-asset weight grid for Original / DCA / Dividend sources.
-// - Original %: read-only mirror of weightPct (owned by WeightSliders).
+// Purpose: unified per-asset weight grid — Original (editable + DRIP) / DCA / Div.
+// - Original %: editable number input bound to holding.weightPct.
+// - DividendRouteSelect: DRIP dropdown in the Original cell.
 // - DCA %: disabled when dcaActive is false; blank → fallback to weightPct.
 // - Div %: disabled when divActive is false; blank → fallback to weightPct.
-// Per-column running-sum hint (green when > 0, muted otherwise). No forced 100.
-// A header checkbox activates dividendReinvestByWeight (divActive flag).
+// Per-column running-sum hints. A header checkbox activates divActive flag.
 
 import { cn } from '@/lib/utils';
-import type { Holding } from '@/types/backtest';
+import type { DividendRoute, Holding } from '@/types/backtest';
+import { resolveRoute } from '@/utils/backtest/dividends';
+import DividendRouteSelect from './DividendRouteSelect.client';
 
 interface PerSourceWeightsProps {
     holdings: Holding[];
@@ -84,6 +86,75 @@ function SumHint({ sum, active }: { sum: number; active: boolean }) {
     );
 }
 
+// ── Per-row sub-component ─────────────────────────────────────────────────────
+
+interface PerSourceWeightRowProps {
+    holding: Holding;
+    otherHoldings: Holding[];
+    dcaActive: boolean;
+    divActive: boolean;
+    onUpdateHolding: (label: string, patch: Partial<Holding>) => void;
+}
+
+function PerSourceWeightRow({
+    holding: h,
+    otherHoldings,
+    dcaActive,
+    divActive,
+    onUpdateHolding,
+}: PerSourceWeightRowProps) {
+    function handleRouteChange(label: string, route: DividendRoute) {
+        onUpdateHolding(label, { dividendRoute: route });
+    }
+
+    return (
+        <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center">
+            <span className="text-xs font-mono font-semibold">{h.label}</span>
+
+            {/* Original % — editable + DRIP dropdown */}
+            <div className="flex items-center gap-1">
+                <NumberInput
+                    value={h.weightPct}
+                    placeholder="0"
+                    disabled={false}
+                    ariaLabel={`${h.label} original weight`}
+                    onChange={(v) =>
+                        onUpdateHolding(h.label, {
+                            weightPct: v !== undefined ? v : 0,
+                        })
+                    }
+                />
+                <DividendRouteSelect
+                    label={h.label}
+                    route={resolveRoute(h)}
+                    otherHoldings={otherHoldings}
+                    onChange={handleRouteChange}
+                />
+            </div>
+
+            {/* DCA % */}
+            <NumberInput
+                value={h.dcaPct}
+                placeholder={String(h.weightPct)}
+                disabled={!dcaActive}
+                ariaLabel={`${h.label} DCA weight`}
+                onChange={(v) => onUpdateHolding(h.label, { dcaPct: v })}
+            />
+
+            {/* Div % */}
+            <NumberInput
+                value={h.divPct}
+                placeholder={String(h.weightPct)}
+                disabled={!divActive}
+                ariaLabel={`${h.label} dividend reinvest weight`}
+                onChange={(v) => onUpdateHolding(h.label, { divPct: v })}
+            />
+        </div>
+    );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
 export default function PerSourceWeights({
     holdings,
     dcaActive,
@@ -94,6 +165,7 @@ export default function PerSourceWeights({
     if (holdings.length === 0) return null;
 
     const origSum = holdings.reduce((s, h) => s + h.weightPct, 0);
+    const origValid = Math.round(origSum) === 100;
     const dcaSum = colSum(holdings, 'dcaPct');
     const divSum = colSum(holdings, 'divPct');
 
@@ -102,9 +174,9 @@ export default function PerSourceWeights({
             {/* Header row */}
             <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center">
                 <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Per-Source Weights
+                    자산
                 </span>
-                <span className="text-xs font-medium text-muted-foreground w-16 text-right">
+                <span className="text-xs font-medium text-muted-foreground text-right">
                     Original
                 </span>
                 <span
@@ -141,47 +213,30 @@ export default function PerSourceWeights({
 
             {/* Per-holding rows */}
             {holdings.map((h) => (
-                <div
+                <PerSourceWeightRow
                     key={h.label}
-                    className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center"
-                >
-                    <span className="text-xs font-mono font-semibold">
-                        {h.label}
-                    </span>
-                    {/* Original % — read-only */}
-                    <span className="w-16 text-right text-xs tabular-nums text-muted-foreground">
-                        {h.weightPct}%
-                    </span>
-                    {/* DCA % */}
-                    <NumberInput
-                        value={h.dcaPct}
-                        placeholder={String(h.weightPct)}
-                        disabled={!dcaActive}
-                        ariaLabel={`${h.label} DCA weight`}
-                        onChange={(v) =>
-                            onUpdateHolding(h.label, { dcaPct: v })
-                        }
-                    />
-                    {/* Div % */}
-                    <NumberInput
-                        value={h.divPct}
-                        placeholder={String(h.weightPct)}
-                        disabled={!divActive}
-                        ariaLabel={`${h.label} dividend reinvest weight`}
-                        onChange={(v) =>
-                            onUpdateHolding(h.label, { divPct: v })
-                        }
-                    />
-                </div>
+                    holding={h}
+                    otherHoldings={holdings.filter((x) => x.label !== h.label)}
+                    dcaActive={dcaActive}
+                    divActive={divActive}
+                    onUpdateHolding={onUpdateHolding}
+                />
             ))}
 
             {/* Column sum hints */}
             <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center border-t border-border pt-1">
                 <span />
-                <SumHint
-                    sum={origSum}
-                    active={true}
-                />
+                {/* Original sum — green when ==100, red/amber otherwise */}
+                <span
+                    className={cn(
+                        'text-xs tabular-nums font-semibold',
+                        origValid
+                            ? 'text-green-600 dark:text-green-400'
+                            : 'text-destructive'
+                    )}
+                >
+                    Σ {origSum.toFixed(1)}%
+                </span>
                 <SumHint
                     sum={dcaSum}
                     active={dcaActive}
@@ -191,6 +246,13 @@ export default function PerSourceWeights({
                     active={divActive}
                 />
             </div>
+
+            {/* Original weight gate warning */}
+            {!origValid && (
+                <p className="text-xs text-destructive">
+                    Original 합계가 100%여야 합니다. 현재 {origSum.toFixed(1)}%.
+                </p>
+            )}
         </div>
     );
 }
