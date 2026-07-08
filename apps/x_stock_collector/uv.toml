@@ -1,3 +1,0 @@
-# uv config for the stock-collector polyglot sibling app.
-# Isolated .venv in this dir; NOT a pnpm workspace member (no package.json).
-python-preference = "managed"

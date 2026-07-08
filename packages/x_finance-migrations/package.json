@@ -1,6 +1,0 @@
-{
-    "name": "@repo/finance-migrations",
-    "version": "0.0.0",
-    "private": true,
-    "description": "DDL SSOT for the finance Oracle VM PG17 instance."
-}
