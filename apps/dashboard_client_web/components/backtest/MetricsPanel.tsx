@@ -14,6 +14,12 @@ interface MetricsPanelProps {
     hasContribution?: boolean;
     /** Portfolio value at the start of the range (first timeline bar). */
     initialValue?: number;
+    /** Backtest span in years — used to discount Final Value to present value. */
+    years?: number;
+    /** User-chosen annual inflation rate (percent) for the PV discount. */
+    inflationPct?: number;
+    /** Setter for the inflation rate; when present the PV control is shown. */
+    onInflationChange?: (pct: number) => void;
     /** X2.14 — rebalance audit trail; absent = no rebalance section rendered. */
     rebalance?: BacktestResult['rebalance'];
     /** X2-P2.11: synth metadata for R²/cap warnings (shown when synth active). */
@@ -65,6 +71,8 @@ interface MetricsGridProps {
     hasContribution?: boolean;
     /** Portfolio value at the start of the range (first timeline bar). */
     initialValue?: number;
+    /** Inflation-discounted final value (present value in start-date dollars). */
+    presentValue?: number;
     dim?: boolean;
 }
 
@@ -73,6 +81,7 @@ function MetricsGrid({
     riskFreeRate,
     hasContribution,
     initialValue,
+    presentValue,
     dim,
 }: MetricsGridProps) {
     const {
@@ -104,6 +113,13 @@ function MetricsGrid({
                 negative={profit < 0}
                 dim={dim}
             />
+            {presentValue !== undefined && (
+                <Card
+                    label="현재가치 (PV)"
+                    value={fmt$(presentValue)}
+                    dim={dim}
+                />
+            )}
             <Card
                 label="Total Invested"
                 value={fmt$(totalContributed)}
@@ -254,21 +270,53 @@ export default function MetricsPanel({
     riskFreeRate,
     hasContribution,
     initialValue,
+    years,
+    inflationPct,
+    onInflationChange,
     rebalance,
     synthMeta,
 }: MetricsPanelProps) {
+    // Present value = Final Value discounted by the chosen annual inflation over
+    // the backtest span (real value in start-date purchasing power).
+    const presentValue =
+        years !== undefined && years > 0 && inflationPct !== undefined
+            ? metrics.finalValue / Math.pow(1 + inflationPct / 100, years)
+            : undefined;
+
     return (
         <section
             aria-label="Portfolio metrics"
             className="flex flex-col gap-3"
         >
-            <h2 className="text-sm font-semibold">Summary</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold">Summary</h2>
+                {onInflationChange && (
+                    <label className="flex items-center gap-1 text-xs text-muted-foreground">
+                        인플레이션
+                        <input
+                            type="number"
+                            min={0}
+                            max={20}
+                            step={0.5}
+                            value={inflationPct ?? 0}
+                            onChange={(e) => {
+                                const v = Number(e.target.value);
+                                if (isFinite(v) && v >= 0) onInflationChange(v);
+                            }}
+                            className="w-14 rounded border border-border bg-background px-1.5 py-0.5 text-xs tabular-nums focus:outline-none focus:ring-1 focus:ring-primary"
+                            aria-label="Annual inflation % for present value"
+                        />
+                        %/년 → 현재가치
+                    </label>
+                )}
+            </div>
 
             <MetricsGrid
                 metrics={metrics}
                 riskFreeRate={riskFreeRate}
                 hasContribution={hasContribution}
                 initialValue={initialValue}
+                presentValue={presentValue}
             />
 
             {/* Synth reliability warnings (R² floor / horizon cap) when active. */}

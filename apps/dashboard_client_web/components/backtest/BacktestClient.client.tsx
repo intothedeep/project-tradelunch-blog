@@ -69,6 +69,8 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
     } = urlState;
 
     const [budgetValid, setBudgetValid] = useState(true);
+    // Annual inflation rate (%) for the Summary present-value discount (display-only).
+    const [inflationPct, setInflationPct] = useState(3);
     const [seriesData, setSeriesData] = useState<Record<string, PricePoint[]>>(
         mockedSeries ? toSeriesByLabel(mockedSeries) : {}
     );
@@ -173,6 +175,15 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
     const showSynthFull =
         !!synth && synth.method !== 'cmp' && fullResult !== undefined;
     const displayResult = showSynthFull && fullResult ? fullResult : result;
+
+    // Backtest span in years (first→last displayed bar) for the PV discount.
+    const spanYears = useMemo(() => {
+        const tl = displayResult?.timeline;
+        if (!tl || tl.length < 2) return undefined;
+        const a = Date.parse(tl[0]!.date + 'T00:00:00Z');
+        const b = Date.parse(tl[tl.length - 1]!.date + 'T00:00:00Z');
+        return b > a ? (b - a) / (365.25 * 86_400_000) : undefined;
+    }, [displayResult]);
 
     useEffect(() => {
         if (mockedSeries) return;
@@ -294,6 +305,9 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                         initialValue={
                             (displayResult ?? result).timeline[0]?.value
                         }
+                        years={spanYears}
+                        inflationPct={inflationPct}
+                        onInflationChange={setInflationPct}
                         rebalance={(displayResult ?? result).rebalance}
                         synthMeta={synthMeta}
                     />
