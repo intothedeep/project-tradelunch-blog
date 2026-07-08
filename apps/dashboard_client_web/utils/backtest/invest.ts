@@ -15,6 +15,10 @@ import type { ContributionRoute, Holding, PricePoint } from '@/types/backtest';
  *
  * Returns any residual cash that could not be invested because no price bar
  * was available at `date` for that holding.
+ *
+ * @param onBuy - optional per-asset buy recorder, invoked with (label, usd) for
+ *   each portion actually deployed into shares. Used to build the per-asset
+ *   purchase ledger; omit for the initial lump-sum so it is excluded.
  */
 export function investCash(
     date: string,
@@ -22,7 +26,8 @@ export function investCash(
     holdings: Holding[],
     dateIndexes: Map<string, Map<string, PricePoint>>,
     shares: Map<string, number>,
-    route?: ContributionRoute
+    route?: ContributionRoute,
+    onBuy?: (label: string, usd: number) => void
 ): number {
     // Default: byWeight (original behaviour — byte-identical when route is absent)
     if (route === undefined || route.kind === 'byWeight') {
@@ -35,6 +40,7 @@ export function investCash(
                     h.label,
                     (shares.get(h.label) ?? 0) + alloc / bar.close
                 );
+                onBuy?.(h.label, alloc);
             } else {
                 residual += alloc;
             }
@@ -47,6 +53,7 @@ export function investCash(
     const bar = dateIndexes.get(target)?.get(date);
     if (bar && bar.close > 0) {
         shares.set(target, (shares.get(target) ?? 0) + amount / bar.close);
+        onBuy?.(target, amount);
         return 0;
     }
     // Target has no bar today → all residual

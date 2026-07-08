@@ -8,6 +8,7 @@ import {
     buildMonthlyStats,
     buildMonthlyAssetWeights,
     buildMonthlyAssetShares,
+    buildMonthlyAssetPurchases,
 } from '@/utils/backtest/monthlyStats';
 import { runBacktest } from '@/utils/backtest/engine';
 import type { BacktestResult, PricePoint } from '@/types/backtest';
@@ -106,7 +107,7 @@ describe('buildMonthlyStats — last row invariants', () => {
         });
         const rows = buildMonthlyStats(result);
         const last = rows[rows.length - 1]!;
-        // cumulativeDividend = sum of all schedule.cash (non-DRIP only)
+        // cumulativeDividend = sum of all schedule.gross (T1: gross-based)
         expect(last.cumulativeDividend).toBeCloseTo(
             result.metrics.cumulativeDividends,
             4
@@ -174,26 +175,82 @@ describe('buildMonthlyStats — partial months', () => {
     });
 });
 
-// ── Test 4: DRIP month excluded from dividendCash ────────────────────────────
+// ── Test 4: DRIP month — T1 fix: gross is summed, not cash ───────────────────
 
-describe('buildMonthlyStats — DRIP exclusion', () => {
-    it('DRIP event (cash: 0) contributes 0 to dividendCash', () => {
+describe('buildMonthlyStats — DRIP gross (T1)', () => {
+    it('DRIP event (cash:0, gross:0) contributes 0; cash event (gross===cash) counts', () => {
         const result = mkResult(
             [
                 { date: '2024-01-15', value: 10_000 },
                 { date: '2024-01-31', value: 10_500 },
             ],
             [
-                // DRIP event — cash is 0 (reinvested into shares)
-                { date: '2024-01-15', label: 'A', perShare: 0.5, cash: 0 },
-                // non-DRIP event — cash received
-                { date: '2024-01-31', label: 'A', perShare: 0.3, cash: 30 },
+                // T2: gross: added to satisfy DividendEvent type requirement
+                // gross:0 — models a DRIP event with no measurable gross (backward-compat)
+                {
+                    date: '2024-01-15',
+                    label: 'A',
+                    perShare: 0.5,
+                    cash: 0,
+                    gross: 0,
+                },
+                // cash-route event: gross === cash
+                {
+                    date: '2024-01-31',
+                    label: 'A',
+                    perShare: 0.3,
+                    cash: 30,
+                    gross: 30,
+                },
             ]
         );
         const rows = buildMonthlyStats(result);
         expect(rows.length).toBe(1);
-        // Only the non-DRIP cash counts
+        // gross:0 + gross:30 = 30
         expect(rows[0]!.dividendCash).toBeCloseTo(30, 4);
+    });
+
+    it('DRIP event (cash:0, gross:>0) contributes gross to dividendCash', () => {
+        // T1 validation: gross is now summed, so DRIP with gross>0 shows in table
+        const result = mkResult(
+            [{ date: '2024-01-31', value: 10_500 }],
+            [
+                {
+                    date: '2024-01-15',
+                    label: 'A',
+                    perShare: 0.5,
+                    cash: 0,
+                    gross: 30,
+                },
+            ]
+        );
+        const rows = buildMonthlyStats(result);
+        expect(rows.length).toBe(1);
+        expect(rows[0]!.dividendCash).toBeCloseTo(30, 4);
+    });
+
+    it('mixed DRIP+cash in same month: both gross values sum', () => {
+        const result = mkResult(
+            [{ date: '2024-01-31', value: 11_000 }],
+            [
+                {
+                    date: '2024-01-10',
+                    label: 'A',
+                    perShare: 0.5,
+                    cash: 0,
+                    gross: 20,
+                },
+                {
+                    date: '2024-01-25',
+                    label: 'A',
+                    perShare: 0.3,
+                    cash: 15,
+                    gross: 15,
+                },
+            ]
+        );
+        const rows = buildMonthlyStats(result);
+        expect(rows[0]!.dividendCash).toBeCloseTo(35, 4);
     });
 });
 
@@ -458,6 +515,107 @@ describe('buildMonthlyAssetShares', () => {
 
         const first = buildMonthlyAssetShares(result, priceByMonth);
         const second = buildMonthlyAssetShares(result, priceByMonth);
+        expect(first).toEqual(second);
+    });
+});
+
+// ── Test 10: buildMonthlyAssetPurchases (T3/T4) ───────────────────────────────
+
+describe('buildMonthlyAssetPurchases', () => {
+    it('undefined perAssetPurchases → empty result', () => {
+        const result = mkResult([{ date: '2024-01-31', value: 10_000 }]);
+        // mkResult does not set perAssetPurchases
+        const out = buildMonthlyAssetPurchases(result);
+        expect(out.labels).toEqual([]);
+        expect(out.purchasesByMonth).toEqual({});
+    });
+
+    it('empty perAssetPurchases ([]) → empty result', () => {
+        const result = {
+            ...mkResult([{ date: '2024-01-31', value: 10_000 }]),
+            perAssetPurchases: [],
+        };
+        const out = buildMonthlyAssetPurchases(result);
+        expect(out.labels).toEqual([]);
+        expect(out.purchasesByMonth).toEqual({});
+    });
+
+    it('multi-date same-month buys SUM (not last-wins) for same label', () => {
+        const result = {
+            ...mkResult([{ date: '2024-01-31', value: 10_000 }]),
+            perAssetPurchases: [
+                { date: '2024-01-15', buys: { A: 100 } },
+                { date: '2024-01-25', buys: { A: 200 } },
+            ],
+        };
+        const out = buildMonthlyAssetPurchases(result);
+        // Must sum: 100 + 200 = 300, not last-wins (200)
+        expect(out.purchasesByMonth['2024-01']?.['A']).toBeCloseTo(300, 4);
+    });
+
+    it('cross-asset landing: buys under target labels appear in correct month buckets', () => {
+        const result = {
+            ...mkResult([{ date: '2024-01-31', value: 10_000 }]),
+            perAssetPurchases: [
+                { date: '2024-01-10', buys: { VOO: 150, JEPQ: 50 } },
+            ],
+        };
+        const out = buildMonthlyAssetPurchases(result);
+        expect(out.purchasesByMonth['2024-01']?.['VOO']).toBeCloseTo(150, 4);
+        expect(out.purchasesByMonth['2024-01']?.['JEPQ']).toBeCloseTo(50, 4);
+    });
+
+    it('buys across different months land in separate buckets', () => {
+        const result = {
+            ...mkResult([
+                { date: '2024-01-31', value: 10_000 },
+                { date: '2024-02-29', value: 10_500 },
+            ]),
+            perAssetPurchases: [
+                { date: '2024-01-15', buys: { A: 100 } },
+                { date: '2024-02-10', buys: { A: 200 } },
+            ],
+        };
+        const out = buildMonthlyAssetPurchases(result);
+        expect(out.purchasesByMonth['2024-01']?.['A']).toBeCloseTo(100, 4);
+        expect(out.purchasesByMonth['2024-02']?.['A']).toBeCloseTo(200, 4);
+    });
+
+    it('labels contains union of all asset keys seen across months', () => {
+        const result = {
+            ...mkResult([{ date: '2024-01-31', value: 10_000 }]),
+            perAssetPurchases: [
+                {
+                    date: '2024-01-10',
+                    buys: { A: 100 } as Record<string, number>,
+                },
+                {
+                    date: '2024-01-20',
+                    buys: { B: 50 } as Record<string, number>,
+                },
+            ],
+        };
+        const out = buildMonthlyAssetPurchases(result);
+        expect(out.labels).toContain('A');
+        expect(out.labels).toContain('B');
+    });
+
+    it('deterministic: same inputs → same output', () => {
+        const result = {
+            ...mkResult([{ date: '2024-01-31', value: 10_000 }]),
+            perAssetPurchases: [
+                {
+                    date: '2024-01-05',
+                    buys: { A: 100, B: 50 } as Record<string, number>,
+                },
+                {
+                    date: '2024-01-20',
+                    buys: { A: 75 } as Record<string, number>,
+                },
+            ],
+        };
+        const first = buildMonthlyAssetPurchases(result);
+        const second = buildMonthlyAssetPurchases(result);
         expect(first).toEqual(second);
     });
 });

@@ -10,8 +10,11 @@ import type {
     RebalancePolicy,
     AssetGroup,
     RebalanceTrigger,
+    ScheduleGate,
 } from '@/types/backtest';
 import RebalanceTriggerEditor from './RebalanceTriggerEditor.client';
+import RebalanceMonthPicker from './RebalanceMonthPicker.client';
+import ScheduleGateEditor from './ScheduleGateEditor.client';
 
 interface RebalancePolicyPanelProps {
     policy: RebalancePolicy | undefined;
@@ -24,6 +27,7 @@ const FREQ_OPTIONS: { value: RebalancePolicy['freq']; label: string }[] = [
     { value: 'quarterly', label: '분기별' },
     { value: 'yearly', label: '연간' },
     { value: 'bar', label: '매일' },
+    { value: 'custom', label: '월 선택' },
 ];
 
 const DEFAULT_POLICY: RebalancePolicy = {
@@ -96,6 +100,10 @@ export default function RebalancePolicyPanel({
         update({ triggers: triggers.length > 0 ? triggers : undefined });
     }
 
+    function handleScheduleGateChange(scheduleGate: ScheduleGate | undefined) {
+        update({ scheduleGate });
+    }
+
     const groupSum = rb.groups.reduce((s, g) => s + g.targetPct, 0);
 
     return (
@@ -140,6 +148,16 @@ export default function RebalancePolicyPanel({
                 </div>
             </div>
 
+            {/* Month picker (only when freq=custom) */}
+            {rb.freq === 'custom' && (
+                <div className="pl-6">
+                    <RebalanceMonthPicker
+                        months={rb.months ?? []}
+                        onChange={(months) => update({ months })}
+                    />
+                </div>
+            )}
+
             {/* Band (drift threshold) */}
             <div className="flex flex-wrap items-center gap-2 pl-6">
                 <span className="text-xs text-muted-foreground">
@@ -180,6 +198,15 @@ export default function RebalancePolicyPanel({
                     triggers={rb.triggers ?? []}
                     labels={labels}
                     onChange={handleTriggersChange}
+                />
+            </div>
+
+            {/* Schedule gate editor */}
+            <div className="pl-6">
+                <ScheduleGateEditor
+                    scheduleGate={rb.scheduleGate}
+                    labels={labels}
+                    onChange={handleScheduleGateChange}
                 />
             </div>
 

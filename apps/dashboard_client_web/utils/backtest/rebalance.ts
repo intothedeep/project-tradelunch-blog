@@ -17,6 +17,7 @@ import {
     applyFiredAction,
     computeTurnover,
 } from './rebalance-apply';
+import { computeWeights, isGateConditionMet } from './rebalance-gate';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -76,8 +77,9 @@ export { computeDriftBandTrades } from './rebalance-apply';
  *   1. Compute effectiveTargets from policy.
  *   2. Evaluate triggers (every bar, freq-independent) → FiredAction[].
  *      Apply actions in priority order; snapAll → run drift-band trades.
- *   3. Drift-band rebalance: only when isRebalanceDue(freq) → computeDriftBandTrades
- *      → apply; update state.lastRebalanceDate.
+ *   3. Drift-band / gate rebalance: only when isRebalanceDue(freq) fires.
+ *      - Without scheduleGate: existing drift-band behaviour (backward-compat).
+ *      - With scheduleGate: armNext or gated mode (R2 extension).
  *   4. Append event to state.events; push any warnings to state.warnings.
  *
  * NOTE: advanceRunState is called by the engine BEFORE this function each bar.
@@ -166,28 +168,90 @@ export function rebalanceIfDue(
         }
     }
 
-    // ── Step 2: scheduled drift-band rebalance ───────────────────────────────
-    if (isRebalanceDue(policy.freq, state.lastRebalanceDate, date)) {
-        const driftTrades = computeDriftBandTrades(
-            effectiveTargets,
-            computePortfolioSnapshot(
-                shares,
-                currentCash,
+    // ── Step 2: scheduled drift-band / gate rebalance ────────────────────────
+    const due = isRebalanceDue(
+        policy.freq,
+        state.lastRebalanceDate,
+        date,
+        policy.months
+    );
+    const gate = policy.scheduleGate;
+
+    if (!gate) {
+        // Backward-compatible path: drift-band on schedule.
+        if (due) {
+            const driftTrades = computeDriftBandTrades(
+                effectiveTargets,
+                computePortfolioSnapshot(
+                    shares,
+                    currentCash,
+                    holdings,
+                    dateIndexes,
+                    date
+                ),
+                policy,
                 holdings,
                 dateIndexes,
                 date
-            ),
-            policy,
-            holdings,
-            dateIndexes,
-            date
-        );
-        for (const t of driftTrades) {
-            shares.set(t.label, (shares.get(t.label) ?? 0) + t.deltaShares);
-            currentCash += t.deltaCash;
-            allTrades.push(t);
+            );
+            for (const t of driftTrades) {
+                shares.set(t.label, (shares.get(t.label) ?? 0) + t.deltaShares);
+                currentCash += t.deltaCash;
+                allTrades.push(t);
+            }
+            state.lastRebalanceDate = date;
         }
-        state.lastRebalanceDate = date;
+    } else {
+        // Gate path (R2): 2-axis model (checkAt × executeAt).
+        const checkNow =
+            gate.checkAt === 'always' || (gate.checkAt === 'schedule' && due);
+        const weights = checkNow
+            ? computeWeights(shares, currentCash, holdings, dateIndexes, date)
+            : new Map<string, number>();
+        const met = checkNow && isGateConditionMet(gate.conditions, weights);
+
+        const fullRebalance = () => {
+            const fullPolicy: RebalancePolicy = {
+                ...policy,
+                band: { kind: 'absolute', pct: 0 },
+            };
+            const gateTrades = computeDriftBandTrades(
+                effectiveTargets,
+                computePortfolioSnapshot(
+                    shares,
+                    currentCash,
+                    holdings,
+                    dateIndexes,
+                    date
+                ),
+                fullPolicy,
+                holdings,
+                dateIndexes,
+                date
+            );
+            for (const t of gateTrades) {
+                shares.set(t.label, (shares.get(t.label) ?? 0) + t.deltaShares);
+                currentCash += t.deltaCash;
+                allTrades.push(t);
+            }
+        };
+
+        if (gate.executeAt === 'immediate') {
+            // schedule+immediate: rebalance on due date only if condition met.
+            // always+immediate:   rebalance the instant the condition is met on any bar.
+            if (met) fullRebalance();
+            if (due) state.lastRebalanceDate = date;
+        } else {
+            // executeAt === 'nextSchedule'
+            // Fire a PREVIOUSLY-armed rebalance first (arm and fire never collide on
+            // the same due bar — firing consumes the arm before re-arming below).
+            if (due && state.armedRebalance) {
+                fullRebalance();
+                state.armedRebalance = false;
+            }
+            if (met) state.armedRebalance = true;
+            if (due) state.lastRebalanceDate = date;
+        }
     }
 
     // ── Step 3: record event if any trades occurred ──────────────────────────

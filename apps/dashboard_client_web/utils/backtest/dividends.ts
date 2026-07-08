@@ -105,6 +105,7 @@ export function applyDividends(
                 label: source,
                 perShare,
                 cash: divCash,
+                gross: divCash,
                 routedTo: 'cash',
             });
         } else if (route.kind === 'same') {
@@ -116,7 +117,13 @@ export function applyDividends(
                     source,
                     (shares.get(source) ?? 0) + divCash / bar.close
                 );
-                events.push({ date, label: source, perShare, cash: 0 });
+                events.push({
+                    date,
+                    label: source,
+                    perShare,
+                    cash: 0,
+                    gross: divCash,
+                });
             } else {
                 // close ≤ 0 guard: fallback to cash
                 cashDelta += divCash;
@@ -125,6 +132,7 @@ export function applyDividends(
                     label: source,
                     perShare,
                     cash: divCash,
+                    gross: divCash,
                     routedTo: 'cash',
                 });
             }
@@ -139,6 +147,7 @@ export function applyDividends(
                     label: source,
                     perShare,
                     cash: 0,
+                    gross: divCash,
                     routedTo: T,
                 });
             } else {
@@ -149,6 +158,7 @@ export function applyDividends(
                     label: source,
                     perShare,
                     cash: divCash,
+                    gross: divCash,
                     routedTo: 'cash',
                 });
             }

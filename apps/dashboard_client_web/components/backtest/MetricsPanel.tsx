@@ -14,16 +14,8 @@ interface MetricsPanelProps {
     hasContribution?: boolean;
     /** X2.14 — rebalance audit trail; absent = no rebalance section rendered. */
     rebalance?: BacktestResult['rebalance'];
-    /** X2-P2.11: full-span (synthetic) metrics for advisory display. */
-    fullMetrics?: BacktestMetrics;
-    /** X2-P2.11: synth metadata for R²/cap warnings. */
+    /** X2-P2.11: synth metadata for R²/cap warnings (shown when synth active). */
     synthMeta?: SynthBacktestMeta;
-    /**
-     * Which pass is the primary (headline) row when synth is active:
-     * 'real' = real-only (default), 'full' = selected-range synthetic-inclusive.
-     * The other pass renders as the dimmed advisory row.
-     */
-    basis?: 'real' | 'full';
 }
 
 function fmt$(v: number): string {
@@ -245,32 +237,13 @@ function SynthWarnings({ meta }: SynthWarningsProps) {
 
 // ── main component ────────────────────────────────────────────────────────────
 
-const REAL_LABEL = (realInception: string) =>
-    `실제 데이터 기준 (Real-only · ${realInception} 이후)`;
-const FULL_LABEL = '합성 포함 (선택 범위 · modeled synthetic history)';
-
 export default function MetricsPanel({
     metrics,
     riskFreeRate,
     hasContribution,
     rebalance,
-    fullMetrics,
     synthMeta,
-    basis = 'real',
 }: MetricsPanelProps) {
-    const isSynthActive = synthMeta !== undefined && fullMetrics !== undefined;
-
-    // Primary = the selected basis; advisory = the other pass (dimmed).
-    const showFullPrimary = isSynthActive && basis === 'full';
-    const primaryMetrics = showFullPrimary ? fullMetrics! : metrics;
-    const advisoryMetrics = showFullPrimary ? metrics : fullMetrics!;
-    const primaryLabel = showFullPrimary
-        ? FULL_LABEL
-        : REAL_LABEL(synthMeta?.realInception ?? '');
-    const advisoryLabel = showFullPrimary
-        ? REAL_LABEL(synthMeta?.realInception ?? '')
-        : FULL_LABEL;
-
     return (
         <section
             aria-label="Portfolio metrics"
@@ -278,33 +251,14 @@ export default function MetricsPanel({
         >
             <h2 className="text-sm font-semibold">Summary</h2>
 
-            {/* Primary headline row */}
-            {isSynthActive && (
-                <p className="text-xs font-medium text-foreground">
-                    {primaryLabel}
-                </p>
-            )}
             <MetricsGrid
-                metrics={primaryMetrics}
+                metrics={metrics}
                 riskFreeRate={riskFreeRate}
                 hasContribution={hasContribution}
             />
 
-            {/* Advisory row = the other pass (synth active only) */}
-            {isSynthActive && (
-                <div className="flex flex-col gap-1">
-                    <p className="text-xs text-muted-foreground">
-                        {advisoryLabel} — advisory only
-                    </p>
-                    <MetricsGrid
-                        metrics={advisoryMetrics}
-                        riskFreeRate={riskFreeRate}
-                        hasContribution={hasContribution}
-                        dim
-                    />
-                    {synthMeta && <SynthWarnings meta={synthMeta} />}
-                </div>
-            )}
+            {/* Synth reliability warnings (R² floor / horizon cap) when active. */}
+            {synthMeta && <SynthWarnings meta={synthMeta} />}
 
             {rebalance && <RebalanceSummary rebalance={rebalance} />}
         </section>
