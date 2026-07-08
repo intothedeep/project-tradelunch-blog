@@ -4,15 +4,10 @@ import { SITE_URL } from '@/env.schema';
 
 // sitemap.xml generator (Next.js 16 MetadataRoute.Sitemap).
 // Scope: BLOG CONTENT ONLY — the content statics (/, /blog, /about, /resume)
-// and every published post. The finance section (/rankings, /funds, /screener,
-// /symbols/[ticker], /politicians/[filerId], /funds/[cik]) is DELIBERATELY
-// EXCLUDED: those are the owner's personal analysis surfaces, not public
-// content, and enumerating them here (a) advertised thousands of DB-backed
-// detail URLs to crawlers and (b) made THIS file pull funds + top-1000 rankings
-// + up to 5000 politicians from Supabase on every (re)generation — a large
-// Supabase-egress source. De-indexing them (also robots.ts-disallowed) keeps
-// the free-tier egress budget for the blog. Re-add here only if a finance
-// surface is intentionally made public again.
+// and every published post. Finance now lives in a SEPARATE app/repo
+// (finance_web) that owns its own sitemap; nothing finance is enumerated here.
+// (Those DB-backed finance detail URLs were also a large Supabase-egress source,
+// so keeping them out of the blog sitemap protects the free-tier egress budget.)
 // Also excluded (unchanged): /dashboard*, /blog/@[username] author feeds
 // (owner canonicalized to `/`), /(feed)/tags/[tag], all auth/protected routes.
 // ISR: without `revalidate` this is a build-time static handler, so posts

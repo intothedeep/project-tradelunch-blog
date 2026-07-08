@@ -8,6 +8,8 @@ export default {
     testEnvironment: 'node',
     roots: ['<rootDir>/__tests__'],
     testMatch: ['**/*.test.ts'],
+    // x_ = soft-deleted (repo "rm -rf" convention); never collect x_ specs.
+    testPathIgnorePatterns: ['/node_modules/', '/x_'],
     moduleFileExtensions: ['ts', 'tsx', 'js', 'json', 'node'],
     moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/$1',
