@@ -158,39 +158,47 @@ export default function RebalancePolicyPanel({
                 </div>
             )}
 
-            {/* Band (drift threshold) */}
-            <div className="flex flex-wrap items-center gap-2 pl-6">
-                <span className="text-xs text-muted-foreground">
-                    허용 오차:
-                </span>
-                <select
-                    value={rb.band.kind}
-                    onChange={(e) =>
-                        updateBand({
-                            kind: e.target.value as 'absolute' | 'relative',
-                        })
-                    }
-                    className="rounded border border-border bg-background px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                    aria-label="Band kind"
-                >
-                    <option value="relative">상대 %</option>
-                    <option value="absolute">절대 %p</option>
-                </select>
-                <input
-                    type="number"
-                    min={0.1}
-                    max={50}
-                    step={0.5}
-                    value={rb.band.pct}
-                    onChange={(e) => {
-                        const v = Number(e.target.value);
-                        if (isFinite(v) && v > 0) updateBand({ pct: v });
-                    }}
-                    className="w-16 rounded border border-border bg-background px-2 py-0.5 text-xs tabular-nums focus:outline-none focus:ring-1 focus:ring-primary"
-                    aria-label="Band threshold %"
-                />
-                <span className="text-xs text-muted-foreground">%</span>
-            </div>
+            {/* Band (drift threshold) — unused while scheduleGate drives rebalancing
+                 (the gate does a full snap to targets, band-independent). */}
+            {rb.scheduleGate ? (
+                <p className="pl-6 text-xs text-muted-foreground">
+                    허용 오차 미사용 — 스케줄 조건 리밸런싱은 목표 비중으로 전체
+                    스냅합니다.
+                </p>
+            ) : (
+                <div className="flex flex-wrap items-center gap-2 pl-6">
+                    <span className="text-xs text-muted-foreground">
+                        허용 오차:
+                    </span>
+                    <select
+                        value={rb.band.kind}
+                        onChange={(e) =>
+                            updateBand({
+                                kind: e.target.value as 'absolute' | 'relative',
+                            })
+                        }
+                        className="rounded border border-border bg-background px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                        aria-label="Band kind"
+                    >
+                        <option value="relative">상대 %</option>
+                        <option value="absolute">절대 %p</option>
+                    </select>
+                    <input
+                        type="number"
+                        min={0.1}
+                        max={50}
+                        step={0.5}
+                        value={rb.band.pct}
+                        onChange={(e) => {
+                            const v = Number(e.target.value);
+                            if (isFinite(v) && v > 0) updateBand({ pct: v });
+                        }}
+                        className="w-16 rounded border border-border bg-background px-2 py-0.5 text-xs tabular-nums focus:outline-none focus:ring-1 focus:ring-primary"
+                        aria-label="Band threshold %"
+                    />
+                    <span className="text-xs text-muted-foreground">%</span>
+                </div>
+            )}
 
             {/* Triggers (delegated) */}
             <div className="pl-6">
