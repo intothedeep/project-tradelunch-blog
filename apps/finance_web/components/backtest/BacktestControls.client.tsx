@@ -7,6 +7,7 @@
 // Task A: Advanced section is gated to admin only (useMe isAdmin === true).
 // X2-P2.9: synthetic history toggle + base select + method selector (JEPQ only,
 //   admin-gated). Extracted to SynthControls.client.tsx (Wave-C LOC cleanup).
+// Draft/Apply: all edits go to local draft state; Apply commits to URL in one batch.
 
 import { useState } from 'react';
 import type {
@@ -16,7 +17,8 @@ import type {
     PricePoint,
 } from '@/types/backtest';
 import { useMe } from '@/hooks/useMe.query.client';
-import type { SynthUrlState } from '@/hooks/useBacktestUrl.hook';
+import { useBacktestDraft } from '@/hooks/useBacktestDraft.hook';
+import type { BacktestUrlState, SynthUrlState } from '@/hooks/useBacktestUrl.hook';
 import BudgetInput from './BudgetInput';
 import AssetPicker from './AssetPicker.client';
 import WeightSliders from './WeightSliders.client';
@@ -29,57 +31,52 @@ import HoldingAdvancedControls from './HoldingAdvancedControls.client';
 import SynthControls from './SynthControls.client';
 
 interface BacktestControlsProps {
-    budget: number;
-    holdings: Holding[];
-    from: string;
-    to: string;
-    seed: number;
-    contribution: ContributionPlan | undefined;
+    committed: BacktestUrlState;
     seriesFirstDate: Record<string, string>;
     ixicSeries: PricePoint[];
     ndxSeries: PricePoint[];
     minAllowedFrom: string;
-    rebalance: RebalancePolicy | undefined;
-    manualFlows: { date: string; amount: number }[] | undefined;
-    synth: SynthUrlState | undefined;
-    setBudget: (v: number) => void;
-    setHoldings: (v: Holding[]) => void;
-    setRange: (from: string, to: string) => void;
-    setContribution: (plan: ContributionPlan | undefined) => void;
-    setSeed: (v: number) => void;
-    setRebalance: (policy: RebalancePolicy | undefined) => void;
-    setManualFlows: (
-        flows: { date: string; amount: number }[] | undefined
-    ) => void;
-    setSynth: (s: SynthUrlState | undefined) => void;
-    onBudgetValidChange: (valid: boolean) => void;
+    onCommit: (next: BacktestUrlState) => void;
 }
 
 export default function BacktestControls({
-    budget,
-    holdings,
-    from,
-    to,
-    seed,
-    contribution,
+    committed,
     seriesFirstDate,
     ixicSeries,
     ndxSeries,
     minAllowedFrom,
-    rebalance,
-    manualFlows,
-    synth,
-    setBudget,
-    setHoldings,
-    setRange,
-    setContribution,
-    setSeed,
-    setRebalance,
-    setManualFlows,
-    setSynth,
-    onBudgetValidChange,
+    onCommit,
 }: BacktestControlsProps) {
     const [showAdvanced, setShowAdvanced] = useState(false);
+    const [budgetValid, setBudgetValid] = useState(true);
+
+    // Draft state: editing touches local state only; Apply commits to URL.
+    const {
+        draft,
+        dirty,
+        reset,
+        setBudget,
+        setHoldings,
+        setRange,
+        setContribution,
+        setSeed,
+        setRebalance,
+        setManualFlows,
+        setSynth,
+    } = useBacktestDraft(committed);
+
+    const {
+        budget,
+        holdings,
+        from,
+        to,
+        seed,
+        contribution,
+        rebalance,
+        manualFlows,
+        synth,
+    } = draft;
+
     // useMe returns {data: undefined} when Clerk is not loaded, signed-out,
     // or the query hasn't resolved. isAdmin is only true when explicitly set.
     const { data: me } = useMe();
@@ -100,6 +97,11 @@ export default function BacktestControls({
     const groupIds = rebalance?.groups.map((g) => g.id) ?? [];
     const labels = holdings.map((h) => h.label);
 
+    const weightsValid =
+        Math.round(holdings.reduce((s, h) => s + h.weightPct, 0)) === 100;
+
+    const canApply = dirty && budgetValid && weightsValid;
+
     function updateHolding(label: string, patch: Partial<Holding>) {
         setHoldings(
             holdings.map((h) => (h.label === label ? { ...h, ...patch } : h))
@@ -115,12 +117,38 @@ export default function BacktestControls({
             aria-label="Backtest controls"
             className="flex flex-col gap-4 rounded-lg border bg-card p-4"
         >
+            {/* ── Apply / Reset bar ──────────────────────────────────────────── */}
+            {dirty && (
+                <div className="sticky top-0 z-10 flex items-center gap-2 rounded-md border border-border bg-card/95 px-3 py-2 backdrop-blur-sm">
+                    <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                        미적용 변경 있음
+                    </span>
+                    <div className="ml-auto flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={reset}
+                            className="rounded px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors border border-border"
+                        >
+                            되돌리기
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onCommit(draft)}
+                            disabled={!canApply}
+                            className="rounded bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground transition-opacity disabled:opacity-40"
+                        >
+                            적용
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* ── Basic controls ─────────────────────────────────────────────── */}
             <BudgetInput
                 value={budget}
                 onChange={(v, valid) => {
                     setBudget(v);
-                    onBudgetValidChange(valid);
+                    setBudgetValid(valid);
                 }}
             />
             <AssetPicker

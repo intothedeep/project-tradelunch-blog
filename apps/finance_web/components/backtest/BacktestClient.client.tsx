@@ -4,8 +4,10 @@
 // Orchestrator: URL state → price fetch → backtest engine → results.
 // X2-P2b.12: cmp mode — ComparisonPanel + dual synth lines in ResultChart.
 // Wave-C LOC: 5 memos extracted to useBacktestStats; SynthControls extracted.
+// Draft/Apply: BacktestControls owns draft state; engine + results read
+// COMMITTED (URL) state only and recompute exclusively on Apply.
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useBacktestUrl } from '@/hooks/useBacktestUrl.hook';
 import { useSyntheticBacktest } from '@/hooks/useSyntheticBacktest.hook';
 import { useBacktestStats } from '@/hooks/useBacktestStats.hook';
@@ -14,6 +16,7 @@ import { getPriceSeriesAction } from '@/app/actions/getPriceSeries.action';
 import { toSeriesByLabel } from '@/utils/backtest/seriesMapper';
 import type { TPriceSeriesResponse } from '@/apis/getPriceSeries.api';
 import type { PricePoint } from '@/types/backtest';
+import type { BacktestUrlState } from '@/hooks/useBacktestUrl.hook';
 import BacktestControls from './BacktestControls.client';
 import MetricsPanel from './MetricsPanel';
 import ResultChart from './ResultChart.client';
@@ -38,17 +41,10 @@ type ResultView = 'chart' | 'table';
 export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
     const [
         urlState,
-        {
-            setBudget,
-            setHoldings,
-            setRange,
-            setContribution,
-            setSeed,
-            setRebalance,
-            setManualFlows,
-            setSynth,
-        },
+        { commitAll },
     ] = useBacktestUrl();
+
+    // All engine + result rendering reads COMMITTED (URL) values.
     const {
         budget,
         holdings,
@@ -61,7 +57,6 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
         synth,
     } = urlState;
 
-    const [budgetValid, setBudgetValid] = useState(true);
     const [seriesData, setSeriesData] = useState<Record<string, PricePoint[]>>(
         mockedSeries ? toSeriesByLabel(mockedSeries) : {}
     );
@@ -113,6 +108,10 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
             .finally(() => setLoading(false));
     }, [labelsKey, mockedSeries]);
 
+    // Engine is ready when seriesData is present. Committed budget is always
+    // valid (validated before Apply); no separate budgetValid gate needed.
+    const engineReady = Object.keys(seriesData).length > 0;
+
     const {
         result,
         displaySeriesData,
@@ -136,7 +135,7 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
         contribution,
         rebalance,
         manualFlows,
-        budgetValid
+        engineReady
     );
 
     useEffect(() => {
@@ -159,8 +158,10 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
     const leveragedSelected = holdings
         .filter((h) => LEVERAGED_LABELS.has(h.label))
         .map((h) => h.label);
+
     const weightsValid =
         Math.round(holdings.reduce((s, h) => s + h.weightPct, 0)) === 100;
+
     const { monthlyRows, assetPrices, assetWeights, assetShares, yearlyRows } =
         useBacktestStats(result, displaySeriesData, holdings, from, to, budget);
     const isCmp =
@@ -170,31 +171,21 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
         !!cmpRegMeta &&
         !!cmpStrMeta;
 
+    // Stable callback so BacktestControls never re-renders due to onCommit identity change.
+    const handleCommit = useCallback(
+        (next: BacktestUrlState) => commitAll(next),
+        [commitAll]
+    );
+
     return (
         <div className="flex flex-col gap-6">
             <BacktestControls
-                budget={budget}
-                holdings={holdings}
-                from={from}
-                to={to}
-                seed={seed}
-                contribution={contribution}
+                committed={urlState}
                 seriesFirstDate={seriesFirstDate}
                 ixicSeries={refSeries['^IXIC'] ?? []}
                 ndxSeries={refSeries['^NDX'] ?? []}
                 minAllowedFrom={minAllowedFrom}
-                rebalance={rebalance}
-                manualFlows={manualFlows}
-                synth={synth}
-                setBudget={setBudget}
-                setHoldings={setHoldings}
-                setRange={setRange}
-                setContribution={setContribution}
-                setSeed={setSeed}
-                setRebalance={setRebalance}
-                setManualFlows={setManualFlows}
-                setSynth={setSynth}
-                onBudgetValidChange={setBudgetValid}
+                onCommit={handleCommit}
             />
             <LeverageWarning labels={leveragedSelected} />
             {loading && (
