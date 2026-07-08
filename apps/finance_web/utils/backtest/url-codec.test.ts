@@ -1,5 +1,6 @@
 // utils/backtest/url-codec.test.ts
 // Acceptance tests for X2.11 URL codec (rb=, mf=, assets= trailing fields).
+// Per-source weight additions: dcaPct (:dN), divPct (:vN), byDcaWeight (dw), drw flag.
 
 import { describe, it, expect } from 'vitest';
 import {
@@ -11,6 +12,8 @@ import {
     decodeRebalance,
     encodeManualFlows,
     decodeManualFlows,
+    encodeDrw,
+    decodeDrw,
 } from './url-codec';
 import type {
     Holding,
@@ -298,5 +301,239 @@ describe('malformed input — graceful degradation', () => {
 
     it('decodeContribution: zero amount → undefined', () => {
         expect(decodeContribution('0:monthly')).toBeUndefined();
+    });
+});
+
+// ── (e) Per-source weight fields (dcaPct / divPct) ───────────────────────────
+
+describe('holdings dcaPct / divPct keyed tokens', () => {
+    it('round-trips dcaPct (keyed :dN token)', () => {
+        const holdings: Holding[] = [
+            {
+                label: 'QQQ',
+                weightPct: 60,
+                dividendRoute: { kind: 'cash' },
+                dcaPct: 70,
+            },
+            { label: 'JEPQ', weightPct: 40, dividendRoute: { kind: 'same' } },
+        ];
+        const encoded = encodeHoldings(holdings);
+        // Must contain :d70 suffix for QQQ
+        expect(encoded).toContain(':d70');
+        const decoded = decodeHoldings(encoded);
+        expect(decoded?.[0]?.dcaPct).toBe(70);
+        expect(decoded?.[1]?.dcaPct).toBeUndefined();
+    });
+
+    it('round-trips divPct (keyed :vN token)', () => {
+        const holdings: Holding[] = [
+            {
+                label: 'QQQ',
+                weightPct: 60,
+                dividendRoute: { kind: 'cash' },
+                divPct: 25,
+            },
+            {
+                label: 'JEPQ',
+                weightPct: 40,
+                dividendRoute: { kind: 'same' },
+                divPct: 75,
+            },
+        ];
+        const encoded = encodeHoldings(holdings);
+        expect(encoded).toContain(':v25');
+        expect(encoded).toContain(':v75');
+        const decoded = decodeHoldings(encoded);
+        expect(decoded?.[0]?.divPct).toBe(25);
+        expect(decoded?.[1]?.divPct).toBe(75);
+    });
+
+    it('round-trips both dcaPct and divPct on same holding', () => {
+        const holdings: Holding[] = [
+            {
+                label: 'QQQ',
+                weightPct: 60,
+                dividendRoute: { kind: 'cash' },
+                dcaPct: 30,
+                divPct: 45,
+            },
+        ];
+        const decoded = decodeHoldings(encodeHoldings(holdings));
+        expect(decoded?.[0]?.dcaPct).toBe(30);
+        expect(decoded?.[0]?.divPct).toBe(45);
+    });
+
+    it('REGRESSION: legacy positional tail is byte-identical (no d/v on re-encode)', () => {
+        // A legacy string with full positional tail (segs 0–6) and NO dcaPct/divPct
+        const legacy = 'QQQ:60:cash,JEPQ:40:same';
+        const decoded = decodeHoldings(legacy);
+        // Decoded holding must have no dcaPct/divPct
+        expect(decoded?.[0]?.dcaPct).toBeUndefined();
+        expect(decoded?.[1]?.dcaPct).toBeUndefined();
+        // Re-encoding must produce the exact same string
+        const reEncoded = encodeHoldings(decoded!);
+        expect(reEncoded).toBe(legacy);
+    });
+
+    it('REGRESSION: positional tail with canSell=false + no dcaPct stays clean', () => {
+        const holdings: Holding[] = [
+            {
+                label: 'QQQ',
+                weightPct: 60,
+                dividendRoute: { kind: 'cash' },
+                canSell: false,
+            },
+        ];
+        const encoded = encodeHoldings(holdings);
+        const decoded = decodeHoldings(encoded);
+        expect(decoded?.[0]?.canSell).toBe(false);
+        expect(decoded?.[0]?.dcaPct).toBeUndefined();
+        expect(decoded?.[0]?.divPct).toBeUndefined();
+        // Re-encode matches original
+        expect(encodeHoldings(decoded!)).toBe(encoded);
+    });
+
+    // ── H1 regression: groupId starting with 'd' or 'v' must not collide ────
+
+    it('H1: groupId="d5" round-trips byte-identical (no dcaPct/divPct)', () => {
+        const holdings: Holding[] = [
+            {
+                label: 'QQQ',
+                weightPct: 60,
+                dividendRoute: { kind: 'cash' },
+                groupId: 'd5',
+            },
+        ];
+        const encoded = encodeHoldings(holdings);
+        const decoded = decodeHoldings(encoded);
+        expect(decoded?.[0]?.groupId).toBe('d5');
+        expect(decoded?.[0]?.dcaPct).toBeUndefined();
+        // Round-trip is byte-identical
+        expect(encodeHoldings(decoded!)).toBe(encoded);
+    });
+
+    it('H1: groupId="v2" round-trips byte-identical (no dcaPct/divPct)', () => {
+        const holdings: Holding[] = [
+            {
+                label: 'QQQ',
+                weightPct: 60,
+                dividendRoute: { kind: 'cash' },
+                groupId: 'v2',
+            },
+        ];
+        const encoded = encodeHoldings(holdings);
+        const decoded = decodeHoldings(encoded);
+        expect(decoded?.[0]?.groupId).toBe('v2');
+        expect(decoded?.[0]?.divPct).toBeUndefined();
+        expect(encodeHoldings(decoded!)).toBe(encoded);
+    });
+
+    it('H1: dcaPct=70 + groupId="G1" round-trips (groupId preserved, dcaPct=70)', () => {
+        const holdings: Holding[] = [
+            {
+                label: 'QQQ',
+                weightPct: 60,
+                dividendRoute: { kind: 'cash' },
+                dcaPct: 70,
+                groupId: 'G1',
+            },
+        ];
+        const encoded = encodeHoldings(holdings);
+        const decoded = decodeHoldings(encoded);
+        expect(decoded?.[0]?.groupId).toBe('G1');
+        expect(decoded?.[0]?.dcaPct).toBe(70);
+        expect(encodeHoldings(decoded!)).toBe(encoded);
+    });
+
+    it('H1: dcaPct + divPct + full positional tail round-trips', () => {
+        const holdings: Holding[] = [
+            {
+                label: 'QQQ',
+                weightPct: 60,
+                dividendRoute: { kind: 'cash' },
+                canSell: false,
+                sellPriority: 1,
+                groupId: 'equity',
+                groupWeightPct: 70,
+                dcaPct: 40,
+                divPct: 30,
+            },
+        ];
+        const encoded = encodeHoldings(holdings);
+        const decoded = decodeHoldings(encoded);
+        expect(decoded?.[0]?.canSell).toBe(false);
+        expect(decoded?.[0]?.sellPriority).toBe(1);
+        expect(decoded?.[0]?.groupId).toBe('equity');
+        expect(decoded?.[0]?.groupWeightPct).toBe(70);
+        expect(decoded?.[0]?.dcaPct).toBe(40);
+        expect(decoded?.[0]?.divPct).toBe(30);
+        expect(encodeHoldings(decoded!)).toBe(encoded);
+    });
+});
+
+// ── (f) byDcaWeight route (`dw` token) ───────────────────────────────────────
+
+describe('ContributionPlan byDcaWeight route', () => {
+    it('encodes byDcaWeight as dw token', () => {
+        const plan: ContributionPlan = {
+            amount: 500,
+            freq: 'monthly',
+            route: { kind: 'byDcaWeight' },
+        };
+        expect(encodeContribution(plan)).toBe('500:monthly:dw');
+    });
+
+    it('decodes dw token as byDcaWeight', () => {
+        const decoded = decodeContribution('500:monthly:dw');
+        expect(decoded?.route).toEqual({ kind: 'byDcaWeight' });
+    });
+
+    it('round-trips byDcaWeight', () => {
+        const plan: ContributionPlan = {
+            amount: 1000,
+            freq: 'yearly',
+            route: { kind: 'byDcaWeight' },
+        };
+        const decoded = decodeContribution(encodeContribution(plan));
+        expect(decoded).toEqual(plan);
+    });
+
+    it('REGRESSION: legacy dca=500:monthly decodes byte-identical (no route)', () => {
+        const decoded = decodeContribution('500:monthly');
+        expect(decoded?.route).toBeUndefined();
+        expect(decoded?.amount).toBe(500);
+        expect(decoded?.freq).toBe('monthly');
+        // Re-encode must be identical
+        expect(encodeContribution(decoded!)).toBe('500:monthly');
+    });
+
+    it('REGRESSION: asset route dca=500:monthly:asset:VOO still works', () => {
+        const decoded = decodeContribution('500:monthly:asset:VOO');
+        expect(decoded?.route).toEqual({ kind: 'asset', target: 'VOO' });
+        expect(encodeContribution(decoded!)).toBe('500:monthly:asset:VOO');
+    });
+});
+
+// ── (g) drw flag ─────────────────────────────────────────────────────────────
+
+describe('dividendReinvestByWeight flag (drw)', () => {
+    it('encodeDrw(true) → "1"', () => {
+        expect(encodeDrw(true)).toBe('1');
+    });
+
+    it('encodeDrw(false) → null', () => {
+        expect(encodeDrw(false)).toBeNull();
+    });
+
+    it('decodeDrw("1") → true', () => {
+        expect(decodeDrw('1')).toBe(true);
+    });
+
+    it('decodeDrw(null) → false', () => {
+        expect(decodeDrw(null)).toBe(false);
+    });
+
+    it('decodeDrw("0") → false', () => {
+        expect(decodeDrw('0')).toBe(false);
     });
 });

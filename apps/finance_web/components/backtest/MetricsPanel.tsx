@@ -12,11 +12,17 @@ interface MetricsPanelProps {
     budget: number;
     riskFreeRate: number;
     hasContribution?: boolean;
+    /** Portfolio value at the start of the range (first timeline bar). */
+    initialValue?: number;
+    /** Backtest span in years — used to discount Final Value to present value. */
+    years?: number;
+    /** User-chosen annual inflation rate (percent) for the PV discount. */
+    inflationPct?: number;
+    /** Setter for the inflation rate; when present the PV control is shown. */
+    onInflationChange?: (pct: number) => void;
     /** X2.14 — rebalance audit trail; absent = no rebalance section rendered. */
     rebalance?: BacktestResult['rebalance'];
-    /** X2-P2.11: full-span (synthetic) metrics for advisory display. */
-    fullMetrics?: BacktestMetrics;
-    /** X2-P2.11: synth metadata for R²/cap warnings. */
+    /** X2-P2.11: synth metadata for R²/cap warnings (shown when synth active). */
     synthMeta?: SynthBacktestMeta;
 }
 
@@ -63,6 +69,10 @@ interface MetricsGridProps {
     metrics: BacktestMetrics;
     riskFreeRate: number;
     hasContribution?: boolean;
+    /** Portfolio value at the start of the range (first timeline bar). */
+    initialValue?: number;
+    /** Inflation-discounted final value (present value in start-date dollars). */
+    presentValue?: number;
     dim?: boolean;
 }
 
@@ -70,6 +80,8 @@ function MetricsGrid({
     metrics,
     riskFreeRate,
     hasContribution,
+    initialValue,
+    presentValue,
     dim,
 }: MetricsGridProps) {
     const {
@@ -86,7 +98,14 @@ function MetricsGrid({
     const profit = finalValue - totalContributed;
 
     return (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-2">
+            {initialValue !== undefined && (
+                <Card
+                    label="시작 평가액"
+                    value={fmt$(initialValue)}
+                    dim={dim}
+                />
+            )}
             <Card
                 label="Final Value"
                 value={fmt$(finalValue)}
@@ -94,6 +113,13 @@ function MetricsGrid({
                 negative={profit < 0}
                 dim={dim}
             />
+            {presentValue !== undefined && (
+                <Card
+                    label="현재가치 (PV)"
+                    value={fmt$(presentValue)}
+                    dim={dim}
+                />
+            )}
             <Card
                 label="Total Invested"
                 value={fmt$(totalContributed)}
@@ -243,48 +269,61 @@ export default function MetricsPanel({
     metrics,
     riskFreeRate,
     hasContribution,
+    initialValue,
+    years,
+    inflationPct,
+    onInflationChange,
     rebalance,
-    fullMetrics,
     synthMeta,
 }: MetricsPanelProps) {
-    const isSynthActive = synthMeta !== undefined && fullMetrics !== undefined;
+    // Present value = Final Value discounted by the chosen annual inflation over
+    // the backtest span (real value in start-date purchasing power).
+    // NOTE: inflation is a manual user input for now. Future: collect a CPI
+    // series (e.g. FRED CPIAUCSL) via stock_collector and derive real PV from
+    // actual CPI, keeping this manual % as a fallback. See 00.tasks.md backlog.
+    const presentValue =
+        years !== undefined && years > 0 && inflationPct !== undefined
+            ? metrics.finalValue / Math.pow(1 + inflationPct / 100, years)
+            : undefined;
 
     return (
         <section
             aria-label="Portfolio metrics"
             className="flex flex-col gap-3"
         >
-            <h2 className="text-sm font-semibold">Summary</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold">Summary</h2>
+                {onInflationChange && (
+                    <label className="flex items-center gap-1 text-xs text-muted-foreground">
+                        인플레이션
+                        <input
+                            type="number"
+                            min={0}
+                            max={20}
+                            step={0.5}
+                            value={inflationPct ?? 0}
+                            onChange={(e) => {
+                                const v = Number(e.target.value);
+                                if (isFinite(v) && v >= 0) onInflationChange(v);
+                            }}
+                            className="w-14 rounded border border-border bg-background px-1.5 py-0.5 text-xs tabular-nums focus:outline-none focus:ring-1 focus:ring-primary"
+                            aria-label="Annual inflation % for present value"
+                        />
+                        %/년 → 현재가치
+                    </label>
+                )}
+            </div>
 
-            {/* Real-only headline (always the primary row) */}
-            {isSynthActive && (
-                <p className="text-xs font-medium text-foreground">
-                    실제 데이터 기준 (Real-only · {synthMeta!.realInception}{' '}
-                    이후)
-                </p>
-            )}
             <MetricsGrid
                 metrics={metrics}
                 riskFreeRate={riskFreeRate}
                 hasContribution={hasContribution}
+                initialValue={initialValue}
+                presentValue={presentValue}
             />
 
-            {/* Full-span advisory row (synth active only) */}
-            {isSynthActive && (
-                <div className="flex flex-col gap-1">
-                    <p className="text-xs text-muted-foreground">
-                        합성 포함 (modeled · full synthetic span — advisory
-                        only)
-                    </p>
-                    <MetricsGrid
-                        metrics={fullMetrics!}
-                        riskFreeRate={riskFreeRate}
-                        hasContribution={hasContribution}
-                        dim
-                    />
-                    {synthMeta && <SynthWarnings meta={synthMeta} />}
-                </div>
-            )}
+            {/* Synth reliability warnings (R² floor / horizon cap) when active. */}
+            {synthMeta && <SynthWarnings meta={synthMeta} />}
 
             {rebalance && <RebalanceSummary rebalance={rebalance} />}
         </section>

@@ -14,6 +14,7 @@ import type {
 } from '@/types/backtest';
 import { investCash } from './invest';
 import { applyDividends } from './dividends';
+import { reinvestDividendPool } from './dividend-pool';
 import { buildInitialState } from './initial-state';
 import { rebalanceIfDue } from './rebalance';
 import { splitAdjustDividends } from './split-adjust';
@@ -98,6 +99,7 @@ export function runBacktest(input: BacktestInput): BacktestResult {
         lastRebalanceDate: null,
         events: [],
         warnings: [],
+        armedRebalance: false,
     };
 
     // ── Manual flows map (X2.18) ──────────────────────────────────────────────
@@ -113,6 +115,16 @@ export function runBacktest(input: BacktestInput): BacktestResult {
     const dividendsByLabel = new Map<string, number>();
     const flowsByDate = new Map<string, number>(); // net inflow per date (Modified-Dietz)
     for (const h of holdings) dividendsByLabel.set(h.label, 0);
+
+    // Per-asset purchase ledger (dividend reinvest + contribution/deposit buys).
+    // Excludes the initial lump-sum (invested in buildInitialState, not here).
+    const purchasesByDate = new Map<string, Record<string, number>>();
+    const addBuy = (date: string, label: string, usd: number) => {
+        if (usd <= 0) return;
+        const row = purchasesByDate.get(date) ?? {};
+        row[label] = (row[label] ?? 0) + usd;
+        purchasesByDate.set(date, row);
+    };
 
     for (const date of sortedDates) {
         // NOTE: `close` is SPLIT-ADJUSTED at source (Yahoo splits-adjusts OHLC
@@ -132,6 +144,28 @@ export function runBacktest(input: BacktestInput): BacktestResult {
             dividendsByLabel.set(lbl, (dividendsByLabel.get(lbl) ?? 0) + amt);
         }
         dividendSchedule.push(...events);
+        // Reinvested dividends (cash === 0) are buys into routedTo (cross-asset)
+        // or the source label (same-asset DRIP, routedTo undefined).
+        for (const ev of events) {
+            if (ev.cash === 0) addBuy(date, ev.routedTo ?? ev.label, ev.gross);
+        }
+
+        // 1b. Pooled dividend reinvestment (dividendReinvestByWeight flag).
+        // cashDelta is the cash-routed portion produced by applyDividends above.
+        // same/asset DividendRoutes produce cashDelta=0 (already reinvested) —
+        // only the cash-routed slice is pooled here.
+        if (input.dividendReinvestByWeight && cashDelta > 0) {
+            const residual = reinvestDividendPool(
+                date,
+                cashDelta,
+                holdings,
+                dateIndexes,
+                shares,
+                (lbl, usd) => addBuy(date, lbl, usd)
+            );
+            // Only the reinvested portion leaves cash; residual stays as cash.
+            cash -= cashDelta - residual;
+        }
 
         // 2. Contribution buy (after dividends → new cash skips today's dividend)
         if (contribution && contributionDates.has(date)) {
@@ -141,7 +175,8 @@ export function runBacktest(input: BacktestInput): BacktestResult {
                 holdings,
                 dateIndexes,
                 shares,
-                contribution.route
+                contribution.route,
+                (lbl, usd) => addBuy(date, lbl, usd)
             );
             totalContributed += contribution.amount;
             flowsByDate.set(
@@ -162,7 +197,8 @@ export function runBacktest(input: BacktestInput): BacktestResult {
                     holdings,
                     dateIndexes,
                     shares,
-                    contribution?.route
+                    contribution?.route,
+                    (lbl, usd) => addBuy(date, lbl, usd)
                 );
                 cash += residual;
                 totalContributed += manualAmt;
@@ -236,10 +272,17 @@ export function runBacktest(input: BacktestInput): BacktestResult {
 
     if (timeline.length === 0) return buildEmptyResult(budget);
 
+    // Map insertion order follows the walk (ascending dates) → already sorted.
+    const perAssetPurchases = Array.from(purchasesByDate, ([date, buys]) => ({
+        date,
+        buys,
+    }));
+
     return assembleBacktestResult({
         budget,
         timeline,
         perHoldingValuesSeries,
+        perAssetPurchases,
         sortedDates,
         flowsByDate,
         holdings,

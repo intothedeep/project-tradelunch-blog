@@ -86,6 +86,7 @@ function buildRegSplice(cfg: SynthPassesConfig): SpliceOut | null {
             seed: cfg.backtestInput.seed,
             method: 'reg',
             shortLabel: cfg.shortLabel,
+            fullSpan: true,
         });
         if (res.points.length === 0) return null;
         const spliced = [...res.points, ...cfg.shortSeries];
@@ -114,6 +115,7 @@ function buildStrSplice(cfg: SynthPassesConfig): SpliceOut | null {
             volVxn: cfg.volVxn,
             volVix: cfg.volVix,
             riskFreeRate: cfg.riskFreeRate,
+            fullSpan: true,
         });
         if (res.points.length === 0) return null;
         const spliced = [...res.points, ...cfg.shortSeries];

@@ -42,11 +42,16 @@ function encodeSynthOrNull(v: SynthUrlState | undefined): string {
     return v ? encodeSynth(v) : '';
 }
 
-function isDirty(draft: BacktestUrlState, committed: BacktestUrlState): boolean {
+function isDirty(
+    draft: BacktestUrlState,
+    committed: BacktestUrlState
+): boolean {
     if (draft.budget !== committed.budget) return true;
     if (draft.from !== committed.from) return true;
     if (draft.to !== committed.to) return true;
     if (draft.seed !== committed.seed) return true;
+    if (draft.dividendReinvestByWeight !== committed.dividendReinvestByWeight)
+        return true;
     if (encodeHoldings(draft.holdings) !== encodeHoldings(committed.holdings))
         return true;
     if (
@@ -85,6 +90,7 @@ export interface BacktestDraftActions {
         flows: { date: string; amount: number }[] | undefined
     ) => void;
     setSynth: (s: SynthUrlState | undefined) => void;
+    setDividendReinvestByWeight: (v: boolean) => void;
 }
 
 export function useBacktestDraft(
@@ -94,11 +100,7 @@ export function useBacktestDraft(
 
     const dirty = useMemo(() => isDirty(draft, committed), [draft, committed]);
 
-    const reset = useCallback(
-        () => setDraft(committed),
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [committed]
-    );
+    const reset = useCallback(() => setDraft(committed), [committed]);
 
     const setBudget = useCallback(
         (v: number) => setDraft((d) => ({ ...d, budget: v })),
@@ -135,6 +137,11 @@ export function useBacktestDraft(
         (s: SynthUrlState | undefined) => setDraft((d) => ({ ...d, synth: s })),
         []
     );
+    const setDividendReinvestByWeight = useCallback(
+        (v: boolean) =>
+            setDraft((d) => ({ ...d, dividendReinvestByWeight: v })),
+        []
+    );
 
     return {
         draft,
@@ -148,5 +155,6 @@ export function useBacktestDraft(
         setRebalance,
         setManualFlows,
         setSynth,
+        setDividendReinvestByWeight,
     };
 }

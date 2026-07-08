@@ -11,10 +11,15 @@ import type { ContributionRoute, Holding, PricePoint } from '@/types/backtest';
  *
  * @param route - How to allocate the cash. Defaults to byWeight (legacy behaviour).
  *   byWeight: spread proportionally by holding.weightPct (original behaviour — identical output).
+ *   byDcaWeight: spread proportionally by holding.dcaPct (falls back to weightPct when blank).
  *   {kind:'asset',target}: ALL cash → one named label.
  *
  * Returns any residual cash that could not be invested because no price bar
  * was available at `date` for that holding.
+ *
+ * @param onBuy - optional per-asset buy recorder, invoked with (label, usd) for
+ *   each portion actually deployed into shares. Used to build the per-asset
+ *   purchase ledger; omit for the initial lump-sum so it is excluded.
  */
 export function investCash(
     date: string,
@@ -22,7 +27,8 @@ export function investCash(
     holdings: Holding[],
     dateIndexes: Map<string, Map<string, PricePoint>>,
     shares: Map<string, number>,
-    route?: ContributionRoute
+    route?: ContributionRoute,
+    onBuy?: (label: string, usd: number) => void
 ): number {
     // Default: byWeight (original behaviour — byte-identical when route is absent)
     if (route === undefined || route.kind === 'byWeight') {
@@ -35,6 +41,26 @@ export function investCash(
                     h.label,
                     (shares.get(h.label) ?? 0) + alloc / bar.close
                 );
+                onBuy?.(h.label, alloc);
+            } else {
+                residual += alloc;
+            }
+        }
+        return residual;
+    }
+
+    // byDcaWeight: spread by dcaPct, fall back to weightPct when blank
+    if (route.kind === 'byDcaWeight') {
+        let residual = 0;
+        for (const h of holdings) {
+            const alloc = amount * ((h.dcaPct ?? h.weightPct) / 100);
+            const bar = dateIndexes.get(h.label)?.get(date);
+            if (bar && bar.close > 0) {
+                shares.set(
+                    h.label,
+                    (shares.get(h.label) ?? 0) + alloc / bar.close
+                );
+                onBuy?.(h.label, alloc);
             } else {
                 residual += alloc;
             }
@@ -47,6 +73,7 @@ export function investCash(
     const bar = dateIndexes.get(target)?.get(date);
     if (bar && bar.close > 0) {
         shares.set(target, (shares.get(target) ?? 0) + amount / bar.close);
+        onBuy?.(target, amount);
         return 0;
     }
     // Target has no bar today → all residual

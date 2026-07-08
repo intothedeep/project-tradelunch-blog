@@ -13,8 +13,11 @@ export interface MonthlyStatRow {
     monthReturnPct: number; // endValue / prevEndValue - 1 (first row vs start)
     cumulativeReturnPct: number; // endValue / firstValue - 1
     drawdownPct: number; // endValue / runningPeak - 1 (≤ 0)
-    dividendCash: number; // sum of schedule.cash in month (DRIP cash:0 excluded)
+    dividendCash: number; // sum of schedule.gross in month (DRIP gross included via T1)
     cumulativeDividend: number; // running total of dividendCash
+    /** label → summed per-share dividend that month (events with perShare>0 only).
+     *  Shown as a 2nd line under 당월 배당. Absent when no asset paid that month. */
+    dividendPerShare?: Record<string, number>;
     contribution?: number; // present only when flowsByDate given (DCA)
     totalInvestedToDate?: number; // running sum of contributions + budget
 }
@@ -41,16 +44,50 @@ export interface MonthlyAssetShares {
     sharesByMonth: Record<string, Record<string, number>>;
 }
 
+/** Per-asset monthly USD deployed into new shares (FLOW, not stock). */
+export interface MonthlyAssetPurchases {
+    /** Union of asset labels seen across all purchase entries. */
+    labels: string[];
+    /**
+     * purchasesByMonth['YYYY-MM'][label] = USD bought into that label that month.
+     * Sums all buys within a month (not last-entry-wins). Only months with ≥1 buy.
+     */
+    purchasesByMonth: Record<string, Record<string, number>>;
+}
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-/** Pre-aggregate dividend cash by 'YYYY-MM'. DRIP events (cash: 0) sum to 0 naturally. */
+/**
+ * Pre-aggregate dividend gross value by 'YYYY-MM'.
+ * T1: uses ev.gross (set on every event) with ev.cash fallback for backward-compat.
+ * This makes DRIP events (cash:0) still contribute their reinvested gross amount.
+ */
 function buildDivByMonth(
     schedule: BacktestResult['dividends']['schedule']
 ): Map<string, number> {
     const out = new Map<string, number>();
     for (const ev of schedule) {
         const mo = ev.date.slice(0, 7);
-        out.set(mo, (out.get(mo) ?? 0) + ev.cash);
+        out.set(mo, (out.get(mo) ?? 0) + (ev.gross ?? ev.cash));
+    }
+    return out;
+}
+
+/**
+ * Per-asset summed per-share dividend by 'YYYY-MM' (events with perShare > 0).
+ * A high-yield asset paying nothing in a month simply won't appear — which also
+ * makes a missing/zeroed recent-month dividend visible in the UI.
+ */
+function buildDivPerShareByMonth(
+    schedule: BacktestResult['dividends']['schedule']
+): Map<string, Record<string, number>> {
+    const out = new Map<string, Record<string, number>>();
+    for (const ev of schedule) {
+        if (!(ev.perShare > 0)) continue;
+        const mo = ev.date.slice(0, 7);
+        const row = out.get(mo) ?? {};
+        row[ev.label] = (row[ev.label] ?? 0) + ev.perShare;
+        out.set(mo, row);
     }
     return out;
 }
@@ -84,6 +121,7 @@ export function buildMonthlyStats(
 
     // Pre-aggregate dividends and flows by month.
     const divByMonth = buildDivByMonth(dividends.schedule);
+    const divPerShareByMonth = buildDivPerShareByMonth(dividends.schedule);
     const hasDca =
         flowsByDate !== undefined && Object.keys(flowsByDate).length > 0;
     const flowByMonth = hasDca
@@ -132,6 +170,9 @@ export function buildMonthlyStats(
             dividendCash,
             cumulativeDividend,
         };
+
+        const perShare = divPerShareByMonth.get(month);
+        if (perShare) row.dividendPerShare = perShare;
 
         if (hasDca) {
             const contrib = flowByMonth.get(month) ?? 0;
@@ -259,4 +300,41 @@ export function buildMonthlyAssetShares(
     }
 
     return { labels, sharesByMonth };
+}
+
+// ── T3: per-asset monthly purchase flow ──────────────────────────────────────
+
+/**
+ * Aggregate per-asset purchase flows by calendar month from perAssetPurchases.
+ *
+ * FLOW (not stock): sums every buy within a month — does NOT use last-entry-wins
+ * pattern. This captures the total USD deployed into each asset per month via
+ * dividend reinvestment (DRIP/cross-asset), periodic contributions, and manual
+ * deposits. Excludes the initial lump-sum and rebalance trades.
+ *
+ * - Pure: no I/O, no Date objects, string-slice only.
+ * - Returns empty labels + empty purchasesByMonth when perAssetPurchases is absent.
+ */
+export function buildMonthlyAssetPurchases(
+    result: BacktestResult
+): MonthlyAssetPurchases {
+    const purchases = result.perAssetPurchases;
+    if (!purchases || purchases.length === 0) {
+        return { labels: [], purchasesByMonth: {} };
+    }
+
+    const purchasesByMonth: Record<string, Record<string, number>> = {};
+    const labelSet = new Set<string>();
+
+    for (const { date, buys } of purchases) {
+        const month = date.slice(0, 7);
+        const bucket = purchasesByMonth[month] ?? {};
+        purchasesByMonth[month] = bucket;
+        for (const [label, amount] of Object.entries(buys)) {
+            labelSet.add(label);
+            bucket[label] = (bucket[label] ?? 0) + amount;
+        }
+    }
+
+    return { labels: Array.from(labelSet), purchasesByMonth };
 }

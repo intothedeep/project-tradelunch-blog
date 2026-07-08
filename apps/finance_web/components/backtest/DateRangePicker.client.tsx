@@ -23,6 +23,8 @@ interface DateRangePickerProps {
     from: string;
     to: string;
     minAllowedFrom: string; // earliest data date across selected assets
+    /** Per-asset inception shortcuts (holdings + synth base) for the start radio. */
+    startDateOptions: { label: string; date: string }[];
     ixicSeries: PricePoint[];
     ndxSeries: PricePoint[];
     onChange: (from: string, to: string) => void;
@@ -46,6 +48,7 @@ export default function DateRangePicker({
     from,
     to,
     minAllowedFrom,
+    startDateOptions,
     ixicSeries,
     ndxSeries,
     onChange,
@@ -82,6 +85,14 @@ export default function DateRangePicker({
             onChange(start, end);
         },
         [today, minAllowedFrom, onChange]
+    );
+
+    const setStart = useCallback(
+        (date: string) => {
+            const clamped = date < minAllowedFrom ? minAllowedFrom : date;
+            onChange(clamped, to);
+        },
+        [minAllowedFrom, to, onChange]
     );
 
     function handleChartClick(payload: unknown) {
@@ -159,6 +170,39 @@ export default function DateRangePicker({
                     />
                 </div>
             </div>
+
+            {/* Per-asset inception shortcuts (holdings + synth base) */}
+            {startDateOptions.length > 0 && (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="text-xs text-muted-foreground">
+                        시작일 =
+                    </span>
+                    {startDateOptions.map((o) => {
+                        const eff =
+                            o.date < minAllowedFrom ? minAllowedFrom : o.date;
+                        return (
+                            <label
+                                key={o.label}
+                                className="flex items-center gap-1 text-xs cursor-pointer"
+                            >
+                                <input
+                                    type="radio"
+                                    name="start-date-preset"
+                                    checked={from === eff}
+                                    onChange={() => setStart(o.date)}
+                                    className="h-3 w-3"
+                                />
+                                <span className="font-mono font-semibold">
+                                    {o.label}
+                                </span>
+                                <span className="text-muted-foreground">
+                                    {o.date}
+                                </span>
+                            </label>
+                        );
+                    })}
+                </div>
+            )}
 
             {rangeError && (
                 <p className="text-xs text-destructive">{rangeError}</p>

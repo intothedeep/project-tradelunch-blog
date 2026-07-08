@@ -11,9 +11,11 @@ import {
     buildMonthlyStats,
     buildMonthlyAssetWeights,
     buildMonthlyAssetShares,
+    buildMonthlyAssetPurchases,
     type MonthlyStatRow,
     type MonthlyAssetWeights,
     type MonthlyAssetShares,
+    type MonthlyAssetPurchases,
 } from '@/utils/backtest/monthlyStats';
 import {
     buildMonthlyAssetPrices,
@@ -29,6 +31,7 @@ export interface BacktestStatsOut {
     assetPrices: MonthlyAssetPrices;
     assetWeights: MonthlyAssetWeights | null;
     assetShares: MonthlyAssetShares | null;
+    assetPurchases: MonthlyAssetPurchases | null;
     yearlyRows: YearlyStatRow[];
 }
 
@@ -65,9 +68,20 @@ export function useBacktestStats(
                 : null,
         [result, assetPrices.priceByMonth]
     );
+    const assetPurchases = useMemo(
+        () => (result ? buildMonthlyAssetPurchases(result) : null),
+        [result]
+    );
     const yearlyRows = useMemo(
         () => (result ? buildYearlyStats(result, budget) : []),
         [result, budget]
     );
-    return { monthlyRows, assetPrices, assetWeights, assetShares, yearlyRows };
+    return {
+        monthlyRows,
+        assetPrices,
+        assetWeights,
+        assetShares,
+        assetPurchases,
+        yearlyRows,
+    };
 }

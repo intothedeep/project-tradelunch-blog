@@ -37,6 +37,8 @@ interface ResultChartProps {
     strFullTimeline?: BacktestResult['timeline'];
     /** Active synth method — drives cmp overlay logic. */
     synthMethod?: 'reg' | 'str' | 'cmp';
+    /** Rebalance event dates (YYYY-MM-DD) — rendered as vertical dashed lines. */
+    rebalanceDates?: string[];
 }
 
 export default function ResultChart({
@@ -46,6 +48,7 @@ export default function ResultChart({
     fullTimeline,
     strFullTimeline,
     synthMethod,
+    rebalanceDates,
 }: ResultChartProps) {
     const isCmp =
         synthMethod === 'cmp' &&
@@ -63,6 +66,11 @@ export default function ResultChart({
         : buildChartData(result, fullTimeline);
 
     const hasDividends = result.dividends.total > 0;
+    // Filter rebalance dates to those present in chart data (daily YYYY-MM-DD).
+    const dataDateSet = new Set(data.map((d) => d.date));
+    const activeRebalanceDates = (rebalanceDates ?? []).filter((d) =>
+        dataDateSet.has(d)
+    );
     const synthStart = isCmp ? fullTimeline![0]?.date : fullTimeline?.[0]?.date;
 
     return (
@@ -168,6 +176,18 @@ export default function ResultChart({
                             strokeDasharray="2 2"
                         />
 
+                        {/* Rebalance event markers */}
+                        {activeRebalanceDates.map((d) => (
+                            <ReferenceLine
+                                key={d}
+                                x={d}
+                                stroke="#6366f1"
+                                strokeOpacity={0.5}
+                                strokeDasharray="2 2"
+                                strokeWidth={1}
+                            />
+                        ))}
+
                         {/* Monte Carlo band */}
                         <Area
                             type="monotone"
@@ -257,6 +277,11 @@ export default function ResultChart({
                 cherry-picking risk). For leveraged assets (TQQQ/QLD/SOXL) the
                 iid-normal model does not capture volatility decay.
             </p>
+            {activeRebalanceDates.length > 0 && (
+                <p className="mt-0.5 text-[11px] text-muted-foreground leading-tight">
+                    세로 점선 = 리밸런싱 시점
+                </p>
+            )}
         </section>
     );
 }

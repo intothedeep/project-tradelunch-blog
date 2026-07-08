@@ -12,6 +12,8 @@
 //
 // X2.11: rb= and mf= params added; assets= gains optional trailing positionals.
 // X2-P2.8: synth= param added (shortLabel:base:method).
+// Per-source weights: dcaPct/divPct round-trip via T4 keyed tokens;
+//   dividendReinvestByWeight stored in drw= (absent→false).
 // Draft/Apply: commitAll batches all fields into a single router.replace so a
 // single Apply click never clobbers sibling fields via stale URLSearchParams.
 
@@ -32,6 +34,8 @@ import {
     decodeRebalance,
     encodeManualFlows,
     decodeManualFlows,
+    encodeDrw,
+    decodeDrw,
 } from '@/utils/backtest/url-codec';
 import {
     encodeSynth,
@@ -52,6 +56,7 @@ export interface BacktestUrlState {
     rebalance: RebalancePolicy | undefined;
     manualFlows: { date: string; amount: number }[] | undefined;
     synth: SynthUrlState | undefined;
+    dividendReinvestByWeight: boolean;
 }
 
 // ── Defaults ─────────────────────────────────────────────────────────────────
@@ -110,6 +115,7 @@ export function useBacktestUrl(): [
             flows: { date: string; amount: number }[] | undefined
         ) => void;
         setSynth: (s: SynthUrlState | undefined) => void;
+        setDividendReinvestByWeight: (v: boolean) => void;
         commitAll: (next: BacktestUrlState) => void;
     },
 ] {
@@ -130,6 +136,7 @@ export function useBacktestUrl(): [
         const rebalance = decodeRebalance(sp.get('rb'), knownLabels);
         const manualFlows = decodeManualFlows(sp.get('mf'));
         const synth = decodeSynth(sp.get('synth'));
+        const dividendReinvestByWeight = decodeDrw(sp.get('drw'));
         return {
             budget: isFinite(budget) && budget > 0 ? budget : DEFAULT_BUDGET,
             holdings,
@@ -140,6 +147,7 @@ export function useBacktestUrl(): [
             rebalance,
             manualFlows,
             synth,
+            dividendReinvestByWeight,
         };
     }, [sp]);
 
@@ -198,6 +206,10 @@ export function useBacktestUrl(): [
             push({ synth: s ? encodeSynth(s) : null }),
         [push]
     );
+    const setDividendReinvestByWeight = useCallback(
+        (v: boolean) => push({ drw: encodeDrw(v) }),
+        [push]
+    );
 
     // Batched commit: encodes ALL fields into ONE URLSearchParams and does ONE
     // router.replace. Per-field setters each close over a stale `sp` snapshot
@@ -236,6 +248,13 @@ export function useBacktestUrl(): [
                 params.delete('synth');
             }
 
+            const drw = encodeDrw(next.dividendReinvestByWeight);
+            if (drw !== null) {
+                params.set('drw', drw);
+            } else {
+                params.delete('drw');
+            }
+
             router.replace(`${pathname}?${params.toString()}`, {
                 scroll: false,
             });
@@ -254,6 +273,7 @@ export function useBacktestUrl(): [
             setRebalance,
             setManualFlows,
             setSynth,
+            setDividendReinvestByWeight,
             commitAll,
         },
     ];

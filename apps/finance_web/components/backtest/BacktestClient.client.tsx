@@ -27,6 +27,7 @@ import IncomeProjection from './IncomeProjection';
 import LeverageWarning from './LeverageWarning';
 import Disclaimer from './Disclaimer';
 import ComparisonPanel from './ComparisonPanel';
+import AssetPriceChart from './AssetPriceChart.client';
 
 const RISK_FREE_RATE = 0.045;
 const REFERENCE_LABELS = ['^IXIC', '^NDX'];
@@ -36,13 +37,16 @@ interface BacktestClientProps {
     mockedSeries?: TPriceSeriesResponse;
 }
 
-type ResultView = 'chart' | 'table';
+type ResultView = 'chart' | 'assets' | 'table';
+
+const VIEW_LABELS: Record<ResultView, string> = {
+    chart: '차트',
+    assets: '자산 가격',
+    table: '월별 상세',
+};
 
 export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
-    const [
-        urlState,
-        { commitAll },
-    ] = useBacktestUrl();
+    const [urlState, { commitAll }] = useBacktestUrl();
 
     // All engine + result rendering reads COMMITTED (URL) values.
     const {
@@ -55,8 +59,11 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
         rebalance,
         manualFlows,
         synth,
+        dividendReinvestByWeight,
     } = urlState;
 
+    // Annual inflation rate (%) for the Summary present-value discount (display-only).
+    const [inflationPct, setInflationPct] = useState(3);
     const [seriesData, setSeriesData] = useState<Record<string, PricePoint[]>>(
         mockedSeries ? toSeriesByLabel(mockedSeries) : {}
     );
@@ -75,15 +82,6 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
         }
         return out;
     }, [seriesData]);
-
-    const minAllowedFrom = useMemo(() => {
-        const dates = holdings
-            .map((h) => seriesFirstDate[h.label])
-            .filter((d): d is string => !!d);
-        return dates.length > 0
-            ? dates.reduce((a, b) => (a > b ? a : b))
-            : from;
-    }, [holdings, seriesFirstDate, from]);
 
     const labelsKey = holdings
         .map((h) => h.label)
@@ -135,8 +133,55 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
         contribution,
         rebalance,
         manualFlows,
-        engineReady
+        engineReady,
+        dividendReinvestByWeight
     );
+
+    // Earliest selectable start = latest first-date across holdings, computed from
+    // the DISPLAY series so an active synth splice (JEPQ) extends the floor back
+    // to the chosen base's inception. Recomputes on base change → picker min/max
+    // track the selected assets + base range. `from` is NOT auto-moved; the user
+    // picks within the recalculated bounds (Max preset jumps to this floor).
+    const minAllowedFrom = useMemo(() => {
+        const dates = holdings
+            .map((h) => displaySeriesData[h.label]?.[0]?.date)
+            .filter((d): d is string => !!d);
+        return dates.length > 0
+            ? dates.reduce((a, b) => (a > b ? a : b))
+            : from;
+    }, [holdings, displaySeriesData, from]);
+
+    // Start-date shortcuts: one per holding's inception + the synth base's
+    // inception (e.g. QQQ ~1999) when synth is active — lets the user snap the
+    // range start to any selected asset's first data date.
+    const startDateOptions = useMemo(() => {
+        const opts = holdings
+            .map((h) => ({ label: h.label, date: seriesFirstDate[h.label] }))
+            .filter((o): o is { label: string; date: string } => !!o.date);
+        if (synth) {
+            const baseDate = refSeries[synth.base]?.[0]?.date;
+            if (baseDate && !opts.some((o) => o.label === synth.base)) {
+                opts.push({ label: synth.base, date: baseDate });
+            }
+        }
+        return opts;
+    }, [holdings, seriesFirstDate, synth, refSeries]);
+
+    // When synth is active (single-method reg/str), the results section shows the
+    // selected-range synthetic-inclusive pass directly (honours `from`) — no
+    // real/full toggle. cmp keeps its own ComparisonPanel, so it stays on `result`.
+    const showSynthFull =
+        !!synth && synth.method !== 'cmp' && fullResult !== undefined;
+    const displayResult = showSynthFull && fullResult ? fullResult : result;
+
+    // Backtest span in years (first→last displayed bar) for the PV discount.
+    const spanYears = useMemo(() => {
+        const tl = displayResult?.timeline;
+        if (!tl || tl.length < 2) return undefined;
+        const a = Date.parse(tl[0]!.date + 'T00:00:00Z');
+        const b = Date.parse(tl[tl.length - 1]!.date + 'T00:00:00Z');
+        return b > a ? (b - a) / (365.25 * 86_400_000) : undefined;
+    }, [displayResult]);
 
     useEffect(() => {
         if (mockedSeries) return;
@@ -158,18 +203,46 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
     const leveragedSelected = holdings
         .filter((h) => LEVERAGED_LABELS.has(h.label))
         .map((h) => h.label);
-
     const weightsValid =
         Math.round(holdings.reduce((s, h) => s + h.weightPct, 0)) === 100;
-
-    const { monthlyRows, assetPrices, assetWeights, assetShares, yearlyRows } =
-        useBacktestStats(result, displaySeriesData, holdings, from, to, budget);
+    const {
+        monthlyRows,
+        assetPrices,
+        assetWeights,
+        assetShares,
+        assetPurchases,
+        yearlyRows,
+    } = useBacktestStats(
+        displayResult,
+        displaySeriesData,
+        holdings,
+        from,
+        to,
+        budget
+    );
     const isCmp =
         synth?.method === 'cmp' &&
         !!cmpRegFullResult &&
         !!cmpStrFullResult &&
         !!cmpRegMeta &&
         !!cmpStrMeta;
+
+    // YYYY-MM set of months that had rebalance trades — for StatsTable badge.
+    const rebalanceMonths = useMemo(
+        () =>
+            new Set(
+                (displayResult?.rebalance?.events ?? []).map((e) =>
+                    e.date.slice(0, 7)
+                )
+            ),
+        [displayResult]
+    );
+
+    // YYYY-MM-DD array of rebalance event dates — for chart vertical markers.
+    const rebalanceDates = useMemo(
+        () => (displayResult?.rebalance?.events ?? []).map((e) => e.date),
+        [displayResult]
+    );
 
     // Stable callback so BacktestControls never re-renders due to onCommit identity change.
     const handleCommit = useCallback(
@@ -182,6 +255,7 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
             <BacktestControls
                 committed={urlState}
                 seriesFirstDate={seriesFirstDate}
+                startDateOptions={startDateOptions}
                 ixicSeries={refSeries['^IXIC'] ?? []}
                 ndxSeries={refSeries['^NDX'] ?? []}
                 minAllowedFrom={minAllowedFrom}
@@ -212,16 +286,21 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
             {result && (
                 <div className="flex flex-col gap-6">
                     <MetricsPanel
-                        metrics={result.metrics}
+                        metrics={(displayResult ?? result).metrics}
                         budget={budget}
                         riskFreeRate={RISK_FREE_RATE}
                         hasContribution={contribution !== undefined}
-                        rebalance={result.rebalance}
-                        fullMetrics={fullResult?.metrics}
+                        initialValue={
+                            (displayResult ?? result).timeline[0]?.value
+                        }
+                        years={spanYears}
+                        inflationPct={inflationPct}
+                        onInflationChange={setInflationPct}
+                        rebalance={(displayResult ?? result).rebalance}
                         synthMeta={synthMeta}
                     />
                     <div className="flex items-center gap-1 self-start rounded-md border p-0.5">
-                        {(['chart', 'table'] as const).map((view) => (
+                        {(['chart', 'assets', 'table'] as const).map((view) => (
                             <button
                                 key={view}
                                 type="button"
@@ -232,18 +311,30 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                                         : 'text-muted-foreground hover:text-foreground'
                                 }`}
                             >
-                                {view === 'chart' ? '차트' : '월별 상세'}
+                                {VIEW_LABELS[view]}
                             </button>
                         ))}
                     </div>
                     {resultView === 'chart' ? (
                         <ResultChart
-                            result={result}
+                            result={displayResult ?? result}
                             budget={budget}
                             synthMeta={synthMeta}
-                            fullTimeline={fullResult?.timeline}
+                            fullTimeline={
+                                showSynthFull ? undefined : fullResult?.timeline
+                            }
                             strFullTimeline={cmpStrFullResult?.timeline}
                             synthMethod={synth?.method}
+                            rebalanceDates={rebalanceDates}
+                        />
+                    ) : resultView === 'assets' ? (
+                        <AssetPriceChart
+                            seriesData={displaySeriesData}
+                            labels={holdings.map((h) => h.label)}
+                            from={from}
+                            to={to}
+                            realInception={synthMeta?.realInception}
+                            rebalanceDates={rebalanceDates}
                         />
                     ) : (
                         <div className="flex flex-col gap-6">
@@ -258,7 +349,11 @@ export default function BacktestClient({ mockedSeries }: BacktestClientProps) {
                                 assetPriceByMonth={assetPrices.priceByMonth}
                                 assetWeightByMonth={assetWeights?.weightByMonth}
                                 assetSharesByMonth={assetShares?.sharesByMonth}
+                                assetPurchasesByMonth={
+                                    assetPurchases?.purchasesByMonth
+                                }
                                 realInception={synthMeta?.realInception}
+                                rebalanceMonths={rebalanceMonths}
                             />
                         </div>
                     )}

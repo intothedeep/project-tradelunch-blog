@@ -1,14 +1,23 @@
 // utils/backtest/url-codec-rebalance.ts
 // Purpose: encode/decode the rb= RebalancePolicy query param.
 // Grammar:
-//   rb= <freq> : <bandKind><bandPct> [; g:<id>@<targetPct>[w] ...] [; <trigger> ...]
+//   rb= <freq> : <bandKind><bandPct> [; g:<id>@<targetPct>[w] ...] [; <trigger> ...] [; m:<months>] [; sg:<check><exec>] [; sc:<label>:<dir>:<pct> ...]
 //
-//   <freq>     = never | bar | monthly | quarterly | yearly
+//   <freq>     = never | bar | monthly | quarterly | yearly | custom
 //   <bandKind> = a (absolute) | r (relative)
 //   <bandPct>  = numeric, e.g. 5 means 5%
 //
 //   Group token:    g:<id>@<targetPct>          → rebalanceWithin=false (default)
 //                   g:<id>@<targetPct>w          → rebalanceWithin=true
+//
+//   Months token (only when freq==='custom'):
+//     m:<m1>.<m2>...                             → months array (dot-joined, 1..12)
+//
+//   Schedule-gate tokens:
+//     sg:<checkCode><execCode>                   → checkCode ∈ s(schedule)|a(always);
+//                                                  execCode  ∈ i(immediate)|n(nextSchedule)
+//                                                  e.g. si|ai|an|sn
+//     sc:<label>:<dirCode>:<pct>                 → per condition; dirCode ∈ ge(>=)|le(<=)
 //
 //   Trigger tokens (after freq:band and optional groups):
 //     tp:<label>:<gainPct>                     → takeProfit, reset=bearTrough (default)
@@ -26,6 +35,8 @@ import type {
     RebalanceTrigger,
     AssetGroup,
     ExtremaReset,
+    ScheduleGate,
+    ScheduleGateCondition,
 } from '@/types/backtest';
 
 const VALID_FREQS_RB = new Set([
@@ -34,6 +45,7 @@ const VALID_FREQS_RB = new Set([
     'monthly',
     'quarterly',
     'yearly',
+    'custom',
 ]);
 
 const RESET_ENCODE: Record<ExtremaReset, string> = {
@@ -160,6 +172,67 @@ function decodeTrigger(
     }
 }
 
+/** Encode months array as "m:1.3.6.12" token. */
+function encodeMonths(months: number[]): string {
+    return `m:${months.join('.')}`;
+}
+
+/** Decode "m:1.3.6.12" → [1, 3, 6, 12], filtering invalid values. */
+function decodeMonths(token: string): number[] {
+    const body = token.slice(2); // strip "m:"
+    return body
+        .split('.')
+        .map(Number)
+        .filter((n) => isFinite(n) && n >= 1 && n <= 12);
+}
+
+function encodeScheduleGate(gate: ScheduleGate): string[] {
+    const checkCode = gate.checkAt === 'schedule' ? 's' : 'a';
+    const execCode = gate.executeAt === 'immediate' ? 'i' : 'n';
+    const tokens: string[] = [`sg:${checkCode}${execCode}`];
+    for (const cond of gate.conditions) {
+        const dirCode = cond.dir === '>=' ? 'ge' : 'le';
+        tokens.push(`sc:${cond.label}:${dirCode}:${cond.pct}`);
+    }
+    return tokens;
+}
+
+function decodeScheduleGateHead(
+    code: string
+): Pick<ScheduleGate, 'checkAt' | 'executeAt'> | null {
+    // code is 2 chars: checkCode ∈ s|a, execCode ∈ i|n
+    if (code.length !== 2) return null;
+    const checkAt =
+        code[0] === 's' ? 'schedule' : code[0] === 'a' ? 'always' : null;
+    const executeAt =
+        code[1] === 'i' ? 'immediate' : code[1] === 'n' ? 'nextSchedule' : null;
+    if (!checkAt || !executeAt) return null;
+    return { checkAt, executeAt };
+}
+
+function decodeScheduleCondition(
+    token: string,
+    knownLabels: Set<string>
+): ScheduleGateCondition | null {
+    try {
+        // token = "sc:<label>:<dirCode>:<pct>"
+        const segs = token.split(':');
+        const label = segs[1];
+        const dirCode = segs[2];
+        const pctStr = segs[3];
+        if (!label || !dirCode || pctStr === undefined) return null;
+        if (knownLabels.size > 0 && !knownLabels.has(label)) return null;
+        const pct = Number(pctStr);
+        if (!isFinite(pct)) return null;
+        const dir: ScheduleGateCondition['dir'] =
+            dirCode === 'ge' ? '>=' : dirCode === 'le' ? '<=' : null!;
+        if (!dir) return null;
+        return { label, pct, dir };
+    } catch {
+        return null;
+    }
+}
+
 export function encodeRebalance(policy: RebalancePolicy): string {
     const bandKind = encodeBandKind(policy.band.kind);
     const head = `${policy.freq}:${bandKind}${policy.band.pct}`;
@@ -169,7 +242,22 @@ export function encodeRebalance(policy: RebalancePolicy): string {
         .map(encodeTrigger)
         .filter((t): t is string => t !== null);
 
-    const all = [head, ...groupTokens, ...triggerTokens];
+    const monthsTokens: string[] =
+        policy.freq === 'custom' && policy.months && policy.months.length > 0
+            ? [encodeMonths(policy.months)]
+            : [];
+
+    const gateTokens: string[] = policy.scheduleGate
+        ? encodeScheduleGate(policy.scheduleGate)
+        : [];
+
+    const all = [
+        head,
+        ...groupTokens,
+        ...triggerTokens,
+        ...monthsTokens,
+        ...gateTokens,
+    ];
     return all.join(';');
 }
 
@@ -201,6 +289,9 @@ export function decodeRebalance(
 
         const groups: AssetGroup[] = [];
         const triggers: RebalanceTrigger[] = [];
+        let months: number[] | undefined;
+        let sgHead: Pick<ScheduleGate, 'checkAt' | 'executeAt'> | undefined;
+        const sgConditions: ScheduleGateCondition[] = [];
 
         for (let i = 1; i < tokens.length; i++) {
             const tok = tokens[i];
@@ -208,6 +299,15 @@ export function decodeRebalance(
             if (tok.startsWith('g:')) {
                 const g = decodeGroup(tok);
                 if (g) groups.push(g);
+            } else if (tok.startsWith('m:')) {
+                months = decodeMonths(tok);
+            } else if (tok.startsWith('sg:')) {
+                const headCode = tok.slice(3);
+                const head = decodeScheduleGateHead(headCode);
+                if (head) sgHead = head;
+            } else if (tok.startsWith('sc:')) {
+                const cond = decodeScheduleCondition(tok, knownLabels);
+                if (cond) sgConditions.push(cond);
             } else {
                 const t = decodeTrigger(tok, knownLabels);
                 if (t) triggers.push(t);
@@ -220,6 +320,10 @@ export function decodeRebalance(
             groups,
         };
         if (triggers.length > 0) policy.triggers = triggers;
+        if (months && months.length > 0) policy.months = months;
+        if (sgHead !== undefined) {
+            policy.scheduleGate = { ...sgHead, conditions: sgConditions };
+        }
         return policy;
     } catch {
         return undefined;

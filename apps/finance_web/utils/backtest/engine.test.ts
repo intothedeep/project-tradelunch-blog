@@ -43,13 +43,9 @@ function baseInput(overrides?: Partial<BacktestInput>): BacktestInput {
 }
 
 // ── Test 1: DRIP ON final value ≥ DRIP OFF final value ───────────────────────
-// 3-bar series: dividend paid on day 2, price rises on day 3.
-// DRIP ON reinvests the dividend into additional shares at day-2 price,
-// then those extra shares appreciate on day 3 → higher final value.
 
 describe('DRIP', () => {
     it('DRIP ON final value >= DRIP OFF for a dividend-paying series', () => {
-        // Day 1: buy; Day 2: $5 dividend at close=$100; Day 3: close=$110 (price rises)
         const series = mkSeries(
             ['2020-01-01', '2020-01-02', '2020-01-03'],
             [100, 100, 110],
@@ -88,50 +84,40 @@ describe('DRIP', () => {
             seriesByLabel: { A: series },
         });
 
-        // Non-null assertion: test setup guarantees at least one dividend event.
         const onEvent = dripOn.dividends.schedule[0]!;
-        expect(onEvent.cash).toBe(0); // reinvested; no cash payout
+        expect(onEvent.cash).toBe(0);
 
         const offEvent = dripOff.dividends.schedule[0]!;
         expect(offEvent.cash).toBeGreaterThan(0);
     });
 });
 
-// ── Test 2: Split-adjusted close → engine must NOT re-apply the split ─────────
-// `close` from market_history is already split-adjusted (Yahoo adjusts OHLC at
-// source). The `stockSplits` marker on the split bar is informational; share
-// counts stay constant across it. Re-applying it would double-count the split
-// (a QLD DCA over its six 2:1 splits would inflate 2^6 = 64×).
+// ── Test 2: Split-adjusted close ──────────────────────────────────────────────
 
 describe('stock split (split-adjusted feed)', () => {
     it('split marker does not change share count or portfolio value', () => {
-        const budget = 10000; // buys 100 shares at $100
-        // Split-adjusted prices are continuous through the split day — no cliff.
+        const budget = 10000;
         const series = mkSeries(
             ['2020-01-01', '2020-01-02', '2020-01-03'],
             [100, 100, 120],
             [0, 0, 0],
-            [0, 2, 0] // 2:1 split marker on day 2 — already reflected in `close`
+            [0, 2, 0]
         );
         const result = runBacktest({
             ...baseInput({ budget }),
             seriesByLabel: { A: series },
         });
 
-        // Shares stay at 100 (split NOT re-applied); day-3 value = 100 × $120.
         expect(result.perHolding[0]!.shares).toBeCloseTo(100, 6);
-        expect(result.timeline[1]!.value).toBeCloseTo(10000, 4); // no cliff
+        expect(result.timeline[1]!.value).toBeCloseTo(10000, 4);
         expect(result.timeline[2]!.value).toBeCloseTo(12000, 4);
     });
 });
 
-// ── Test 2b: Pre-split dividend is rebased to the split-adjusted basis ────────
+// ── Test 2b: Pre-split dividend rebasing ─────────────────────────────────────
 
 describe('dividend split-adjustment', () => {
     it('rebases a pre-split dividend by the trailing split factor', () => {
-        // Day 1: $2/sh RAW dividend at close=100. Day 2: 2:1 split (close is
-        // already split-adjusted). Share count is on the split-adjusted basis, so
-        // the Day-1 dividend must be rebased to $1/sh — not over-counted as $2.
         const series = mkSeries(
             ['2020-01-01', '2020-01-02'],
             [100, 100],
@@ -139,17 +125,15 @@ describe('dividend split-adjustment', () => {
             [0, 2]
         );
         const result = runBacktest({
-            ...baseInput(), // budget 10000 → 100 shares @ $100
+            ...baseInput(),
             holdings: [{ label: 'A', weightPct: 100, drip: false }],
             seriesByLabel: { A: series },
             range: { from: '2020-01-01', to: '2020-01-02' },
         });
-        // 100 shares × ($2 / 2) = $100, NOT the raw $200.
         expect(result.metrics.cumulativeDividends).toBeCloseTo(100, 6);
     });
 
     it('leaves a post-split dividend unchanged (no trailing split)', () => {
-        // Split on Day 1, dividend on Day 2 → no split after the dividend bar.
         const series = mkSeries(
             ['2020-01-01', '2020-01-02'],
             [100, 100],
@@ -162,12 +146,11 @@ describe('dividend split-adjustment', () => {
             seriesByLabel: { A: series },
             range: { from: '2020-01-01', to: '2020-01-02' },
         });
-        // 100 shares × $2 = $200 (dividend not rebased).
         expect(result.metrics.cumulativeDividends).toBeCloseTo(200, 6);
     });
 });
 
-// ── Test 3: Negative CAGR → all metrics & projection finite ──────────────────
+// ── Test 3: Negative CAGR ─────────────────────────────────────────────────────
 
 describe('negative CAGR / declining series', () => {
     it('all metrics are finite numbers (no NaN / Infinity)', () => {
@@ -227,7 +210,7 @@ describe('negative CAGR / declining series', () => {
     });
 });
 
-// ── Test 4: Weight allocation sums to budget; fractional shares correct ───────
+// ── Test 4: Weight allocation ─────────────────────────────────────────────────
 
 describe('weight allocation', () => {
     it('50/50 two-holding: each holding gets budget×0.5 shares', () => {
@@ -250,14 +233,12 @@ describe('weight allocation', () => {
         const holdA = result.perHolding.find((h) => h.label === 'A')!;
         const holdB = result.perHolding.find((h) => h.label === 'B')!;
 
-        // A: 5000/100 = 50 shares; B: 5000/200 = 25 shares
         expect(holdA.shares).toBeCloseTo(50, 8);
         expect(holdB.shares).toBeCloseTo(25, 8);
     });
 
     it('100-pct single holding uses full budget', () => {
         const result = runBacktest(baseInput());
-        // 10000/100 = 100 shares; final: 100×120 = 12000
         expect(result.timeline[result.timeline.length - 1]!.value).toBeCloseTo(
             12000,
             4
@@ -327,7 +308,6 @@ describe('Monte Carlo determinism', () => {
         const r1 = runBacktest({ ...base, seed: 1 });
         const r2 = runBacktest({ ...base, seed: 9999 });
 
-        // For a non-trivial series with sigma>0, different seeds MUST diverge somewhere.
         const differs = r1.projection.monteCarlo.some(
             (pt, i) => pt.p50 !== r2.projection.monteCarlo[i]!.p50
         );
@@ -335,12 +315,10 @@ describe('Monte Carlo determinism', () => {
     });
 });
 
-// ── Test 6: maxDrawdown sign and magnitude ────────────────────────────────────
+// ── Test 6: maxDrawdown ───────────────────────────────────────────────────────
 
 describe('maxDrawdown', () => {
     it('hand-built peak→trough: MDD = (trough/peak) - 1', () => {
-        // Series: 100 → 120 (peak) → 80 (trough) → 100 (recovery)
-        // Expected MDD = 80/120 - 1 = -1/3 ≈ -0.3333
         const values = [100, 120, 80, 100];
         const mdd = computeMaxDrawdown(values);
         expect(mdd).toBeCloseTo(-1 / 3, 6);
@@ -365,5 +343,156 @@ describe('maxDrawdown', () => {
         });
         expect(result.metrics.maxDrawdown).toBeLessThan(0);
         expect(result.metrics.maxDrawdown).toBeCloseTo(-1 / 3, 4);
+    });
+});
+
+// ── Test 7: dividendReinvestByWeight ─────────────────────────────────────────
+
+describe('dividendReinvestByWeight', () => {
+    // A pays $1/share dividend on day 2 (cash route); B pays none.
+    // budget=10000: A gets 60% → 60 shares; B gets 40% → 80 shares (@ $50).
+
+    const DATES = ['2020-01-01', '2020-01-02', '2020-01-03'];
+
+    function makeSeries() {
+        return {
+            A: mkSeries(DATES, [100, 100, 100], [0, 1, 0]),
+            B: mkSeries(DATES, [50, 50, 50]),
+        };
+    }
+
+    it('flag OFF ⇒ cash-routed dividends stay as cash (byte-identical to no-flag)', () => {
+        const seriesByLabel = makeSeries();
+        const inputBase: BacktestInput = {
+            budget: 10000,
+            holdings: [
+                { label: 'A', weightPct: 60, dividendRoute: { kind: 'cash' } },
+                { label: 'B', weightPct: 40, dividendRoute: { kind: 'cash' } },
+            ],
+            seriesByLabel,
+            range: { from: '2020-01-01', to: '2020-01-03' },
+            seed: 42,
+            riskFreeRate: 0.04,
+        };
+        const withoutFlag = runBacktest(inputBase);
+        const withFlagOff = runBacktest({
+            ...inputBase,
+            dividendReinvestByWeight: false,
+        });
+        // Byte-identical behaviour when flag is false
+        expect(withFlagOff.timeline).toEqual(withoutFlag.timeline);
+        expect(withFlagOff.metrics.finalValue).toBeCloseTo(
+            withoutFlag.metrics.finalValue,
+            8
+        );
+        // Cash dividend stays in schedule
+        const divEvent = withoutFlag.dividends.schedule[0];
+        expect(divEvent?.cash).toBeCloseTo(60, 4); // 60 shares × $1
+    });
+
+    it('flag ON ⇒ pooled cash dividends reinvested by divPct', () => {
+        const seriesByLabel = makeSeries();
+        const result = runBacktest({
+            budget: 10000,
+            holdings: [
+                {
+                    label: 'A',
+                    weightPct: 60,
+                    dividendRoute: { kind: 'cash' },
+                    divPct: 50,
+                },
+                {
+                    label: 'B',
+                    weightPct: 40,
+                    dividendRoute: { kind: 'cash' },
+                    divPct: 50,
+                },
+            ],
+            seriesByLabel,
+            range: { from: '2020-01-01', to: '2020-01-03' },
+            seed: 42,
+            riskFreeRate: 0.04,
+            dividendReinvestByWeight: true,
+        });
+
+        // A: 60 shares × $1 dividend = $60 pooled.
+        // Reinvested 50/50: $30 into A (@ $100) + $30 into B (@ $50).
+        const day2 = result.perAssetPurchases?.find(
+            (p) => p.date === '2020-01-02'
+        );
+        expect(day2).toBeDefined();
+        const totalBuys = Object.values(day2?.buys ?? {}).reduce(
+            (s, v) => s + v,
+            0
+        );
+        expect(totalBuys).toBeCloseTo(60, 4);
+    });
+
+    it('same/asset DividendRoute does NOT contribute to pool (cashDelta=0)', () => {
+        // A has route=same (DRIP) → cashDelta=0 from applyDividends for A.
+        // Pool = 0 → reinvestDividendPool not called with meaningful cash.
+        // B has no dividends.
+        const seriesByLabel = {
+            A: mkSeries(['2020-01-01', '2020-01-02'], [100, 100], [0, 1]),
+            B: mkSeries(['2020-01-01', '2020-01-02'], [50, 50]),
+        };
+        const result = runBacktest({
+            budget: 10000,
+            holdings: [
+                {
+                    label: 'A',
+                    weightPct: 60,
+                    dividendRoute: { kind: 'same' }, // DRIP — cashDelta=0 for A
+                    divPct: 60,
+                },
+                {
+                    label: 'B',
+                    weightPct: 40,
+                    dividendRoute: { kind: 'cash' },
+                    divPct: 40,
+                },
+            ],
+            seriesByLabel,
+            range: { from: '2020-01-01', to: '2020-01-02' },
+            seed: 42,
+            riskFreeRate: 0.04,
+            dividendReinvestByWeight: true,
+        });
+
+        const day2 = result.perAssetPurchases?.find(
+            (p) => p.date === '2020-01-02'
+        );
+        // A's DRIP buy appears (60 shares × $1 = $60 gross reinvested into A)
+        expect(day2?.buys['A']).toBeCloseTo(60, 4);
+        // B receives no pool reinvest (cashDelta=0 since A is DRIP; B has no dividends)
+        expect(day2?.buys['B']).toBeUndefined();
+    });
+
+    it('XIRR flows unchanged by dividendReinvestByWeight', () => {
+        const seriesByLabel = makeSeries();
+        const withDrw = runBacktest({
+            budget: 10000,
+            holdings: [
+                {
+                    label: 'A',
+                    weightPct: 60,
+                    dividendRoute: { kind: 'cash' },
+                    divPct: 60,
+                },
+                {
+                    label: 'B',
+                    weightPct: 40,
+                    dividendRoute: { kind: 'cash' },
+                    divPct: 40,
+                },
+            ],
+            seriesByLabel,
+            range: { from: '2020-01-01', to: '2020-01-03' },
+            seed: 42,
+            riskFreeRate: 0.04,
+            dividendReinvestByWeight: true,
+        });
+        // flowsByDate should not have dividend-reinvest entries (not external flows)
+        expect(withDrw.flowsByDate).toBeUndefined();
     });
 });

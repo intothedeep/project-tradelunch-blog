@@ -75,6 +75,15 @@ describe('buildSyntheticHistory', () => {
         expect(r.cappedAt!).toBeGreaterThan(1);
     });
 
+    it('fullSpan bypasses the cap → synth reaches the base inception', () => {
+        const r = buildSyntheticHistory({ ...baseCfg, fullSpan: true });
+        // First synthetic bar = first base return bar (2010-02-01), not the
+        // 2×overlap floor. No cap applied.
+        expect(r.points[0]!.date).toBe('2010-02-01');
+        expect(r.cappedAt).toBeUndefined();
+        expect(r.points[0]!.date < EXPECTED_EARLIEST).toBe(true);
+    });
+
     it('seam continuity: last synth close chains to first real close', () => {
         const r = buildSyntheticHistory(baseCfg);
         const realFirstClose = makeShort()[0]!.close;

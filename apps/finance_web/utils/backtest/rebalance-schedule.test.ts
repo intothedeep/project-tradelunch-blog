@@ -1,5 +1,5 @@
 // utils/backtest/rebalance-schedule.test.ts
-// Unit tests for isRebalanceDue (X2.4).
+// Unit tests for isRebalanceDue (X2.4 + R1 custom months).
 
 import { describe, expect, it } from 'vitest';
 import { isRebalanceDue } from './rebalance-schedule';
@@ -106,6 +106,101 @@ describe('isRebalanceDue', () => {
             expect(isRebalanceDue('yearly', '2024-12-31', '2025-01-02')).toBe(
                 true
             );
+        });
+    });
+
+    describe('custom', () => {
+        it('empty months → never due', () => {
+            expect(isRebalanceDue('custom', null, '2024-03-01', [])).toBe(
+                false
+            );
+            expect(
+                isRebalanceDue('custom', '2024-02-28', '2024-03-01', [])
+            ).toBe(false);
+        });
+
+        it('undefined months → never due', () => {
+            expect(
+                isRebalanceDue('custom', null, '2024-03-01', undefined)
+            ).toBe(false);
+        });
+
+        it('month not in list → false', () => {
+            // Bar is in February, months=[3,6,9,12]
+            expect(
+                isRebalanceDue('custom', null, '2024-02-01', [3, 6, 9, 12])
+            ).toBe(false);
+            expect(
+                isRebalanceDue(
+                    'custom',
+                    '2024-01-15',
+                    '2024-02-01',
+                    [3, 6, 9, 12]
+                )
+            ).toBe(false);
+        });
+
+        it('first bar in a selected month (null prev) → true', () => {
+            expect(
+                isRebalanceDue('custom', null, '2024-03-01', [3, 6, 9, 12])
+            ).toBe(true);
+        });
+
+        it('first bar of selected month (new month vs prev) → true', () => {
+            // prev was in Feb, now Mar 1 — March is selected
+            expect(
+                isRebalanceDue(
+                    'custom',
+                    '2024-02-28',
+                    '2024-03-01',
+                    [3, 6, 9, 12]
+                )
+            ).toBe(true);
+        });
+
+        it('second bar in selected month → false (already rebalanced this month)', () => {
+            // prev was Mar 1, now Mar 15 — same month
+            expect(
+                isRebalanceDue(
+                    'custom',
+                    '2024-03-01',
+                    '2024-03-15',
+                    [3, 6, 9, 12]
+                )
+            ).toBe(false);
+        });
+
+        it('selected month crossing year boundary → true', () => {
+            // January selected; prev was Dec, now Jan new year
+            expect(
+                isRebalanceDue('custom', '2023-12-29', '2024-01-02', [1])
+            ).toBe(true);
+        });
+
+        it('due only once per selected month even if multi-bar', () => {
+            // March is selected, prev=Mar-01; Mar-10 is same month → false
+            expect(
+                isRebalanceDue('custom', '2024-03-01', '2024-03-10', [3])
+            ).toBe(false);
+        });
+
+        it('all 12 months selected → behaves like monthly', () => {
+            expect(
+                isRebalanceDue(
+                    'custom',
+                    '2024-01-31',
+                    '2024-02-01',
+                    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+                )
+            ).toBe(true);
+            expect(
+                isRebalanceDue(
+                    'custom',
+                    '2024-02-10',
+                    '2024-02-15',
+                    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+                )
+            ).toBe(false);
         });
     });
 });

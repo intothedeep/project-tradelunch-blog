@@ -7,21 +7,17 @@
 // Task A: Advanced section is gated to admin only (useMe isAdmin === true).
 // X2-P2.9: synthetic history toggle + base select + method selector (JEPQ only,
 //   admin-gated). Extracted to SynthControls.client.tsx (Wave-C LOC cleanup).
+// Per-source weights: PerSourceWeights owns Original%+DRIP+DCA+Div (unified grid).
 // Draft/Apply: all edits go to local draft state; Apply commits to URL in one batch.
 
 import { useState } from 'react';
-import type {
-    Holding,
-    ContributionPlan,
-    RebalancePolicy,
-    PricePoint,
-} from '@/types/backtest';
+import type { Holding, PricePoint } from '@/types/backtest';
 import { useMe } from '@/hooks/useMe.query.client';
 import { useBacktestDraft } from '@/hooks/useBacktestDraft.hook';
-import type { BacktestUrlState, SynthUrlState } from '@/hooks/useBacktestUrl.hook';
+import type { BacktestUrlState } from '@/hooks/useBacktestUrl.hook';
 import BudgetInput from './BudgetInput';
 import AssetPicker from './AssetPicker.client';
-import WeightSliders from './WeightSliders.client';
+import PerSourceWeights from './PerSourceWeights.client';
 import DateRangePicker from './DateRangePicker.client';
 import ContributionInput from './ContributionInput.client';
 import SeedControl from './SeedControl.client';
@@ -33,6 +29,7 @@ import SynthControls from './SynthControls.client';
 interface BacktestControlsProps {
     committed: BacktestUrlState;
     seriesFirstDate: Record<string, string>;
+    startDateOptions: { label: string; date: string }[];
     ixicSeries: PricePoint[];
     ndxSeries: PricePoint[];
     minAllowedFrom: string;
@@ -42,6 +39,7 @@ interface BacktestControlsProps {
 export default function BacktestControls({
     committed,
     seriesFirstDate,
+    startDateOptions,
     ixicSeries,
     ndxSeries,
     minAllowedFrom,
@@ -63,6 +61,7 @@ export default function BacktestControls({
         setRebalance,
         setManualFlows,
         setSynth,
+        setDividendReinvestByWeight,
     } = useBacktestDraft(committed);
 
     const {
@@ -75,6 +74,7 @@ export default function BacktestControls({
         rebalance,
         manualFlows,
         synth,
+        dividendReinvestByWeight,
     } = draft;
 
     // useMe returns {data: undefined} when Clerk is not loaded, signed-out,
@@ -103,14 +103,29 @@ export default function BacktestControls({
     const canApply = dirty && budgetValid && weightsValid;
 
     function updateHolding(label: string, patch: Partial<Holding>) {
-        setHoldings(
-            holdings.map((h) => (h.label === label ? { ...h, ...patch } : h))
+        const next = holdings.map((h) =>
+            h.label === label ? { ...h, ...patch } : h
         );
+        setHoldings(next);
+        // M1: when a dcaPct value is entered and DCA is active but route is not
+        // byDcaWeight, auto-switch so the entered weight actually takes effect.
+        if (
+            patch.dcaPct !== undefined &&
+            contribution !== undefined &&
+            contribution.route?.kind !== 'byDcaWeight'
+        ) {
+            setContribution({
+                ...contribution,
+                route: { kind: 'byDcaWeight' },
+            });
+        }
     }
 
     // Always show per-holding controls when the advanced panel is open, so the
     // canSell / sellPriority / group toggles are REACHABLE.
     const showPerHolding = holdings.length > 0;
+
+    const dcaActive = contribution !== undefined;
 
     return (
         <section
@@ -161,14 +176,18 @@ export default function BacktestControls({
                 seriesFirstDate={seriesFirstDate}
                 onChange={setHoldings}
             />
-            <WeightSliders
+            <PerSourceWeights
                 holdings={holdings}
-                onChange={setHoldings}
+                dcaActive={dcaActive}
+                divActive={dividendReinvestByWeight}
+                onUpdateHolding={updateHolding}
+                onToggleDiv={setDividendReinvestByWeight}
             />
             <DateRangePicker
                 from={from}
                 to={to}
                 minAllowedFrom={minAllowedFrom}
+                startDateOptions={startDateOptions}
                 ixicSeries={ixicSeries}
                 ndxSeries={ndxSeries}
                 onChange={setRange}

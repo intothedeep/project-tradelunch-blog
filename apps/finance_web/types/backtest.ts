@@ -7,10 +7,12 @@ export type ContributionFreq = 'monthly' | 'yearly';
 /**
  * Route for how a DCA contribution is invested.
  *   byWeight (default) — spread proportionally by holding weightPct (legacy behaviour).
+ *   byDcaWeight — spread proportionally by holding dcaPct (falls back to weightPct when blank).
  *   {kind:'asset',target} — ALL the cash goes to a single named label.
  */
 export type ContributionRoute =
     | { kind: 'byWeight' }
+    | { kind: 'byDcaWeight' }
     | { kind: 'asset'; target: string };
 
 export interface ContributionPlan {
@@ -51,6 +53,16 @@ export interface Holding {
     sellPriority?: number;
     groupId?: string;
     groupWeightPct?: number;
+    /**
+     * DCA weight (0–100). Governs how periodic contributions are split.
+     * Blank/undefined ⇒ falls back to weightPct at compute time (never persisted).
+     */
+    dcaPct?: number;
+    /**
+     * Dividend reinvest weight (0–100). Governs pooled cash-routed dividend reinvestment.
+     * Blank/undefined ⇒ falls back to weightPct at compute time (never persisted).
+     */
+    divPct?: number;
 }
 
 export interface BacktestInput {
@@ -68,6 +80,12 @@ export interface BacktestInput {
      * Absent ⇒ byte-identical output to pre-X2.18.
      */
     manualFlows?: { date: string; amount: number }[];
+    /**
+     * When true, pool cash-routed dividends on each bar and reinvest them
+     * proportionally by holding.divPct (falls back to weightPct when blank).
+     * Absent or false ⇒ legacy behaviour (cash-routed dividends stay as cash).
+     */
+    dividendReinvestByWeight?: boolean;
 }
 
 export interface BacktestMetrics {
@@ -87,6 +105,9 @@ export interface DividendEvent {
     label: string; // source asset (dividend attributed here regardless of route)
     perShare: number; // yfinance per-share amount
     cash: number; // actual cash received; 0 if reinvested (DRIP or cross-asset)
+    /** Gross dividend value before routing (= cash for cash route; the reinvested
+     *  amount for DRIP/cross-asset). Lets the table show dividends even under DRIP. */
+    gross: number;
     /** Where the proceeds went. 'cash' | '<target label>' | undefined (same-asset). */
     routedTo?: string;
 }
@@ -140,6 +161,14 @@ export interface BacktestResult {
      * they know about — this is additive.
      */
     perHoldingValues?: { date: string; values: Record<string, number> }[];
+    /**
+     * Per-date, per-asset cash actually deployed into new shares — the sum of
+     * dividend reinvestment (DRIP / cross-asset) and periodic contribution +
+     * manual-deposit buys. EXCLUDES the initial lump-sum. Only dates with at
+     * least one buy are emitted. `buys[label]` = USD bought into that label.
+     * Used by the monthly table's per-asset 매수 columns. Additive/optional.
+     */
+    perAssetPurchases?: { date: string; buys: Record<string, number> }[];
 }
 
 // ── X2 rebalance types ────────────────────────────────────────────────────────
@@ -190,12 +219,40 @@ export interface AssetGroup {
     rebalanceWithin?: boolean;
 }
 
+/** Single condition for a ScheduleGate. OR semantics — any true fires. */
+export interface ScheduleGateCondition {
+    label: string;
+    pct: number;
+    dir: '>=' | '<=';
+}
+
+/**
+ * Schedule-coupled per-asset % threshold gate — 2-axis model.
+ *   checkAt:   'schedule' = measure only on due dates; 'always' = measure every bar.
+ *   executeAt: 'immediate' = rebalance immediately when met; 'nextSchedule' = arm + fire on next due date.
+ *
+ * Old-mode equivalence (codec only; nothing persisted):
+ *   gated   = {checkAt:'schedule', executeAt:'immediate'}
+ *   armNext = {checkAt:'always',   executeAt:'nextSchedule'}
+ *
+ * "Rebalance" = full snap toward target weights (band.pct=0).
+ */
+export interface ScheduleGate {
+    checkAt: 'schedule' | 'always'; // 측정 시점: 예약일에만 / 상시(매 바)
+    executeAt: 'immediate' | 'nextSchedule'; // 실행 시점: 즉시 / 다음 예약일
+    conditions: ScheduleGateCondition[];
+}
+
 /** Top-level rebalance policy attached to a BacktestInput. */
 export interface RebalancePolicy {
-    freq: 'never' | 'bar' | 'monthly' | 'quarterly' | 'yearly';
+    freq: 'never' | 'bar' | 'monthly' | 'quarterly' | 'yearly' | 'custom';
     band: { kind: 'absolute' | 'relative'; pct: number };
     groups: AssetGroup[];
     triggers?: RebalanceTrigger[];
+    /** Custom months to rebalance on (1–12). Only used when freq==='custom'. */
+    months?: number[];
+    /** Optional schedule-coupled threshold gate. Orthogonal to weightCap/weightFloor. */
+    scheduleGate?: ScheduleGate;
 }
 
 /** Per-asset tracking state for extrema and bear-market detection. */
@@ -218,4 +275,6 @@ export type RebalanceState = {
     }[];
     /** Warning strings for skipped actions (e.g. canSell===false trim). */
     warnings: string[];
+    /** True when gate condition was breached (checkAt:always + executeAt:nextSchedule); cleared after execution. */
+    armedRebalance?: boolean;
 };

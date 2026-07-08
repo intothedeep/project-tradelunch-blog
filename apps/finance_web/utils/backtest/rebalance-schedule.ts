@@ -14,16 +14,33 @@ import type { RebalancePolicy } from '@/types/backtest';
  *   monthly   → true on the first bar of a new calendar month vs prevRebalanceDate
  *   quarterly → true on the first bar of a new calendar quarter (Jan/Apr/Jul/Oct)
  *   yearly    → true on the first bar of a new calendar year
+ *   custom    → true on the first bar of each month listed in months[]; empty/undefined → false
  *
- * When prevRebalanceDate is null (first bar ever) → always true (except never).
+ * When prevRebalanceDate is null (first bar ever) → always true (except never/custom-empty).
  */
 export function isRebalanceDue(
     freq: RebalancePolicy['freq'],
     prevRebalanceDate: string | null,
-    barDate: string
+    barDate: string,
+    months?: number[]
 ): boolean {
     if (freq === 'never') return false;
     if (freq === 'bar') return true;
+
+    if (freq === 'custom') {
+        // Empty or missing months list ⇒ never rebalance.
+        if (!months || months.length === 0) return false;
+        const curMonthNum = parseInt(barDate.slice(5, 7), 10);
+        if (!months.includes(curMonthNum)) return false;
+        // First-ever bar in a selected month → always trigger.
+        if (prevRebalanceDate === null) return true;
+        // Due only on the first bar of a selected month.
+        const prevYear = prevRebalanceDate.slice(0, 4);
+        const prevMonth = prevRebalanceDate.slice(5, 7);
+        const curYear = barDate.slice(0, 4);
+        const curMonth = barDate.slice(5, 7);
+        return curYear !== prevYear || curMonth !== prevMonth;
+    }
 
     // First-ever bar: trigger for all scheduled frequencies.
     if (prevRebalanceDate === null) return true;

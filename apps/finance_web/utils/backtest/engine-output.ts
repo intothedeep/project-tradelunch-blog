@@ -94,6 +94,7 @@ export interface AssembleParams {
     budget: number;
     timeline: { date: string; value: number }[];
     perHoldingValuesSeries: { date: string; values: Record<string, number> }[];
+    perAssetPurchases: { date: string; buys: Record<string, number> }[];
     sortedDates: string[];
     flowsByDate: Map<string, number>;
     holdings: Holding[];
@@ -213,5 +214,6 @@ export function assembleBacktestResult(p: AssembleParams): BacktestResult {
         flowsByDate: flowsByDateRecord,
         rebalance: rebalanceResult,
         perHoldingValues: p.perHoldingValuesSeries,
+        perAssetPurchases: p.perAssetPurchases,
     };
 }
