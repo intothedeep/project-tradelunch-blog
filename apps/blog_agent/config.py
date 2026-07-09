@@ -50,8 +50,7 @@ from configs.paths import LOGS_DIR, POSTS_DIR, PROJECT_ROOT, TEMP_DIR
 from configs.storage import (
     CDN_ASSETS,
     STORAGE_ACCESS_KEY,
-    STORAGE_BUCKET_FILE,
-    STORAGE_BUCKET_IMAGE,
+    STORAGE_BUCKET,
     STORAGE_ENDPOINT,
     STORAGE_PROVIDER,
     STORAGE_REGION,
@@ -110,8 +109,7 @@ __all__ = [
     "STORAGE_ACCESS_KEY",
     "STORAGE_SECRET_KEY",
     "STORAGE_REGION",
-    "STORAGE_BUCKET_IMAGE",
-    "STORAGE_BUCKET_FILE",
+    "STORAGE_BUCKET",
     # Storage (Supabase legacy, kept for compat)
     "CDN_ASSETS",
     "SUPABASE_PROJECT_ID",

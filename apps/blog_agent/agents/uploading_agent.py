@@ -296,7 +296,7 @@ class UploadingAgent(BaseAgent):
         Returns:
             CDN URL for the uploaded file
         """
-        from configs.storage import CDN_ASSETS, STORAGE_BUCKET_IMAGE
+        from configs.storage import CDN_ASSETS, STORAGE_BUCKET
         from db.storage import build_object_key, build_public_url, get_provider
 
         # Read file content
@@ -305,7 +305,7 @@ class UploadingAgent(BaseAgent):
             # Return simulated URL if file doesn't exist (for testing).
             # Stored ext is always webp for parity with the real upload path.
             key = build_object_key(user_id, folder_path, slug)
-            return build_public_url(CDN_ASSETS, STORAGE_BUCKET_IMAGE, key)
+            return build_public_url(CDN_ASSETS, STORAGE_BUCKET, key)
 
         with open(file_path, "rb") as f:
             buffer = f.read()
@@ -325,7 +325,7 @@ class UploadingAgent(BaseAgent):
         # Upload via the active provider (upsert=True: idempotent re-publish of same slug).
         get_provider().put(key, buffer, "image/webp", upsert=True)
 
-        return build_public_url(CDN_ASSETS, STORAGE_BUCKET_IMAGE, key)
+        return build_public_url(CDN_ASSETS, STORAGE_BUCKET, key)
 
     async def _save_article(self, data: dict[str, Any]) -> dict[str, Any]:
         """
@@ -569,7 +569,7 @@ class UploadingAgent(BaseAgent):
         Returns:
             List of created file IDs
         """
-        from configs.storage import CDN_ASSETS, STORAGE_BUCKET_IMAGE as SUPABASE_STORAGE_BUCKET
+        from configs.storage import CDN_ASSETS, STORAGE_BUCKET as SUPABASE_STORAGE_BUCKET
         from db.repositories.file import FileRepository
 
         file_repo = FileRepository(session)

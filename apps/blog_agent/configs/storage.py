@@ -24,13 +24,10 @@ STORAGE_ACCESS_KEY: str = os.getenv("STORAGE_ACCESS_KEY", "")
 STORAGE_SECRET_KEY: str = os.getenv("STORAGE_SECRET_KEY", "")
 STORAGE_REGION: str = os.getenv("STORAGE_REGION", "")
 
-# ==================== Bucket names ====================
-# CONTRACT.md §5: STORAGE_BUCKET_IMAGE MUST be 'blog.prettylog' — changing it
+# ==================== Bucket name ====================
+# CONTRACT.md §5: STORAGE_BUCKET MUST be 'blog.prettylog' — changing it
 # forces a files.stored_uri rewrite across all existing rows.
-STORAGE_BUCKET_IMAGE: str = os.getenv("STORAGE_BUCKET_IMAGE", "blog.prettylog")
-
-# Reserved for future non-image upload paths (YAGNI — do not wire until needed).
-STORAGE_BUCKET_FILE: str = os.getenv("STORAGE_BUCKET_FILE", "")
+STORAGE_BUCKET: str = os.getenv("STORAGE_BUCKET", "blog.prettylog")
 
 # ==================== Supabase Storage (native client) ====================
 # Project Settings -> API. SUPABASE_SECRET_KEY is the service-role/secret key
@@ -38,8 +35,8 @@ STORAGE_BUCKET_FILE: str = os.getenv("STORAGE_BUCKET_FILE", "")
 SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
 SUPABASE_SECRET_KEY: str = os.getenv("SUPABASE_SECRET_KEY", "")
 
-# Legacy alias kept for call-site compat (equals STORAGE_BUCKET_IMAGE for supabase).
-SUPABASE_STORAGE_BUCKET: str = os.getenv("SUPABASE_STORAGE_BUCKET", STORAGE_BUCKET_IMAGE)
+# Legacy alias kept for call-site compat (equals STORAGE_BUCKET for supabase).
+SUPABASE_STORAGE_BUCKET: str = os.getenv("SUPABASE_STORAGE_BUCKET", STORAGE_BUCKET)
 
 # Documented-but-unused server-side: project ref + client-side publishable key.
 # Loaded for completeness; code must not require them.

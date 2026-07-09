@@ -68,8 +68,7 @@ Selector + creds are read once per runtime (TS `env.schema.ts`, Python `configs/
 | `STORAGE_ACCESS_KEY` | oci, s3 | S3 access key id (OCI Customer Secret Key) |
 | `STORAGE_SECRET_KEY` | oci, s3 | S3 secret access key |
 | `STORAGE_REGION` | oci, s3 | e.g. `ap-osaka-1` |
-| `STORAGE_BUCKET_IMAGE` | all | **MUST be `blog.prettylog`** — changing it forces a `files.stored_uri` rewrite |
-| `STORAGE_BUCKET_FILE` | (reserved) | optional; no non-image upload path exists yet — do not wire until one does |
+| `STORAGE_BUCKET` | all | **MUST be `blog.prettylog`** — changing it forces a `files.stored_uri` rewrite |
 | `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | supabase | existing, keep |
 | `CDN_ASSETS` | all | public URL base (`https://assets.prettylog.com`), never changes on swap |
 

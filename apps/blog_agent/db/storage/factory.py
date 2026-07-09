@@ -33,7 +33,7 @@ def get_provider() -> StorageProvider:
         return _provider
 
     from configs.storage import (
-        STORAGE_BUCKET_IMAGE,
+        STORAGE_BUCKET,
         STORAGE_PROVIDER,
         SUPABASE_SECRET_KEY,
         SUPABASE_URL,
@@ -47,7 +47,7 @@ def get_provider() -> StorageProvider:
         from db.storage.supabase_provider import SupabaseProvider
 
         client = create_client(SUPABASE_URL, SUPABASE_SECRET_KEY)
-        _provider = SupabaseProvider(client=client, bucket=STORAGE_BUCKET_IMAGE)
+        _provider = SupabaseProvider(client=client, bucket=STORAGE_BUCKET)
 
     elif provider_name in ("oci", "s3"):
         from configs.storage import (
@@ -63,7 +63,7 @@ def get_provider() -> StorageProvider:
             access_key=STORAGE_ACCESS_KEY,
             secret_key=STORAGE_SECRET_KEY,
             region=STORAGE_REGION,
-            bucket=STORAGE_BUCKET_IMAGE,
+            bucket=STORAGE_BUCKET,
         )
 
     else:

@@ -12,7 +12,7 @@ import {
     SUPABASE_URL,
     SUPABASE_SECRET_KEY,
     SUPABASE_STORAGE_BUCKET,
-    STORAGE_BUCKET_IMAGE,
+    STORAGE_BUCKET,
     STORAGE_ENDPOINT,
     STORAGE_ACCESS_KEY,
     STORAGE_SECRET_KEY,
@@ -64,7 +64,7 @@ export function getStorageProvider(): TStorageProvider {
             region: STORAGE_REGION,
             accessKeyId: STORAGE_ACCESS_KEY,
             secretAccessKey: STORAGE_SECRET_KEY,
-            bucket: STORAGE_BUCKET_IMAGE,
+            bucket: STORAGE_BUCKET,
         });
         return _provider;
     }
