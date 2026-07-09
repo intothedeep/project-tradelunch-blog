@@ -3,15 +3,15 @@
     "version": "0.0.0",
     "private": true,
     "scripts": {
-        "db:start": "[ -S /var/run/docker.sock ] || sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock && supabase start",
-        "db:link": "supabase link",
+        "db:start": "[ -S /var/run/docker.sock ] || sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock && pnpx supabase start",
+        "db:link": "pnpx supabase link",
         "db:status": "pnpx supabase status",
         "db:reset": "pnpx supabase db reset",
         "db:reset:linked": "pnpx supabase db reset --linked",
         "db:push:linked": "pnpx supabase db push",
-        "db:stop": "supabase stop",
-        "db:diff": "supabase db diff",
-        "db:new": "supabase migration new",
-        "db:list": "supabase migration list"
+        "db:stop": "pnpx supabase stop",
+        "db:diff": "pnpx supabase db diff",
+        "db:new": "pnpx supabase migration new",
+        "db:list": "pnpx supabase migration list"
     }
 }
