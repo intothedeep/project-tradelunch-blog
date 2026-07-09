@@ -14,6 +14,7 @@ Usage:
 """
 
 from db.connection import DatabaseSession, get_db_session, get_engine
+from db.file_meta import FileMetadata
 from db.models import (
     Category,
     File,
@@ -27,17 +28,8 @@ from db.repositories.category import CategoryRepository
 from db.repositories.file import FileRepository
 from db.repositories.post import PostRepository
 from db.repositories.tag import TagRepository
-from db.storage import (
-    FileMetadata,
-    async_get_signed_url,
-    async_load_local_file,
-    async_upload_file,
-    delete_file,
-    file_exists,
-    get_signed_url,
-    load_local_file,
-    upload_file,
-)
+from db.storage import build_object_key, build_public_url, get_provider
+from utils.load_file import load_local_file
 from utils.snowflake import Snowflake
 
 __all__ = [
@@ -53,6 +45,8 @@ __all__ = [
     "Tag",
     "PostTag",
     "PostCategory",
+    # Domain objects
+    "FileMetadata",
     # Repositories
     "CategoryRepository",
     "PostRepository",
@@ -60,14 +54,10 @@ __all__ = [
     "TagRepository",
     # Utils
     "Snowflake",
-    # Storage
-    "FileMetadata",
+    # Storage (new package)
+    "get_provider",
+    "build_public_url",
+    "build_object_key",
+    # Filesystem util (backward compat)
     "load_local_file",
-    "upload_file",
-    "get_signed_url",
-    "delete_file",
-    "file_exists",
-    "async_upload_file",
-    "async_load_local_file",
-    "async_get_signed_url",
 ]

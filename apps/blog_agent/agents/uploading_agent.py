@@ -296,16 +296,16 @@ class UploadingAgent(BaseAgent):
         Returns:
             CDN URL for the uploaded file
         """
-        from db.storage import FileMetadata, async_upload_file
-        from utils.snowflake import generate_id
+        from configs.storage import CDN_ASSETS, STORAGE_BUCKET_IMAGE
+        from db.storage import build_object_key, build_public_url, get_provider
 
         # Read file content
         file_path = Path(local_path)
         if not file_path.exists():
             # Return simulated URL if file doesn't exist (for testing).
             # Stored ext is always webp for parity with the real upload path.
-            s3_key = f"{user_id}/{folder_path}/{slug}/{slug}.webp"
-            return f"{config.CDN_ASSETS}/{config.SUPABASE_STORAGE_BUCKET}/{s3_key}"
+            key = build_object_key(user_id, folder_path, slug)
+            return build_public_url(CDN_ASSETS, STORAGE_BUCKET_IMAGE, key)
 
         with open(file_path, "rb") as f:
             buffer = f.read()
@@ -319,23 +319,13 @@ class UploadingAgent(BaseAgent):
             self._log(f"Skipping non-image file {file_path.name}: {exc}", "error")
             raise
 
-        # Create file metadata (stored as webp regardless of source format)
-        meta = FileMetadata(
-            id=generate_id(),
-            user_id=user_id,
-            folder_path=folder_path,
-            slug=slug,
-            filename=file_path.name,
-            ext="webp",
-            buffer=buffer,
-            content_type="image/webp",
-            is_thumbnail=is_thumbnail,
-        )
+        # Build key per CONTRACT.md §6; slug already contains index suffix for body images.
+        key = build_object_key(user_id, folder_path, slug)
 
-        # Upload to S3
-        result = await async_upload_file(meta)
+        # Upload via the active provider (upsert=True: idempotent re-publish of same slug).
+        get_provider().put(key, buffer, "image/webp", upsert=True)
 
-        return result.stored_uri
+        return build_public_url(CDN_ASSETS, STORAGE_BUCKET_IMAGE, key)
 
     async def _save_article(self, data: dict[str, Any]) -> dict[str, Any]:
         """
@@ -579,7 +569,7 @@ class UploadingAgent(BaseAgent):
         Returns:
             List of created file IDs
         """
-        from config import CDN_ASSETS, SUPABASE_STORAGE_BUCKET
+        from configs.storage import CDN_ASSETS, STORAGE_BUCKET_IMAGE as SUPABASE_STORAGE_BUCKET
         from db.repositories.file import FileRepository
 
         file_repo = FileRepository(session)

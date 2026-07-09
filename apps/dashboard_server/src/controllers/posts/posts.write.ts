@@ -8,7 +8,7 @@
 //   * COALESCE update semantics (see helpers/writePost.ts): a PATCH can change a
 //     field or leave it untouched, but CANNOT null out an existing value.
 // Side effects: DB writes via the writePost helpers; sharp resize + one network
-//          upload to Supabase Storage on the image route.
+//          upload to the active storage provider on the image route.
 import { Router } from 'express';
 import type { NextFunction, Request, Response } from 'express';
 import multer from 'multer';
@@ -25,12 +25,13 @@ import { upsertThumbnail } from '../../helpers/writeThumbnail';
 import { syncPostTags } from '../../helpers/writePostTags';
 import { buildImagePath } from '../../helpers/imagePath';
 import { transformImage } from '../../helpers/transformImage';
-import { uploadImageToStorage } from '../../helpers/uploadImage';
+import { getStorageProvider, isStorageConfigured } from '../../lib/storage/factory';
+import { buildPublicUrl } from '../../lib/storage/publicUrl';
 import {
     SUPABASE_URL,
-    SUPABASE_SECRET_KEY,
     SUPABASE_STORAGE_BUCKET,
     CDN_ASSETS,
+    STORAGE_BUCKET_IMAGE,
 } from '../../config/env.schema';
 import type { TImageUploadResponse, TPostStatus } from '@repo/types';
 
@@ -248,11 +249,11 @@ router.delete('/:postid', requireAuth, async (req, res) => {
     }
 });
 
-// Browser → Express (multipart) → sharp resize/normalize → server-to-server
-// upload to Supabase Storage. The browser never talks to Supabase directly.
+// Browser → Express (multipart) → sharp resize/normalize → provider.put().
+// The browser never talks to storage directly; the provider is selected by env.
 router.post('/images', requireAuth, uploadSingleFile, async (req, res) => {
     try {
-        if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
+        if (!isStorageConfigured()) {
             res.status(503).json({
                 success: false,
                 message: 'storage not configured',
@@ -289,28 +290,19 @@ router.post('/images', requireAuth, uploadSingleFile, async (req, res) => {
         const uniqueSuffix = `${Date.now()}-${Math.random()
             .toString(36)
             .slice(2, 8)}`;
-        const path = buildImagePath(
+        const key = buildImagePath(
             req.auth!.userId,
             req.file.originalname || 'image',
             uniqueSuffix,
             'webp'
         );
-        const publicBase =
-            CDN_ASSETS?.replace(/\/+$/, '') ||
-            `${SUPABASE_URL}/storage/v1/object/public`;
 
-        const uploaded = await uploadImageToStorage(
-            {
-                supabaseUrl: SUPABASE_URL,
-                secretKey: SUPABASE_SECRET_KEY,
-                bucket: SUPABASE_STORAGE_BUCKET,
-                publicBase,
-            },
-            path,
-            transformed.value.buffer,
-            'image/webp'
-        );
-        if (uploaded.ok === false) {
+        const provider = getStorageProvider();
+        try {
+            await provider.put(key, transformed.value.buffer, 'image/webp', {
+                upsert: false,
+            });
+        } catch {
             res.status(502).json({
                 success: false,
                 message: 'storage upload failed',
@@ -318,9 +310,9 @@ router.post('/images', requireAuth, uploadSingleFile, async (req, res) => {
             return;
         }
 
-        const payload: TImageUploadResponse = {
-            publicUrl: uploaded.value.publicUrl,
-        };
+        const publicUrl = buildPublicUrl(CDN_ASSETS, STORAGE_BUCKET_IMAGE, key);
+
+        const payload: TImageUploadResponse = { publicUrl };
         res.status(200).json({ success: true, data: payload });
     } catch (error) {
         console.error('POST /api/posts/images error:', error);

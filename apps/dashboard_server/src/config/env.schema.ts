@@ -55,6 +55,18 @@ const envSchema = z.object({
     SUPABASE_SECRET_KEY: z.string().optional(),
     SUPABASE_STORAGE_BUCKET: z.string().default('blog.prettylog'),
 
+    // storage (provider-agnostic)
+    // Selector: 'supabase' (default) | 'oci' | 's3'
+    STORAGE_PROVIDER: z.enum(['supabase', 'oci', 's3']).default('supabase'),
+    // Required for 'oci' and 's3' providers:
+    STORAGE_ENDPOINT: z.string().optional(),
+    STORAGE_ACCESS_KEY: z.string().optional(),
+    STORAGE_SECRET_KEY: z.string().optional(),
+    STORAGE_REGION: z.string().optional(),
+    // Bucket names — MUST stay 'blog.prettylog' to avoid stored_uri rewrites:
+    STORAGE_BUCKET_IMAGE: z.string().default('blog.prettylog'),
+    STORAGE_BUCKET_FILE: z.string().optional(), // reserved, not yet wired
+
     // auth
     CLERK_SECRET_KEY: z.string().optional(),
 
@@ -99,6 +111,15 @@ export const SUPABASE_PROJECT_ID = env.SUPABASE_PROJECT_ID;
 export const SUPABASE_URL = env.SUPABASE_URL;
 export const SUPABASE_SECRET_KEY = env.SUPABASE_SECRET_KEY;
 export const SUPABASE_STORAGE_BUCKET = env.SUPABASE_STORAGE_BUCKET;
+
+// storage (provider-agnostic)
+export const STORAGE_PROVIDER = env.STORAGE_PROVIDER;
+export const STORAGE_ENDPOINT = env.STORAGE_ENDPOINT;
+export const STORAGE_ACCESS_KEY = env.STORAGE_ACCESS_KEY;
+export const STORAGE_SECRET_KEY = env.STORAGE_SECRET_KEY;
+export const STORAGE_REGION = env.STORAGE_REGION;
+export const STORAGE_BUCKET_IMAGE = env.STORAGE_BUCKET_IMAGE;
+export const STORAGE_BUCKET_FILE = env.STORAGE_BUCKET_FILE;
 
 // auth
 export const CLERK_SECRET_KEY = env.CLERK_SECRET_KEY;

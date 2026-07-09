@@ -3,7 +3,7 @@
 
 WHY: After Phase F2, every stored image must land as `.webp` (stored_name,
 s3_key, files.content_type) and body markdown must be rewritten to the webp CDN
-URL. These tests mock the Supabase upload + file-record boundaries so the
+URL. These tests mock the storage provider + file-record boundaries so the
 codec/extension contract is verified without network or DB access.
 """
 
@@ -19,7 +19,7 @@ project_root = str(Path(__file__).parent.parent)
 sys.path.insert(0, project_root)
 
 from agents.uploading_agent import UploadingAgent  # noqa: E402
-from db.storage import FileMetadata  # noqa: E402
+from db.file_meta import FileMetadata  # noqa: E402
 
 
 def _write_png(path: Path, size: tuple[int, int] = (64, 48)) -> None:
@@ -35,24 +35,27 @@ class TestUploadWebp(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.agent = UploadingAgent()
         self.context = {"user_id": 2, "categories": ["tech"], "slug": "my-post"}
+        # Reset the factory singleton so each test starts clean.
+        import db.storage.factory as _factory
+        _factory._reset_provider()
 
-    async def test_upload_images_stores_webp_name_and_key(self, ) -> None:
+    async def test_upload_images_stores_webp_name_and_key(self) -> None:
         """Body images get .webp stored_name/s3_key while keeping source filename."""
         import tempfile
+
+        cdn = "https://assets.example.com/blog.prettylog/2/tech/my-post/my-post-1.webp"
+
+        mock_provider = MagicMock()
+        mock_provider.put = MagicMock()
 
         with tempfile.TemporaryDirectory() as tmp:
             src = Path(tmp) / "diagram.png"
             _write_png(src)
 
-            cdn = "https://assets.example.com/bucket/2/tech/my-post/my-post-1.webp"
-            mock_result = FileMetadata(
-                id=1, user_id=2, folder_path="tech", slug="my-post-1",
-                filename="diagram.png", ext="webp", stored_uri=cdn,
-            )
-
-            with patch(
-                "db.storage.async_upload_file",
-                new=AsyncMock(return_value=mock_result),
+            with (
+                # Patch where the agent imports them from (db.storage package).
+                patch("db.storage.get_provider", return_value=mock_provider),
+                patch("db.storage.build_public_url", return_value=cdn),
             ):
                 result = await self.agent._upload_images(
                     [{"local_path": str(src), "alt": "d"}], None, self.context
