@@ -384,6 +384,8 @@ importers:
 
   packages/assets: {}
 
+  packages/db: {}
+
   packages/eslint-config:
     devDependencies:
       '@eslint/js':

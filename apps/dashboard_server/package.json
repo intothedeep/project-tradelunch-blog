@@ -10,18 +10,6 @@
         "check-types": "tsc --noEmit",
         "start": "node dist/src/index.js",
         "start:pm2": "cross-env NODE_ENV=production pnpm build && pm2 start dist/src/index.js --name dashboard_server",
-        "db:start": "[ -S /var/run/docker.sock ] || sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock && supabase start",
-        "db:link": "supabase link",
-
-        "db:status": "pnpx supabase status",
-        "db:reset": "pnpx supabase db reset",
-        "db:reset:linked": "pnpx supabase db reset --linked",
-        "db:push:linked": "pnpx supabase db push",
-
-        "db:stop": "supabase stop",
-        "db:diff": "supabase db diff",
-        "db:new": "supabase migration new",
-        "db:list": "supabase migration list",
         "status": "pm2 status",
         "logs": "pm2 logs",
         "stop": "pm2 stop",

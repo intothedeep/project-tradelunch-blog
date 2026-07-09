@@ -29,6 +29,7 @@ packages/
   @repo/markdown-parsing  Markdown pipeline (rollup → dist/, has Jest tests)
   @repo/assets            Static assets (images, fonts, icons)
   @repo/types             Shared types
+  @repo/db                Supabase migrations + seed + db:* CLI scripts (blog DB schema source of truth)
   @repo/{tailwind,eslint,typescript,jest}-config   Shared configs
 ```
 
