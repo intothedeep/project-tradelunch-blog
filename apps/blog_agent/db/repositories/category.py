@@ -48,6 +48,9 @@ class CategoryRepository(BaseRepository[Category]):
         Returns:
             Category or None if not found.
         """
+        # Titles are stored lowercased on insert; normalize the lookup to match
+        # so mixed-case folder names (e.g. 'DSA', 'Rust') resolve correctly.
+        title = title.strip().lower()
         stmt = (
             select(Category)
             .where(Category.title == title)

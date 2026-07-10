@@ -44,6 +44,8 @@ class TagRepository(BaseRepository[Tag]):
         Returns:
             Tag or None.
         """
+        # Tags are stored lowercased on insert; normalize the lookup to match.
+        title = title.strip().lower()
         stmt = select(Tag).where(Tag.title == title).where(Tag.deleted_at.is_(None))
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
@@ -58,11 +60,12 @@ class TagRepository(BaseRepository[Tag]):
         Returns:
             Tag (existing or newly created).
         """
+        title = title.strip().lower()
         tag = await self.get_by_title(title)
         if tag:
             return tag
 
-        # Create new tag
+        # Create new tag (lowercased to match the storage convention)
         tag = Tag(title=title)
         self.session.add(tag)
         await self.session.flush()
@@ -285,6 +288,7 @@ class TagRepository(BaseRepository[Tag]):
         Returns:
             True if removed, False if not found.
         """
+        tag_title = tag_title.strip().lower()
         stmt = (
             select(PostTag).where(PostTag.post_id == post_id).where(PostTag.tag_title == tag_title)
         )
