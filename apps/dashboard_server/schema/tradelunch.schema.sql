@@ -365,3 +365,38 @@ CREATE TABLE IF NOT EXISTS comments (
 
 CREATE INDEX IF NOT EXISTS idx_comments_post_path ON comments(post_id, path);
 CREATE INDEX IF NOT EXISTS idx_comments_parent ON comments(parent_id);
+
+
+-- ===========================
+-- LOG TABLE
+-- Threads-style personal micro-feed (Phase Y — M1). A dedicated self-ref table
+-- (NOT a reuse of posts/comments) for structural isolation from the blog surface.
+-- Materialized-path pattern from comments: path = parent.path || id (self-inclusive).
+-- Root's path = ARRAY[id]. Depth = cardinality(path) - 1 (never stored).
+-- Ancestor query = WHERE id = ANY(focus.path[1:N-1]) — plain PK scan.
+-- Auth: top-level (parent_id IS NULL) = owner-only; replies = any logged-in user.
+-- Soft-delete via deleted_at tombstone (masked at READ). BIGINT ids as STRINGS.
+-- FK ON DELETE: NO ACTION (matches post_favorites/post_likes — Issue #3).
+-- ===========================
+CREATE TABLE IF NOT EXISTS log (
+    id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id     BIGINT NOT NULL REFERENCES users(id),
+    parent_id   BIGINT NULL     REFERENCES log(id),  -- self-ref; NULL = top-level log post
+    -- Self-inclusive materialized path: parent.path || id.
+    -- Root's path = ARRAY[id]. Depth = cardinality(path) - 1.
+    path        BIGINT[] NOT NULL,
+    body        TEXT NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at  TIMESTAMPTZ NULL                     -- soft-delete tombstone (masked at READ)
+);
+
+-- Top-level log stream per user, newest-first (stream/feed query).
+CREATE INDEX IF NOT EXISTS idx_log_user_toplevel ON log(user_id, id DESC) WHERE parent_id IS NULL;
+
+-- Direct-child (depth-1) lookup for focus-node view replies.
+CREATE INDEX IF NOT EXISTS idx_log_parent ON log(parent_id, id);
+
+-- Ancestor chain lookup: WHERE id = ANY(focus.path[1:N-1]) hits PK; this GIN
+-- index accelerates the inverse — "which focus nodes contain a given ancestor id
+-- in their path" — used for subtree invalidation and future M2 fan-out.
+CREATE INDEX IF NOT EXISTS idx_log_path ON log USING GIN(path);
