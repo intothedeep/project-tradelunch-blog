@@ -3,9 +3,9 @@ import BlogMainPage from '@/app/blog/components/BlogMainPage';
 import { HOME_FEED_AUTHOR } from '@/utils/blog-author';
 import { SITE_URL } from '@/env.schema';
 
-const TITLE = 'Taek Lim — Finance, Markets & Engineering';
+const TITLE = 'Taek Lim — Software Engineering & Backend';
 const DESCRIPTION =
-    'Essays and data on 13F institutional flows, congressional trades, market-cap rankings, and software engineering.';
+    'Technical blog and portfolio by Taek Lim. Topics: software engineering, backend systems, and web development.';
 
 // Home is the CANONICAL representative for the owner's feed. While single-user,
 // `/blog/@<owner>` is duplicate content of `/`, so it canonicalizes here (see

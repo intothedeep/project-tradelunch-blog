@@ -10,8 +10,8 @@ import type { ReactNode } from 'react';
 
 export const isMenuDrawerOpenAtom = atom(false);
 
-// A menu the current page contributes to the hamburger drawer (e.g. the fund
-// list on /funds/[cik]). `content` is rendered inside the drawer when picked.
+// A menu the current page contributes to the hamburger drawer.
+// `content` is rendered inside the drawer when picked.
 export interface PageMenu {
     label: string;
     content: ReactNode;
