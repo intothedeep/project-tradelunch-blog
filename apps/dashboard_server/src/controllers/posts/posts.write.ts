@@ -31,7 +31,6 @@ import {
     SUPABASE_URL,
     SUPABASE_STORAGE_BUCKET,
     CDN_ASSETS,
-    STORAGE_BUCKET,
 } from '../../config/env.schema';
 import type { TImageUploadResponse, TPostStatus } from '@repo/types';
 
@@ -310,7 +309,7 @@ router.post('/images', requireAuth, uploadSingleFile, async (req, res) => {
             return;
         }
 
-        const publicUrl = buildPublicUrl(CDN_ASSETS, STORAGE_BUCKET, key);
+        const publicUrl = buildPublicUrl(CDN_ASSETS, key);
 
         const payload: TImageUploadResponse = { publicUrl };
         res.status(200).json({ success: true, data: payload });

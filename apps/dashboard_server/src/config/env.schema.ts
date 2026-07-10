@@ -35,9 +35,9 @@ const envSchema = z.object({
 
     // CDN
     // publicUrl = ${CDN_ASSETS}/${bucket}/${path}. When serving via Cloudflare
-    // at assets.prettylog.com, the CDN must rewrite /<bucket>/<path> ->
+    // at blog-assets.prettylog.com, the CDN must rewrite /<bucket>/<path> ->
     // origin /storage/v1/object/public/<bucket>/<path>.
-    CDN_ASSETS: z.string().default('https://assets.prettylog.com/'),
+    CDN_ASSETS: z.string().default('https://blog-assets.prettylog.com/'),
 
     // user id
     DEFAULT_USER_ID: z.coerce.number().default(2),
@@ -63,8 +63,8 @@ const envSchema = z.object({
     STORAGE_ACCESS_KEY: z.string().optional(),
     STORAGE_SECRET_KEY: z.string().optional(),
     STORAGE_REGION: z.string().optional(),
-    // Bucket name — MUST stay 'blog.prettylog' to avoid stored_uri rewrites:
-    STORAGE_BUCKET: z.string().default('blog.prettylog'),
+    // Bucket name — MUST stay 'blog-assets.prettylog.com' to avoid stored_uri rewrites:
+    STORAGE_BUCKET: z.string().default('blog-assets.prettylog.com'),
 
     // auth
     CLERK_SECRET_KEY: z.string().optional(),

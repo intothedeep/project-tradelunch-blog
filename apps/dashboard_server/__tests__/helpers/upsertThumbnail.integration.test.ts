@@ -17,11 +17,11 @@ async function isDbReachable(): Promise<boolean> {
 }
 
 const cfg = {
-    cdnBase: 'https://assets.prettylog.com',
-    bucket: 'blog.prettylog',
+    cdnBase: 'https://blog-assets.prettylog.com',
+    bucket: 'blog-assets.prettylog.com',
 };
 const urlFor = (n: string) =>
-    `https://assets.prettylog.com/blog.prettylog/THUMBTEST/${n}.png`;
+    `https://blog-assets.prettylog.com/blog-assets.prettylog.com/THUMBTEST/${n}.png`;
 
 const tag = `thumb_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 const clerk = `clerk_thumb_${tag}`;

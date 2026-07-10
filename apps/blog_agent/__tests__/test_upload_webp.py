@@ -43,7 +43,7 @@ class TestUploadWebp(IsolatedAsyncioTestCase):
         """Body images get .webp stored_name/s3_key while keeping source filename."""
         import tempfile
 
-        cdn = "https://assets.example.com/blog.prettylog/2/tech/my-post/my-post-1.webp"
+        cdn = "https://assets.example.com/blog-assets.prettylog.com/2/tech/my-post/my-post-1.webp"
 
         mock_provider = MagicMock()
         mock_provider.put = MagicMock()

@@ -176,7 +176,7 @@ describe('validatePostInput', () => {
     });
 
     it('accepts a string thumbnailUrl and threads it into value', () => {
-        const url = 'https://assets.prettylog.com/blog.prettylog/42/x-1.png';
+        const url = 'https://blog-assets.prettylog.com/blog-assets.prettylog.com/42/x-1.png';
         const result = validatePostInput({ title: 'T', thumbnailUrl: url });
         expect(result).toEqual({
             ok: true,

@@ -29,12 +29,14 @@ The provider does **byte movement only**. It does NOT build URLs, keys, or run i
 ## 2. Shared pure function — `buildPublicUrl` / `build_public_url`
 
 ```
-buildPublicUrl(cdnBase: string, bucket: string, key: string) -> string
-  = `${cdnBase.replace(/\/+$/,'')}/${bucket}/${key}`
+buildPublicUrl(cdnBase: string, key: string) -> string
+  = `${cdnBase.replace(/\/+$/,'')}/${key}`
 ```
 
-Identical output in both runtimes. This is why swapping providers rewrites **zero** `files.stored_uri`
-rows — the URL depends only on `CDN_ASSETS` + bucket + key, never on the backend.
+Identical output in both runtimes. The bucket segment is NOT part of the URL — the CDN CNAME
+(`blog-assets.prettylog.com`) resolves directly to the bucket origin, so only the object key
+is appended. This means renaming `STORAGE_BUCKET` rewrites **zero** `files.stored_uri` rows —
+only a `CDN_ASSETS` domain change does.
 
 ## 3. `upsert` semantics (the cross-provider footgun)
 
@@ -68,9 +70,9 @@ Selector + creds are read once per runtime (TS `env.schema.ts`, Python `configs/
 | `STORAGE_ACCESS_KEY` | oci, s3 | S3 access key id (OCI Customer Secret Key) |
 | `STORAGE_SECRET_KEY` | oci, s3 | S3 secret access key |
 | `STORAGE_REGION` | oci, s3 | e.g. `ap-osaka-1` |
-| `STORAGE_BUCKET` | all | **MUST be `blog.prettylog`** — changing it forces a `files.stored_uri` rewrite |
+| `STORAGE_BUCKET` | all | OCI bucket name (`blog-assets.prettylog.com`). Used as the S3 `Bucket` param for uploads; does NOT appear in the public URL. |
 | `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | supabase | existing, keep |
-| `CDN_ASSETS` | all | public URL base (`https://assets.prettylog.com`), never changes on swap |
+| `CDN_ASSETS` | all | public URL base (`https://blog-assets.prettylog.com`). Stored URI = `{CDN_ASSETS}/{key}`. |
 
 ## 6. Key scheme (preserved verbatim — provider-independent)
 

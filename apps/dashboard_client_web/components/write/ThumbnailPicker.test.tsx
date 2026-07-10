@@ -33,14 +33,14 @@ describe('ThumbnailPicker — UX12b', () => {
         render(
             <ThumbnailPicker
                 {...baseProps}
-                thumbnailUrl="https://cdn.example/blog.prettylog/thumb.png"
+                thumbnailUrl="https://cdn.example/blog-assets.prettylog.com/thumb.png"
             />
         );
 
         const img = screen.getByRole('img', { name: 'a11y.thumbnailPreview' });
         expect(img).toBeDefined();
         expect(img.getAttribute('src')).toBe(
-            'https://cdn.example/blog.prettylog/thumb.png'
+            'https://cdn.example/blog-assets.prettylog.com/thumb.png'
         );
         // Replace + clear are both present.
         expect(screen.getByText('settings.thumbnailReplace')).toBeDefined();

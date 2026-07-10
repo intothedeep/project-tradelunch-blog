@@ -25,9 +25,9 @@ STORAGE_SECRET_KEY: str = os.getenv("STORAGE_SECRET_KEY", "")
 STORAGE_REGION: str = os.getenv("STORAGE_REGION", "")
 
 # ==================== Bucket name ====================
-# CONTRACT.md §5: STORAGE_BUCKET MUST be 'blog.prettylog' — changing it
-# forces a files.stored_uri rewrite across all existing rows.
-STORAGE_BUCKET: str = os.getenv("STORAGE_BUCKET", "blog.prettylog")
+# OCI bucket name. The bucket is still needed for uploads (provider.put Bucket=),
+# but it no longer appears in the public URL (see CDN configuration below).
+STORAGE_BUCKET: str = os.getenv("STORAGE_BUCKET", "blog-assets.prettylog.com")
 
 # ==================== Supabase Storage (native client) ====================
 # Project Settings -> API. SUPABASE_SECRET_KEY is the service-role/secret key
@@ -35,8 +35,10 @@ STORAGE_BUCKET: str = os.getenv("STORAGE_BUCKET", "blog.prettylog")
 SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
 SUPABASE_SECRET_KEY: str = os.getenv("SUPABASE_SECRET_KEY", "")
 
-# Legacy alias kept for call-site compat (equals STORAGE_BUCKET for supabase).
-SUPABASE_STORAGE_BUCKET: str = os.getenv("SUPABASE_STORAGE_BUCKET", STORAGE_BUCKET)
+# Supabase's own bucket name. Decoupled from STORAGE_BUCKET: the OCI bucket was
+# renamed to 'blog-assets.prettylog.com' while the Supabase bucket remains
+# 'blog.prettylog'. Do NOT fall back to STORAGE_BUCKET here.
+SUPABASE_STORAGE_BUCKET: str = os.getenv("SUPABASE_STORAGE_BUCKET", "blog.prettylog")
 
 # Documented-but-unused server-side: project ref + client-side publishable key.
 # Loaded for completeness; code must not require them.
@@ -44,5 +46,7 @@ SUPABASE_PROJECT_ID: str = os.getenv("SUPABASE_PROJECT_ID", "")
 SUPABASE_PUBLISHABLE_KEY: str = os.getenv("SUPABASE_PUBLISHABLE_KEY", "")
 
 # ==================== CDN Configuration ====================
-# Public base for stored objects; stored_uri = f"{CDN_ASSETS}/{bucket}/{key}".
-CDN_ASSETS: str = os.getenv("CDN_ASSETS", "https://assets.prettylog.com").rstrip("/")
+# Public base for stored objects; stored_uri = build_public_url(CDN_ASSETS, key).
+# The bucket segment is NOT part of the URL — the CDN CNAME resolves directly to
+# the bucket origin, so only the object key is appended.
+CDN_ASSETS: str = os.getenv("CDN_ASSETS", "https://blog-assets.prettylog.com").rstrip("/")

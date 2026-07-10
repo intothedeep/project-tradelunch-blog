@@ -296,7 +296,7 @@ class UploadingAgent(BaseAgent):
         Returns:
             CDN URL for the uploaded file
         """
-        from configs.storage import CDN_ASSETS, STORAGE_BUCKET
+        from configs.storage import CDN_ASSETS
         from db.storage import build_object_key, build_public_url, get_provider
 
         # Read file content
@@ -305,7 +305,7 @@ class UploadingAgent(BaseAgent):
             # Return simulated URL if file doesn't exist (for testing).
             # Stored ext is always webp for parity with the real upload path.
             key = build_object_key(user_id, folder_path, slug)
-            return build_public_url(CDN_ASSETS, STORAGE_BUCKET, key)
+            return build_public_url(CDN_ASSETS, key)
 
         with open(file_path, "rb") as f:
             buffer = f.read()
@@ -325,7 +325,7 @@ class UploadingAgent(BaseAgent):
         # Upload via the active provider (upsert=True: idempotent re-publish of same slug).
         get_provider().put(key, buffer, "image/webp", upsert=True)
 
-        return build_public_url(CDN_ASSETS, STORAGE_BUCKET, key)
+        return build_public_url(CDN_ASSETS, key)
 
     async def _save_article(self, data: dict[str, Any]) -> dict[str, Any]:
         """
@@ -569,8 +569,9 @@ class UploadingAgent(BaseAgent):
         Returns:
             List of created file IDs
         """
-        from configs.storage import CDN_ASSETS, STORAGE_BUCKET as SUPABASE_STORAGE_BUCKET
+        from configs.storage import CDN_ASSETS
         from db.repositories.file import FileRepository
+        from db.storage import build_public_url
 
         file_repo = FileRepository(session)
         file_ids = []
@@ -618,11 +619,13 @@ class UploadingAgent(BaseAgent):
             # so the files row records the actual stored object/content-type.
             ext = Path(stored_name).suffix.lstrip(".") or Path(local_path).suffix.lstrip(".")
 
-            # Determine stored URI (CDN URL) - use stored_name (slug-based)
+            # Determine stored URI (CDN URL) — always {CDN_ASSETS}/{key}.
             if s3_url:
                 stored_uri = s3_url  # Already contains the full CDN URL
+            elif s3_key:
+                stored_uri = build_public_url(CDN_ASSETS, s3_key)
             else:
-                stored_uri = f"{CDN_ASSETS}/{SUPABASE_STORAGE_BUCKET}/images/{stored_name}"
+                stored_uri = build_public_url(CDN_ASSETS, stored_name)
 
             # Get file size (if file exists locally)
             file_size = None

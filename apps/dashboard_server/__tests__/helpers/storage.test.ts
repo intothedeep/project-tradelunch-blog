@@ -31,28 +31,28 @@ function getMockSend(): jest.Mock {
 // ---------------------------------------------------------------------------
 
 describe('buildPublicUrl', () => {
-    it('joins cdnBase, bucket, and key with no double slashes', () => {
+    it('joins cdnBase and key with no double slashes', () => {
         expect(
-            buildPublicUrl('https://assets.prettylog.com', 'blog.prettylog', 'user/img.webp')
-        ).toBe('https://assets.prettylog.com/blog.prettylog/user/img.webp');
+            buildPublicUrl('https://blog-assets.prettylog.com', 'user/img.webp')
+        ).toBe('https://blog-assets.prettylog.com/user/img.webp');
     });
 
     it('strips trailing slash(es) from cdnBase before joining', () => {
         expect(
-            buildPublicUrl('https://assets.prettylog.com/', 'blog.prettylog', 'a/b.webp')
-        ).toBe('https://assets.prettylog.com/blog.prettylog/a/b.webp');
+            buildPublicUrl('https://blog-assets.prettylog.com/', 'a/b.webp')
+        ).toBe('https://blog-assets.prettylog.com/a/b.webp');
     });
 
     it('strips multiple trailing slashes from cdnBase', () => {
         expect(
-            buildPublicUrl('https://assets.prettylog.com///', 'blog.prettylog', 'a/b.webp')
-        ).toBe('https://assets.prettylog.com/blog.prettylog/a/b.webp');
+            buildPublicUrl('https://blog-assets.prettylog.com///', 'a/b.webp')
+        ).toBe('https://blog-assets.prettylog.com/a/b.webp');
     });
 
     it('handles a key with a sub-path', () => {
         expect(
-            buildPublicUrl('https://cdn.example.com', 'images', '2/photo-123-abc.webp')
-        ).toBe('https://cdn.example.com/images/2/photo-123-abc.webp');
+            buildPublicUrl('https://cdn.example.com', '2/photo-123-abc.webp')
+        ).toBe('https://cdn.example.com/2/photo-123-abc.webp');
     });
 });
 
@@ -65,7 +65,7 @@ const providerConfig = {
     region: 'ap-osaka-1',
     accessKeyId: 'fake-access',
     secretAccessKey: 'fake-secret',
-    bucket: 'blog.prettylog',
+    bucket: 'blog-assets.prettylog.com',
 };
 
 describe('OciS3Provider.put', () => {

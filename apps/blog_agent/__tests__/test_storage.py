@@ -34,31 +34,28 @@ from db.storage.public_url import build_public_url  # noqa: E402
 class TestBuildPublicUrl:
     def test_basic_url(self) -> None:
         result = build_public_url(
-            "https://assets.prettylog.com",
-            "blog.prettylog",
+            "https://blog-assets.prettylog.com",
             "1/tech/ai/my-post/my-post.webp",
         )
-        assert result == "https://assets.prettylog.com/blog.prettylog/1/tech/ai/my-post/my-post.webp"
+        assert result == "https://blog-assets.prettylog.com/1/tech/ai/my-post/my-post.webp"
 
     def test_strips_trailing_slash_from_cdn_base(self) -> None:
         result = build_public_url(
-            "https://assets.prettylog.com///",
-            "blog.prettylog",
+            "https://blog-assets.prettylog.com///",
             "key.webp",
         )
-        assert result == "https://assets.prettylog.com/blog.prettylog/key.webp"
+        assert result == "https://blog-assets.prettylog.com/key.webp"
 
     def test_empty_cdn_base_produces_relative_url(self) -> None:
-        result = build_public_url("", "blog.prettylog", "key.webp")
-        assert result == "/blog.prettylog/key.webp"
+        result = build_public_url("", "key.webp")
+        assert result == "/key.webp"
 
     def test_key_with_nested_path(self) -> None:
         result = build_public_url(
             "https://cdn.example.com",
-            "my-bucket",
             "a/b/c/d.webp",
         )
-        assert result == "https://cdn.example.com/my-bucket/a/b/c/d.webp"
+        assert result == "https://cdn.example.com/a/b/c/d.webp"
 
 
 # ---------------------------------------------------------------------------

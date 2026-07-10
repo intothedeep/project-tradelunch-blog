@@ -33,7 +33,7 @@ const envSchema = z.object({
 
     NEXT_PUBLIC_CDN_ASSETS: z
         .url()
-        .default('https://assets.prettylog.com')
+        .default('https://blog-assets.prettylog.com')
         .catch('https://error.:::cdnassets.com'),
 
     // Dashboard data source switch. Absent env → 'mock' (live behavior unchanged).
