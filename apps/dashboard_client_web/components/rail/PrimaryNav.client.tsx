@@ -20,6 +20,7 @@ import {
     PenSquare,
     Bookmark,
     User,
+    MessageSquare,
     type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -28,6 +29,7 @@ import { usePrimaryNavLinks } from '@/hooks/useNavLinks.hook';
 const ICON_BY_KEY: Record<string, LucideIcon> = {
     home: Home,
     allPosts: Newspaper,
+    log: MessageSquare,
     about: Info,
     resume: FileText,
     explore: Compass,

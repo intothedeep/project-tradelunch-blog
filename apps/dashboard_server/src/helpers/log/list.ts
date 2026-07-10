@@ -74,6 +74,35 @@ export async function listLogStream(
     return { items, nextCursor, hasMore };
 }
 
+// One keyset page of top-level log nodes across ALL users, newest-first.
+// The global discovery feed (/log). Same projection/masking as listLogStream
+// but WITHOUT the per-user filter. cursor = last returned id (sentinel = max
+// bigint → newest first). limit is clamped [1..100] by the caller.
+export async function listLogGlobalStream(
+    db: TDb,
+    opts: { cursor: string; limit: number }
+): Promise<TLogStreamResponse> {
+    const { cursor, limit } = opts;
+
+    const { rows } = await db.query<TLogRow>(
+        `SELECT${ROW_PROJECTION}
+         FROM log l
+         JOIN users u ON u.id = l.user_id
+         WHERE l.parent_id IS NULL
+           AND l.id < $1
+         ORDER BY l.id DESC
+         LIMIT $2`,
+        [cursor, limit + 1]
+    );
+
+    const hasMore = rows.length > limit;
+    const kept = hasMore ? rows.slice(0, limit) : rows;
+    const items = kept.map(toLog);
+    const nextCursor = hasMore ? String(kept[kept.length - 1]!.id) : null;
+
+    return { items, nextCursor, hasMore };
+}
+
 // Focus-node view for a single log node id.
 // Returns: ancestors (root→parent, ordered root-first, deleted masked but present),
 //          focus (the requested node; masked if deleted; null indicates missing),

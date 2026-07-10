@@ -16,6 +16,7 @@ import {
 } from '@tanstack/react-query';
 import { postLog } from '@/apis/post-log.api';
 import { logStreamQueryKey } from '@/hooks/useLogStream.query.client';
+import { logGlobalStreamQueryKey } from '@/hooks/useLogGlobalStream.query.client';
 import { logThreadQueryKey } from '@/hooks/useLogThread.query.client';
 import type {
     TLog,
@@ -26,6 +27,7 @@ import type {
 
 type TContext = {
     previousStream?: InfiniteData<TLogStreamResponse>;
+    previousGlobal?: InfiniteData<TLogStreamResponse>;
     previousThread?: InfiniteData<TLogThreadResponse>;
 };
 
@@ -55,6 +57,7 @@ export function useCreateLog(
     const { getToken } = useAuth();
     const queryClient = useQueryClient();
     const streamKey = logStreamQueryKey(username);
+    const globalKey = logGlobalStreamQueryKey();
     const threadKey = logId ? logThreadQueryKey(logId) : null;
 
     return useMutation<TLog, Error, TLogCreateRequest, TContext>({
@@ -74,14 +77,21 @@ export function useCreateLog(
             const optimistic = buildOptimistic(tempId, input, authorName);
 
             let previousStream: InfiniteData<TLogStreamResponse> | undefined;
+            let previousGlobal: InfiniteData<TLogStreamResponse> | undefined;
             let previousThread: InfiniteData<TLogThreadResponse> | undefined;
 
             if (input.parentId === null) {
-                // Top-level: prepend to stream cache.
+                // Top-level: prepend to BOTH the owner's stream cache and the
+                // global feed cache (a new top-level log appears in /log too).
                 await queryClient.cancelQueries({ queryKey: streamKey });
+                await queryClient.cancelQueries({ queryKey: globalKey });
                 previousStream =
                     queryClient.getQueryData<InfiniteData<TLogStreamResponse>>(
                         streamKey
+                    );
+                previousGlobal =
+                    queryClient.getQueryData<InfiniteData<TLogStreamResponse>>(
+                        globalKey
                     );
                 if (previousStream) {
                     const pages = previousStream.pages.map((page, i) =>
@@ -92,6 +102,17 @@ export function useCreateLog(
                     queryClient.setQueryData<InfiniteData<TLogStreamResponse>>(
                         streamKey,
                         { ...previousStream, pages }
+                    );
+                }
+                if (previousGlobal) {
+                    const pages = previousGlobal.pages.map((page, i) =>
+                        i === 0
+                            ? { ...page, items: [optimistic, ...page.items] }
+                            : page
+                    );
+                    queryClient.setQueryData<InfiniteData<TLogStreamResponse>>(
+                        globalKey,
+                        { ...previousGlobal, pages }
                     );
                 }
             } else if (threadKey) {
@@ -123,11 +144,14 @@ export function useCreateLog(
                 }
             }
 
-            return { previousStream, previousThread };
+            return { previousStream, previousGlobal, previousThread };
         },
         onError: (_error, _input, context) => {
             if (context?.previousStream) {
                 queryClient.setQueryData(streamKey, context.previousStream);
+            }
+            if (context?.previousGlobal) {
+                queryClient.setQueryData(globalKey, context.previousGlobal);
             }
             if (context?.previousThread && threadKey) {
                 queryClient.setQueryData(threadKey, context.previousThread);
@@ -136,6 +160,7 @@ export function useCreateLog(
         onSettled: (_data, _error, input) => {
             if (input.parentId === null) {
                 void queryClient.invalidateQueries({ queryKey: streamKey });
+                void queryClient.invalidateQueries({ queryKey: globalKey });
             } else if (threadKey) {
                 void queryClient.invalidateQueries({ queryKey: threadKey });
             }
