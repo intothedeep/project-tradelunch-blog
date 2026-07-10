@@ -18,10 +18,9 @@ async function isDbReachable(): Promise<boolean> {
 
 const cfg = {
     cdnBase: 'https://blog-assets.prettylog.com',
-    bucket: 'blog-assets.prettylog.com',
 };
 const urlFor = (n: string) =>
-    `https://blog-assets.prettylog.com/blog-assets.prettylog.com/THUMBTEST/${n}.png`;
+    `https://blog-assets.prettylog.com/THUMBTEST/${n}.png`;
 
 const tag = `thumb_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 const clerk = `clerk_thumb_${tag}`;

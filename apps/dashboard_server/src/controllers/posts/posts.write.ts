@@ -29,7 +29,6 @@ import { getStorageProvider, isStorageConfigured } from '../../lib/storage/facto
 import { buildPublicUrl } from '../../lib/storage/publicUrl';
 import {
     SUPABASE_URL,
-    SUPABASE_STORAGE_BUCKET,
     CDN_ASSETS,
 } from '../../config/env.schema';
 import type { TImageUploadResponse, TPostStatus } from '@repo/types';
@@ -108,10 +107,7 @@ router.post('', requireAuth, async (req, res) => {
                     userId,
                     row.id,
                     input.thumbnailUrl,
-                    {
-                        cdnBase: thumbnailCdnBase,
-                        bucket: SUPABASE_STORAGE_BUCKET,
-                    }
+                    { cdnBase: thumbnailCdnBase }
                 );
             }
             // Tag set: undefined = leave untouched; an array (incl. empty)
@@ -186,10 +182,7 @@ router.patch('/:postid', requireAuth, async (req, res) => {
                     userId,
                     row.id,
                     input.thumbnailUrl,
-                    {
-                        cdnBase: thumbnailCdnBase,
-                        bucket: SUPABASE_STORAGE_BUCKET,
-                    }
+                    { cdnBase: thumbnailCdnBase }
                 );
             }
             // Tag set: undefined = leave untouched; an array (incl. empty)

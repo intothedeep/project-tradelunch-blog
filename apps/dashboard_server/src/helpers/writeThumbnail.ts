@@ -29,16 +29,16 @@ export type TThumbnailParts = {
     contentType: string;
 };
 
-export type TThumbnailConfig = { cdnBase: string; bucket: string };
+export type TThumbnailConfig = { cdnBase: string };
 
 // Derive storage metadata from an absolute thumbnail URL by stripping the
-// `${cdnBase}/${bucket}/` prefix the sign endpoint added. Returns null when the
+// `${cdnBase}/` prefix the sign endpoint added. Returns null when the
 // URL does not carry that prefix (foreign / malformed) so the caller can reject.
 export function parseThumbnailUrl(
     url: string,
     cfg: TThumbnailConfig
 ): TThumbnailParts | null {
-    const prefix = `${cfg.cdnBase.replace(/\/+$/, '')}/${cfg.bucket}/`;
+    const prefix = `${cfg.cdnBase.replace(/\/+$/, '')}/`;
     if (!url.startsWith(prefix)) return null;
     const key = url.slice(prefix.length);
     if (key.length === 0) return null;
