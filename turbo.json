@@ -1,7 +1,13 @@
 {
     "$schema": "https://turborepo.com/schema.json",
     "ui": "tui",
-    "globalEnv": ["FINANCE_ADMIN_ONLY"],
+    "globalEnv": [
+        "FINANCE_ADMIN_ONLY",
+        "NODE_ENV",
+        "PORT",
+        "HOST_NAME",
+        "DASHBOARD_DATA_SOURCE"
+    ],
     "tasks": {
         "build": {
             "dependsOn": ["^build"],
