@@ -64,6 +64,12 @@ class OciProvider:
             config=Config(
                 signature_version="s3v4",
                 s3={"addressing_style": "path"},
+                # botocore >=1.36 adds a default CRC32 checksum that uses
+                # Content-Encoding: aws-chunked, which OCI's S3-compat endpoint
+                # rejects ("NotImplemented: AWS chunked encoding not supported").
+                # Only checksum when a request actually requires it.
+                request_checksum_calculation="when_required",
+                response_checksum_validation="when_required",
             ),
         )
 

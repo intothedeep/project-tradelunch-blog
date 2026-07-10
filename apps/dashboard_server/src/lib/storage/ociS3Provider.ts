@@ -39,6 +39,12 @@ export class OciS3Provider implements TStorageProvider {
                 secretAccessKey: config.secretAccessKey,
             },
             forcePathStyle: true,
+            // aws-sdk-js v3 adds a default CRC32 checksum that sends
+            // Content-Encoding: aws-chunked, which OCI's S3-compat endpoint
+            // rejects ("NotImplemented: AWS chunked encoding not supported").
+            // Only checksum when the operation actually requires it.
+            requestChecksumCalculation: 'WHEN_REQUIRED',
+            responseChecksumValidation: 'WHEN_REQUIRED',
         });
         this.bucket = config.bucket;
     }
