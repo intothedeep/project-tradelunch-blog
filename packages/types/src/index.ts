@@ -344,10 +344,14 @@ export interface TLog {
     depth: number;
     // "[deleted]" when isDeleted (tombstone); original body stays in DB only.
     body: string;
-    // Soft-delete flag. When true, authorName is omitted and body = "[deleted]".
+    // Soft-delete flag. When true, author fields are omitted and body = "[deleted]".
     isDeleted: boolean;
-    // Author's username. Omitted when isDeleted (masked author).
+    // Author DISPLAY label (display_name ?? username) — for rendering only, NOT an
+    // identifier (mutable, non-unique). Omitted when isDeleted (masked author).
     authorName?: string;
+    // Author's canonical username (users.username) — the stable IDENTIFIER used to
+    // build/verify /log/[username] URLs. Omitted when isDeleted (masked author).
+    authorUsername?: string;
     // ISO 8601 timestamp string. No updatedAt — Log nodes are immutable.
     createdAt: string;
 }

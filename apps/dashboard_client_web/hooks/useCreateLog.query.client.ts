@@ -34,7 +34,7 @@ type TContext = {
 function buildOptimistic(
     tempId: string,
     input: TLogCreateRequest,
-    authorName: string | undefined
+    username: string | undefined
 ): TLog {
     const parentDepth = 0; // depth is computed from path; estimate only for optimistic
     return {
@@ -45,7 +45,11 @@ function buildOptimistic(
         depth: input.parentId ? parentDepth + 1 : 0,
         body: input.body,
         isDeleted: false,
-        authorName,
+        // Optimistically use the poster's username for BOTH the display label and
+        // the canonical identifier; onSettled reconciles to server truth
+        // (authorName = display_name, authorUsername = username).
+        authorName: username,
+        authorUsername: username,
         createdAt: new Date().toISOString(),
     };
 }
@@ -69,12 +73,12 @@ export function useCreateLog(
         onMutate: async (input) => {
             const tempId = `temp-${Date.now()}`;
 
-            // Resolve author name from cached /me data (best-effort).
+            // Resolve the poster's username from cached /me data (best-effort).
             const meData = queryClient.getQueryData<{
                 username?: string | null;
             }>(['users', 'me']);
-            const authorName = meData?.username ?? undefined;
-            const optimistic = buildOptimistic(tempId, input, authorName);
+            const username = meData?.username ?? undefined;
+            const optimistic = buildOptimistic(tempId, input, username);
 
             let previousStream: InfiniteData<TLogStreamResponse> | undefined;
             let previousGlobal: InfiniteData<TLogStreamResponse> | undefined;

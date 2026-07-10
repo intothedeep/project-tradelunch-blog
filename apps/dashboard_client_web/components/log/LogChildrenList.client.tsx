@@ -39,7 +39,11 @@ export function LogChildrenList({ username, logId, initialData }: Props) {
         if (!me) return false;
         if (me.isAdmin) return true;
         if (me.username === username) return true;
-        return log.authorName !== undefined && me.username === log.authorName;
+        // Compare canonical username (identifier), not authorName (display label).
+        return (
+            log.authorUsername !== undefined &&
+            me.username === log.authorUsername
+        );
     }
 
     if (isError) {
@@ -68,7 +72,16 @@ export function LogChildrenList({ username, logId, initialData }: Props) {
                             className="cursor-pointer"
                             onClick={() =>
                                 router.push(
-                                    `/log/${encodeURIComponent(username)}/${child.id}`
+                                    // Refocus directly on the child's canonical
+                                    // author (a reply may be by another user);
+                                    // fall back to the current segment for a
+                                    // deleted child (author masked → canonical
+                                    // redirect is skipped and renders masked).
+                                    `/log/${encodeURIComponent(
+                                        child.authorUsername
+                                            ? `@${child.authorUsername}`
+                                            : username
+                                    )}/${child.id}`
                                 )
                             }
                         >

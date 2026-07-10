@@ -32,6 +32,8 @@ const ROW_PROJECTION = `
     (l.deleted_at IS NOT NULL)                                 AS is_deleted,
     CASE WHEN l.deleted_at IS NOT NULL THEN NULL
          ELSE COALESCE(u.display_name, u.username) END         AS author_name,
+    CASE WHEN l.deleted_at IS NOT NULL THEN NULL
+         ELSE u.username END                                   AS author_username,
     l.created_at`;
 
 // One keyset page of top-level log nodes for a user, newest-first.

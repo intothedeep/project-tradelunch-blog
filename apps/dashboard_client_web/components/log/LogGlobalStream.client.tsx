@@ -6,9 +6,9 @@
 //   pages via "Load more". Clicking an entry opens its thread focus view under
 //   the entry's author (/log/[author]/[logId]). Read-only: no delete affordance
 //   here (delete lives on the per-user stream + focus view).
-// Constraints: "use client". ids stay STRINGS. authorName doubles as the
-//   canonical username segment (consistent with the focus route's canonical
-//   check). Deleted top-level entries have no author → rendered non-clickable.
+// Constraints: "use client". ids stay STRINGS. The URL segment uses
+//   authorUsername (the canonical identifier), NOT authorName (display label).
+//   Deleted top-level entries have no author → rendered non-clickable.
 
 import { useRouter } from 'next/navigation';
 import { useLogGlobalStream } from '@/hooks/useLogGlobalStream.query.client';
@@ -25,12 +25,12 @@ export function LogGlobalStream({ initialData }: Props) {
     const { items, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
         useLogGlobalStream(initialData);
 
-    // A global entry is navigable only when it has a resolvable author (a live,
-    // non-deleted node). Deleted tombstones stay as plain masked cards.
+    // A global entry is navigable only when it has a resolvable author username
+    // (a live, non-deleted node). Deleted tombstones stay as plain masked cards.
     function openThread(log: TLog): void {
-        if (!log.authorName) return;
+        if (!log.authorUsername) return;
         router.push(
-            `/log/${encodeURIComponent(`@${log.authorName}`)}/${log.id}`
+            `/log/${encodeURIComponent(`@${log.authorUsername}`)}/${log.id}`
         );
     }
 
@@ -53,7 +53,7 @@ export function LogGlobalStream({ initialData }: Props) {
         <section aria-label="Global log feed">
             <ul role="list">
                 {items.map((log) => {
-                    const navigable = !log.isDeleted && !!log.authorName;
+                    const navigable = !log.isDeleted && !!log.authorUsername;
                     return (
                         <li
                             key={log.id}
