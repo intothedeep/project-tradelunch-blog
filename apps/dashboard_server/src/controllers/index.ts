@@ -9,6 +9,7 @@ import favorites from './favorites';
 import categories from './categories';
 import tags from './tags';
 import errorLogs from './errorLogs';
+import { logRouter } from './log';
 
 export const router = Router();
 
@@ -40,5 +41,9 @@ router.use('/api/likes', likesListRouter);
 // Error-log ingest (POST /api/error-logs) — PUBLIC, called server-to-server by
 // the Next runtime (app/api/log-error), never by the browser. Its own prefix.
 router.use('/api/error-logs', errorLogs);
+// Log micro-feed (Phase Y) — /v1/api/log. Routes: GET /:username (stream),
+// GET /thread/:id (focus view), POST / (create), DELETE /:id (soft-delete).
+// /thread/:id is registered first inside logRouter to avoid username capture.
+router.use('/api/log', logRouter);
 
 export default router;

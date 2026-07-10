@@ -25,7 +25,10 @@ export async function postUsername(
     username: string
 ): Promise<TUsernameClaim> {
     try {
-        const env = await clientRequest<{ success: boolean; data: TUsernameClaim }>({
+        const env = await clientRequest<{
+            success: boolean;
+            data: TUsernameClaim;
+        }>({
             path: '/v1/api/users/me/username',
             method: 'POST',
             body: { username },

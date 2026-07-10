@@ -85,9 +85,9 @@ export function isStorageConfigured(): boolean {
     if (selected === 'oci' || selected === 's3') {
         return Boolean(
             STORAGE_ENDPOINT &&
-                STORAGE_ACCESS_KEY &&
-                STORAGE_SECRET_KEY &&
-                STORAGE_REGION
+            STORAGE_ACCESS_KEY &&
+            STORAGE_SECRET_KEY &&
+            STORAGE_REGION
         );
     }
     return false;

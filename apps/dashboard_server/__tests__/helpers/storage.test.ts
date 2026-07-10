@@ -93,7 +93,9 @@ describe('OciS3Provider.put', () => {
         const provider = new OciS3Provider(providerConfig);
         const mockSend = getMockSend();
         // HeadObject throws NotFound = key absent.
-        const notFound = Object.assign(new Error('Not Found'), { name: 'NotFound' });
+        const notFound = Object.assign(new Error('Not Found'), {
+            name: 'NotFound',
+        });
         mockSend
             .mockRejectedValueOnce(notFound) // HeadObject
             .mockResolvedValueOnce({}); // PutObject
@@ -170,7 +172,9 @@ describe('OciS3Provider.exists', () => {
     it('returns false when HeadObject throws NotFound', async () => {
         const provider = new OciS3Provider(providerConfig);
         const mockSend = getMockSend();
-        const notFound = Object.assign(new Error('Not Found'), { name: 'NotFound' });
+        const notFound = Object.assign(new Error('Not Found'), {
+            name: 'NotFound',
+        });
         mockSend.mockRejectedValueOnce(notFound);
         await expect(provider.exists('user/img.webp')).resolves.toBe(false);
     });

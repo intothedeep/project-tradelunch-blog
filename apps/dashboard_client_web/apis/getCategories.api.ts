@@ -10,7 +10,10 @@ export async function getCategoriesByUsername(
     username: string,
     token?: string | null
 ): Promise<{ categories: TTreeNodeWithChildren[] }> {
-    const env = await clientRequest<{ success: boolean; data: { categories: TTreeNodeWithChildren[] } }>({
+    const env = await clientRequest<{
+        success: boolean;
+        data: { categories: TTreeNodeWithChildren[] };
+    }>({
         path: `/v1/api/posts/users/${username}/categories`,
         token,
         fallbackError: 'Failed to fetch categories',
