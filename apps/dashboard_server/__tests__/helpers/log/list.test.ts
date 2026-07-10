@@ -172,7 +172,10 @@ describe('listLogThread — ancestor chain correctness (b)', () => {
             }) // ancestors
             .mockResolvedValueOnce({ rows: [] }); // children (empty)
 
-        const result = await listLogThread(db, '30', { cursor: '0', limit: 10 });
+        const result = await listLogThread(db, '30', {
+            cursor: '0',
+            limit: 10,
+        });
 
         expect(result).not.toBeNull();
         expect(result!.ancestors).toHaveLength(2);
@@ -197,7 +200,10 @@ describe('listLogThread — ancestor chain correctness (b)', () => {
             .mockResolvedValueOnce({ rows: [focusRow] }) // focus
             .mockResolvedValueOnce({ rows: [] }); // children
 
-        const result = await listLogThread(db, '10', { cursor: '0', limit: 10 });
+        const result = await listLogThread(db, '10', {
+            cursor: '0',
+            limit: 10,
+        });
         expect(result!.ancestors).toHaveLength(0);
         // Verify exactly 2 DB queries fired (ancestor query was skipped)
         expect(mockDbQuery).toHaveBeenCalledTimes(2);
@@ -214,14 +220,29 @@ describe('listLogThread — depth-1 children keyset (c)', () => {
 
         // Page 1: limit=2, return 3 → hasMore=true, nextCursor='20'
         const childRowsPage1 = [
-            makeRow({ id: '11', parent_id: '10', path: ['10', '11'], depth: '1' }),
-            makeRow({ id: '20', parent_id: '10', path: ['10', '20'], depth: '1' }),
-            makeRow({ id: '30', parent_id: '10', path: ['10', '30'], depth: '1' }), // extra (triggers hasMore)
+            makeRow({
+                id: '11',
+                parent_id: '10',
+                path: ['10', '11'],
+                depth: '1',
+            }),
+            makeRow({
+                id: '20',
+                parent_id: '10',
+                path: ['10', '20'],
+                depth: '1',
+            }),
+            makeRow({
+                id: '30',
+                parent_id: '10',
+                path: ['10', '30'],
+                depth: '1',
+            }), // extra (triggers hasMore)
         ];
 
         // First listLogThread call: focus + children
         mockDbQuery
-            .mockResolvedValueOnce({ rows: [focusRow] })  // focus
+            .mockResolvedValueOnce({ rows: [focusRow] }) // focus
             .mockResolvedValueOnce({ rows: childRowsPage1 }); // children page 1
 
         const page1 = await listLogThread(db, '10', { cursor: '0', limit: 2 });
@@ -233,7 +254,12 @@ describe('listLogThread — depth-1 children keyset (c)', () => {
 
         // Page 2: cursor='20', return 1 item → hasMore=false
         const childRowsPage2 = [
-            makeRow({ id: '30', parent_id: '10', path: ['10', '30'], depth: '1' }),
+            makeRow({
+                id: '30',
+                parent_id: '10',
+                path: ['10', '30'],
+                depth: '1',
+            }),
         ];
 
         mockDbQuery
@@ -257,7 +283,7 @@ describe('listLogThread — depth-1 children keyset (c)', () => {
 
         mockDbQuery
             .mockResolvedValueOnce({ rows: [focusRow] }) // focus
-            .mockResolvedValueOnce({ rows: [] });  // children
+            .mockResolvedValueOnce({ rows: [] }); // children
 
         await listLogThread(db, '10', { cursor: '0', limit: 10 });
 
@@ -276,7 +302,7 @@ describe('listLogThread — depth-1 children keyset (c)', () => {
 
         mockDbQuery
             .mockResolvedValueOnce({ rows: [focusRow] }) // focus
-            .mockResolvedValueOnce({ rows: [] });         // children
+            .mockResolvedValueOnce({ rows: [] }); // children
 
         await listLogThread(db, '10', { cursor: '0', limit: 10 });
 
@@ -323,7 +349,10 @@ describe('listLogThread — depth-1 children keyset (c)', () => {
             .mockResolvedValueOnce({ rows: [focusRow] })
             .mockResolvedValueOnce({ rows: childRows });
 
-        const result = await listLogThread(db, '10', { cursor: '0', limit: 10 });
+        const result = await listLogThread(db, '10', {
+            cursor: '0',
+            limit: 10,
+        });
 
         const ids = result!.children.items.map((c) => c.id);
         // Dead leaf absent
@@ -354,7 +383,10 @@ describe('listLogThread — depth-1 children keyset (c)', () => {
             .mockResolvedValueOnce({ rows: [focusRow] })
             .mockResolvedValueOnce({ rows: childRows });
 
-        const result = await listLogThread(db, '10', { cursor: '0', limit: 10 });
+        const result = await listLogThread(db, '10', {
+            cursor: '0',
+            limit: 10,
+        });
 
         expect(result!.children.items).toHaveLength(1);
         expect(result!.children.items[0]!.id).toBe('20');
@@ -374,8 +406,8 @@ describe('listLogThread — depth-1 children keyset (c)', () => {
 
         mockDbQuery
             .mockResolvedValueOnce({ rows: [focusRow] }) // focus
-            .mockResolvedValueOnce({ rows: [] })          // ancestors
-            .mockResolvedValueOnce({ rows: [] });          // children
+            .mockResolvedValueOnce({ rows: [] }) // ancestors
+            .mockResolvedValueOnce({ rows: [] }); // children
 
         await listLogThread(db, '30', { cursor: '0', limit: 10 });
 
@@ -407,16 +439,34 @@ describe('listLogThread — BIGINT id integrity (e)', () => {
         // Top-level focus → 2 queries (no ancestor query)
         const focusRow = makeRow({ id: bigId, path: [bigId], depth: '0' });
         const childRows = [
-            makeRow({ id: bigChildId1, parent_id: bigId, path: [bigId, bigChildId1], depth: '1' }),
-            makeRow({ id: bigChildId2, parent_id: bigId, path: [bigId, bigChildId2], depth: '1' }),
-            makeRow({ id: bigChildId3, parent_id: bigId, path: [bigId, bigChildId3], depth: '1' }), // extra
+            makeRow({
+                id: bigChildId1,
+                parent_id: bigId,
+                path: [bigId, bigChildId1],
+                depth: '1',
+            }),
+            makeRow({
+                id: bigChildId2,
+                parent_id: bigId,
+                path: [bigId, bigChildId2],
+                depth: '1',
+            }),
+            makeRow({
+                id: bigChildId3,
+                parent_id: bigId,
+                path: [bigId, bigChildId3],
+                depth: '1',
+            }), // extra
         ];
 
         mockDbQuery
             .mockResolvedValueOnce({ rows: [focusRow] })
             .mockResolvedValueOnce({ rows: childRows });
 
-        const result = await listLogThread(db, bigId, { cursor: '0', limit: 2 });
+        const result = await listLogThread(db, bigId, {
+            cursor: '0',
+            limit: 2,
+        });
 
         // focus.id must be a string
         expect(typeof result!.focus.id).toBe('string');
@@ -446,7 +496,10 @@ describe('listLogStream — BIGINT id integrity (e)', () => {
             rows: [
                 makeRow({ id: bigId1, path: [bigId1] }),
                 makeRow({ id: bigId2, path: [bigId2] }),
-                makeRow({ id: '9223372036854775799', path: ['9223372036854775799'] }), // extra
+                makeRow({
+                    id: '9223372036854775799',
+                    path: ['9223372036854775799'],
+                }), // extra
             ],
         });
 

@@ -13,5 +13,9 @@ export function sendError(
     message: string,
     code?: string
 ): void {
-    res.status(status).json({ success: false, message, ...(code ? { code } : {}) });
+    res.status(status).json({
+        success: false,
+        message,
+        ...(code ? { code } : {}),
+    });
 }

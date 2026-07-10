@@ -19,9 +19,7 @@ export const MobileNavigation = () => {
     return (
         <>
             {/* Mobile Header Bar — logo left, theme + auth right. */}
-            <nav
-                className="flex h-14 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-4 md:hidden"
-            >
+            <nav className="flex h-14 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-4 md:hidden">
                 <Link
                     href="/"
                     className="flex items-center gap-2"

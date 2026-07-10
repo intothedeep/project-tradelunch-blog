@@ -100,7 +100,12 @@ describe('createLog — reply-to-a-reply (a)', () => {
             }) // UPDATE+SELECT
             .mockResolvedValueOnce({}); // COMMIT
 
-        const result = await createLog(poolFrom(client), 7, '200', 'deep reply');
+        const result = await createLog(
+            poolFrom(client),
+            7,
+            '200',
+            'deep reply'
+        );
 
         expect(result.depth).toBe(2);
         expect(result.path).toEqual(['100', '200', '300']);
@@ -130,7 +135,12 @@ describe('createLog — BIGINT id integrity (e)', () => {
             }) // UPDATE+SELECT
             .mockResolvedValueOnce({}); // COMMIT
 
-        const result = await createLog(poolFrom(client), 1, null, 'top-level post');
+        const result = await createLog(
+            poolFrom(client),
+            1,
+            null,
+            'top-level post'
+        );
 
         expect(typeof result.id).toBe('string');
         expect(result.id).toBe(bigId);
@@ -359,7 +369,12 @@ describe('assertLogMutable (unit)', () => {
             .mockResolvedValueOnce({ rows: [{ user_id: '9' }] }); // root owner ≠ caller
         const db = { query: dbQuery } as never;
         await expect(
-            assertLogMutable(db, { user_id: '5', path: ['100', '42'] }, 7, false)
+            assertLogMutable(
+                db,
+                { user_id: '5', path: ['100', '42'] },
+                7,
+                false
+            )
         ).rejects.toBeInstanceOf(LogForbiddenError);
     });
 });

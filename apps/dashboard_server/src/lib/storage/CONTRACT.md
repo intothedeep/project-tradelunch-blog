@@ -20,6 +20,7 @@ exists(key: string) -> boolean
 The provider does **byte movement only**. It does NOT build URLs, keys, or run image transforms.
 
 ### Deliberately EXCLUDED from the interface (YAGNI)
+
 - **`publicUrl`** — NOT per-provider. It is one **shared pure function** (see §2). The public URL is
   CDN-CNAME fronted, so it is identical for every provider.
 - **`signedUrl` / `get`** — Supabase-only today, unused in the write path. Do not add to the contract
@@ -42,12 +43,13 @@ only a `CDN_ASSETS` domain change does.
 
 The flag means "overwrite an existing object at `key`". Backends differ; the provider must normalize:
 
-| Backend | Native default | `upsert: true` | `upsert: false` |
-|---|---|---|---|
-| **Supabase** | 409 on existing key | send `x-upsert: true` | send `x-upsert: false` (default) |
-| **S3 / OCI** | PUT overwrites silently | plain PutObject | **emulate**: HeadObject first → throw if key exists, else PutObject |
+| Backend      | Native default          | `upsert: true`        | `upsert: false`                                                     |
+| ------------ | ----------------------- | --------------------- | ------------------------------------------------------------------- |
+| **Supabase** | 409 on existing key     | send `x-upsert: true` | send `x-upsert: false` (default)                                    |
+| **S3 / OCI** | PUT overwrites silently | plain PutObject       | **emulate**: HeadObject first → throw if key exists, else PutObject |
 
 Call-site choices (keep as-is):
+
 - **Express `/images`** uses `upsert: false` (a unique `-{ts}-{rand}` suffix already prevents collisions).
 - **blog_agent** uses `upsert: true` (idempotent re-publish of the same slug).
 
@@ -63,16 +65,16 @@ Call-site choices (keep as-is):
 
 Selector + creds are read once per runtime (TS `env.schema.ts`, Python `configs/storage.py`).
 
-| Var | Used by | Notes |
-|---|---|---|
-| `STORAGE_PROVIDER` | all | `supabase` (default) \| `oci` \| `s3` |
-| `STORAGE_ENDPOINT` | oci, s3 | e.g. `https://{ns}.compat.objectstorage.{region}.oraclecloud.com` |
-| `STORAGE_ACCESS_KEY` | oci, s3 | S3 access key id (OCI Customer Secret Key) |
-| `STORAGE_SECRET_KEY` | oci, s3 | S3 secret access key |
-| `STORAGE_REGION` | oci, s3 | e.g. `ap-osaka-1` |
-| `STORAGE_BUCKET` | all | OCI bucket name (`blog-assets.prettylog.com`). Used as the S3 `Bucket` param for uploads; does NOT appear in the public URL. |
-| `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | supabase | existing, keep |
-| `CDN_ASSETS` | all | public URL base (`https://blog-assets.prettylog.com`). Stored URI = `{CDN_ASSETS}/{key}`. |
+| Var                                   | Used by  | Notes                                                                                                                        |
+| ------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `STORAGE_PROVIDER`                    | all      | `supabase` (default) \| `oci` \| `s3`                                                                                        |
+| `STORAGE_ENDPOINT`                    | oci, s3  | e.g. `https://{ns}.compat.objectstorage.{region}.oraclecloud.com`                                                            |
+| `STORAGE_ACCESS_KEY`                  | oci, s3  | S3 access key id (OCI Customer Secret Key)                                                                                   |
+| `STORAGE_SECRET_KEY`                  | oci, s3  | S3 secret access key                                                                                                         |
+| `STORAGE_REGION`                      | oci, s3  | e.g. `ap-osaka-1`                                                                                                            |
+| `STORAGE_BUCKET`                      | all      | OCI bucket name (`blog-assets.prettylog.com`). Used as the S3 `Bucket` param for uploads; does NOT appear in the public URL. |
+| `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | supabase | existing, keep                                                                                                               |
+| `CDN_ASSETS`                          | all      | public URL base (`https://blog-assets.prettylog.com`). Stored URI = `{CDN_ASSETS}/{key}`.                                    |
 
 ## 6. Key scheme (preserved verbatim — provider-independent)
 

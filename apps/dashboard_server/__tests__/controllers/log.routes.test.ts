@@ -30,11 +30,7 @@ let mockAuthIdentity: {
 } = { userId: 1, username: 'alice', isAdmin: false };
 
 jest.mock('../../src/middlewares/requireAuth', () => ({
-    requireAuth: (
-        req: { auth?: unknown },
-        _res: unknown,
-        next: () => void
-    ) => {
+    requireAuth: (req: { auth?: unknown }, _res: unknown, next: () => void) => {
         req.auth = mockAuthIdentity;
         next();
     },
@@ -106,10 +102,9 @@ async function invoke(
     const allRoutes = routes(
         logRouter as unknown as { stack: { route?: AnyRoute }[] }
     );
-    const target = allRoutes.find(
-        (r) => r.methods[method] && r.path === path
-    );
-    if (!target) throw new Error(`Route ${method.toUpperCase()} ${path} not found`);
+    const target = allRoutes.find((r) => r.methods[method] && r.path === path);
+    if (!target)
+        throw new Error(`Route ${method.toUpperCase()} ${path} not found`);
 
     // Run the stack handlers (middlewares + handler) in sequence
     for (const layer of target.stack) {
@@ -319,8 +314,7 @@ describe('BIGINT id integrity at route layer (e)', () => {
                     },
                 ],
             }) // focus
-            .mockResolvedValueOnce({ rows: [] }) // children (top-level → no ancestors query, but children yes)
-            ;
+            .mockResolvedValueOnce({ rows: [] }); // children (top-level → no ancestors query, but children yes)
 
         const res = await invoke(
             'get',
@@ -349,9 +343,7 @@ describe('BIGINT id integrity at route layer (e)', () => {
 describe('blog-surface isolation at controller layer (f)', () => {
     it('GET /:username SQL only touches log + users tables', async () => {
         // listLogStream: username → user_id, then log query
-        mockQuery
-            .mockResolvedValueOnce({ rows: [] }) // no user found → returns empty
-            ;
+        mockQuery.mockResolvedValueOnce({ rows: [] }); // no user found → returns empty
 
         await invoke('get', '/:username', { username: 'alice' }, {}, undefined);
 
