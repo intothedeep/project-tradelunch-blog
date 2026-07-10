@@ -34,8 +34,8 @@ from urllib.parse import urlparse, urlunparse
 
 # ==================== PostgreSQL Database ====================
 # Direct (non-pooling) connection preferred; pooled is fallback only.
-# Example direct: postgresql://postgres.<ref>:<pw>@aws-0-<region>.pooler.supabase.com:5432/postgres
-# Example pooled: postgresql://postgres.<ref>:<pw>@aws-0-<region>.pooler.supabase.com:6543/postgres
+# Example direct: postgresql://postgres.<ref>:<pw>@aws-[0|1..]-<region>.pooler.supabase.com:5432/postgres
+# Example pooled: postgresql://postgres.<ref>:<pw>@aws-[0|1..]-<region>.pooler.supabase.com:6543/postgres
 
 # Query-param keys that node-pg/asyncpg cannot accept (case-insensitive).
 _INCOMPATIBLE_PARAMS = {"sslmode", "pgbouncer", "connect_timeout"}

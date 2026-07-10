@@ -35,6 +35,15 @@ const nextConfig: NextConfig = {
                 pathname: '/**',
             },
             {
+                // OCI Object Storage served via the blog-assets.prettylog.com
+                // Cloudflare Worker (production CDN). Explicit floor so next/image
+                // allows it even if NEXT_PUBLIC_CDN_ASSETS is unset/misconfigured;
+                // the dynamic pattern above also covers it when the env is set.
+                protocol: 'https',
+                hostname: 'blog-assets.prettylog.com',
+                pathname: '/**',
+            },
+            {
                 // Supabase public storage (raw URL until a CDN CNAME fronts it).
                 protocol: 'https',
                 hostname: '*.supabase.co',
