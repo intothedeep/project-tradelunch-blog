@@ -16,6 +16,7 @@ import {
 } from '@tanstack/react-query';
 import { postLog } from '@/apis/post-log.api';
 import { logStreamQueryKey } from '@/hooks/useLogStream.query.client';
+import { logGlobalStreamQueryKey } from '@/hooks/useLogGlobalStream.query.client';
 import { logThreadQueryKey } from '@/hooks/useLogThread.query.client';
 import type {
     TLog,
@@ -26,13 +27,14 @@ import type {
 
 type TContext = {
     previousStream?: InfiniteData<TLogStreamResponse>;
+    previousGlobal?: InfiniteData<TLogStreamResponse>;
     previousThread?: InfiniteData<TLogThreadResponse>;
 };
 
 function buildOptimistic(
     tempId: string,
     input: TLogCreateRequest,
-    authorName: string | undefined
+    username: string | undefined
 ): TLog {
     const parentDepth = 0; // depth is computed from path; estimate only for optimistic
     return {
@@ -43,7 +45,11 @@ function buildOptimistic(
         depth: input.parentId ? parentDepth + 1 : 0,
         body: input.body,
         isDeleted: false,
-        authorName,
+        // Optimistically use the poster's username for BOTH the display label and
+        // the canonical identifier; onSettled reconciles to server truth
+        // (authorName = display_name, authorUsername = username).
+        authorName: username,
+        authorUsername: username,
         createdAt: new Date().toISOString(),
     };
 }
@@ -55,6 +61,7 @@ export function useCreateLog(
     const { getToken } = useAuth();
     const queryClient = useQueryClient();
     const streamKey = logStreamQueryKey(username);
+    const globalKey = logGlobalStreamQueryKey();
     const threadKey = logId ? logThreadQueryKey(logId) : null;
 
     return useMutation<TLog, Error, TLogCreateRequest, TContext>({
@@ -66,22 +73,29 @@ export function useCreateLog(
         onMutate: async (input) => {
             const tempId = `temp-${Date.now()}`;
 
-            // Resolve author name from cached /me data (best-effort).
+            // Resolve the poster's username from cached /me data (best-effort).
             const meData = queryClient.getQueryData<{
                 username?: string | null;
             }>(['users', 'me']);
-            const authorName = meData?.username ?? undefined;
-            const optimistic = buildOptimistic(tempId, input, authorName);
+            const username = meData?.username ?? undefined;
+            const optimistic = buildOptimistic(tempId, input, username);
 
             let previousStream: InfiniteData<TLogStreamResponse> | undefined;
+            let previousGlobal: InfiniteData<TLogStreamResponse> | undefined;
             let previousThread: InfiniteData<TLogThreadResponse> | undefined;
 
             if (input.parentId === null) {
-                // Top-level: prepend to stream cache.
+                // Top-level: prepend to BOTH the owner's stream cache and the
+                // global feed cache (a new top-level log appears in /log too).
                 await queryClient.cancelQueries({ queryKey: streamKey });
+                await queryClient.cancelQueries({ queryKey: globalKey });
                 previousStream =
                     queryClient.getQueryData<InfiniteData<TLogStreamResponse>>(
                         streamKey
+                    );
+                previousGlobal =
+                    queryClient.getQueryData<InfiniteData<TLogStreamResponse>>(
+                        globalKey
                     );
                 if (previousStream) {
                     const pages = previousStream.pages.map((page, i) =>
@@ -92,6 +106,17 @@ export function useCreateLog(
                     queryClient.setQueryData<InfiniteData<TLogStreamResponse>>(
                         streamKey,
                         { ...previousStream, pages }
+                    );
+                }
+                if (previousGlobal) {
+                    const pages = previousGlobal.pages.map((page, i) =>
+                        i === 0
+                            ? { ...page, items: [optimistic, ...page.items] }
+                            : page
+                    );
+                    queryClient.setQueryData<InfiniteData<TLogStreamResponse>>(
+                        globalKey,
+                        { ...previousGlobal, pages }
                     );
                 }
             } else if (threadKey) {
@@ -123,11 +148,14 @@ export function useCreateLog(
                 }
             }
 
-            return { previousStream, previousThread };
+            return { previousStream, previousGlobal, previousThread };
         },
         onError: (_error, _input, context) => {
             if (context?.previousStream) {
                 queryClient.setQueryData(streamKey, context.previousStream);
+            }
+            if (context?.previousGlobal) {
+                queryClient.setQueryData(globalKey, context.previousGlobal);
             }
             if (context?.previousThread && threadKey) {
                 queryClient.setQueryData(threadKey, context.previousThread);
@@ -136,6 +164,7 @@ export function useCreateLog(
         onSettled: (_data, _error, input) => {
             if (input.parentId === null) {
                 void queryClient.invalidateQueries({ queryKey: streamKey });
+                void queryClient.invalidateQueries({ queryKey: globalKey });
             } else if (threadKey) {
                 void queryClient.invalidateQueries({ queryKey: threadKey });
             }

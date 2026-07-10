@@ -32,6 +32,8 @@ const ROW_PROJECTION = `
     (l.deleted_at IS NOT NULL)                                 AS is_deleted,
     CASE WHEN l.deleted_at IS NOT NULL THEN NULL
          ELSE COALESCE(u.display_name, u.username) END         AS author_name,
+    CASE WHEN l.deleted_at IS NOT NULL THEN NULL
+         ELSE u.username END                                   AS author_username,
     l.created_at`;
 
 // One keyset page of top-level log nodes for a user, newest-first.
@@ -64,6 +66,35 @@ export async function listLogStream(
          ORDER BY l.id DESC
          LIMIT $3`,
         [userId, cursor, limit + 1]
+    );
+
+    const hasMore = rows.length > limit;
+    const kept = hasMore ? rows.slice(0, limit) : rows;
+    const items = kept.map(toLog);
+    const nextCursor = hasMore ? String(kept[kept.length - 1]!.id) : null;
+
+    return { items, nextCursor, hasMore };
+}
+
+// One keyset page of top-level log nodes across ALL users, newest-first.
+// The global discovery feed (/log). Same projection/masking as listLogStream
+// but WITHOUT the per-user filter. cursor = last returned id (sentinel = max
+// bigint → newest first). limit is clamped [1..100] by the caller.
+export async function listLogGlobalStream(
+    db: TDb,
+    opts: { cursor: string; limit: number }
+): Promise<TLogStreamResponse> {
+    const { cursor, limit } = opts;
+
+    const { rows } = await db.query<TLogRow>(
+        `SELECT${ROW_PROJECTION}
+         FROM log l
+         JOIN users u ON u.id = l.user_id
+         WHERE l.parent_id IS NULL
+           AND l.id < $1
+         ORDER BY l.id DESC
+         LIMIT $2`,
+        [cursor, limit + 1]
     );
 
     const hasMore = rows.length > limit;

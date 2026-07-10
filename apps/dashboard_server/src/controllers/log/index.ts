@@ -31,6 +31,7 @@ import {
     createLog,
     softDeleteLog,
     listLogStream,
+    listLogGlobalStream,
     listLogThread,
     LogParentError,
     LogForbiddenError,
@@ -96,6 +97,26 @@ logRouter.get('/thread/:id', optionalAuth, async (req, res) => {
     } catch (error) {
         console.error('GET /api/log/thread/:id error:', error);
         sendError(res, 500, 'failed to load log thread');
+    }
+});
+
+// GET / — global stream across ALL users (the /log discovery feed).
+// Registered BEFORE /:username. A bare path and a single segment do not
+// collide, but keeping global-first documents intent.
+logRouter.get('/', optionalAuth, async (req, res) => {
+    try {
+        const rawCursor =
+            typeof req.query.cursor === 'string' ? req.query.cursor : '';
+        const cursor = isValidId(rawCursor) ? rawCursor : CURSOR_SENTINEL;
+        const limit = clampPageLimit(
+            typeof req.query.limit === 'string' ? req.query.limit : undefined
+        );
+
+        const result = await listLogGlobalStream(pool, { cursor, limit });
+        sendOk(res, result);
+    } catch (error) {
+        console.error('GET /api/log error:', error);
+        sendError(res, 500, 'failed to load global log stream');
     }
 });
 

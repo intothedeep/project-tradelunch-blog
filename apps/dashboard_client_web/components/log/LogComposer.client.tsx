@@ -1,9 +1,13 @@
 'use client';
 
 // components/log/LogComposer.client.tsx
-// Purpose: composer for top-level log entries (OWNER-ONLY). Renders only when
-//   viewerUsername === profileUsername. 500-char limit with counter. Optimistic
-//   prepend via useCreateLog. IME-safe (Korean/Hangul Enter gating).
+// Purpose: composer for top-level log entries. Two modes:
+//   * per-user page (username prop set): OWNER-ONLY — renders only when
+//     viewerUsername === profileUsername.
+//   * global feed (username omitted): SELF-POST — any signed-in provisioned
+//     user composes to their OWN stream (the post also surfaces in /log).
+//   500-char limit with counter. Optimistic prepend via useCreateLog. IME-safe
+//   (Korean/Hangul Enter gating).
 // Constraints: "use client". Redirects signed-out users to /sign-in.
 
 import { useState } from 'react';
@@ -17,20 +21,28 @@ import { cn } from '@/lib/utils';
 const MAX_CHARS = 500;
 
 type Props = {
-    username: string; // profile username (without @)
+    username?: string; // profile username (without @); omit for global self-post
 };
 
 export function LogComposer({ username }: Props) {
     const { isLoaded, isSignedIn } = useAuth();
     const { data: me } = useMe();
-    const createLog = useCreateLog(username);
+    // Owner of the target stream: the profile owner on a per-user page, else the
+    // signed-in user themselves (self-post on the global feed).
+    const ownerUsername = username ?? me?.username ?? '';
+    const createLog = useCreateLog(ownerUsername);
     const composition = useComposition();
     const router = useRouter();
     const pathname = usePathname();
     const [body, setBody] = useState('');
 
-    // Owner check: only render if viewer username === profile username.
-    const isOwner = isLoaded && isSignedIn && me?.username === username;
+    // Render gate: per-user page → viewer must be the profile owner; global feed
+    // (no username) → any signed-in provisioned user (must have a username).
+    const isOwner =
+        isLoaded &&
+        isSignedIn &&
+        !!me?.username &&
+        (username === undefined || me.username === username);
 
     if (!isOwner) return null;
 

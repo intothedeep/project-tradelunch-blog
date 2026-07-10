@@ -9,4 +9,4 @@ export {
     toLog,
 } from './errors';
 export { createLog, softDeleteLog, assertLogMutable } from './write';
-export { listLogStream, listLogThread } from './list';
+export { listLogStream, listLogGlobalStream, listLogThread } from './list';

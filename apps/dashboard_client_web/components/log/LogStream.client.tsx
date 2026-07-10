@@ -33,7 +33,11 @@ export function LogStream({ username, initialData }: Props) {
         if (!me) return false;
         if (me.isAdmin) return true;
         if (me.username === username) return true; // profile owner
-        return log.authorName !== undefined && me.username === log.authorName;
+        // Compare canonical username (identifier), not authorName (display label).
+        return (
+            log.authorUsername !== undefined &&
+            me.username === log.authorUsername
+        );
     }
 
     if (isError) {

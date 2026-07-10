@@ -33,14 +33,17 @@ export default async function LogFocusPage({ params }: Props) {
         throw err;
     }
 
-    // Canonical check: if URL username doesn't match the focus author, redirect.
-    // When the focus node is deleted, authorName is masked to null (by the DB
-    // projection) and TLog carries no separate stable author identifier without
-    // an additional query. In that case we intentionally skip the redirect —
-    // a deleted focus has no canonical username to enforce, and the page still
-    // renders the masked tombstone correctly regardless of the URL username.
-    if (data.focus.authorName && data.focus.authorName !== username) {
-        redirect(`/log/${encodeURIComponent(data.focus.authorName)}/${logId}`);
+    // Canonical check: if the URL username doesn't match the focus author's
+    // canonical USERNAME, redirect. We compare authorUsername (users.username —
+    // the stable identifier), NOT authorName (display_name label, which is
+    // mutable and non-unique — using it would redirect to a non-route value).
+    // When the focus is deleted, authorUsername is masked to null, so we skip
+    // the redirect — a deleted focus has no canonical username to enforce, and
+    // the page still renders the masked tombstone regardless of the URL segment.
+    if (data.focus.authorUsername && data.focus.authorUsername !== username) {
+        redirect(
+            `/log/${encodeURIComponent(`@${data.focus.authorUsername}`)}/${logId}`
+        );
     }
 
     return (

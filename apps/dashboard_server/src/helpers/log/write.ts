@@ -140,6 +140,7 @@ export async function createLog(
                 upd.body,
                 false                                    AS is_deleted,
                 COALESCE(u.display_name, u.username)     AS author_name,
+                u.username                               AS author_username,
                 upd.created_at
              FROM upd
              JOIN users u ON u.id = upd.user_id`,
@@ -192,6 +193,7 @@ export async function softDeleteLog(
                 '[deleted]'                 AS body,
                 true                        AS is_deleted,
                 NULL                        AS author_name,
+                NULL                        AS author_username,
                 del.created_at
              FROM del`,
             [logId]

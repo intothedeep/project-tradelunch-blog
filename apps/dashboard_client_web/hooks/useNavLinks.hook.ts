@@ -37,6 +37,15 @@ export const buildPrimaryNavLinks = (
             iconKey: 'allPosts',
         },
         {
+            // The global Log micro-feed (Phase Y). Public discovery surface: all
+            // users' threads, newest-first. Default Log destination (/log), not a
+            // per-user stream.
+            title: 'Log',
+            href: '/log',
+            labelKey: 'nav.log',
+            iconKey: 'log',
+        },
+        {
             // Real search/discovery surface (P6, DEFERRED). Shown DISABLED as a
             // "coming soon" affordance — no `/explore` route exists yet, so the
             // PrimaryNav renders it as a non-clickable, muted placeholder. Flip
