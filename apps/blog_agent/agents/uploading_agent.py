@@ -469,9 +469,9 @@ class UploadingAgent(BaseAgent):
         # Use username from data, fallback to author (slugified), then default
         username = data.get("username")
         if not username:
-            author = data.get("author", config.DEFAULT_USERNAME)
+            author = data.get("author", config.DEFAULT_BLOG_AUTHOR)
             # Slugify author name for URL (lowercase, replace spaces with hyphen)
-            username = author.lower().replace(" ", "-") if author else config.DEFAULT_USERNAME
+            username = author.lower().replace(" ", "-") if author else config.DEFAULT_BLOG_AUTHOR
         published_url = f"{config.BLOG_BASE_URL}/blog/@{username}/{slug}"
 
         self._log(f"Article saved with ID: {article_id}")
@@ -810,8 +810,8 @@ class UploadingAgent(BaseAgent):
         # Build metadata
         username = data.get("username")
         if not username:
-            author = data.get("author", config.DEFAULT_USERNAME)
-            username = author.lower().replace(" ", "-") if author else config.DEFAULT_USERNAME
+            author = data.get("author", config.DEFAULT_BLOG_AUTHOR)
+            username = author.lower().replace(" ", "-") if author else config.DEFAULT_BLOG_AUTHOR
 
         metadata = ArticleMetadata(
             title=data.get("title", "Untitled"),

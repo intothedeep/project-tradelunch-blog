@@ -24,7 +24,7 @@ IS_LOCAL = NODE_ENV == "local"
 
 # ==================== User Configuration ====================
 DEFAULT_USER_ID = int(os.getenv("DEFAULT_USER_ID", "1"))
-DEFAULT_USERNAME = os.getenv("DEFAULT_USERNAME", "taeklim")
+DEFAULT_BLOG_AUTHOR = os.getenv("DEFAULT_BLOG_AUTHOR", "taeklim")
 
 
 # ==================== Domain Configuration ====================

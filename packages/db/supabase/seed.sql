@@ -5,7 +5,7 @@
 -- =============================================================================
 
 INSERT INTO users (username, email)
-VALUES ('darkowlrising', 'darkowlrising@gmail.com');
+VALUES ('taeklim', 'taek.lim.us@gmail.com');
 
 INSERT INTO users (username, email)
-VALUES ('taeklim', 'taek.lim.us@gmail.com');
+VALUES ('darkowlrising', 'darkowlrising@gmail.com');

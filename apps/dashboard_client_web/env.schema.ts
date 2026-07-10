@@ -55,6 +55,12 @@ const envSchema = z.object({
     // Clerk publishable key. Optional so build stays green without it;
     // Clerk reads it at runtime (USER sets on Vercel).
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().optional(),
+
+    // Site's default/owner blog author (username, no leading '@'). The
+    // single-user home feed focuses on this author (see utils/blog-author.ts).
+    // Env-driven so the owner username can change per deploy without a code
+    // edit; empty string ('') reverts `/` to the all-authors aggregate feed.
+    NEXT_PUBLIC_DEFAULT_BLOG_AUTHOR: z.string().default('taeklim'),
 });
 
 // Dot-access each var so Next inlines the NEXT_PUBLIC_* ones into the CLIENT
@@ -72,6 +78,8 @@ export const env = envSchema.parse({
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
         process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    NEXT_PUBLIC_DEFAULT_BLOG_AUTHOR:
+        process.env.NEXT_PUBLIC_DEFAULT_BLOG_AUTHOR,
 });
 
 export const SERVER_PORT = env.PORT;
@@ -80,3 +88,4 @@ export const API_BASE = env.NEXT_PUBLIC_API_BASE;
 export const CDN_ASSETS = env.NEXT_PUBLIC_CDN_ASSETS;
 export const DASHBOARD_DATA_SOURCE = env.DASHBOARD_DATA_SOURCE;
 export const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
+export const DEFAULT_BLOG_AUTHOR = env.NEXT_PUBLIC_DEFAULT_BLOG_AUTHOR;
