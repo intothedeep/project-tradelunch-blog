@@ -34,6 +34,8 @@ const ROW_PROJECTION = `
          ELSE COALESCE(u.display_name, u.username) END         AS author_name,
     CASE WHEN l.deleted_at IS NOT NULL THEN NULL
          ELSE u.username END                                   AS author_username,
+    CASE WHEN l.deleted_at IS NOT NULL THEN NULL
+         ELSE u.avatar_url END                                 AS author_avatar_url,
     l.created_at`;
 
 // One keyset page of top-level log nodes for a user, newest-first.
@@ -197,15 +199,26 @@ export async function listLogThread(
     // Fetch CAP + 1 per parent so we can DETECT overflow (a parent with more
     // depth-2 replies than the cap) and flag it — the UI shows "see more replies"
     // under that reply. The extra row is trimmed off, never returned.
+    // has_children marks a depth-2 node that itself has live replies (depth-3+).
+    // Those aren't rendered in the 2-level view, so the UI shows a "see replies"
+    // affordance — otherwise the reader can't tell a reply has more beneath it.
+    type TGrandRow = TLogRow & { has_children: boolean };
     const depth1Ids = keptChildren.map((r) => String(r.id));
     const depth2ByParent = new Map<string, TLog[]>();
     const overflowParents = new Set<string>();
     if (depth1Ids.length > 0) {
-        const { rows: grandRows } = await db.query<TLogRow>(
+        const { rows: grandRows } = await db.query<TGrandRow>(
             `SELECT id, user_id, parent_id, path, depth, body,
-                    is_deleted, author_name, author_username, created_at
+                    is_deleted, author_name, author_username,
+                    author_avatar_url, created_at,
+                    has_children
              FROM (
                  SELECT${ROW_PROJECTION},
+                        EXISTS (
+                            SELECT 1 FROM log c
+                            WHERE c.parent_id = l.id
+                              AND c.deleted_at IS NULL
+                        )                                  AS has_children,
                         ROW_NUMBER() OVER (
                             PARTITION BY l.parent_id ORDER BY l.id DESC
                         ) AS rn
@@ -227,7 +240,7 @@ export async function listLogThread(
             [depth1Ids, DEPTH2_PER_PARENT_CAP + 1]
         );
         // Group raw rows per parent to count, then trim the probe row + flag.
-        const rawByParent = new Map<string, TLogRow[]>();
+        const rawByParent = new Map<string, TGrandRow[]>();
         for (const row of grandRows) {
             const parentId = String(row.parent_id);
             const bucket = rawByParent.get(parentId) ?? [];
@@ -239,7 +252,15 @@ export async function listLogThread(
                 overflowParents.add(parentId);
                 rows.length = DEPTH2_PER_PARENT_CAP; // drop the probe row
             }
-            depth2ByParent.set(parentId, rows.map(toLog));
+            depth2ByParent.set(
+                parentId,
+                rows.map((row) => {
+                    const node = toLog(row);
+                    // A depth-2 node's own replies (depth-3+) are never rendered.
+                    if (row.has_children) node.hasMoreReplies = true;
+                    return node;
+                })
+            );
         }
     }
 

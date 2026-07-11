@@ -27,6 +27,7 @@ export interface TLogRow {
     is_deleted: boolean;
     author_name: string | null;
     author_username: string | null;
+    author_avatar_url: string | null;
     created_at: string;
 }
 
@@ -73,6 +74,9 @@ export function toLog(row: TLogRow): TLog {
     }
     if (!row.is_deleted && row.author_username) {
         base.authorUsername = row.author_username;
+    }
+    if (!row.is_deleted && row.author_avatar_url) {
+        base.authorAvatarUrl = row.author_avatar_url;
     }
     return base;
 }

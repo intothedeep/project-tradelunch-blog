@@ -352,6 +352,9 @@ export interface TLog {
     // Author's canonical username (users.username) — the stable IDENTIFIER used to
     // build/verify /log/[username] URLs. Omitted when isDeleted (masked author).
     authorUsername?: string;
+    // Author avatar URL (users.avatar_url) — often null; the UI falls back to an
+    // initial. Omitted when isDeleted (masked author).
+    authorAvatarUrl?: string;
     // ISO 8601 timestamp string. No updatedAt — Log nodes are immutable.
     createdAt: string;
     // Thread view only: true on a depth-1 reply that has MORE depth-2 replies

@@ -17,10 +17,20 @@ type Props = {
 };
 
 export function LogFocusView({ username, logId, data }: Props) {
+    // The thread's original poster = the root (first ancestor, or the focus
+    // itself when it is top-level). Drives the "Author" chip.
+    const rootAuthor =
+        data.ancestors[0]?.authorUsername ?? data.focus.authorUsername;
+
     return (
         <div className="space-y-4">
             <LogAncestorChain ancestors={data.ancestors} />
-            <LogFocusCard log={data.focus} />
+            <LogFocusCard
+                log={data.focus}
+                isAuthor={
+                    !!rootAuthor && data.focus.authorUsername === rootAuthor
+                }
+            />
             <LogReplyComposer
                 username={username}
                 logId={logId}
