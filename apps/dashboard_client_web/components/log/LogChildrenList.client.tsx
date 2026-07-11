@@ -1,10 +1,12 @@
 'use client';
 
 // components/log/LogChildrenList.client.tsx
-// Purpose: infinite-scroll list of direct children (depth-1) in the focus view.
-//   Clicking a child navigates to that child's focus route (/log/[username]/[childId]).
-//   Delete affordance for child author, profile owner, or admin.
-//   Dead leaves (deleted with no live descendants) are pruned server-side.
+// Purpose: nested (comment-style) reply list for the focus view. Renders a FLAT
+//   pre-order array of depth-1 direct replies AND their depth-2 grandchildren;
+//   depth-2 rows are indented with a thread line so the parent→child relationship
+//   is visible. Clicking any reply refocuses on it (/log/[author]/[id]) to see its
+//   own subtree (and depth-3+ beyond the eager 2 levels). Delete affordance for
+//   child author, profile owner, or admin. Dead leaves are pruned server-side.
 // Constraints: "use client". ids stay STRINGS. Seeded from SSR.
 
 import { useRouter } from 'next/navigation';
@@ -21,11 +23,16 @@ type Props = {
     initialData?: TLogThreadResponse;
 };
 
+// Per-level left margin + thread line. Only two nesting levels are rendered
+// (depth-1 = 0, depth-2 = 1); deeper replies are reached by refocusing.
+const INDENT_CLASS = ['', 'ml-5 border-l-2 border-primary/15 pl-3 sm:ml-8'];
+
 export function LogChildrenList({ username, logId, initialData }: Props) {
     const router = useRouter();
     const { data: me } = useMe();
 
     const {
+        focus,
         children,
         isError,
         fetchNextPage,
@@ -34,6 +41,12 @@ export function LogChildrenList({ username, logId, initialData }: Props) {
     } = useLogThread(logId, initialData);
 
     const deleteLog = useDeleteLog(username, logId);
+
+    // Depth-1 replies sit at focus.depth + 1; indent is relative to that so
+    // depth-1 renders flush (0) and depth-2 renders one level in (1).
+    const baseDepth = (focus?.depth ?? 0) + 1;
+    const indentOf = (log: TLog): number =>
+        Math.min(Math.max(log.depth - baseDepth, 0), INDENT_CLASS.length - 1);
 
     function canDelete(log: TLog): boolean {
         if (!me) return false;
@@ -44,6 +57,16 @@ export function LogChildrenList({ username, logId, initialData }: Props) {
             log.authorUsername !== undefined &&
             me.username === log.authorUsername
         );
+    }
+
+    // Refocus directly on the reply's canonical author (a reply may be by another
+    // user); fall back to the current segment for a deleted node (author masked →
+    // canonical redirect is skipped and renders masked).
+    function openReply(log: TLog): void {
+        const segment = log.authorUsername
+            ? `@${log.authorUsername}`
+            : username;
+        router.push(`/log/${encodeURIComponent(segment)}/${log.id}`);
     }
 
     if (isError) {
@@ -69,21 +92,11 @@ export function LogChildrenList({ username, logId, initialData }: Props) {
                     {children.map((child) => (
                         <li
                             key={child.id}
-                            className="cursor-pointer"
-                            onClick={() =>
-                                router.push(
-                                    // Refocus directly on the child's canonical
-                                    // author (a reply may be by another user);
-                                    // fall back to the current segment for a
-                                    // deleted child (author masked → canonical
-                                    // redirect is skipped and renders masked).
-                                    `/log/${encodeURIComponent(
-                                        child.authorUsername
-                                            ? `@${child.authorUsername}`
-                                            : username
-                                    )}/${child.id}`
-                                )
-                            }
+                            className={cn(
+                                'cursor-pointer',
+                                INDENT_CLASS[indentOf(child)]
+                            )}
+                            onClick={() => openReply(child)}
                         >
                             <LogCard
                                 log={child}

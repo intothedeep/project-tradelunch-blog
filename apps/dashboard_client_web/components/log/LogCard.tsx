@@ -57,7 +57,12 @@ export function LogCard({ log, canDelete, onDelete }: Props) {
                     {canDelete && !log.isDeleted && onDelete ? (
                         <button
                             type="button"
-                            onClick={onDelete}
+                            onClick={(e) => {
+                                // Don't let delete bubble to a clickable card
+                                // wrapper (refocus navigation).
+                                e.stopPropagation();
+                                onDelete();
+                            }}
                             className={cn(
                                 'text-xs text-destructive/70 hover:text-destructive',
                                 'transition-colors'
