@@ -18,6 +18,9 @@ import { cn } from '@/lib/utils';
 
 type Props = {
     comment: TComment;
+    // Parent comment author's handle — muted "@name" prefix before the body so
+    // it's clear which comment this reply is answering.
+    replyingTo?: string;
     indent: number;
     hasHiddenChildren: boolean;
     canDelete: boolean;
@@ -43,6 +46,7 @@ const INDENT_CLASS = [
 
 export const CommentRow: React.FC<Props> = ({
     comment,
+    replyingTo,
     indent,
     hasHiddenChildren,
     canDelete,
@@ -100,6 +104,11 @@ export const CommentRow: React.FC<Props> = ({
                             comment.isDeleted && 'italic text-primary/40'
                         )}
                     >
+                        {replyingTo && !comment.isDeleted ? (
+                            <span className="font-medium text-primary/50">
+                                @{replyingTo}{' '}
+                            </span>
+                        ) : null}
                         {comment.body}
                     </p>
                 )}

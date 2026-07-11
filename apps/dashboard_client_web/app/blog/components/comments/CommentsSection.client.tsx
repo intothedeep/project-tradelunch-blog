@@ -61,6 +61,16 @@ export const CommentsSection: React.FC<Props> = ({
 
     const list = useMemo(() => comments, [comments]);
 
+    // Parent lookup for the "@parent" reply prefix — every reply's parent is in
+    // the loaded tree (pre-order, so the parent precedes the child).
+    const byId = useMemo(() => {
+        const m = new Map<string, TComment>();
+        for (const c of list) m.set(c.id, c);
+        return m;
+    }, [list]);
+    const parentHandle = (comment: TComment): string | undefined =>
+        comment.parentId ? byId.get(comment.parentId)?.authorName : undefined;
+
     const rows = useMemo(
         () => buildRenderRows(list, maxDepth, expanded),
         [list, maxDepth, expanded]
@@ -117,6 +127,7 @@ export const CommentsSection: React.FC<Props> = ({
                             <CommentRow
                                 key={row.comment.id}
                                 comment={row.comment}
+                                replyingTo={parentHandle(row.comment)}
                                 indent={row.indent}
                                 hasHiddenChildren={row.hasHiddenChildren}
                                 canDelete={canModify(row.comment)}
