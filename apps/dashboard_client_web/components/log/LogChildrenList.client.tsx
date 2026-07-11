@@ -2,13 +2,12 @@
 
 // components/log/LogChildrenList.client.tsx
 // Purpose: threaded (Threads-style) reply list for the focus view. Direct replies
-//   (depth-1) each render with their capped depth-2 grandchildren beneath, and a
-//   vertical thread-line runs down the avatar gutter connecting a parent avatar to
-//   its child avatars (avatar-to-avatar). Every reply shows the parent's @handle,
-//   an "Author" chip for the thread's original poster, and a "Show replies"
+//   (depth-1) render flush; their capped depth-2 grandchildren render INDENTED
+//   inside a container whose left border is the vertical thread-line, dropping
+//   from under the parent avatar. Every reply shows the parent's @handle, an
+//   "Author" chip for the thread's original poster, and a "Show replies"
 //   affordance when it has replies not rendered here (depth-2 overflow, or a
-//   depth-2's own depth-3+). Clicking any reply refocuses on it. Dead leaves are
-//   pruned server-side.
+//   depth-2's own depth-3+). Clicking any reply refocuses on it.
 // Constraints: "use client". ids stay STRINGS. Seeded from SSR.
 
 import { Fragment } from 'react';
@@ -17,8 +16,7 @@ import { ChevronDown } from 'lucide-react';
 import { useMe } from '@/hooks/useMe.query.client';
 import { useLogThread } from '@/hooks/useLogThread.query.client';
 import { useDeleteLog } from '@/hooks/useDeleteLog.query.client';
-import { LogAvatar } from '@/components/log/LogAvatar';
-import { LogCardBody } from '@/components/log/LogCardBody';
+import { LogCard } from '@/components/log/LogCard';
 import { toUsernameSegment } from '@/utils/blog-author';
 import { cn } from '@/lib/utils';
 import type { TLog, TLogThreadResponse } from '@repo/types';
@@ -29,9 +27,9 @@ type Props = {
     initialData?: TLogThreadResponse;
 };
 
-// The vertical thread line, centered in the w-9 (36px) avatar gutter. Content
-// sits gap-3 (12px) to the gutter's right, so "more" buttons align at ml-12.
-const THREAD_LINE = 'w-0.5 bg-primary/20';
+// Depth-2 wrapper: indent + a left border acting as the vertical thread-line that
+// drops from beneath the depth-1 avatar (avatar center ≈ 18px).
+const NEST_CLASS = 'ml-[18px] border-l-2 border-primary/15 pl-3';
 
 export function LogChildrenList({ username, logId, initialData }: Props) {
     const router = useRouter();
@@ -89,50 +87,30 @@ export function LogChildrenList({ username, logId, initialData }: Props) {
         else groups[groups.length - 1]?.replies.push(child);
     }
 
-    // One threaded row: [avatar gutter with line segments] [content]. lineAbove
-    // connects up to the previous avatar; lineBelow continues down to the next.
-    const renderRow = (
-        log: TLog,
-        size: number,
-        lineAbove: boolean,
-        lineBelow: boolean
-    ) => (
+    const renderCard = (log: TLog, avatarSize: number) => (
         <div
-            className="flex cursor-pointer gap-3"
+            className="cursor-pointer"
             onClick={() => openReply(log)}
         >
-            <div className="flex w-9 flex-col items-center">
-                {lineAbove ? <span className={cn('h-2', THREAD_LINE)} /> : null}
-                <LogAvatar
-                    name={log.authorName}
-                    avatarUrl={log.authorAvatarUrl}
-                    deleted={log.isDeleted}
-                    size={size}
-                />
-                {lineBelow ? (
-                    <span className={cn('mt-1 grow', THREAD_LINE)} />
-                ) : null}
-            </div>
-            <div className="min-w-0 flex-1 pb-3">
-                <LogCardBody
-                    log={log}
-                    replyingTo={parentHandle(log)}
-                    isAuthor={isAuthor(log)}
-                    canDelete={canDelete(log)}
-                    onDelete={() => deleteLog.mutate({ logId: log.id })}
-                />
-            </div>
+            <LogCard
+                log={log}
+                avatarSize={avatarSize}
+                isAuthor={isAuthor(log)}
+                replyingTo={parentHandle(log)}
+                canDelete={canDelete(log)}
+                onDelete={() => deleteLog.mutate({ logId: log.id })}
+            />
         </div>
     );
 
-    // "Show replies" affordance (aligned under the content column) for a reply
-    // whose replies aren't rendered here — clicking refocuses on it.
+    // "Show replies" affordance for a reply whose replies aren't rendered here —
+    // clicking refocuses on it. Sits inside the nested container (already indented).
     const renderMore = (log: TLog, label: string) => (
         <button
             type="button"
             onClick={() => openReply(log)}
             className={cn(
-                'mb-2 ml-12 flex items-center gap-1 text-xs font-medium',
+                'mb-2 flex items-center gap-1 text-xs font-medium',
                 'text-primary/60 hover:text-primary'
             )}
         >
@@ -162,27 +140,33 @@ export function LogChildrenList({ username, logId, initialData }: Props) {
             ) : (
                 <ul role="list">
                     {groups.map((group) => {
-                        const hasReplies = group.replies.length > 0;
+                        const nested =
+                            group.replies.length > 0 ||
+                            !!group.node.hasMoreReplies;
                         return (
                             <li key={group.node.id}>
-                                {renderRow(group.node, 36, false, hasReplies)}
-                                {group.replies.map((reply, i) => (
-                                    <Fragment key={reply.id}>
-                                        {renderRow(
-                                            reply,
-                                            28,
-                                            true,
-                                            i < group.replies.length - 1 ||
-                                                !!group.node.hasMoreReplies
-                                        )}
-                                        {reply.hasMoreReplies
-                                            ? renderMore(reply, '답글 보기')
+                                {renderCard(group.node, 36)}
+                                {nested ? (
+                                    <div className={NEST_CLASS}>
+                                        {group.replies.map((reply) => (
+                                            <Fragment key={reply.id}>
+                                                {renderCard(reply, 28)}
+                                                {reply.hasMoreReplies
+                                                    ? renderMore(
+                                                          reply,
+                                                          '답글 보기'
+                                                      )
+                                                    : null}
+                                            </Fragment>
+                                        ))}
+                                        {group.node.hasMoreReplies
+                                            ? renderMore(
+                                                  group.node,
+                                                  '답글 더 보기'
+                                              )
                                             : null}
-                                    </Fragment>
-                                ))}
-                                {group.node.hasMoreReplies
-                                    ? renderMore(group.node, '답글 더 보기')
-                                    : null}
+                                    </div>
+                                ) : null}
                             </li>
                         );
                     })}
