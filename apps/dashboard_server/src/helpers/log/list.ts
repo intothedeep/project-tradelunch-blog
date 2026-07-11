@@ -76,6 +76,11 @@ export async function listLogStream(
     return { items, nextCursor, hasMore };
 }
 
+// Max depth-2 (grandchild) replies eagerly loaded per depth-1 parent in the
+// thread view. Beyond this, the reader clicks the depth-1 reply to refocus on it
+// and see its full subtree. Bounds page size (depth-1 page × this cap).
+const DEPTH2_PER_PARENT_CAP = 3;
+
 // One keyset page of top-level log nodes across ALL users, newest-first.
 // The global discovery feed (/log). Same projection/masking as listLogStream
 // but WITHOUT the per-user filter. cursor = last returned id (sentinel = max
@@ -108,7 +113,12 @@ export async function listLogGlobalStream(
 // Focus-node view for a single log node id.
 // Returns: ancestors (root→parent, ordered root-first, deleted masked but present),
 //          focus (the requested node; masked if deleted; null indicates missing),
-//          children (depth-1 direct replies, oldest-first keyset, dead-leaf pruned).
+//          children — a FLAT pre-order array of depth-1 direct replies AND their
+//          depth-2 grandchildren (comment-style 2-level nesting). Each depth-1
+//          reply is immediately followed by its (capped) depth-2 children, so the
+//          client nests by TLog.depth without a grouping pass. Pagination stays a
+//          depth-1 keyset (nextCursor = last depth-1 id); depth-2 is eager-loaded
+//          per depth-1 parent up to DEPTH2_PER_PARENT_CAP (refocus for the rest).
 // Returns null when the focus id does not exist (404 from the controller).
 export async function listLogThread(
     db: TDb,
@@ -175,10 +185,57 @@ export async function listLogThread(
     const keptChildren = childHasMore
         ? childRows.slice(0, childLimit)
         : childRows;
-    const childItems = keptChildren.map(toLog);
     const childNextCursor = childHasMore
         ? String(keptChildren[keptChildren.length - 1]!.id)
         : null;
+
+    // 4. Depth-2 grandchildren: direct replies to the depth-1 nodes in THIS page,
+    //    capped per parent (ROW_NUMBER window). Same dead-leaf prune. A masked
+    //    depth-1 parent kept in step 3 (deleted but has a live descendant) still
+    //    gets its live depth-2 children here — nesting stays coherent.
+    const depth1Ids = keptChildren.map((r) => String(r.id));
+    const depth2ByParent = new Map<string, TLog[]>();
+    if (depth1Ids.length > 0) {
+        const { rows: grandRows } = await db.query<TLogRow>(
+            `SELECT id, user_id, parent_id, path, depth, body,
+                    is_deleted, author_name, author_username, created_at
+             FROM (
+                 SELECT${ROW_PROJECTION},
+                        ROW_NUMBER() OVER (
+                            PARTITION BY l.parent_id ORDER BY l.id ASC
+                        ) AS rn
+                 FROM log l
+                 JOIN users u ON u.id = l.user_id
+                 WHERE l.parent_id = ANY($1::bigint[])
+                   AND (
+                       l.deleted_at IS NULL
+                       OR EXISTS (
+                           SELECT 1 FROM log d
+                           WHERE l.id = ANY(d.path)
+                             AND d.id <> l.id
+                             AND d.deleted_at IS NULL
+                       )
+                   )
+             ) sub
+             WHERE sub.rn <= $2
+             ORDER BY sub.parent_id ASC, sub.id ASC`,
+            [depth1Ids, DEPTH2_PER_PARENT_CAP]
+        );
+        for (const row of grandRows) {
+            const parentId = String(row.parent_id);
+            const bucket = depth2ByParent.get(parentId) ?? [];
+            bucket.push(toLog(row));
+            depth2ByParent.set(parentId, bucket);
+        }
+    }
+
+    // Flatten to pre-order: each depth-1 reply, then its depth-2 children.
+    const childItems: TLog[] = [];
+    for (const row of keptChildren) {
+        childItems.push(toLog(row));
+        const grandchildren = depth2ByParent.get(String(row.id));
+        if (grandchildren) childItems.push(...grandchildren);
+    }
 
     return {
         ancestors,

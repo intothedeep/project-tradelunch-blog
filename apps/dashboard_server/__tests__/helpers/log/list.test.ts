@@ -41,6 +41,12 @@ function makeRow(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
     mockDbQuery.mockReset();
+    // Default for any un-queued call: empty rows. listLogThread fires an extra
+    // depth-2 (grandchildren) query when the depth-1 page is non-empty; tests
+    // that don't queue it fall through to this empty default (no depth-2 rows →
+    // children.items = depth-1 only, matching the pre-nesting assertions).
+    // mockResolvedValueOnce chains still take precedence for the queued calls.
+    mockDbQuery.mockResolvedValue({ rows: [] });
 });
 
 // ---------------------------------------------------------------------------
