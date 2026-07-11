@@ -10,6 +10,7 @@
 // Constraints: "use client". ids stay STRINGS. Seeded from SSR.
 
 import { useRouter } from 'next/navigation';
+import { ChevronDown } from 'lucide-react';
 import { useMe } from '@/hooks/useMe.query.client';
 import { useLogThread } from '@/hooks/useLogThread.query.client';
 import { useDeleteLog } from '@/hooks/useDeleteLog.query.client';
@@ -33,6 +34,7 @@ export function LogChildrenList({ username, logId, initialData }: Props) {
     const { data: me } = useMe();
 
     const {
+        ancestors,
         focus,
         children,
         isError,
@@ -42,6 +44,12 @@ export function LogChildrenList({ username, logId, initialData }: Props) {
     } = useLogThread(logId, initialData);
 
     const deleteLog = useDeleteLog(username, logId);
+
+    // Thread's original poster = the root (first ancestor, or the focus itself
+    // when top-level). Any reply by them gets the "Author" chip.
+    const rootAuthor = ancestors[0]?.authorUsername ?? focus?.authorUsername;
+    const isAuthor = (log: TLog): boolean =>
+        !!log.authorUsername && log.authorUsername === rootAuthor;
 
     // Depth-1 replies sit at focus.depth + 1; indent is relative to that so
     // depth-1 renders flush (0) and depth-2 renders one level in (1).
@@ -98,14 +106,16 @@ export function LogChildrenList({ username, logId, initialData }: Props) {
             <LogCard
                 log={log}
                 replyingTo={parentHandle(log)}
+                isAuthor={isAuthor(log)}
+                avatarSize={indent === 0 ? 36 : 28}
                 canDelete={canDelete(log)}
                 onDelete={() => deleteLog.mutate({ logId: log.id })}
             />
         </div>
     );
 
-    // "See (more) replies" affordance: shown when a reply has replies not
-    // rendered here — a depth-1 with overflow beyond the cap, or ANY depth-2
+    // "Show replies" affordance (Threads-style): shown when a reply has replies
+    // not rendered here — a depth-1 with overflow beyond the cap, or ANY depth-2
     // whose own replies (depth-3+) are hidden. Clicking refocuses on that reply
     // so the reader can tell there's more without opening it blindly.
     const renderMoreButton = (log: TLog, label: string) => (
@@ -114,10 +124,11 @@ export function LogChildrenList({ username, logId, initialData }: Props) {
             onClick={() => openReply(log)}
             className={cn(
                 INDENT_CLASS[1],
-                'mt-1 block text-xs font-medium',
-                'text-primary/70 hover:text-primary'
+                'mt-1 mb-1 flex items-center gap-1 text-xs font-medium',
+                'text-primary/60 hover:text-primary'
             )}
         >
+            <ChevronDown className="h-3.5 w-3.5" />
             {label}
         </button>
     );
@@ -149,12 +160,12 @@ export function LogChildrenList({ username, logId, initialData }: Props) {
                                 <div key={reply.id}>
                                     {renderCard(reply, 1)}
                                     {reply.hasMoreReplies
-                                        ? renderMoreButton(reply, '답글 보기 →')
+                                        ? renderMoreButton(reply, '답글 보기')
                                         : null}
                                 </div>
                             ))}
                             {group.node.hasMoreReplies
-                                ? renderMoreButton(group.node, '답글 더 보기 →')
+                                ? renderMoreButton(group.node, '답글 더 보기')
                                 : null}
                         </li>
                     ))}

@@ -34,6 +34,8 @@ const ROW_PROJECTION = `
          ELSE COALESCE(u.display_name, u.username) END         AS author_name,
     CASE WHEN l.deleted_at IS NOT NULL THEN NULL
          ELSE u.username END                                   AS author_username,
+    CASE WHEN l.deleted_at IS NOT NULL THEN NULL
+         ELSE u.avatar_url END                                 AS author_avatar_url,
     l.created_at`;
 
 // One keyset page of top-level log nodes for a user, newest-first.
@@ -207,7 +209,8 @@ export async function listLogThread(
     if (depth1Ids.length > 0) {
         const { rows: grandRows } = await db.query<TGrandRow>(
             `SELECT id, user_id, parent_id, path, depth, body,
-                    is_deleted, author_name, author_username, created_at,
+                    is_deleted, author_name, author_username,
+                    author_avatar_url, created_at,
                     has_children
              FROM (
                  SELECT${ROW_PROJECTION},
