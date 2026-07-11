@@ -17,3 +17,10 @@ export const HOME_FEED_AUTHOR = DEFAULT_BLOG_AUTHOR;
 // Strip a single leading '@' from a route username segment.
 export const stripUsernameAt = (raw: string): string =>
     raw.startsWith('@') ? raw.slice(1) : raw;
+
+// Build the canonical @-prefixed username URL segment (e.g. "@taeklim"). The '@'
+// stays LITERAL (a valid path character, RFC 3986 pchar) — only the username is
+// percent-encoded — so URLs read /log/@taeklim/1, not /log/%40taeklim/1. Accepts
+// a raw username with or without a leading '@'.
+export const toUsernameSegment = (username: string): string =>
+    `@${encodeURIComponent(stripUsernameAt(username))}`;
