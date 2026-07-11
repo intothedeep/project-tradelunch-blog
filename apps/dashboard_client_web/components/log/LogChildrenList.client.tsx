@@ -104,6 +104,24 @@ export function LogChildrenList({ username, logId, initialData }: Props) {
         </div>
     );
 
+    // "See (more) replies" affordance: shown when a reply has replies not
+    // rendered here — a depth-1 with overflow beyond the cap, or ANY depth-2
+    // whose own replies (depth-3+) are hidden. Clicking refocuses on that reply
+    // so the reader can tell there's more without opening it blindly.
+    const renderMoreButton = (log: TLog, label: string) => (
+        <button
+            type="button"
+            onClick={() => openReply(log)}
+            className={cn(
+                INDENT_CLASS[1],
+                'mt-1 block text-xs font-medium',
+                'text-primary/70 hover:text-primary'
+            )}
+        >
+            {label}
+        </button>
+    );
+
     if (isError) {
         return (
             <p
@@ -127,20 +145,17 @@ export function LogChildrenList({ username, logId, initialData }: Props) {
                     {groups.map((group) => (
                         <li key={group.node.id}>
                             {renderCard(group.node, 0)}
-                            {group.replies.map((reply) => renderCard(reply, 1))}
-                            {group.node.hasMoreReplies ? (
-                                <button
-                                    type="button"
-                                    onClick={() => openReply(group.node)}
-                                    className={cn(
-                                        INDENT_CLASS[1],
-                                        'mt-1 block text-xs font-medium',
-                                        'text-primary/70 hover:text-primary'
-                                    )}
-                                >
-                                    답글 더 보기 →
-                                </button>
-                            ) : null}
+                            {group.replies.map((reply) => (
+                                <div key={reply.id}>
+                                    {renderCard(reply, 1)}
+                                    {reply.hasMoreReplies
+                                        ? renderMoreButton(reply, '답글 보기 →')
+                                        : null}
+                                </div>
+                            ))}
+                            {group.node.hasMoreReplies
+                                ? renderMoreButton(group.node, '답글 더 보기 →')
+                                : null}
                         </li>
                     ))}
                 </ul>
