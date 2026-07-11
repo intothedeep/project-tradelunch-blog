@@ -1,10 +1,12 @@
 // components/log/LogAvatar.tsx
-// Purpose: small circular author avatar for the Log thread view (Threads-style).
-//   Uses the author's avatar_url when present (usually null in this app), else a
-//   colored initial. Deleted/masked nodes render a neutral placeholder.
-// Constraints: presentational, no "use client". next/image per project convention.
+// Purpose: small circular author avatar for the Log thread view (Threads-style),
+//   built on the shadcn/radix Avatar. Shows the author's avatar_url when present
+//   (usually null in this app; radix falls back automatically if it fails to
+//   load), else a colored initial. Deleted/masked nodes render a neutral dot.
+// Constraints: presentational. No next/image (radix handles arbitrary hosts +
+//   graceful fallback, so no remotePatterns config needed).
 
-import Image from 'next/image';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -22,35 +24,26 @@ export function LogAvatar({
     deleted,
     className,
 }: Props) {
-    if (avatarUrl && !deleted) {
-        return (
-            <Image
-                src={avatarUrl}
-                alt={name ?? ''}
-                width={size}
-                height={size}
-                className={cn('shrink-0 rounded-full object-cover', className)}
-            />
-        );
-    }
-
     const initial = deleted ? '·' : (name?.trim()?.[0]?.toUpperCase() ?? '?');
 
     return (
-        <span
-            aria-hidden
-            style={{
-                width: size,
-                height: size,
-                fontSize: Math.round(size * 0.42),
-            }}
-            className={cn(
-                'flex shrink-0 select-none items-center justify-center rounded-full',
-                'bg-primary/10 font-semibold text-primary/60',
-                className
-            )}
+        <Avatar
+            style={{ width: size, height: size }}
+            className={cn('shrink-0', className)}
         >
-            {initial}
-        </span>
+            {avatarUrl && !deleted ? (
+                <AvatarImage
+                    src={avatarUrl}
+                    alt={name ?? ''}
+                    className="object-cover"
+                />
+            ) : null}
+            <AvatarFallback
+                style={{ fontSize: Math.round(size * 0.42) }}
+                className="select-none bg-primary/10 font-semibold text-primary/60"
+            >
+                {initial}
+            </AvatarFallback>
+        </Avatar>
     );
 }
