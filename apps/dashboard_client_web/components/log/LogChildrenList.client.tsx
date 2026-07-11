@@ -49,6 +49,17 @@ export function LogChildrenList({ username, logId, initialData }: Props) {
     const indentOf = (log: TLog): number =>
         Math.min(Math.max(log.depth - baseDepth, 0), INDENT_CLASS.length - 1);
 
+    // Parent lookup for the "@parent" reply prefix. Every reply's parent is in
+    // the loaded set: a depth-1 reply's parent is the focus; a depth-2 reply's
+    // parent is its depth-1 sibling (both present, parent precedes child in the
+    // pre-order children array). Uses authorName (the same display label the card
+    // shows for the author). Deleted parent → undefined → no prefix.
+    const byId = new Map<string, TLog>();
+    if (focus) byId.set(focus.id, focus);
+    for (const child of children) byId.set(child.id, child);
+    const parentHandle = (log: TLog): string | undefined =>
+        log.parentId ? byId.get(log.parentId)?.authorName : undefined;
+
     function canDelete(log: TLog): boolean {
         if (!me) return false;
         if (me.isAdmin) return true;
@@ -68,6 +79,30 @@ export function LogChildrenList({ username, logId, initialData }: Props) {
         const segment = toUsernameSegment(log.authorUsername ?? username);
         router.push(`/log/${segment}/${log.id}`);
     }
+
+    // Group the flat pre-order children into depth-1 nodes each with their
+    // (capped) depth-2 replies, so the "see more replies" affordance can sit
+    // directly under a reply that has overflow (node.hasMoreReplies).
+    const groups: { node: TLog; replies: TLog[] }[] = [];
+    for (const child of children) {
+        if (indentOf(child) === 0) groups.push({ node: child, replies: [] });
+        else groups[groups.length - 1]?.replies.push(child);
+    }
+
+    const renderCard = (log: TLog, indent: number) => (
+        <div
+            key={log.id}
+            className={cn('cursor-pointer', INDENT_CLASS[indent])}
+            onClick={() => openReply(log)}
+        >
+            <LogCard
+                log={log}
+                replyingTo={parentHandle(log)}
+                canDelete={canDelete(log)}
+                onDelete={() => deleteLog.mutate({ logId: log.id })}
+            />
+        </div>
+    );
 
     if (isError) {
         return (
@@ -89,22 +124,23 @@ export function LogChildrenList({ username, logId, initialData }: Props) {
                 <p className="text-xs text-primary/40">No replies yet.</p>
             ) : (
                 <ul role="list">
-                    {children.map((child) => (
-                        <li
-                            key={child.id}
-                            className={cn(
-                                'cursor-pointer',
-                                INDENT_CLASS[indentOf(child)]
-                            )}
-                            onClick={() => openReply(child)}
-                        >
-                            <LogCard
-                                log={child}
-                                canDelete={canDelete(child)}
-                                onDelete={() =>
-                                    deleteLog.mutate({ logId: child.id })
-                                }
-                            />
+                    {groups.map((group) => (
+                        <li key={group.node.id}>
+                            {renderCard(group.node, 0)}
+                            {group.replies.map((reply) => renderCard(reply, 1))}
+                            {group.node.hasMoreReplies ? (
+                                <button
+                                    type="button"
+                                    onClick={() => openReply(group.node)}
+                                    className={cn(
+                                        INDENT_CLASS[1],
+                                        'mt-1 block text-xs font-medium',
+                                        'text-primary/70 hover:text-primary'
+                                    )}
+                                >
+                                    답글 더 보기 →
+                                </button>
+                            ) : null}
                         </li>
                     ))}
                 </ul>

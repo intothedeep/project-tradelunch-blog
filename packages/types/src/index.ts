@@ -354,6 +354,10 @@ export interface TLog {
     authorUsername?: string;
     // ISO 8601 timestamp string. No updatedAt — Log nodes are immutable.
     createdAt: string;
+    // Thread view only: true on a depth-1 reply that has MORE depth-2 replies
+    // than the eager cap — the UI shows a "see more replies" affordance that
+    // refocuses on this node. Omitted (undefined) everywhere else.
+    hasMoreReplies?: boolean;
 }
 
 // GET /v1/api/log/:username — top-level stream (newest-first keyset).

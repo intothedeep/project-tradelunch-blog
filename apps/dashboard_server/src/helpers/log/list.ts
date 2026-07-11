@@ -4,8 +4,8 @@
 //     for a given username, newest-first keyset cursor on id.
 //   * listLogThread returns the focus-node view: ancestor chain (root→parent,
 //     ordered root-first, deleted ancestors masked but present), the focus node
-//     itself, and ONE page of depth-1 direct children (oldest-first, dead-leaf
-//     pruned) with a keyset cursor.
+//     itself, and ONE page of depth-1 direct children (newest-first, dead-leaf
+//     pruned) each with up to a capped set of depth-2 replies, keyset-paginated.
 // Invariants:
 //   * Isolation: every statement touches ONLY `log` and `users` — never posts
 //     or comments tables.
@@ -14,8 +14,8 @@
 //     with no live descendant) are EXCLUDED from the children page.
 //   * ids/cursor are STRINGS end-to-end (Snowflake BIGINT precision); never
 //     Number()/parseInt any id or cursor value.
-//   * Depth-1 children keyset is oldest-first (ASC) so the reader can page
-//     forward to see newer replies without re-reading already-seen ones.
+//   * Depth-1 children keyset is newest-first (DESC), paging backward via
+//     id < cursor — matching the stream feeds' ordering.
 // Side effects: SELECTs only.
 import type { TLog, TLogStreamResponse, TLogThreadResponse } from '@repo/types';
 import { type TDb, type TLogRow, toLog } from './errors';
@@ -154,19 +154,20 @@ export async function listLogThread(
         ancestors = ancestorRows.map(toLog);
     }
 
-    // 3. Depth-1 children: direct replies to focus, oldest-first keyset.
+    // 3. Depth-1 children: direct replies to focus, NEWEST-first keyset.
     //    Dead-leaf prune: skip a deleted child UNLESS it has a live descendant.
     //    A node `l` is an ancestor of `d` iff l.id appears in d.path.
     //    We test l.id = ANY(d.path) AND d.id <> l.id (exclude l itself)
     //    so that the EXISTS only fires when l has a live node below it.
-    //    cursor = last returned child id (sentinel = '0' → start from oldest).
+    //    cursor = last returned child id (sentinel = max int8 → start newest);
+    //    keyset pages backward via l.id < cursor.
     const { cursor: childCursor, limit: childLimit } = childOpts;
     const { rows: childRows } = await db.query<TLogRow>(
         `SELECT${ROW_PROJECTION}
          FROM log l
          JOIN users u ON u.id = l.user_id
          WHERE l.parent_id = $1
-           AND l.id > $2
+           AND l.id < $2
            AND (
                l.deleted_at IS NULL
                OR EXISTS (
@@ -176,7 +177,7 @@ export async function listLogThread(
                      AND d.deleted_at IS NULL
                )
            )
-         ORDER BY l.id ASC
+         ORDER BY l.id DESC
          LIMIT $3`,
         [focusId, childCursor, childLimit + 1]
     );
@@ -193,8 +194,12 @@ export async function listLogThread(
     //    capped per parent (ROW_NUMBER window). Same dead-leaf prune. A masked
     //    depth-1 parent kept in step 3 (deleted but has a live descendant) still
     //    gets its live depth-2 children here — nesting stays coherent.
+    // Fetch CAP + 1 per parent so we can DETECT overflow (a parent with more
+    // depth-2 replies than the cap) and flag it — the UI shows "see more replies"
+    // under that reply. The extra row is trimmed off, never returned.
     const depth1Ids = keptChildren.map((r) => String(r.id));
     const depth2ByParent = new Map<string, TLog[]>();
+    const overflowParents = new Set<string>();
     if (depth1Ids.length > 0) {
         const { rows: grandRows } = await db.query<TLogRow>(
             `SELECT id, user_id, parent_id, path, depth, body,
@@ -202,7 +207,7 @@ export async function listLogThread(
              FROM (
                  SELECT${ROW_PROJECTION},
                         ROW_NUMBER() OVER (
-                            PARTITION BY l.parent_id ORDER BY l.id ASC
+                            PARTITION BY l.parent_id ORDER BY l.id DESC
                         ) AS rn
                  FROM log l
                  JOIN users u ON u.id = l.user_id
@@ -218,21 +223,33 @@ export async function listLogThread(
                    )
              ) sub
              WHERE sub.rn <= $2
-             ORDER BY sub.parent_id ASC, sub.id ASC`,
-            [depth1Ids, DEPTH2_PER_PARENT_CAP]
+             ORDER BY sub.parent_id ASC, sub.id DESC`,
+            [depth1Ids, DEPTH2_PER_PARENT_CAP + 1]
         );
+        // Group raw rows per parent to count, then trim the probe row + flag.
+        const rawByParent = new Map<string, TLogRow[]>();
         for (const row of grandRows) {
             const parentId = String(row.parent_id);
-            const bucket = depth2ByParent.get(parentId) ?? [];
-            bucket.push(toLog(row));
-            depth2ByParent.set(parentId, bucket);
+            const bucket = rawByParent.get(parentId) ?? [];
+            bucket.push(row);
+            rawByParent.set(parentId, bucket);
+        }
+        for (const [parentId, rows] of rawByParent) {
+            if (rows.length > DEPTH2_PER_PARENT_CAP) {
+                overflowParents.add(parentId);
+                rows.length = DEPTH2_PER_PARENT_CAP; // drop the probe row
+            }
+            depth2ByParent.set(parentId, rows.map(toLog));
         }
     }
 
     // Flatten to pre-order: each depth-1 reply, then its depth-2 children.
+    // A depth-1 reply with trimmed overflow carries hasMoreReplies.
     const childItems: TLog[] = [];
     for (const row of keptChildren) {
-        childItems.push(toLog(row));
+        const node = toLog(row);
+        if (overflowParents.has(String(row.id))) node.hasMoreReplies = true;
+        childItems.push(node);
         const grandchildren = depth2ByParent.get(String(row.id));
         if (grandchildren) childItems.push(...grandchildren);
     }

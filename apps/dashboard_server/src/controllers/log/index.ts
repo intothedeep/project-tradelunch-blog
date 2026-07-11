@@ -44,8 +44,9 @@ const DEFAULT_PAGE_LIMIT = 50;
 const MAX_PAGE_LIMIT = 100;
 // Stream cursor sentinel: max int8 so the first page starts at the newest.
 const CURSOR_SENTINEL = '9223372036854775807';
-// Child cursor sentinel: 0 so oldest-first paging starts from the beginning.
-const CHILD_CURSOR_SENTINEL = '0';
+// Child cursor sentinel: max int8 so newest-first reply paging starts at the
+// newest (keyset pages backward via id < cursor).
+const CHILD_CURSOR_SENTINEL = '9223372036854775807';
 
 // Clamp the requested page size to [1, MAX_PAGE_LIMIT], defaulting when absent
 // or invalid. Pure function: explicit in/out, no IO.
