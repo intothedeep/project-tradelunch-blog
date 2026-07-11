@@ -9,7 +9,7 @@
 export const dynamic = 'force-dynamic';
 
 import { notFound, redirect } from 'next/navigation';
-import { stripUsernameAt } from '@/utils/blog-author';
+import { stripUsernameAt, toUsernameSegment } from '@/utils/blog-author';
 import { getLogThread } from '@/apis/get-log-thread.api';
 import { LogFocusView } from '@/components/log/LogFocusView.server';
 import { ApiError } from '@/utils/apiError.util';
@@ -42,7 +42,7 @@ export default async function LogFocusPage({ params }: Props) {
     // the page still renders the masked tombstone regardless of the URL segment.
     if (data.focus.authorUsername && data.focus.authorUsername !== username) {
         redirect(
-            `/log/${encodeURIComponent(`@${data.focus.authorUsername}`)}/${logId}`
+            `/log/${toUsernameSegment(data.focus.authorUsername)}/${logId}`
         );
     }
 
@@ -53,7 +53,7 @@ export default async function LogFocusPage({ params }: Props) {
                 className="mb-4"
             >
                 <a
-                    href={`/log/${encodeURIComponent(username)}`}
+                    href={`/log/${toUsernameSegment(username)}`}
                     className="text-xs text-primary/60 hover:text-primary"
                 >
                     ← @{username}

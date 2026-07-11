@@ -13,6 +13,7 @@
 import { useRouter } from 'next/navigation';
 import { useLogGlobalStream } from '@/hooks/useLogGlobalStream.query.client';
 import { LogCard } from '@/components/log/LogCard';
+import { toUsernameSegment } from '@/utils/blog-author';
 import { cn } from '@/lib/utils';
 import type { TLog, TLogStreamResponse } from '@repo/types';
 
@@ -29,9 +30,7 @@ export function LogGlobalStream({ initialData }: Props) {
     // (a live, non-deleted node). Deleted tombstones stay as plain masked cards.
     function openThread(log: TLog): void {
         if (!log.authorUsername) return;
-        router.push(
-            `/log/${encodeURIComponent(`@${log.authorUsername}`)}/${log.id}`
-        );
+        router.push(`/log/${toUsernameSegment(log.authorUsername)}/${log.id}`);
     }
 
     if (isError) {

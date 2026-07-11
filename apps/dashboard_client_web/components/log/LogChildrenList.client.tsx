@@ -14,6 +14,7 @@ import { useMe } from '@/hooks/useMe.query.client';
 import { useLogThread } from '@/hooks/useLogThread.query.client';
 import { useDeleteLog } from '@/hooks/useDeleteLog.query.client';
 import { LogCard } from '@/components/log/LogCard';
+import { toUsernameSegment } from '@/utils/blog-author';
 import { cn } from '@/lib/utils';
 import type { TLog, TLogThreadResponse } from '@repo/types';
 
@@ -63,10 +64,9 @@ export function LogChildrenList({ username, logId, initialData }: Props) {
     // user); fall back to the current segment for a deleted node (author masked →
     // canonical redirect is skipped and renders masked).
     function openReply(log: TLog): void {
-        const segment = log.authorUsername
-            ? `@${log.authorUsername}`
-            : username;
-        router.push(`/log/${encodeURIComponent(segment)}/${log.id}`);
+        // '@' stays literal via toUsernameSegment (→ /log/@name/id, not %40).
+        const segment = toUsernameSegment(log.authorUsername ?? username);
+        router.push(`/log/${segment}/${log.id}`);
     }
 
     if (isError) {
