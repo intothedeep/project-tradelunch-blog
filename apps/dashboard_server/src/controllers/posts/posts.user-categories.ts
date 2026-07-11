@@ -89,7 +89,15 @@ export function registerUserCategoriesRoutes(router: Router): void {
                         p.priority,
                         p.created_at,
                         p.updated_at,
-                        u.username
+                        u.username,
+                        -- Slug-dedup: republishing the same slug appends a new
+                        -- posts revision (createPost is a plain INSERT, no upsert).
+                        -- Keep only the latest revision per slug so a post shows
+                        -- ONCE in the tree — mirrors the feed (posts.feed.ts rn=1).
+                        ROW_NUMBER() OVER (
+                            PARTITION BY p.slug
+                            ORDER BY p.created_at DESC, p.id DESC
+                        ) AS rn
                     FROM posts p
                     JOIN users u ON u.id = p.user_id
                     WHERE u.username = $1
@@ -139,6 +147,7 @@ export function registerUserCategoriesRoutes(router: Router): void {
                         ct.path || '.' || LPAD(p.priority::text, 6, '0') || '.' || LPAD(p.seq::text, 6, '0') AS path
                     FROM user_posts p
                     JOIN category_tree ct ON p.category_id = ct.id
+                    WHERE p.rn = 1
                     )
 
                     SELECT
@@ -212,30 +221,53 @@ export function registerUserCategoriesRoutes(router: Router): void {
                 const viewerId = req.auth?.userId ?? -1;
 
                 const postsQuery = `
+                WITH ranked AS (
+                    -- Slug-dedup BEFORE the cursor/thumbnail join: republishing a
+                    -- slug appends a new posts revision, so keep only the latest
+                    -- per slug (mirrors the feed + the category-tree query) — else
+                    -- the same post shows twice under a category.
+                    SELECT
+                        p.id,
+                        p.user_id,
+                        p.slug,
+                        p.title,
+                        p.description,
+                        p.content,
+                        p.status,
+                        p.created_at,
+                        p.updated_at,
+                        p.category_id,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY p.slug
+                            ORDER BY p.created_at DESC, p.id DESC
+                        ) AS rn
+                    FROM posts p
+                    INNER JOIN users u ON p.user_id = u.id
+                    WHERE u.username = $1
+                        AND p.category_id = $2
+                        AND p.deleted_at IS NULL
+                        AND u.deleted_at IS NULL
+                        AND (p.status = 'public' OR p.user_id = $5)
+                )
                 SELECT
-                    p.id,
-                    p.user_id,
-                    p.slug,
-                    p.title,
-                    p.description,
-                    p.content,
-                    p.status,
-                    p.created_at,
-                    p.updated_at,
-                    p.category_id,
+                    r.id,
+                    r.user_id,
+                    r.slug,
+                    r.title,
+                    r.description,
+                    r.content,
+                    r.status,
+                    r.created_at,
+                    r.updated_at,
+                    r.category_id,
                     f.stored_uri
-                FROM posts p
-                INNER JOIN users u ON p.user_id = u.id
-                LEFT JOIN files f ON p.id = f.post_id
+                FROM ranked r
+                LEFT JOIN files f ON r.id = f.post_id
                     AND f.is_thumbnail = true
                     AND f.deleted_at IS NULL
-                WHERE u.username = $1
-                    AND p.category_id = $2
-                    AND p.deleted_at IS NULL
-                    AND u.deleted_at IS NULL
-                    AND (p.status = 'public' OR p.user_id = $5)
-                    AND p.id < $3
-                ORDER BY p.id DESC
+                WHERE r.rn = 1
+                    AND r.id < $3
+                ORDER BY r.id DESC
                 LIMIT $4
             `;
 
