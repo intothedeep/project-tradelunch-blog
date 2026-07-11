@@ -10,6 +10,9 @@ type Props = {
     log: TLog;
     canDelete?: boolean;
     onDelete?: () => void;
+    // Parent author's handle (e.g. "taeklim") — rendered as a muted "@name"
+    // prefix before the body so the reply target is visible ("@name content").
+    replyingTo?: string;
 };
 
 function formatRelative(iso: string): string {
@@ -23,7 +26,7 @@ function formatRelative(iso: string): string {
     return `${diffD}d`;
 }
 
-export function LogCard({ log, canDelete, onDelete }: Props) {
+export function LogCard({ log, canDelete, onDelete, replyingTo }: Props) {
     return (
         <article
             className={cn(
@@ -44,6 +47,11 @@ export function LogCard({ log, canDelete, onDelete }: Props) {
                             log.isDeleted && 'italic text-primary/40'
                         )}
                     >
+                        {replyingTo && !log.isDeleted ? (
+                            <span className="font-medium text-primary/50">
+                                @{replyingTo}{' '}
+                            </span>
+                        ) : null}
                         {log.body}
                     </p>
                 </div>

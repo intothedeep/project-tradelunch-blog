@@ -283,7 +283,7 @@ describe('listLogThread — depth-1 children keyset (c)', () => {
         expect(page2!.children.items[0]!.id).toBe('30');
     });
 
-    it('children are returned oldest-first (ASC) — validated via SQL ORDER clause', async () => {
+    it('children are returned newest-first (DESC) — validated via SQL ORDER clause', async () => {
         // Top-level focus → 2 queries
         const focusRow = makeRow({ id: '10', path: ['10'], depth: '0' });
 
@@ -295,7 +295,7 @@ describe('listLogThread — depth-1 children keyset (c)', () => {
 
         // For a top-level focus, calls[0]=focus, calls[1]=children
         const childrenSql = String(mockDbQuery.mock.calls[1]![0]).toLowerCase();
-        expect(childrenSql).toMatch(/order by l\.id asc/);
+        expect(childrenSql).toMatch(/order by l\.id desc/);
     });
 
     // Rewritten to capture SQL and verify the correct EXISTS predicate is used.
