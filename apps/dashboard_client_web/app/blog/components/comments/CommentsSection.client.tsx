@@ -20,7 +20,10 @@ import { useDeleteComment } from '@/hooks/useDeleteComment.query.client';
 import { useUpdateComment } from '@/hooks/useUpdateComment.query.client';
 import { useMe } from '@/hooks/useMe.query.client';
 import { useIsMobile } from '@/hooks/useIsMobile.hook';
-import { buildRenderRows } from '@/utils/commentTree.util';
+import {
+    buildRenderRows,
+    rebuildDescendingOrder,
+} from '@/utils/commentTree.util';
 import { CommentComposer } from '@/app/blog/components/comments/CommentComposer.client';
 import { CommentRow } from '@/app/blog/components/comments/CommentRow.client';
 import { CommentsPagination } from '@/app/blog/components/comments/CommentsPagination.client';
@@ -39,7 +42,8 @@ export const CommentsSection: React.FC<Props> = ({
 }) => {
     const t = useTranslations('blog');
     const isMobile = useIsMobile();
-    const maxDepth = isMobile ? 2 : 4;
+    // Indent up to 3 levels (mobile stays shallower for width).
+    const maxDepth = isMobile ? 2 : 3;
 
     const {
         comments,
@@ -59,7 +63,9 @@ export const CommentsSection: React.FC<Props> = ({
         () => new Set()
     );
 
-    const list = useMemo(() => comments, [comments]);
+    // Sort every sibling level newest-first while keeping the parent→child tree
+    // (server returns replies oldest-first; roots already newest-first).
+    const list = useMemo(() => rebuildDescendingOrder(comments), [comments]);
 
     // Parent lookup for the "@parent" reply prefix — every reply's parent is in
     // the loaded tree (pre-order, so the parent precedes the child).
