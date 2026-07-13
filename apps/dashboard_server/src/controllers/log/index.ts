@@ -1,11 +1,20 @@
 // Purpose: Log micro-feed routes (Phase Y).
 //   GET  /thread/:id       → focus-node view (ancestors+focus+depth-1 children)
+//   GET  /                 → global stream across all users
 //   GET  /:username        → top-level stream (newest-first keyset)
 //   POST /                 → create top-level or reply (requireAuth)
 //   DELETE /:id            → soft-delete (requireAuth)
+//   --- Phase Y-M2 social routes (via logSocialRouter) ---
+//   GET  /timeline         → viewer's followed-users fan-in (requireAuth)
+//   POST /:id/like         → toggle like on a log node (requireAuth)
+//   GET  /:id/like         → read like state (optionalAuth)
 //
-// Route order: /thread/:id MUST be registered before /:username to prevent the
-// literal "thread" segment being captured as a username param.
+// Route order (literal routes registered FIRST to prevent param capture):
+//   1. logTodoRouter   — /todos, /:id/todo
+//   2. logSocialRouter — /timeline, /:id/like
+//   3. /thread/:id
+//   4. / (global stream)
+//   5. /:username, DELETE /:id (bare param routes last)
 //
 // Auth rules (per spec Phase Y):
 //   * Top-level (parentId=null): OWNER-ONLY. A provisioned user's top-level
@@ -38,6 +47,8 @@ import {
     LogNotFoundError,
 } from '../../helpers/log';
 import type { TLogCreateRequest } from '@repo/types';
+import { logTodoRouter } from './todo';
+import { logSocialRouter } from './social';
 
 const MAX_BODY_LENGTH = 500;
 const DEFAULT_PAGE_LIMIT = 50;
@@ -63,6 +74,15 @@ function isValidId(value: string): boolean {
 }
 
 export const logRouter = Router();
+
+// Mount todo-extension routes BEFORE /:username and /:id to prevent the
+// literal segments ('todos') from being captured as username/id params.
+logRouter.use(logTodoRouter);
+
+// Mount social routes BEFORE /:username and /:id (literal segments: 'timeline',
+// ':id/like') to prevent param capture. logTodoRouter already mounts first so
+// 'todos' is safe; social mounts next before bare-param routes.
+logRouter.use(logSocialRouter);
 
 // GET /thread/:id — focus-node view.
 // Registered BEFORE /:username so the literal "thread" segment is not captured

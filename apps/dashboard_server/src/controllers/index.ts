@@ -10,6 +10,7 @@ import categories from './categories';
 import tags from './tags';
 import errorLogs from './errorLogs';
 import { logRouter } from './log';
+import { followsRouter } from './follows';
 
 export const router = Router();
 
@@ -43,7 +44,12 @@ router.use('/api/likes', likesListRouter);
 router.use('/api/error-logs', errorLogs);
 // Log micro-feed (Phase Y) — /v1/api/log. Routes: GET /:username (stream),
 // GET /thread/:id (focus view), POST / (create), DELETE /:id (soft-delete).
-// /thread/:id is registered first inside logRouter to avoid username capture.
+// Phase Y-M2: GET /timeline, POST /:id/like, GET /:id/like (social).
+// /thread/:id and social routes are registered first inside logRouter to avoid
+// username/id param capture.
 router.use('/api/log', logRouter);
+// Follow/unfollow (Phase Y-M2) — POST /v1/api/follow/:username.
+// Presence-guarded: 503 when migration 0024 has not been applied.
+router.use('/api/follow', followsRouter);
 
 export default router;

@@ -5,6 +5,8 @@
 //   Seeded from server-fetched first page; subsequent pages via "Load more".
 //   Clicking an entry navigates to its focus view (/log/[username]/[logId]).
 //   Delete affordance shown for entry author OR profile owner OR admin.
+//   isOwner=true: LogCard shows todo badge + controls (owner-private, graceful
+//   no-op when todoStatus absent / migration not yet applied).
 // Constraints: "use client". ids stay STRINGS.
 
 import { useRouter } from 'next/navigation';
@@ -29,6 +31,8 @@ export function LogStream({ username, initialData }: Props) {
         useLogStream(username, initialData);
 
     const deleteLog = useDeleteLog(username);
+
+    const isOwner = !!me?.username && me.username === username;
 
     function canDelete(log: TLog): boolean {
         if (!me) return false;
@@ -73,6 +77,8 @@ export function LogStream({ username, initialData }: Props) {
                             log={log}
                             canDelete={canDelete(log)}
                             onDelete={() => deleteLog.mutate({ logId: log.id })}
+                            isOwner={isOwner}
+                            username={username}
                         />
                     </li>
                 ))}

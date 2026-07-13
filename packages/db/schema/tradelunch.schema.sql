@@ -400,3 +400,51 @@ CREATE INDEX IF NOT EXISTS idx_log_parent ON log(parent_id, id);
 -- index accelerates the inverse — "which focus nodes contain a given ancestor id
 -- in their path" — used for subtree invalidation and future M2 fan-out.
 CREATE INDEX IF NOT EXISTS idx_log_path ON log USING GIN(path);
+
+-- ===========================
+-- LOG TODO COLUMNS (Phase Y-TD — migration 0023)
+-- Opt-in todo tracking on the log table. due_at presence = "this is a todo".
+-- done_at = completion timestamp. Status derived (never stored):
+--   done_at NOT NULL → done; due_at NULL → not-todo;
+--   due_at < now() AND done_at NULL → overdue; else → todo.
+-- Privacy: todo fields are OWNER-PRIVATE — omitted from non-owner responses.
+-- Mirror of packages/db/supabase/migrations/0023_log_todo.sql.
+-- ===========================
+ALTER TABLE log ADD COLUMN IF NOT EXISTS due_at  TIMESTAMPTZ NULL;
+ALTER TABLE log ADD COLUMN IF NOT EXISTS done_at TIMESTAMPTZ NULL;
+
+-- Open-todo index: owner scope, upcoming due, skips done + deleted rows.
+CREATE INDEX IF NOT EXISTS idx_log_todo_open
+    ON log (user_id, due_at)
+    WHERE due_at IS NOT NULL AND done_at IS NULL AND deleted_at IS NULL;
+
+-- ===========================
+-- LOG SOCIAL TABLES (Phase Y-M2 — migration 0024)
+-- log_likes: per-user log-node like. Hard-delete on unlike (mirrors post_likes —
+--   trivially re-creatable, no audit need). COUNT(*) always live.
+-- follows: follower→followee relationship. Soft-delete (deleted_at tombstone);
+--   re-follow via ON CONFLICT DO UPDATE SET deleted_at = NULL.
+--   Self-follow blocked by CHECK (follower_id <> followee_id).
+-- Mirror of packages/db/supabase/migrations/0024_log_social.sql.
+-- ===========================
+
+CREATE TABLE IF NOT EXISTS log_likes (
+    user_id     BIGINT NOT NULL REFERENCES users(id),
+    log_id      BIGINT NOT NULL REFERENCES log(id),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, log_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_log_likes_log ON log_likes(log_id);
+
+CREATE TABLE IF NOT EXISTS follows (
+    follower_id  BIGINT NOT NULL REFERENCES users(id),
+    followee_id  BIGINT NOT NULL REFERENCES users(id),
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at   TIMESTAMPTZ NULL,
+    PRIMARY KEY (follower_id, followee_id),
+    CHECK (follower_id <> followee_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows(follower_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_follows_followee ON follows(followee_id) WHERE deleted_at IS NULL;
