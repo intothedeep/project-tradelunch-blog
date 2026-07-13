@@ -1,13 +1,8 @@
 name: Supabase Keepalive
-# Post-migration: finance DB → Oracle (no auto-pause), but BLOG DB stays on a
-# (new) Supabase project — still subject to the ~7-day free-tier auto-pause when
-# there is no DB activity (dashboard visits / cached API calls do NOT count).
-# Blog publishes are sporadic, so keep pinging the BLOG Supabase twice a week.
-#
-# NOTE: the collector's `DATABASE_URL` secret now points at ORACLE, so this job
-# uses a DEDICATED secret `BLOG_SUPABASE_DATABASE_URL` (the new blog Supabase
-# pooled URI). It falls back to `DATABASE_URL` during the transition (pre-cutover,
-# when DATABASE_URL is still the old Supabase holding both blog + finance).
+# The blog DB lives on a Supabase free-tier project, which auto-pauses after
+# ~7 days of no DB activity (dashboard visits / cached API calls do NOT count).
+# Blog publishes are sporadic, so ping the DB twice a week to keep it awake.
+# The `DATABASE_URL` repo secret holds the blog Supabase pooled connection URI.
 on:
   schedule:
     # Mon & Thu at 09:00 UTC — well inside the ~7-day inactivity window.
@@ -19,17 +14,14 @@ jobs:
     steps:
       - name: Ping blog database (SELECT 1)
         env:
-          # New blog Supabase pooled URI. Falls back to DATABASE_URL pre-cutover.
-          BLOG_SUPABASE_DATABASE_URL: ${{ secrets.BLOG_SUPABASE_DATABASE_URL }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           # require = encrypt without cert verification — matches how the app's
           # pg Pool treats Supabase's self-signed chain (rejectUnauthorized:false).
           PGSSLMODE: require
         run: |
-          URL="${BLOG_SUPABASE_DATABASE_URL:-$DATABASE_URL}"
-          if [ -z "$URL" ]; then
-            echo "::error::neither BLOG_SUPABASE_DATABASE_URL nor DATABASE_URL is set"
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL secret is not set"
             exit 1
           fi
-          psql "$URL" -tAc 'SELECT 1;'
+          psql "$DATABASE_URL" -tAc 'SELECT 1;'
           echo "Blog Supabase keepalive ping OK"
