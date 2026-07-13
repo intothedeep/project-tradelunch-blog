@@ -4,6 +4,7 @@
 //   it composes LogAvatar + LogCardBody itself to draw connecting thread-lines.
 // Constraints: pure display. Tailwind + cn only. No "use client".
 //   isOwner is forwarded so LogCardBody can show todo badge + controls (owner only).
+//   threadId is forwarded for LogLikeButton thread cache invalidation (thread view).
 
 import { LogAvatar } from '@/components/log/LogAvatar';
 import { LogCardBody } from '@/components/log/LogCardBody';
@@ -19,8 +20,10 @@ type Props = {
     avatarSize?: number;
     /** Pass true when the viewer IS the profile owner — enables todo badge + controls. */
     isOwner?: boolean;
-    /** Profile username — needed by LogTodoControls to key the query cache. */
+    /** Profile username — needed by LogTodoControls + LogLikeButton to key the query cache. */
     username?: string;
+    /** Thread root logId — forwarded to LogLikeButton for thread cache invalidation. */
+    threadId?: string;
 };
 
 export function LogCard({
@@ -32,6 +35,7 @@ export function LogCard({
     avatarSize = 36,
     isOwner = false,
     username,
+    threadId,
 }: Props) {
     return (
         <article
@@ -54,6 +58,7 @@ export function LogCard({
                 isAuthor={isAuthor}
                 isOwner={isOwner}
                 username={username}
+                threadId={threadId}
             />
         </article>
     );

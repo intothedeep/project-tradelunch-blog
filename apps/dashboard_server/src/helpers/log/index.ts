@@ -19,3 +19,9 @@ export {
     listTodos,
     countTodos,
 } from './todo';
+export {
+    isLogLikesReady,
+    toggleLogLike,
+    getLogLikeState,
+} from './likes';
+export { listLogTimeline } from './timeline';

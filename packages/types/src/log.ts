@@ -45,6 +45,12 @@ export interface TLog {
     dueAt?: string | null;
     doneAt?: string | null;
     todoStatus?: TLogTodoStatus;
+    // Phase Y-M2 social fields — present when log_likes table exists.
+    // likeCount: live COUNT(*) from log_likes for this node.
+    // viewerLiked: whether the authenticated viewer has liked this node.
+    //   Absent when the viewer is anonymous.
+    likeCount?: number;
+    viewerLiked?: boolean;
 }
 
 // GET /v1/api/log/:username — top-level stream (newest-first keyset).
@@ -113,6 +119,37 @@ export interface TLogTodoListResponse {
         overdue: number;
         done: number;
     };
+    nextCursor: string | null;
+    hasMore: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Phase Y-M2 — Log social types (likes + follows + timeline).
+// ---------------------------------------------------------------------------
+
+// State returned from GET/POST /v1/api/log/:id/like.
+// liked: whether the requesting viewer has liked this log node.
+// likeCount: live COUNT(*) from log_likes for this node.
+export interface TLogLikeState {
+    liked: boolean;
+    likeCount: number;
+}
+
+// State returned from POST /v1/api/follow/:username.
+// following: whether the requesting viewer actively follows the target user.
+// followerCount: how many active followers the target user has.
+// followeeCount: how many users the target user actively follows.
+export interface TLogFollowState {
+    following: boolean;
+    followerCount: number;
+    followeeCount: number;
+}
+
+// GET /v1/api/log/timeline response (viewer's followed-users fan-in).
+// items: top-level log nodes from followed users, newest-first.
+// nextCursor / hasMore: keyset continuation on id DESC.
+export interface TLogTimelineResponse {
+    items: TLog[];
     nextCursor: string | null;
     hasMore: boolean;
 }

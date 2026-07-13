@@ -3,19 +3,16 @@
 //   then the body with an optional muted "@parent" reply prefix).
 //   When isOwner=true: renders LogTodoBadge (status chip) and LogTodoControls
 //   (done toggle + date picker) — both are no-ops when todoStatus is absent.
-// Constraints: No "use client". Tailwind + cn only. LogTodoControls is lazy-imported
-//   as a client boundary; LogTodoBadge is pure.
+//   Y-M2: renders LogLikeButton when likeCount is defined (feature-dormant safe).
+// Constraints: No "use client". Tailwind + cn only. LogTodoControls and
+//   LogLikeButton are client components — their "use client" boundary propagates
+//   from the client-component callers (LogStream.client, etc.).
 
 import { cn } from '@/lib/utils';
 import { LogTodoBadge } from '@/components/log/LogTodoBadge';
-import type { TLog } from '@repo/types';
-
-// Lazy-import LogTodoControls as a client component so this file stays server-safe.
-// Using a dynamic-import pattern is overkill for a small component; instead we just
-// accept the "use client" boundary propagation: any page that renders LogCardBody
-// with isOwner=true will already be in a client subtree (LogStream.client, etc.).
-// We import directly — the file has "use client" so the boundary is correctly placed.
 import { LogTodoControls } from '@/components/log/LogTodoControls.client';
+import { LogLikeButton } from '@/components/log/LogLikeButton.client';
+import type { TLog } from '@repo/types';
 
 type Props = {
     log: TLog;
@@ -25,8 +22,10 @@ type Props = {
     isAuthor?: boolean;
     /** When true the viewer is the profile owner — show todo badge + controls. */
     isOwner?: boolean;
-    /** Profile owner's username — forwarded to LogTodoControls for query key. */
+    /** Profile owner's username — forwarded to LogTodoControls + LogLikeButton for query key. */
     username?: string;
+    /** Thread root logId — forwarded to LogLikeButton for thread cache invalidation. */
+    threadId?: string;
 };
 
 function formatRelative(iso: string): string {
@@ -48,11 +47,15 @@ export function LogCardBody({
     isAuthor,
     isOwner = false,
     username,
+    threadId,
 }: Props) {
     // Show todo UI only when: owner AND log is not deleted AND todoStatus is present
     // (todoStatus absent = not a todo, or migration not applied yet → graceful no-op).
     const showTodoBadge = isOwner && !log.isDeleted && log.todoStatus != null;
     const showTodoControls = isOwner && !log.isDeleted && !!username;
+
+    // Feature-dormant safe: likeCount undefined = migration 0024 not yet applied.
+    const showLikeButton = !log.isDeleted && log.likeCount !== undefined;
 
     return (
         <div className="min-w-0 flex-1">
@@ -114,6 +117,20 @@ export function LogCardBody({
                     <LogTodoControls
                         log={log}
                         username={username}
+                    />
+                </div>
+            )}
+            {showLikeButton && (
+                <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="mt-1"
+                >
+                    <LogLikeButton
+                        logId={log.id}
+                        likeCount={log.likeCount!}
+                        viewerLiked={log.viewerLiked ?? false}
+                        username={username}
+                        threadId={threadId}
                     />
                 </div>
             )}
