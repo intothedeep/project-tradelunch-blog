@@ -38,6 +38,13 @@ export interface TLog {
     // than the eager cap — the UI shows a "see more replies" affordance that
     // refocuses on this node. Omitted (undefined) everywhere else.
     hasMoreReplies?: boolean;
+    // Phase Y-TD todo fields — OWNER-PRIVATE.
+    // Absent entirely (not null) when the viewer is not the log's owner, or
+    // when due_at is not set (i.e. this log is not a todo).
+    // ISO 8601 string when present.
+    dueAt?: string | null;
+    doneAt?: string | null;
+    todoStatus?: TLogTodoStatus;
 }
 
 // GET /v1/api/log/:username — top-level stream (newest-first keyset).
@@ -69,4 +76,43 @@ export interface TLogThreadResponse {
 export interface TLogCreateRequest {
     parentId: string | null;
     body: string;
+}
+
+// ---------------------------------------------------------------------------
+// Phase Y-TD — Log-as-todo types.
+// ---------------------------------------------------------------------------
+
+// Derived todo status for a Log node. Only present when:
+//   1. The log has due_at set (opt-in: due_at presence = "this is a todo").
+//   2. The requesting viewer is the log's OWNER (private field — omitted for
+//      any other viewer).
+// Rules (mirrors helpers/log/status.ts deriveLogStatus):
+//   done_at IS NOT NULL           → 'done'   (done wins over overdue)
+//   due_at IS NULL                → undefined (not a todo; field absent)
+//   due_at < now() AND done NULL  → 'overdue'
+//   else                          → 'todo'
+export type TLogTodoStatus = 'todo' | 'done' | 'overdue';
+
+// PATCH /v1/api/log/:id/todo body.
+//   dueAt: undefined = unchanged; null = clear (remove todo); string = set/update.
+//   done:  undefined = unchanged; true = mark complete; false = reopen.
+// Both fields are optional and composable in a single request.
+export interface TLogTodoUpdateRequest {
+    dueAt?: string | null;
+    done?: boolean;
+}
+
+// GET /v1/api/log/todos response.
+// items: the requested page of TLog nodes (with todo fields, owner-scoped).
+// counts: aggregate counts over ALL todos for the owner (not just this page).
+// nextCursor / hasMore: keyset continuation on compound (due_at|id) cursor.
+export interface TLogTodoListResponse {
+    items: TLog[];
+    counts: {
+        todo: number;
+        overdue: number;
+        done: number;
+    };
+    nextCursor: string | null;
+    hasMore: boolean;
 }

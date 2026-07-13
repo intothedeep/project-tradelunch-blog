@@ -5,9 +5,9 @@
 // IMPORTANT: keep all domain files strip-only-safe — NO `enum`/`namespace`.
 // Use a const-object + union instead of an enum.
 
-export * from './tree'
-export * from './category'
-export * from './post'
-export * from './user'
-export * from './comment'
-export * from './log'
+export * from './tree';
+export * from './category';
+export * from './post';
+export * from './user';
+export * from './comment';
+export * from './log';

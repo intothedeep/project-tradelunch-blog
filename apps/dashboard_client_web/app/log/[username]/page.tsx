@@ -3,6 +3,8 @@
 //   Fetches the first page server-side so the list paints immediately.
 //   Passes seed to LogStream (infinite scroll) and renders LogComposer
 //   (owner-only, determined client-side via useMe).
+//   Y-TD: LogTodoTabs rendered below the stream — gated owner-side (the
+//   component reads auth via useAuth so it renders nothing for non-owners).
 // Constraints: Server Component. username is @-stripped. force-dynamic because
 //   the stream is always fresh (newest-first).
 
@@ -12,6 +14,7 @@ import { stripUsernameAt } from '@/utils/blog-author';
 import { getLogStream } from '@/apis/get-log-stream.api';
 import { LogStream } from '@/components/log/LogStream.client';
 import { LogComposer } from '@/components/log/LogComposer.client';
+import { LogTodoTabsOwnerGate } from '@/components/log/LogTodoTabsOwnerGate.client';
 import type { TLogStreamResponse } from '@repo/types';
 
 type Props = {
@@ -38,6 +41,7 @@ export default async function LogStreamPage({ params }: Props) {
                 username={username}
                 initialData={initialData}
             />
+            <LogTodoTabsOwnerGate username={username} />
         </div>
     );
 }

@@ -400,3 +400,20 @@ CREATE INDEX IF NOT EXISTS idx_log_parent ON log(parent_id, id);
 -- index accelerates the inverse — "which focus nodes contain a given ancestor id
 -- in their path" — used for subtree invalidation and future M2 fan-out.
 CREATE INDEX IF NOT EXISTS idx_log_path ON log USING GIN(path);
+
+-- ===========================
+-- LOG TODO COLUMNS (Phase Y-TD — migration 0023)
+-- Opt-in todo tracking on the log table. due_at presence = "this is a todo".
+-- done_at = completion timestamp. Status derived (never stored):
+--   done_at NOT NULL → done; due_at NULL → not-todo;
+--   due_at < now() AND done_at NULL → overdue; else → todo.
+-- Privacy: todo fields are OWNER-PRIVATE — omitted from non-owner responses.
+-- Mirror of packages/db/supabase/migrations/0023_log_todo.sql.
+-- ===========================
+ALTER TABLE log ADD COLUMN IF NOT EXISTS due_at  TIMESTAMPTZ NULL;
+ALTER TABLE log ADD COLUMN IF NOT EXISTS done_at TIMESTAMPTZ NULL;
+
+-- Open-todo index: owner scope, upcoming due, skips done + deleted rows.
+CREATE INDEX IF NOT EXISTS idx_log_todo_open
+    ON log (user_id, due_at)
+    WHERE due_at IS NOT NULL AND done_at IS NULL AND deleted_at IS NULL;

@@ -10,3 +10,12 @@ export {
 } from './errors';
 export { createLog, softDeleteLog, assertLogMutable } from './write';
 export { listLogStream, listLogGlobalStream, listLogThread } from './list';
+export { deriveLogStatus } from './status';
+export {
+    isTodoFeatureReady,
+    setTodo,
+    markDone,
+    reopen,
+    listTodos,
+    countTodos,
+} from './todo';

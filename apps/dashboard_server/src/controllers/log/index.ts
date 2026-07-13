@@ -38,6 +38,7 @@ import {
     LogNotFoundError,
 } from '../../helpers/log';
 import type { TLogCreateRequest } from '@repo/types';
+import { logTodoRouter } from './todo';
 
 const MAX_BODY_LENGTH = 500;
 const DEFAULT_PAGE_LIMIT = 50;
@@ -63,6 +64,10 @@ function isValidId(value: string): boolean {
 }
 
 export const logRouter = Router();
+
+// Mount todo-extension routes BEFORE /:username and /:id to prevent the
+// literal segments ('todos') from being captured as username/id params.
+logRouter.use(logTodoRouter);
 
 // GET /thread/:id — focus-node view.
 // Registered BEFORE /:username so the literal "thread" segment is not captured
