@@ -16,7 +16,7 @@ export default defineConfig({
     test: {
         environment: 'jsdom',
         include: ['**/*.test.{ts,tsx}'],
-        exclude: ['node_modules', '__backup__', 'dist', '**/x_*/**'],
+        exclude: ['node_modules', 'x___backup__', 'dist', '**/x_*/**'],
     },
     resolve: {
         alias: [

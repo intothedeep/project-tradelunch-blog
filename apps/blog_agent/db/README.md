@@ -136,6 +136,6 @@ The following SQLAlchemy models are available in `models.py`:
 
 ## See Also
 
-- [schema/tradelunch.schema.sql](../schema/tradelunch.schema.sql) - SQL DDL
+- [../../../packages/db/schema/tradelunch.schema.sql](../../../packages/db/schema/tradelunch.schema.sql) - SQL DDL (@repo/db)
 - [configs/database.py](../configs/database.py) - Database configuration
 - [utils/snowflake.py](../utils/snowflake.py) - Snowflake ID generator

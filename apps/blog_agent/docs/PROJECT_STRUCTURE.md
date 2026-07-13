@@ -35,8 +35,8 @@ blog-agent/
 │   └── technology/ai/langchain-guide/
 ├── posts/                       # Sample blog posts
 │   └── sample-post.md
-├── schema/                      # Database schema
-│   └── tradelunch.schema.sql    # SQL DDL
+├── schema/                      # README pointer only (snapshot moved to packages/db/schema/tradelunch.schema.sql @repo/db)
+│   └── README.md
 ├── utils/                       # Shared utilities
 │   └── snowflake.py             # ID generator
 ├── __tests__/                   # Test suite
@@ -108,7 +108,7 @@ ProjectManager (LangGraph orchestrator + Qwen3 LLM)
 
 **Schema**
 
-- `schema/tradelunch.schema.sql`: PostgreSQL DDL
+- `packages/db/schema/tradelunch.schema.sql` (@repo/db): PostgreSQL DDL (canonical snapshot; this dir holds only a README pointer)
 - `schema/schema.py`: Pydantic models for validation
 
 ### Utils (`utils/`)

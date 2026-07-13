@@ -11,8 +11,7 @@
         "test:agent": "pnpm --filter blog_agent test",
         "lint": "turbo run lint",
         "check-types": "turbo run check-types",
-        "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-        "check:schema": "diff apps/dashboard_server/schema/tradelunch.schema.sql apps/blog_agent/schema/tradelunch.schema.sql && echo 'schema in sync' || (echo 'SCHEMA DRIFT' && exit 1)"
+        "format": "prettier --write \"**/*.{ts,tsx,md}\""
     },
     "devDependencies": {
         "@jest/globals": "^30.4.1",
