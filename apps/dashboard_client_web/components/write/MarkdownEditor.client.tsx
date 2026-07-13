@@ -6,18 +6,11 @@
 
 'use client';
 
-import {
-    useEffect,
-    useRef,
-    useState,
-    type ChangeEvent,
-    type ClipboardEvent,
-    type DragEvent,
-} from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useEffect, useRef, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
+import { useTranslations } from 'next-intl';
+import Link from 'next/link';
+
 import { EditorPreview } from '@/components/write/EditorPreview.client';
 import { MdEditor } from '@/components/write/MdEditor.client';
 import { PostSettings } from '@/components/write/PostSettings.client';
@@ -25,6 +18,7 @@ import { CategoryCascader } from '@/components/write/CategoryCascader.client';
 import { TagInput } from '@/components/write/TagInput.client';
 import { EditorToolbar } from '@/components/write/EditorToolbar.client';
 import { AutosaveIndicator } from '@/components/write/AutosaveIndicator.client';
+
 import { useEditorSeed } from '@/hooks/useEditorSeed.hook';
 import { useDraftAutosave } from '@/hooks/useDraftAutosave.hook';
 import { useUnsavedGuard } from '@/hooks/useUnsavedGuard.hook';
@@ -33,7 +27,8 @@ import { useComposition } from '@/hooks/useComposition.hook';
 import { useCreatePost } from '@/hooks/useCreatePost.query.client';
 import { useUpdatePost } from '@/hooks/useUpdatePost.query.client';
 import { useDeletePost } from '@/hooks/useDeletePost.query.client';
-import { setPostStatusAction } from '@/app/actions/postPublish.action';
+import { useEditorHandlers } from '@/hooks/useEditorHandlers.hook';
+
 import { cn } from '@/lib/utils';
 import type { TPostInput, TPostStatus } from '@repo/types';
 
@@ -47,7 +42,6 @@ const ALLOWED_SEED_STATUS = new Set<TPostStatus>([
 ]);
 
 export function MarkdownEditor({ postId }: { postId: string | null }) {
-    const router = useRouter();
     const { user } = useUser();
     const seed = useEditorSeed(postId);
     const t = useTranslations('write');
@@ -58,34 +52,23 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
     const [status, setStatus] = useState<TPostStatus>('draft');
     const [slug, setSlug] = useState('');
     // Author-chosen thumbnail public URL (reuses the image-upload pipeline).
-    // Null = no thumbnail. Persisted on explicit Save via TPostInput.thumbnailUrl
-    // (the backend writes the files.is_thumbnail row); autosave deliberately
-    // omits it (see draftInput below) so it stays a low-frequency, deliberate choice.
+    // Null = no thumbnail. Persisted on explicit Save via TPostInput.thumbnailUrl.
+    // Autosave deliberately omits it (see draftInput below).
     const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-    // Single leaf category id (string; BIGINT-safe). Null = unset; required to
-    // publish (status !== 'draft'). Tags are the lowercase canonical set.
+    // Single leaf category id (string; BIGINT-safe). Null = unset; required to publish.
     const [categoryId, setCategoryId] = useState<string | null>(null);
     const [tags, setTags] = useState<string[]>([]);
-    // Inline error shown when a publish save is attempted with no category,
-    // surfaced client-side instead of round-tripping to the server rejection.
+    // Inline error shown when a publish save is attempted with no category.
     const [categoryError, setCategoryError] = useState<string | null>(null);
-    // Slug of the most recent successful public save, used to surface a
-    // "view live" link. Null until a public save lands.
+    // Slug of the most recent successful public save, used to surface a "view live" link.
     const [liveSlug, setLiveSlug] = useState<string | null>(null);
     const [isSeeded, setIsSeeded] = useState(false);
-    // Mobile-only pane toggle. At md+ both panes show via `md:block`, so this
-    // state is irrelevant there; it only drives which single pane renders
-    // below md. CSS handles the breakpoint to avoid a JS-measured flash.
+    // Mobile-only pane toggle. CSS handles the breakpoint to avoid a JS-measured flash.
     const [viewMode, setViewMode] = useState<'write' | 'preview'>('write');
 
-    // Ref to the column wrapping the editor. The underlying markdown editor
-    // renders its own <textarea>; we reach it via querySelector for cursor-aware
-    // image insertion rather than depending on the (dynamic-import-unfriendly)
-    // component ref.
+    // Ref to the column wrapping the editor. Used for cursor-aware image insertion
+    // via querySelector rather than depending on a dynamic-import component ref.
     const editorContainerRef = useRef<HTMLDivElement>(null);
-    // Monotonic counter for unique upload placeholders, so concurrent uploads
-    // never collide on the same token when swapped for their final URL.
-    const uploadSeqRef = useRef(0);
 
     const image = useImageUpload();
     const thumbnail = useImageUpload();
@@ -94,8 +77,7 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
     const updatePost = useUpdatePost();
     const deletePost = useDeletePost();
 
-    // Seed exactly once, after the seed query settles, so a late-arriving body
-    // for an existing post is not clobbered by an empty initial value.
+    // Seed exactly once, after the seed query settles.
     useEffect(() => {
         if (isSeeded || seed.isLoading || !seed.initial) return;
         setTitle(seed.initial.title);
@@ -112,157 +94,53 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
         setIsSeeded(true);
     }, [isSeeded, seed.isLoading, seed.initial, seed.thumbnailUrl]);
 
-    // Autosave payload. Deliberately OMITS thumbnailUrl: the thumbnail is a
-    // low-frequency deliberate choice persisted on explicit Save only, never on
-    // the keystroke-debounced draft autosave.
+    // Autosave payload. Deliberately OMITS thumbnailUrl: thumbnail is a
+    // low-frequency deliberate choice persisted on explicit Save only.
     const draftInput: TPostInput = {
         title,
         content,
         description,
         status,
-        // Drafts preserve the category + tag choices (thumbnail stays save-only).
         categoryId,
         tags,
     };
     const autosave = useDraftAutosave(postId, draftInput, isSeeded);
 
-    // Warn on hard unload (tab close / refresh) while edits are pending. SPA
-    // navigation is covered by flush-on-unmount inside useDraftAutosave.
+    // Warn on hard unload (tab close / refresh) while edits are pending.
     const isDirty =
         autosave.status === 'unsaved' || autosave.status === 'saving';
     useUnsavedGuard(isDirty);
 
-    const insertAtCursor = (text: string) => {
-        const ta =
-            editorContainerRef.current?.querySelector('textarea') ?? null;
-        if (!ta) {
-            setContent((c) => c + text);
-            return;
-        }
-        const start = ta.selectionStart;
-        const end = ta.selectionEnd;
-        setContent((c) => c.slice(0, start) + text + c.slice(end));
-        // While the IME is composing it owns the caret; mutating the
-        // selection here would duplicate the trailing jamo and jump the
-        // cursor, so skip the manual caret set during composition.
-        if (composition.isComposingRef.current) return;
-        requestAnimationFrame(() => {
-            ta.focus();
-            const pos = start + text.length;
-            ta.setSelectionRange(pos, pos);
-        });
-    };
-
-    // Upload one image file via the shared pipeline (browser resize → Express
-    // proxy → Supabase) and swap an inserted placeholder for the final markdown.
-    // The placeholder keeps the editor responsive during the multi-second upload
-    // and pins the insertion point even if the caret moves meanwhile. A failed
-    // upload (null url) drops the placeholder; the error surfaces via image.error.
-    const uploadImageFile = async (file: File) => {
-        const token = `![uploading-${++uploadSeqRef.current}]()`;
-        insertAtCursor(token);
-        const url = await image.upload(file);
-        setContent((c) =>
-            c.replace(token, url ? `![${file.name}](${url})` : '')
-        );
-    };
-
-    const pickImageFiles = (list: FileList | null | undefined): File[] =>
-        list ? Array.from(list).filter((f) => f.type.startsWith('image/')) : [];
-
-    // Intercept image paste/drop in the editor and route each file through our
-    // upload pipeline instead of letting the editor inline the raw file. Paste
-    // or drop with no image (plain text, etc.) falls through to default handling.
-    const handleImagePaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
-        const files = pickImageFiles(e.clipboardData?.files);
-        if (files.length === 0) return;
-        e.preventDefault();
-        void files.reduce(
-            (chain, file) => chain.then(() => uploadImageFile(file)),
-            Promise.resolve()
-        );
-    };
-
-    const handleImageDrop = (e: DragEvent<HTMLTextAreaElement>) => {
-        const files = pickImageFiles(e.dataTransfer?.files);
-        if (files.length === 0) return;
-        e.preventDefault();
-        void files.reduce(
-            (chain, file) => chain.then(() => uploadImageFile(file)),
-            Promise.resolve()
-        );
-    };
-
-    // Reuse the existing image-upload pipeline for the thumbnail: a picked file
-    // is uploaded to Supabase Storage and its public URL becomes the preview.
-    const handleThumbnailPick = async (e: ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        e.target.value = '';
-        if (!file) return;
-        const url = await thumbnail.upload(file);
-        if (url) setThumbnailUrl(url);
-    };
-
-    const handleClearThumbnail = () => setThumbnailUrl(null);
-
-    const handleSave = async () => {
-        // A non-draft (private/public) save requires a category — block locally
-        // and surface an inline hint rather than round-trip to the server reject.
-        if (status !== 'draft' && !categoryId) {
-            setCategoryError(t('category.publishRequired'));
-            return;
-        }
-        setCategoryError(null);
-        // Publishing is irreversible-feeling for the author: confirm before a
-        // draft/private post becomes world-readable. Other statuses save silently.
-        if (
-            status === 'public' &&
-            !window.confirm(t('editor.publishConfirm'))
-        ) {
-            return;
-        }
-        const input: TPostInput = {
-            title,
-            content,
-            description,
-            status,
-            categoryId,
-            tags,
-            slug: slug.trim() || undefined,
-            // Persist the current thumbnail choice on explicit Save: a string
-            // sets/replaces it, null clears it. Backend writes the files row.
-            thumbnailUrl,
-        };
-        const saved =
-            postId == null
-                ? await createPost.mutateAsync(input)
-                : await updatePost.mutateAsync({ postId, input });
-        if (status === 'public') setLiveSlug(saved.slug);
-        // Publish-class save: the content PATCH above already persisted the new
-        // status, but the anonymous feed is tag-cached server-side. Re-assert the
-        // status through the Server Action so its updateTag() revalidates the
-        // cached feed (idempotent PATCH). Draft saves stay no-store — no revalidate.
-        if (status !== 'draft' && user?.username) {
-            await setPostStatusAction(saved.id, status, user.username);
-        }
-        // router.replace is a soft URL swap in the App Router: it updates the
-        // route without remounting this client tree, so the textarea keeps its
-        // focus/caret. No manual focus restoration is needed here.
-        if (postId == null) router.replace(`/write/${saved.id}`);
-    };
-
-    const handleDelete = async () => {
-        if (postId == null) {
-            router.push('/blog');
-            return;
-        }
-        if (!window.confirm(t('editor.deleteConfirm'))) return;
-        await deletePost.mutateAsync({
-            postId,
-            username: user?.username ?? '',
-        });
-        router.push('/blog');
-    };
+    const {
+        handleImagePaste,
+        handleImageDrop,
+        handleThumbnailPick,
+        handleClearThumbnail,
+        handleSave,
+        handleDelete,
+    } = useEditorHandlers({
+        postId,
+        title,
+        content,
+        description,
+        status,
+        categoryId,
+        tags,
+        slug,
+        thumbnailUrl,
+        username: user?.username ?? undefined,
+        editorContainerRef,
+        setContent,
+        setThumbnailUrl,
+        setCategoryError,
+        setLiveSlug,
+        isComposingRef: composition.isComposingRef,
+        image,
+        thumbnail,
+        createPost,
+        updatePost,
+        deletePost,
+    });
 
     if (postId != null && !isSeeded && !seed.initial && !seed.isLoading) {
         return (
@@ -399,10 +277,8 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
                         ref={editorContainerRef}
                         className={cn(
                             viewMode === 'write' ? 'block' : 'hidden',
-                            // Mobile: fixed 60vh (no sibling to match). md+: h-full
-                            // lets the grid row's stretch size the editor cell to
-                            // the preview cell's height, so MDEditor's height=100%
-                            // grows with the (taller) preview.
+                            // Mobile: fixed 60vh. md+: h-full lets the grid row's stretch
+                            // size the editor cell to the preview cell's height.
                             'h-[60vh] md:block md:h-full'
                         )}
                     >

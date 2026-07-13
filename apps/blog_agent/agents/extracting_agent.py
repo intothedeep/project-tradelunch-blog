@@ -6,26 +6,37 @@
 schema/posts.schema.sql 스키마와 호환되는 데이터를 생성합니다.
 
 역할:
-- 마크다운 파싱 (frontmatter + content)
-- 이미지 경로 추출 및 썸네일 감지
+- 마크다운 파싱 (frontmatter + content)        → extracting_parse.py
+- 이미지 경로 추출 및 썸네일 감지              → extracting_parse.py
 - slug 생성 (PostSchema 호환)
-- 단어 수 계산
-- 읽기 시간 계산
-- LLM을 통한 태그 생성 (5-7개)
-- LLM을 통한 3문장 요약 생성
+- 단어 수 / 읽기 시간 계산
+- LLM을 통한 태그 생성 (5-7개)               → extracting_prompts.py
+- LLM을 통한 3문장 요약 생성                  → extracting_prompts.py
 - PostSchema 검증
+
+This file is the orchestration entry-point only. Business logic lives in:
+- agents/extracting_parse.py    (parsing, image detection, text helpers)
+- agents/extracting_prompts.py  (LLM prompt building + response parsing)
 """
 
-import os
 import re
-from pathlib import Path
 from typing import Any
 
-import frontmatter
-
-from schema import PostStatusEnum, calculate_reading_time, generate_slug_from_title
+from schema import calculate_reading_time, generate_slug_from_title
 
 from .base import BaseAgent
+from .extracting_parse import (
+    detect_article_assets,
+    excerpt_from_content,
+    extract_categories_from_path,
+    extract_images,
+    map_status,  # re-exported for backward compat (tests may call via agent)
+    parse_markdown,
+)
+from .extracting_prompts import generate_metadata_with_llm, generate_og_alt
+
+# Re-export helpers that external callers may reference through this module.
+__all__ = ["ExtractingAgent"]
 
 
 class ExtractingAgent(BaseAgent):
@@ -44,8 +55,9 @@ class ExtractingAgent(BaseAgent):
         Initialize ExtractingAgent.
 
         Args:
-            llm: Pre-configured LLM instance (optional). If None and enable_llm=True,
-                 will auto-create from llm_factory based on config.LLM_PROVIDER
+            llm: Pre-configured LLM instance (optional). If None and
+                 enable_llm=True, will auto-create from llm_factory based
+                 on config.LLM_PROVIDER.
             enable_llm: Enable LLM for tags/description generation. Default: True
         """
         super().__init__(
@@ -62,85 +74,80 @@ class ExtractingAgent(BaseAgent):
         Expected task data:
             - file_path: 마크다운 파일 경로 (또는)
             - article_info: DocumentScanner의 결과
-            - extract_metadata: bool (LLM으로 태그/요약 생성 여부, deprecated - now always True if enable_llm)
+            - extract_metadata: bool (deprecated - now always True if enable_llm)
             - db_schema: PostSchema (필드 검증용)
 
         Note:
-            When enable_llm=True, tags/description are LLM-generated (frontmatter as
-            hints). When enable_llm=False, they come straight from the frontmatter
+            When enable_llm=True, tags/description are LLM-generated (frontmatter
+            as hints). When enable_llm=False, they come straight from frontmatter
             with a deterministic content-excerpt fallback for an empty description.
         """
-        # Initialize LLM if needed (lazy initialization)
+        # Lazy-initialize LLM on first execute call.
         if self.enable_llm and self.llm is None:
             try:
                 from llm_factory import create_llm
                 self.llm = create_llm()
                 self._log(f"LLM initialized: {self.llm.__class__.__name__}")
             except Exception as e:
-                self._log(f"Failed to initialize LLM: {e}. Continuing without LLM.", "warning")
+                self._log(
+                    f"Failed to initialize LLM: {e}. Continuing without LLM.",
+                    "warning",
+                )
                 self.enable_llm = False
 
-        # Use DocumentScanner result or direct file path
+        # Resolve source: DocumentScanner result or direct file path.
         article_info = task["data"].get("article_info")
         if article_info:
             file_path = article_info.get("md_file")
-            # Extract full category hierarchy from folder path
-            categories = article_info.get("categories", [])  # NEW: list of categories
-            category = article_info.get("category")          # Backward compat
-            subcategory = article_info.get("subcategory")    # Backward compat
+            categories = article_info.get("categories", [])
+            category = article_info.get("category")
+            subcategory = article_info.get("subcategory")
             thumbnail = article_info.get("thumbnail")
             predefined_images = article_info.get("images", [])
         else:
             file_path = task["data"].get("file_path")
-            # Extract categories from folder path structure
-            categories = self._extract_categories_from_path(file_path)
+            categories = extract_categories_from_path(file_path)
             category = categories[0] if len(categories) > 0 else None
             subcategory = categories[1] if len(categories) > 1 else None
-            # Auto-detect thumbnail and images from article folder
-            thumbnail, predefined_images = self._detect_article_assets(file_path)
+            thumbnail, predefined_images = detect_article_assets(file_path)
 
         if not file_path:
             return {"success": False, "error": "No file_path or article_info provided"}
 
+        import os
         if not os.path.exists(file_path):
             return {"success": False, "error": f"File not found: {file_path}"}
 
         try:
-            # 1. Read and parse file
+            # 1. Parse file.
             self._log(f"Parsing file: {file_path}")
-            parsed_data = self._parse_markdown(file_path)
+            parsed_data = parse_markdown(file_path)
 
-            # 2. Add category info (if from DocumentScanner)
+            # 2. Attach category info.
             if categories:
-                parsed_data["categories"] = categories  # Full hierarchy
-                category_path = '/'.join(categories)
-                self._log(f"Categories: {category_path}")
-            # Backward compatibility
+                parsed_data["categories"] = categories
+                self._log(f"Categories: {'/'.join(categories)}")
             if category:
                 parsed_data["category"] = category
                 parsed_data["subcategory"] = subcategory
 
-            # 3. Process images
+            # 3. Process images.
             if predefined_images:
-                # Use images found by DocumentScanner / sibling-folder scan.
                 parsed_data["images"] = [
-                    {"alt": "", "local_path": img, "s3_url": None} for img in predefined_images
+                    {"alt": "", "local_path": img, "s3_url": None}
+                    for img in predefined_images
                 ]
             else:
-                # No sibling images — scan the markdown body for inline images and
-                # a ![thumbnail](...) fallback.
                 self._log("Extracting images from content...")
                 base_dir = os.path.dirname(file_path)
-                images, detected_thumbnail = self._extract_images(parsed_data["content"], base_dir)
+                images, detected_thumbnail = extract_images(
+                    parsed_data["content"], base_dir
+                )
                 parsed_data["images"] = images
-                # A same-name sibling thumbnail (from _detect_article_assets) wins;
-                # the content ![thumbnail] is only a fallback when none exists.
                 if not thumbnail and detected_thumbnail:
                     thumbnail = detected_thumbnail
 
-            # Apply the resolved thumbnail regardless of whether sibling images
-            # existed — fixes a post with ONLY a same-name thumbnail PNG (no other
-            # images) previously losing its thumbnail and failing upload.
+            # Apply resolved thumbnail (wins over content-detected fallback).
             if thumbnail:
                 if isinstance(thumbnail, dict):
                     parsed_data["thumbnail"] = thumbnail
@@ -153,53 +160,49 @@ class ExtractingAgent(BaseAgent):
 
             self._log(f"Found {len(parsed_data.get('images', []))} image(s)")
             if parsed_data.get("thumbnail"):
-                self._log(f"Detected thumbnail: {parsed_data['thumbnail']['local_path']}")
+                self._log(
+                    f"Detected thumbnail: {parsed_data['thumbnail']['local_path']}"
+                )
 
-            # 4. Generate basic metadata
-            # Prefer article_name (filename-based) for slug, fall back to title
+            # 4. Basic metadata.
             article_name = article_info.get("article_name") if article_info else None
-            parsed_data["slug"] = generate_slug_from_title(article_name or parsed_data["title"])
+            parsed_data["slug"] = generate_slug_from_title(
+                article_name or parsed_data["title"]
+            )
             parsed_data["word_count"] = len(parsed_data["content"].split())
-
-            # Calculate reading time (based on 250 wpm)
-            parsed_data["reading_time"] = calculate_reading_time(parsed_data["word_count"])
-
+            parsed_data["reading_time"] = calculate_reading_time(
+                parsed_data["word_count"]
+            )
             self._log(
-                f"Word count: {parsed_data['word_count']}, Reading time: {parsed_data['reading_time']} min"
+                f"Word count: {parsed_data['word_count']}, "
+                f"Reading time: {parsed_data['reading_time']} min"
             )
 
-            # 5. Resolve tags/description (frontmatter-first, LLM optional)
-            # Normalize frontmatter tags: allow comma-separated string or list.
+            # 5. Tags + description (LLM optional).
             raw_fm_tags = parsed_data.get("tags", [])
             if isinstance(raw_fm_tags, str):
                 fm_tags = [t.strip() for t in raw_fm_tags.split(",") if t.strip()]
             else:
                 fm_tags = list(raw_fm_tags) if raw_fm_tags else []
 
-            # Frontmatter description, with deterministic content-excerpt fallback.
-            # `has_fm_desc` distinguishes an author-written desc from the excerpt
-            # fallback, so the LLM path can preserve a real desc verbatim.
             fm_desc = (parsed_data.get("description") or "").strip()
             has_fm_desc = bool(fm_desc)
             if not fm_desc:
-                fm_desc = self._excerpt_from_content(parsed_data["content"])
+                fm_desc = excerpt_from_content(parsed_data["content"])
 
             if self.enable_llm and self.llm:
                 self._log("Generating tags with LLM...")
-                metadata = await self._generate_metadata_with_llm(
+                metadata = await generate_metadata_with_llm(
+                    self.llm,
                     parsed_data["title"],
                     parsed_data["content"],
-                    categories,  # Pass full category hierarchy
-                    existing_tags=fm_tags,  # Pass frontmatter tags as hints
-                    existing_desc=fm_desc,  # Pass frontmatter desc as hint
+                    categories,
+                    existing_tags=fm_tags,
+                    existing_desc=fm_desc,
                 )
                 llm_tags = metadata.get("tags", [])
                 llm_summary = (metadata.get("summary") or "").strip()
-                # Never overwrite good frontmatter with LLM empties.
                 tags = llm_tags or fm_tags
-                # Prefer an author-written frontmatter desc verbatim — the LLM is
-                # only trusted to generate tags. Fall back to the LLM summary
-                # (then excerpt) only when there is no authored desc.
                 if has_fm_desc:
                     summary = fm_desc
                 elif not llm_summary or llm_summary == "No summary available.":
@@ -208,15 +211,11 @@ class ExtractingAgent(BaseAgent):
                     summary = llm_summary
                 self._log(f"✓ Generated {len(tags)} tags (desc from frontmatter)")
             else:
-                # LLM disabled: use frontmatter tags + frontmatter/excerpt description.
                 self._log("LLM disabled: using frontmatter tags/description", "warning")
                 tags = fm_tags
                 summary = fm_desc
 
-            # Normalize tags to lowercase kebab-case (spaces/underscores -> hyphen),
-            # drop non-alphanumerics, dedupe while preserving order. Keeps
-            # LLM-generated tags (e.g. "Session Management") consistent with the
-            # slug-style tags used elsewhere ("session-management").
+            # Normalize tags to lowercase kebab-case, dedupe preserving order.
             norm_tags: list[str] = []
             for tag in tags:
                 slug_tag = re.sub(r"[\s_]+", "-", str(tag).strip().lower())
@@ -227,459 +226,49 @@ class ExtractingAgent(BaseAgent):
 
             parsed_data["tags"] = norm_tags
             parsed_data["description"] = summary
-            parsed_data["summary"] = summary  # Alias for description
+            parsed_data["summary"] = summary
 
             return {"success": True, "data": parsed_data, "agent": self.name}
 
         except Exception as e:
             return {"success": False, "error": str(e), "agent": self.name}
 
-    def _excerpt_from_content(self, content: str, max_len: int = 160) -> str:
-        """Build a deterministic plain-text excerpt from markdown content.
-
-        Selects the first non-empty line that is NOT a heading (``#``), image
-        (``![``), fenced code block (```` ``` ````, the whole block is skipped),
-        or table row (``|``), strips inline markdown (images, links, bold markers,
-        backticks, stray leading hashes), normalizes whitespace, and truncates on a
-        word boundary at most ``max_len`` characters with a trailing ellipsis.
-
-        Args:
-            content: Raw markdown body (frontmatter already removed).
-            max_len: Maximum excerpt length before the trailing ellipsis.
-
-        Returns:
-            A plain-text excerpt, or an empty string if no suitable line exists.
-        """
-        in_fence = False
-        for raw_line in content.splitlines():
-            line = raw_line.strip()
-
-            # Toggle fenced code block state and skip the fence delimiter itself.
-            if line.startswith("```"):
-                in_fence = not in_fence
-                continue
-            if in_fence:
-                continue
-
-            if not line:
-                continue
-            if line.startswith("#") or line.startswith("![") or line.startswith("|"):
-                continue
-
-            # Strip inline markdown.
-            text = re.sub(r"!\[[^\]]*\]\([^\)]*\)", "", line)        # images -> ''
-            text = re.sub(r"\[([^\]]*)\]\([^\)]*\)", r"\1", text)    # links -> text
-            text = text.replace("**", "").replace("`", "")           # bold / inline code
-            text = re.sub(r"^#+\s*", "", text)                       # stray leading hashes
-            text = " ".join(text.split())                            # normalize whitespace
-            if not text:
-                continue
-
-            if len(text) <= max_len:
-                return text
-
-            # Truncate at a word boundary <= max_len.
-            truncated = text[:max_len].rsplit(" ", 1)[0].rstrip()
-            return f"{truncated}…"
-
-        return ""
+    # ------------------------------------------------------------------
+    # Thin delegation wrappers kept for backward compatibility with tests
+    # that call these methods directly on the agent instance.
+    # ------------------------------------------------------------------
 
     def _parse_markdown(self, file_path: str) -> dict[str, Any]:
-        """
-        마크다운 파일 파싱 (frontmatter 기반)
-
-        Extracts metadata from YAML frontmatter and returns data compatible with PostSchema.
-        Supports fields: title, userId, tags, desc, date, author, status, priority
-        """
-        with open(file_path, encoding="utf-8") as f:
-            post = frontmatter.load(f)
-
-        # Extract metadata from frontmatter
-        metadata = post.metadata
-
-        # Extract title (required for PostSchema)
-        title = metadata.get("title", self._extract_title_from_content(post.content))
-
-        # Map frontmatter fields to PostSchema-compatible fields
-        try:
-            priority = int(metadata.get("priority", 100))
-        except (TypeError, ValueError):
-            priority = 100
-
-        return {
-            "file_path": file_path,
-            "title": title,
-            "user_id": metadata.get("userId", 1),  # Maps userId -> user_id (default: 1)
-            "username": metadata.get("username", ""),  # Username for URL
-            "description": metadata.get("desc", ""),  # Maps desc -> description
-            "status": self._map_status(metadata.get("status")),  # Map to PostStatusEnum
-            "author": metadata.get("author") or metadata.get("username", "Unknown"),
-            "date": metadata.get("date", ""),
-            "tags": metadata.get("tags", []),  # Already a list
-            "category": metadata.get("category", ""),
-            "content": post.content,
-            "raw_frontmatter": metadata,
-            "priority": priority,
-        }
+        return parse_markdown(file_path)
 
     def _map_status(self, status_value: Any) -> str:
-        """
-        Map frontmatter status to PostStatusEnum values.
+        return map_status(status_value)
 
-        SQL Schema: CREATE TYPE post_status_enum AS ENUM ('public', 'private', 'follower');
-
-        Supported frontmatter formats:
-        1. String (recommended): status: 'public', status: 'private', status: 'follower'
-        2. Boolean (backward compat): status: true (-> 'public'), status: false (-> 'private')
-        3. Missing/None: defaults to 'public'
-
-        Args:
-            status_value: Value from frontmatter (str, bool, or None)
-
-        Returns:
-            One of: 'public', 'private', 'follower' (matches PostStatusEnum)
-
-        Examples:
-            >>> _map_status('public')    # 'public'
-            >>> _map_status('private')   # 'private'
-            >>> _map_status('follower')  # 'follower'
-            >>> _map_status(True)        # 'public'
-            >>> _map_status(False)       # 'private'
-            >>> _map_status(None)        # 'public' (default)
-            >>> _map_status('invalid')   # 'public' (fallback)
-        """
-        if status_value is None:
-            return PostStatusEnum.PUBLIC
-
-        # Boolean (backward compatibility): true = public, false = private
-        if isinstance(status_value, bool):
-            return PostStatusEnum.PUBLIC if status_value else PostStatusEnum.PRIVATE
-
-        # String: validate against enum values
-        status_str = str(status_value).lower().strip()
-        if status_str in ["public", "private", "follower"]:
-            return status_str
-
-        # Invalid value: log warning and default to public
-        self._log(f"Invalid status value '{status_value}', defaulting to 'public'", "warning")
-        return PostStatusEnum.PUBLIC
-
-    def _extract_title_from_content(self, content: str) -> str:
-        """본문에서 제목 추출 (frontmatter에 없을 경우)"""
-        # Find first # header
-        match = re.search(r"^#\s+(.+)$", content, re.MULTILINE)
-        if match:
-            return match.group(1).strip()
-        return "Untitled"
+    def _excerpt_from_content(self, content: str, max_len: int = 160) -> str:
+        return excerpt_from_content(content, max_len)
 
     def _extract_categories_from_path(self, file_path: str) -> list[str]:
-        """
-        Extract category hierarchy from folder path structure.
-
-        Folder structure convention:
-            posts/category1/category2/.../categoryN/[article-slug]/[article-slug].md
-
-        Example:
-            posts/technology/ai/langchain-guide/langchain-guide.md
-            -> categories: ['technology', 'ai']
-
-        Args:
-            file_path: Full path to the markdown file
-
-        Returns:
-            List of category names (excluding the article folder)
-        """
-        from config import POSTS_DIR
-
-        if not file_path:
-            return []
-
-        try:
-            path = Path(file_path).resolve()
-            article_folder = path.parent
-
-            # Try to get path relative to POSTS_DIR
-            try:
-                relative_path = article_folder.relative_to(POSTS_DIR)
-                path_parts = list(relative_path.parts)
-            except ValueError:
-                # File is not under POSTS_DIR, try PROJECT_ROOT/docs
-                from config import PROJECT_ROOT
-                docs_dir = PROJECT_ROOT / "docs"
-                try:
-                    relative_path = article_folder.relative_to(docs_dir)
-                    path_parts = list(relative_path.parts)
-                except ValueError:
-                    # Cannot determine relative path
-                    return []
-
-            # path_parts example: ['technology', 'ai', 'langchain-guide']
-            # The last part is the article folder (same name as .md file)
-            # Categories are everything before that
-            if len(path_parts) > 1:
-                categories = path_parts[:-1]  # Exclude article folder
-            else:
-                categories = []
-
-            return categories
-
-        except Exception as e:
-            self._log(f"Failed to extract categories from path: {e}", "warning")
-            return []
+        return extract_categories_from_path(file_path)
 
     def _detect_article_assets(self, file_path: str) -> tuple:
-        """
-        Auto-detect thumbnail and content images from article folder.
+        return detect_article_assets(file_path)
 
-        Convention:
-            - Thumbnail: image with same name as article (e.g., langchain-guide.png)
-            - Content images: all other images in the folder
-
-        Args:
-            file_path: Full path to the markdown file
-
-        Returns:
-            Tuple of (thumbnail_path, list_of_image_paths)
-        """
-
-        if not file_path:
-            return None, []
-
-        try:
-            path = Path(file_path)
-            article_folder = path.parent
-            article_name = path.stem
-
-            # Skip if folder doesn't match article name convention
-            if article_folder.name != article_name:
-                return None, []
-
-            image_extensions = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
-            thumbnail = None
-            images = []
-
-            for item in article_folder.iterdir():
-                if not item.is_file():
-                    continue
-                if item.suffix.lower() not in image_extensions:
-                    continue
-
-                # Check if this is the thumbnail (same name as article)
-                if item.stem == article_name:
-                    thumbnail = str(item)
-                else:
-                    images.append(str(item))
-
-            return thumbnail, sorted(images)
-
-        except Exception as e:
-            self._log(f"Failed to detect article assets: {e}", "warning")
-            return None, []
-
-    def _extract_images(self, content: str, base_dir: str | None = None) -> list[dict[str, Any]]:
-        """
-        본문에서 이미지 경로 추출 및 썸네일 감지
-
-        Detects images in markdown with ![alt](path) syntax.
-        Identifies thumbnails when alt text contains "thumbnail".
-
-        Args:
-            content: Markdown content
-            base_dir: Base directory for resolving relative paths
-
-        Returns:
-            List of image dicts with alt, local_path, s3_url, is_thumbnail
-        """
-        # Find images in ![alt](path) format
-        pattern = r"!\[([^\]]*)\]\(([^\)]+)\)"
-        matches = re.findall(pattern, content)
-
-        images = []
-        thumbnail = None
-
-        for alt, path in matches:
-            # Resolve relative paths if base_dir provided
-            if base_dir and not os.path.isabs(path):
-                resolved_path = os.path.join(base_dir, path)
-            else:
-                resolved_path = path
-
-            # Detect thumbnail from alt text
-            is_thumbnail = "thumbnail" in alt.lower()
-
-            image_data = {
-                "alt": alt,
-                "local_path": resolved_path,
-                "s3_url": None,  # UploadingAgent will fill this
-                "is_thumbnail": is_thumbnail,
-            }
-
-            if is_thumbnail and thumbnail is None:
-                # First thumbnail found
-                thumbnail = image_data
-            else:
-                # Regular image
-                images.append(image_data)
-
-        return images, thumbnail
-
+    def _extract_images(
+        self, content: str, base_dir: str | None = None
+    ) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+        return extract_images(content, base_dir)
 
     async def _generate_metadata_with_llm(
         self,
         title: str,
         content: str,
-        categories: list[str] = None,
-        existing_tags: list[str] = None,
-        existing_desc: str = None,
+        categories: list[str] | None = None,
+        existing_tags: list[str] | None = None,
+        existing_desc: str | None = None,
     ) -> dict[str, Any]:
-        """
-        LLM을 사용하여 메타데이터 생성
-
-        Args:
-            title: Article title
-            content: Article content (full markdown)
-            categories: Full category hierarchy from folder path
-                       Example: ['technology', 'ai', 'langchain']
-                       or ['java', 'spring', 'jdbc']
-            existing_tags: Existing tags from frontmatter (used as hints)
-            existing_desc: Existing description from frontmatter (used as hint)
-
-        Returns:
-            Dictionary with:
-            - tags: 5-7 relevant keywords
-            - summary: Exactly 3 sentences (for card display)
-
-        Note:
-            If existing_tags or existing_desc are provided, they are used as hints
-            to guide the LLM generation while still allowing refinement.
-        """
-        if not self.llm:
-            return {"tags": [], "summary": "No summary available."}
-
-        # Use only part of content (save tokens)
-        content_preview = content[:1500]
-
-        # Add category info - Full hierarchy
-        category_info = ""
-        if categories and len(categories) > 0:
-            category_path = ' > '.join(categories)
-            category_info = f"\nCategory Path: {category_path}"
-
-        # Build hints section from existing frontmatter
-        hints_section = ""
-        if existing_tags or existing_desc:
-            hints_section = "\n\nEXISTING HINTS (use as reference, refine if needed):"
-            if existing_tags:
-                hints_section += f"\nExisting tags: {', '.join(existing_tags)}"
-            if existing_desc:
-                hints_section += f"\nExisting description: {existing_desc}"
-
-        prompt = f"""You are analyzing a blog article to extract metadata for a card display and search indexing.
-
-ARTICLE INFO:
-Title: {title}{category_info}
-
-Content preview:
-{content_preview}{hints_section}
-
-EXTRACT THE FOLLOWING:
-
-1. **Tags** (5-7 keywords):
-   - Choose relevant keywords for search and categorization
-   - Include technical terms, topics, and concepts
-   - If existing tags are provided, use them as reference and refine/expand
-   - Comma-separated list
-
-2. **Summary** (EXACTLY 3 sentences):
-   - First sentence: What is this article about?
-   - Second sentence: What will readers learn?
-   - Third sentence: Key takeaway or benefit
-   - Keep each sentence concise (max 100 characters)
-   - If existing description is provided, use it as a base and refine
-   - This will be displayed on article cards
-
-Respond in this EXACT format:
-TAGS: tag1, tag2, tag3, tag4, tag5
-SUMMARY: First sentence here. Second sentence here. Third sentence here.
-"""
-
-        try:
-            # Call LLM
-            response = self.llm.invoke(prompt)
-            result_text = response.content
-
-            # Parse response
-            tags_match = re.search(r"TAGS:\s*(.+)", result_text, re.IGNORECASE)
-            summary_match = re.search(r"SUMMARY:\s*(.+)", result_text, re.IGNORECASE | re.DOTALL)
-
-            # Extract tags
-            tags = []
-            if tags_match:
-                tags_str = tags_match.group(1).strip()
-                tags = [tag.strip() for tag in tags_str.split(",") if tag.strip()]
-                # Limit to 5-7 tags
-                tags = tags[:7] if len(tags) > 7 else tags
-
-            # Extract summary
-            summary = "No summary available."
-            if summary_match:
-                summary_text = summary_match.group(1).strip()
-                # Clean up multi-line content
-                summary = " ".join(summary_text.split())
-
-                # Check if exactly 3 sentences (simple check)
-                sentences = [s.strip() for s in summary.split(".") if s.strip()]
-                if len(sentences) >= 3:
-                    summary = ". ".join(sentences[:3]) + "."
-
-            self._log(f"Generated {len(tags)} tags", "success")
-            self._log(f"Generated summary: {len(summary)} chars", "success")
-
-            return {"tags": tags, "summary": summary}
-
-        except Exception as e:
-            self._log(f"LLM metadata generation failed: {e}", "warning")
-            return {"tags": [], "summary": "No summary available."}
+        return await generate_metadata_with_llm(
+            self.llm, title, content, categories, existing_tags, existing_desc
+        )
 
     async def _generate_og_alt(self, title: str, content: str = "") -> str:
-        """
-        Generate SEO-friendly alt text for OG image using LLM.
-
-        Args:
-            title: Article title
-            content: Article content (optional, for context)
-
-        Returns:
-            Alt text string (max 125 chars)
-        """
-        if not self.llm:
-            return f"{title} thumbnail"
-
-        prompt = f"""Generate a brief, descriptive alt text for a blog post thumbnail image.
-The alt text should be accessible and SEO-friendly.
-
-Article Title: {title}
-
-Requirements:
-- Maximum 100 characters
-- Describe what a reader would expect to see
-- Include relevant keywords naturally
-- Do not start with "Image of" or "Picture of"
-
-Alt text:"""
-
-        try:
-            response = self.llm.invoke(prompt)
-            alt_text = response.content.strip()
-
-            # Clean and truncate
-            alt_text = alt_text.strip('"\'')
-            if len(alt_text) > 125:
-                alt_text = alt_text[:122] + "..."
-
-            self._log(f"Generated OG alt text: {alt_text[:50]}...")
-            return alt_text
-
-        except Exception as e:
-            self._log(f"OG alt generation failed: {e}", "warning")
-            return f"{title} thumbnail"
+        return await generate_og_alt(self.llm, title, content)
