@@ -33,7 +33,6 @@ export async function onRequestError(
             path: '/v1/api/error-logs',
             method: 'POST',
             body: payload,
-            cache: 'no-store',
             fallbackError: 'log-error failed',
         });
     } catch {

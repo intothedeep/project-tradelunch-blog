@@ -176,7 +176,8 @@ export function useEditorHandlers({
                 ? await createPost.mutateAsync(input)
                 : await updatePost.mutateAsync({ postId, input });
         if (status === 'public') setLiveSlug(saved.slug);
-        // Re-assert status via Server Action to revalidate the cached feed.
+        // Re-assert status via Server Action so Express applies the final
+        // status after the client-side upsert completes.
         if (status !== 'draft' && username) {
             await setPostStatusAction(saved.id, status, username);
         }

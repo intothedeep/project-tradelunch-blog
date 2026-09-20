@@ -14,7 +14,6 @@ export async function POST(req: Request) {
             path: '/v1/api/error-logs',
             method: 'POST',
             body,
-            cache: 'no-store',
             fallbackError: 'failed to forward error log',
         });
     } catch {

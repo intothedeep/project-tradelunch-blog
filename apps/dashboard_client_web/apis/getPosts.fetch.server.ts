@@ -1,21 +1,17 @@
 import 'server-only';
 
 // apis/getPosts.fetch.server.ts
-// Purpose: server-side blog feed fetcher built on the native-fetch wrapper, so
-// the anonymous feed is tag-cached (revalidatable) while the owner's view stays
-// uncached (drafts must never enter a shared cache).
-// Invariant: a resolved Clerk token ⇒ owner context ⇒ no-store; anonymous ⇒
-// force-cache with feed tags + 60s revalidate.
+// Purpose: server-side blog feed fetcher. All requests go no-store (via the
+// shared serverRequest wrapper) — Cloudflare is the sole edge cache, so there
+// is no per-caller caching distinction between owner and anonymous views.
 // Constraints: server-only. Token is resolved at the TOP, outside any cached
-// scope, then passed down explicitly.
+// scope, then passed down explicitly (null = anonymous).
 
 import { auth } from '@clerk/nextjs/server';
 import { buildFeedQuery } from '@/apis/buildFeedQuery';
 import type { TPostFilters } from '@/apis/getPosts.api';
 import type { TPost, TPaginatedResponse } from '@/apis/blog.types';
 import { serverRequest } from '@/apis/http.server';
-
-const FEED_REVALIDATE_SECONDS = 60;
 
 // The Express feed read endpoints wrap their payload in a `{ success, data }`
 // envelope: `res.json({ success: true, data: { posts, nextCursor, hasMore } })`.
@@ -49,8 +45,8 @@ export async function getFeed(
     filters?: TPostFilters
 ): Promise<TPaginatedResponse> {
     // The public feed MUST NOT 500 if auth resolution fails. A resolved token
-    // ⇒ owner context (no-store); no token OR any auth failure ⇒ anonymous
-    // (cached). Never let Clerk hiccups take down the anonymous homepage.
+    // gives Express owner context (drafts visible); null = anonymous view.
+    // Never let Clerk hiccups take down the anonymous homepage.
     let token: string | null = null;
     try {
         const { getToken } = await auth();
@@ -67,30 +63,10 @@ export async function getFeed(
         tags: filters?.tags,
     });
 
-    const fallbackError = `Failed to fetch posts: ${username}`;
-
-    if (token) {
-        // Owner context: response may include the owner's drafts/private posts,
-        // so it is per-viewer and MUST NOT be shared-cached.
-        const env = await serverRequest<TFeedEnvelope>({
-            path,
-            token,
-            cache: 'no-store',
-            fallbackError,
-        });
-        return unwrapFeed(env);
-    }
-
-    // Anonymous: viewer-agnostic, tag-cached for revalidation on publish.
-    // NOTE: opt into caching via `next.revalidate` ALONE — do NOT also pass
-    // `cache:'force-cache'`; Next rejects the two together ("only one should be
-    // used"), which would throw during the server render.
-    const tags = ['feed:global', `feed:${username || 'global'}`];
     const env = await serverRequest<TFeedEnvelope>({
         path,
-        tags,
-        revalidate: FEED_REVALIDATE_SECONDS,
-        fallbackError,
+        token,
+        fallbackError: `Failed to fetch posts: ${username}`,
     });
     return unwrapFeed(env);
 }

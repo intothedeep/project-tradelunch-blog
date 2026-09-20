@@ -1,7 +1,7 @@
 // hooks/useDeleteAdminPostAction.query.client.ts
 // Purpose: mutation over the deleteAdminPostAction Server Action, which
-// soft-deletes the post AND revalidates the feed tags server-side; also
-// invalidates the client admin posts list on success so the table updates.
+// soft-deletes the post server-side; also invalidates the client admin posts
+// list on success so the table updates.
 // Constraints: no client token handling — the Server Action resolves Clerk
 // auth server-side. Rejects with Error on failure for inline handling.
 

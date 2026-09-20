@@ -1,7 +1,7 @@
 // hooks/useDeletePost.query.client.ts
 // Purpose: mutation over the delete Server Action; the action resolves the Clerk
-// token server-side and revalidates the feed tags. Invalidates the drafts cache
-// (RQ owns its client lists) on success.
+// token server-side. Invalidates the drafts cache (RQ owns its client lists)
+// on success.
 // Constraints: rejects with ApiError on non-2xx for inline handling.
 
 'use client';
@@ -13,7 +13,7 @@ import { myDraftsQueryKey } from '@/hooks/useMyDrafts.query.client';
 export interface TDeletePostVars {
     // BIGINT post id as a STRING (Snowflake precision); never Number() it.
     postId: string;
-    // Post author's username — threads into the feed:<username> tag.
+    // Post author's username — passed through to the Server Action signature.
     username: string;
 }
 

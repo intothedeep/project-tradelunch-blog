@@ -1,7 +1,7 @@
 // hooks/useSetAdminPostStatus.query.client.ts
 // Purpose: mutation over the admin-moderation Server Action; the action resolves
-// the Clerk token server-side and revalidates the feed tags. Invalidates the
-// admin posts list (RQ owns its client lists) on success.
+// the Clerk token server-side. Invalidates the admin posts list (RQ owns its
+// client lists) on success.
 // Constraints: rejects with ApiError on non-2xx for inline handling.
 
 'use client';
@@ -15,8 +15,7 @@ export interface TSetAdminPostStatusVars {
     // BIGINT post id as a STRING (Snowflake precision); never Number() it.
     postId: string;
     status: TPostStatus;
-    // Post author's username — threads into the feed:<username> tag so the
-    // author's cached feed revalidates alongside feed:global.
+    // Post author's username — passed through to the Server Action signature.
     username: string;
 }
 

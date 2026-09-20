@@ -40,14 +40,11 @@ dist/
 *.env
 packages/assets/posts
 z_*
-# doc archive — superseded/verbose docs live here, never committed (see CLAUDE.md doc rule)
 _docs/
-_scripts/
 x_*
 
 # agent/claude runtime artifacts (local-only — .claude/ config no longer tracked)
 .agent/
-.claude/
 apps/dashboard_server/supabase/seed.prod.sql
 
 # --- Phase I: stock_collector (polyglot sibling; raw CSV NEVER committed) ---
