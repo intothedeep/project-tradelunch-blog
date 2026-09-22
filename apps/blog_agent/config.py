@@ -22,8 +22,8 @@ from configs.database import DATABASE_URL, get_database_url
 from configs.env import (
     API_SITE_DOMAIN,
     BLOG_BASE_URL,
-    DEFAULT_USER_ID,
     DEFAULT_BLOG_AUTHOR,
+    DEFAULT_USER_ID,
     IS_DEVELOPMENT,
     IS_LOCAL,
     IS_PRODUCTION,

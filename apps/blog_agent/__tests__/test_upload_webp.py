@@ -19,7 +19,6 @@ project_root = str(Path(__file__).parent.parent)
 sys.path.insert(0, project_root)
 
 from agents.uploading_agent import UploadingAgent  # noqa: E402
-from db.file_meta import FileMetadata  # noqa: E402
 
 
 def _write_png(path: Path, size: tuple[int, int] = (64, 48)) -> None:

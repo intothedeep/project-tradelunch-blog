@@ -58,7 +58,15 @@ dependencies = [
     "Pillow>=10.0.0",
 ]
 
-[project.optional-dependencies]
+# Dev tooling lives in a PEP 735 dependency group, not optional-dependencies,
+# because `uv sync` installs the `dev` group BY DEFAULT while an extra needs an
+# explicit flag. That difference is why `pnpm --filter blog_agent lint` failed
+# with "pyenv: ruff: command not found": ruff was declared but never installed
+# into .venv, so `uv run ruff` fell through to PATH and hit a pyenv shim.
+# Keep dev tools here so the lint/check-types scripts work after a plain
+# `uv sync`. (pytest stays declared but unused — tests are SUSPENDED repo-wide,
+# see .claude/rules/core.md; this is deliberate, not dead config.)
+[dependency-groups]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
@@ -102,6 +110,10 @@ skip_gitignore = true
 
 [tool.ruff]
 line-length = 100
+# Stays at the `requires-python` floor, NOT the interpreter in .venv (3.12).
+# Raising it to py312 makes pyupgrade demand 3.12-only idioms — StrEnum (UP042),
+# PEP 695 type parameters (UP046) — which would break the declared >=3.10
+# support. mypy is the opposite case and is pinned to 3.12 below.
 target-version = "py310"
 
 [tool.ruff.lint]
@@ -124,7 +136,10 @@ ignore = [
 "__init__.py" = ["F401"]  # imported but unused
 
 [tool.mypy]
-python_version = "3.10"
+# Must match the interpreter in .venv (.python-version = 3.12.3), not the
+# `requires-python` floor: at 3.10 mypy rejected the 3.12 `type` statements in
+# the installed numpy stubs and bailed before reaching our own code.
+python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

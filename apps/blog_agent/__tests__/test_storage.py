@@ -16,7 +16,7 @@ WHY: These tests verify the two pure helpers and the cross-provider footgun
 
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -25,7 +25,6 @@ sys.path.insert(0, project_root)
 
 from db.storage.object_key import build_object_key  # noqa: E402
 from db.storage.public_url import build_public_url  # noqa: E402
-
 
 # ---------------------------------------------------------------------------
 # build_public_url — pure function
