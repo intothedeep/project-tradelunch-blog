@@ -4,54 +4,60 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Multi-agent system for automating blog post processing using LangGraph and Qwen 2.5 8B (via Ollama). The system parses markdown files, extracts metadata, generates tags/summaries via LLM, and uploads to S3/RDS.
+Multi-agent system for automating blog post processing using LangGraph and Qwen3 8B (via Ollama).
+The system parses markdown files, extracts metadata, generates tags/summaries via LLM, and writes
+posts to Supabase Postgres with images on OCI Object Storage (S3-compatible).
 
 ## Commands
 
 ### Running the System
 
 ```bash
-# Terminal 1: Start Ollama server (required)
+# Terminal 1: Start Ollama server (required for LLM-backed paths)
 ollama serve
 
 # Terminal 2: Run CLI
-source tradelunch-agents-venv/bin/activate
-python cli_multi_agent.py
+uv run python cli_multi_agent.py
+
+# In practice, publishing goes through the one-shot script instead:
+uv run python scripts/publish_oneshot.py [--no-llm] ./posts/<cat>/<slug>/<slug>.md
 ```
 
-### Testing
+### Verification
 
-```bash
-# Basic agent tests (works without Ollama for most tests)
-python __tests__/test_agents.py
-
-# Tests including LLM features
-python __tests__/test_improved_agents.py
-
-# Test LLM providers
-python __tests__/test_llm_providers.py
-
-# Run all tests with pytest
-pytest __tests__/
-```
+Tests are SUSPENDED repo-wide (`.claude/rules/core.md`) — `__tests__/` and the
+`[tool.pytest.ini_options]` block in `pyproject.toml` are deliberately unused,
+not dead code. Verify changes by DELIBERATE BREAKAGE against the real system
+(trigger the failure, observe it, clean up), not by writing or running tests.
 
 ### Quality Gates
 
 ```bash
-mypy --strict agents/
-ruff check agents/
-pytest --cov=agents --cov-fail-under=80 __tests__/
+pnpm --filter blog_agent lint          # uv run ruff check .
+pnpm --filter blog_agent check-types   # uv run mypy agents configs db utils
 ```
+
+Both are currently green. mypy is pinned to Python 3.12 to match the `.venv`
+interpreter (older targets choke on 3.12 syntax in installed stub packages);
+ruff stays pinned to py310 to match `requires-python = ">=3.10"` (a newer
+target would demand py312-only idioms that break that declared floor). See
+`pyproject.toml` for the exact settings — mypy runs with individual strict
+flags, not `--strict`.
+
+`db/repositories/x_backup/` is soft-deleted (`x_` prefix, see
+`.claude/rules/core.md`) and excluded from mypy; do not treat it as live code.
 
 ### Setup
 
 ```bash
-python -m venv tradelunch-agents-venv
-source tradelunch-agents-venv/bin/activate
-pip install -e .
-pip install -e ".[dev]"  # For development tools
+uv sync
 ollama pull qwen3:8b
 ```
+
+Environment is `uv` + `.venv`, per `.claude/rules/development/python.md` §1 —
+`pyproject.toml` is the single source of truth. `uv sync` installs the `dev`
+dependency group (ruff, mypy, black, isort, pytest) by default; no extra flag
+needed. The old `tradelunch-agents-venv` virtualenv no longer exists.
 
 ## Architecture
 
@@ -59,7 +65,7 @@ ollama pull qwen3:8b
 ProjectManager (LangGraph orchestrator + Qwen3 LLM)
         │
         ├── ExtractingAgent     - Markdown parsing, frontmatter extraction, LLM-generated tags/summary
-        ├── UploadingAgent      - S3 image upload, RDS database save (or simulated)
+        ├── UploadingAgent      - Object-storage image upload, Postgres save (or simulated)
         ├── LoggingAgent        - Rich terminal UI, progress indicators
         └── DocumentScannerAgent - Folder structure scanning, category detection
 ```
@@ -76,20 +82,18 @@ ProjectManager (LangGraph orchestrator + Qwen3 LLM)
 
 1. CLI captures command → ProjectManager analyzes with LLM
 2. ExtractingAgent parses markdown, extracts frontmatter, generates slug/tags/summary via LLM
-3. UploadingAgent uploads images to S3, validates schema, saves to RDS
+3. UploadingAgent uploads images to object storage, validates schema, saves to Postgres
 4. LoggingAgent formats Rich output panels
 
 ## Code Standards
 
 ### File Limits
 
-- Implementation files: max 300 lines (excluding comments/docstrings)
-- Test files: max 500 lines
-- If exceeded: split module or justify in context.md
+See `.claude/rules/development/code.md` (300 lines soft / 400 hard).
 
 ### Type Annotations
 
-Complete types required on every function:
+Complete types required on every function (`.claude/rules/development/python.md` §3):
 
 ```python
 def fn(x: list[dict[str, Any]], y: float | None = None) -> dict[str, int]:
@@ -117,30 +121,18 @@ def fn(arg: Type) -> Return:
     """
 ```
 
-### TDD Workflow
-
-1. Write failing test
-2. Implement minimum to pass
-3. Refactor (tests stay green)
-
-### Test Naming
-
-```python
-# Correct
-def test_login_rejects_invalid_credentials(): ...
-
-# Wrong
-def test_login(): ...
-```
-
 ## Configuration
 
-Key settings in `src/config.py` (all support env var overrides):
+Constants live in `configs/` and are re-exported by the top-level `config.py`
+barrel (there is no `src/` directory). All support env var overrides:
 
-- `MODEL_NAME` - Default: `qwen3:8b`
+- `OLLAMA_MODEL` - Default: `qwen3:8b` (`MODEL_NAME` is an alias for it)
 - `OLLAMA_BASE_URL` - Default: `http://localhost:11434`
-- `S3_BUCKET`, `S3_REGION` - AWS S3 settings
-- `DB_CONFIG` - PostgreSQL/RDS connection settings
+- `STORAGE_PROVIDER`, `STORAGE_ENDPOINT`, `STORAGE_BUCKET`, `STORAGE_REGION`,
+  `STORAGE_ACCESS_KEY`, `STORAGE_SECRET_KEY` - provider-swappable object storage
+  (`oci` in production; mirrors `apps/dashboard_server/src/lib/storage`)
+- `DATABASE_URL` - resolved in `configs/database.py` from the Supabase
+  `POSTGRES_URL*` vars; see the root `CLAUDE.md` for which is pooled vs direct
 - `MCP_ENABLED` - Set to "true" to enable MCP integration
 
 ## Markdown Format
@@ -162,8 +154,8 @@ tags: ['tag1', 'tag2']
 
 ## Adding New Agents
 
-1. Create file in `src/` (e.g., `src/validation_agent.py`)
-2. Inherit from `BaseAgent` in `src/base.py`
+1. Create file in `agents/` (e.g., `agents/validation_agent.py`)
+2. Inherit from `BaseAgent` in `agents/base.py`
 3. Implement `execute(task: AgentTask) -> AgentResponse`
-4. Register in `src/project_manager.py` workflow
-5. Export in `src/__init__.py`
+4. Register in `agents/project_manager.py` workflow
+5. Export in `agents/__init__.py`
