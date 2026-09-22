@@ -82,7 +82,7 @@ class AgentTask:
         return result
 
     @classmethod
-    def create(cls, action: str, data: dict[str, Any], filename: str = None) -> "AgentTask":
+    def create(cls, action: str, data: dict[str, Any], filename: str | None = None) -> "AgentTask":
         """새 작업 생성 헬퍼
 
         Args:
@@ -121,14 +121,17 @@ class AgentResponse:
     data: dict[str, Any] | None = None
     error: str | None = None
     duration: float | None = None  # seconds
-    timestamp: datetime = None
+    timestamp: datetime | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.timestamp is None:
             self.timestamp = datetime.now()
 
     def to_dict(self) -> dict[str, Any]:
         """응답을 딕셔너리로 변환"""
+        # __post_init__ always sets self.timestamp when it is None, so by the
+        # time any instance method runs, it is guaranteed to be a datetime.
+        assert self.timestamp is not None
         result = {
             "task_id": self.task_id,
             "agent_name": self.agent_name,

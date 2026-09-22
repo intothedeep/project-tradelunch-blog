@@ -313,10 +313,7 @@ def get_schema_description(schema: type[BaseModel]) -> str:
     for name, field in schema.model_fields.items():
         # Extract type
         field_type = field.annotation
-        if hasattr(field_type, "__name__"):
-            type_str = field_type.__name__
-        else:
-            type_str = str(field_type)
+        type_str = getattr(field_type, "__name__", None) or str(field_type)
 
         # Required/Optional
         required = "required" if field.is_required() else "optional"

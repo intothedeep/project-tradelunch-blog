@@ -38,7 +38,7 @@ class LoggingAgent(BaseAgent):
     4. 에러 메시지 강조
     """
 
-    def __init__(self, llm: ChatOllama = None):
+    def __init__(self, llm: ChatOllama | None = None):
         super().__init__(
             name="LoggingAgent",
             description="Unified logging and terminal output formatting",
@@ -90,7 +90,7 @@ class LoggingAgent(BaseAgent):
         except Exception as e:
             return {"success": False, "error": str(e), "agent": self.name}
 
-    def _log_message(self, message: str, level: str = "info"):
+    def _log_message(self, message: str, level: str = "info") -> None:
         """일반 로그 메시지 출력"""
         timestamp = datetime.now().strftime("%H:%M:%S")
 
@@ -109,7 +109,7 @@ class LoggingAgent(BaseAgent):
         # Save log
         self.logs.append({"timestamp": timestamp, "level": level, "message": message})
 
-    def _log_agent_step(self, agent_name: str, step: str, status: str = "running"):
+    def _log_agent_step(self, agent_name: str, step: str, status: str = "running") -> None:
         """에이전트 단계 로그"""
         status_icons = {
             "running": "⚙️",
@@ -125,7 +125,7 @@ class LoggingAgent(BaseAgent):
             style="bold" if status == "running" else "",
         )
 
-    def _log_final_result(self, result: dict[str, Any]):
+    def _log_final_result(self, result: dict[str, Any]) -> None:
         """최종 결과를 패널로 출력"""
         if result.get("success", False):
             data = result.get("data", {})
@@ -223,7 +223,7 @@ class LoggingAgent(BaseAgent):
                 )
             )
 
-    def _print_upload_payload(self, payload: dict):
+    def _print_upload_payload(self, payload: dict) -> None:
         """Print the full upload payload as formatted JSON."""
         import json
 
@@ -255,7 +255,7 @@ class LoggingAgent(BaseAgent):
             )
         )
 
-    def _log_error(self, error: str, agent_name: str = "System"):
+    def _log_error(self, error: str, agent_name: str = "System") -> None:
         """에러 메시지 출력 (LLM으로 사용자 친화적 메시지 변환)"""
         # Try to convert error message to user-friendly format
         friendly_error = self._convert_error_message(error)
@@ -286,7 +286,8 @@ Error: {error}
 User-friendly explanation:"""
 
             response = self.llm.invoke(prompt)
-            friendly = response.content.strip()
+            content = response.content if isinstance(response.content, str) else str(response.content)
+            friendly = content.strip()
 
             # Return converted message with original for reference
             if friendly and len(friendly) > 10:
@@ -297,7 +298,7 @@ User-friendly explanation:"""
             # Fallback to original error
             return error
 
-    def _show_task_summary(self, tasks: list[dict[str, Any]]):
+    def _show_task_summary(self, tasks: list[dict[str, Any]]) -> None:
         """작업 목록을 테이블로 표시"""
         if not tasks:
             self.console.print("[yellow]No tasks to display[/yellow]")
@@ -332,7 +333,7 @@ User-friendly explanation:"""
 
         self.console.print(table)
 
-    def show_agent_tree(self, agents: list[dict[str, Any]]):
+    def show_agent_tree(self, agents: list[dict[str, Any]]) -> None:
         """에이전트 구조를 트리로 표시"""
         tree = Tree("🤖 [bold]Multi-Agent System[/bold]")
 
@@ -345,7 +346,7 @@ User-friendly explanation:"""
 
         self.console.print(tree)
 
-    def show_progress_bar(self, total: int, description: str = "Processing"):
+    def show_progress_bar(self, total: int, description: str = "Processing") -> Progress:
         """진행률 바 표시 (컨텍스트 매니저로 사용)"""
         return Progress(
             SpinnerColumn(),
@@ -355,11 +356,11 @@ User-friendly explanation:"""
             console=self.console,
         )
 
-    def clear_console(self):
+    def clear_console(self) -> None:
         """콘솔 클리어"""
         self.console.clear()
 
-    def print_banner(self, title: str, subtitle: str = ""):
+    def print_banner(self, title: str, subtitle: str = "") -> None:
         """배너 출력"""
         banner = f"""[bold cyan]{title}[/bold cyan]"""
         if subtitle:

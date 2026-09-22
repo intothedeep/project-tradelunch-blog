@@ -13,7 +13,7 @@
 """
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import ValidationError
 
@@ -30,6 +30,9 @@ from schema import (
 from utils.image_transform import NotAnImageError, to_webp
 
 from .base import BaseAgent
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class UploadingAgent(BaseAgent):
@@ -132,8 +135,8 @@ class UploadingAgent(BaseAgent):
     async def _upload_images(
         self,
         images: list[dict[str, str]],
-        thumbnail: dict[str, str] = None,
-        context: dict[str, Any] = None,
+        thumbnail: dict[str, str] | None = None,
+        context: dict[str, Any] | None = None,
         is_thumbnail: bool = False,
     ) -> dict[str, Any]:
         """
@@ -182,6 +185,8 @@ class UploadingAgent(BaseAgent):
             local_path = (
                 thumbnail.get("local_path") if isinstance(thumbnail, dict) else str(thumbnail)
             )
+            if local_path is None:
+                raise ValueError("Thumbnail is missing 'local_path'")
             original_filename = Path(local_path).name
             ext = Path(local_path).suffix.lstrip(".")  # e.g., "png"
 
@@ -402,9 +407,9 @@ class UploadingAgent(BaseAgent):
         from db import PostRepository, TagRepository, get_db_session
 
         categories = data.get("categories", [])
-        category_ids = []
+        category_ids: list[int] = []
         deepest_category_id = None
-        category_infos = []
+        category_infos: list[CategoryInfo] = []
 
         async with get_db_session() as session:
             # 1. Resolve category hierarchy (within same session)
@@ -431,7 +436,7 @@ class UploadingAgent(BaseAgent):
 
             article_id = await post_repo.upsert_post(
                 user_id=data.get("user_id", config.DEFAULT_USER_ID),
-                title=data.get("title"),
+                title=post.title,
                 slug=data.get("slug") or generate_slug_from_title(data.get("title", "untitled")),
                 content=content,
                 description=data.get("summary") or data.get("description"),
@@ -498,7 +503,7 @@ class UploadingAgent(BaseAgent):
         }
 
     def _replace_content_urls(
-        self, content: str, images: list[dict], thumbnail: dict = None
+        self, content: str, images: list[dict], thumbnail: dict[str, Any] | None = None
     ) -> tuple[str, list[dict]]:
         """
         Replace local image paths in markdown content with CDN URLs.
@@ -554,7 +559,7 @@ class UploadingAgent(BaseAgent):
         return content, updated_images
 
     async def _save_file_records(
-        self, session, post_id: int, images: list[dict], thumbnail: dict, user_id: int
+        self, session: "AsyncSession", post_id: int, images: list[dict], thumbnail: dict[str, Any] | None, user_id: int
     ) -> list[int]:
         """
         Save image/file records to files table.
@@ -674,7 +679,7 @@ class UploadingAgent(BaseAgent):
         return content_types.get(ext.lower(), "application/octet-stream")
 
     async def _resolve_category_hierarchy_with_session(
-        self, session, categories: list[str], user_id: int = 1
+        self, session: "AsyncSession", categories: list[str], user_id: int = 1
     ) -> tuple[list[int], int | None, list[CategoryInfo]]:
         """
         Resolve category hierarchy from folder path to database IDs.
@@ -751,7 +756,7 @@ class UploadingAgent(BaseAgent):
             return result
 
     async def _link_post_to_categories(
-        self, session, post_id: int, category_ids: list[int]
+        self, session: "AsyncSession", post_id: int, category_ids: list[int]
     ) -> None:
         """
         Link a post to all categories in its hierarchy.
@@ -787,8 +792,8 @@ class UploadingAgent(BaseAgent):
     def _build_upload_payload(
         self,
         data: dict[str, Any],
-        category_ids: list[int] = None,
-        category_infos: list[CategoryInfo] = None,
+        category_ids: list[int] | None = None,
+        category_infos: list[CategoryInfo] | None = None,
     ) -> UploadPayload:
         """
         Build UploadPayload from processed data.

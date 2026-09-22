@@ -140,6 +140,9 @@ ignore = [
 # `requires-python` floor: at 3.10 mypy rejected the 3.12 `type` statements in
 # the installed numpy stubs and bailed before reaching our own code.
 python_version = "3.12"
+# `x_` marks soft-deleted code awaiting the owner's manual removal
+# (.claude/rules/core.md) and is git-ignored, so it is not ours to type-check.
+exclude = '(^|/)x_'
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

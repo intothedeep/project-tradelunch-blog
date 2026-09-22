@@ -127,7 +127,7 @@ class TagRepository(BaseRepository[Tag]):
                 "title": title,
             },
         )
-        return result.scalar_one()
+        return int(result.scalar_one())
 
     async def upsert_tags_raw(self, tag_titles: list[str]) -> list[int]:
         """

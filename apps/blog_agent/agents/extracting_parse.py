@@ -43,9 +43,13 @@ def parse_markdown(file_path: str) -> dict[str, Any]:
     metadata = post.metadata
     title = metadata.get("title", extract_title_from_content(post.content))
 
-    try:
-        priority = int(metadata.get("priority", 100))
-    except (TypeError, ValueError):
+    raw_priority = metadata.get("priority", 100)
+    if isinstance(raw_priority, (int, float, str, bytes, bytearray)):
+        try:
+            priority = int(raw_priority)
+        except (TypeError, ValueError):
+            priority = 100
+    else:
         priority = 100
 
     return {

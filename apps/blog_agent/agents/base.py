@@ -67,7 +67,7 @@ class BaseAgent(ABC):
             self._log(f"Task {task_id} error: {str(e)}", "error")
             return {"success": False, "error": str(e), "agent": self.name}
 
-    def _log(self, message: str, level: str = "info"):
+    def _log(self, message: str, level: str = "info") -> None:
         """
         내부 로깅 (나중에 LoggingAgent로 위임)
         """

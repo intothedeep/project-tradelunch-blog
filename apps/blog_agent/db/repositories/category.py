@@ -148,7 +148,7 @@ class CategoryRepository(BaseRepository[Category]):
             "title": root_name,
             "user_id": user_id,
         })
-        root_id = result.scalar_one()
+        root_id = int(result.scalar_one())
 
         # 2. Handle children categories with raw SQL upsert
         parent_id = root_id
@@ -177,7 +177,7 @@ class CategoryRepository(BaseRepository[Category]):
                 "title": child_name,
                 "user_id": user_id,
             })
-            child_id = result.scalar_one()
+            child_id = int(result.scalar_one())
 
             # Move to next level
             parent_id = child_id
@@ -195,7 +195,7 @@ class CategoryRepository(BaseRepository[Category]):
         Returns:
             List of categories from root to target.
         """
-        path = []
+        path: list[Category] = []
         current_id: int | None = category_id
 
         while current_id is not None:

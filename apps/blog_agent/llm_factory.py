@@ -188,9 +188,16 @@ def _create_openai_llm(
     model = model or config.OPENAI_MODEL
 
     try:
-        llm = ChatOpenAI(
+        # mypy's pydantic plugin generates ChatOpenAI.__init__ from the field
+        # name/type (max_completion_tokens alias, SecretStr), but the model's
+        # actual runtime config sets populate_by_name=True and validates str
+        # into SecretStr, so keyword `max_tokens` + plain-str `api_key` both
+        # work as intended (verified: ChatOpenAI(max_tokens=..., api_key=<str>)
+        # constructs successfully). This is a stub/runtime-config mismatch,
+        # not a real type error.
+        llm = ChatOpenAI(  # type: ignore[call-arg]
             model=model,
-            api_key=api_key,
+            api_key=api_key,  # type: ignore[arg-type]
             temperature=temperature,
             max_tokens=max_tokens,
             **kwargs
@@ -230,9 +237,13 @@ def _create_anthropic_llm(
     model = model or config.ANTHROPIC_MODEL
 
     try:
-        llm = ChatAnthropic(
+        # Same mypy pydantic-plugin/runtime-config mismatch as ChatOpenAI
+        # above: `model`, `max_tokens`, and plain-str `api_key` all construct
+        # successfully at runtime (populate_by_name=True + SecretStr
+        # validation), verified empirically.
+        llm = ChatAnthropic(  # type: ignore[call-arg]
             model=model,
-            api_key=api_key,
+            api_key=api_key,  # type: ignore[arg-type]
             temperature=temperature,
             max_tokens=max_tokens,
             **kwargs

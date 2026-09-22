@@ -23,7 +23,7 @@ class ImageProcessingAgent(BaseAgent):
     # Default OG image size (Facebook/LinkedIn standard)
     DEFAULT_OG_SIZE = (1200, 630)
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             name="ImageProcessingAgent",
             description="Resize images for OG/social sharing",
@@ -97,7 +97,7 @@ class ImageProcessingAgent(BaseAgent):
         original_size = img.size
 
         # Scale image to fit within target bounds (maintain aspect ratio)
-        img.thumbnail(target_size, Image.LANCZOS)
+        img.thumbnail(target_size, Image.Resampling.LANCZOS)
         scaled_size = img.size
 
         # Create transparent canvas

@@ -209,7 +209,7 @@ class FileRepository(BaseRepository[File]):
             "file_size": file_size,
             "is_thumbnail": is_thumbnail,
         })
-        return result.scalar_one()
+        return int(result.scalar_one())
 
     async def set_thumbnail(self, post_id: int, file_id: int) -> bool:
         """

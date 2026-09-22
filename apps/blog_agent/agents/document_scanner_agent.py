@@ -39,7 +39,7 @@ class DocumentScannerAgent(BaseAgent):
             code-example.png         ← content image
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             name="DocumentScannerAgent",
             description="Scans documentation folder structure and extracts article metadata",
@@ -85,7 +85,7 @@ class DocumentScannerAgent(BaseAgent):
             self._log(f"Scan failed: {e}", "error")
             return {"success": False, "error": str(e), "agent": self.name}
 
-    def _scan_documentation(self, root: Path, max_depth: int = None) -> dict[str, Any]:
+    def _scan_documentation(self, root: Path, max_depth: int | None = None) -> dict[str, Any]:
         """
         재귀적으로 폴더를 스캔하여 article 정보 수집
 
@@ -101,8 +101,8 @@ class DocumentScannerAgent(BaseAgent):
                 "total_categories": int
             }
         """
-        articles = []
-        category_tree = {}
+        articles: list[dict[str, Any]] = []
+        category_tree: dict[str, Any] = {}
 
         # Find all .md files
         for md_file in root.rglob("*.md"):
@@ -121,7 +121,7 @@ class DocumentScannerAgent(BaseAgent):
             "total_categories": len(category_tree),
         }
 
-    def _extract_article_info(self, md_file: Path, root: Path) -> dict[str, Any]:
+    def _extract_article_info(self, md_file: Path, root: Path) -> dict[str, Any] | None:
         """
         마크다운 파일에서 article 정보 추출
 
@@ -190,7 +190,7 @@ class DocumentScannerAgent(BaseAgent):
             "folder": str(article_folder),
         }
 
-    def _find_thumbnail(self, article_folder: Path, article_name: str) -> str:
+    def _find_thumbnail(self, article_folder: Path, article_name: str) -> str | None:
         """
         썸네일 이미지 찾기
 
@@ -237,7 +237,7 @@ class DocumentScannerAgent(BaseAgent):
         return sorted(images)  # 알파벳 순 정렬
 
     def find_file_by_name(
-        self, filename: str, search_dirs: list[Path] = None
+        self, filename: str, search_dirs: list[Path] | None = None
     ) -> list[dict[str, Any]]:
         """
         Find files matching the given filename across directories.
@@ -310,7 +310,7 @@ class DocumentScannerAgent(BaseAgent):
         self._log(f"Found {len(matches)} matches for '{filename}'")
         return matches
 
-    def _add_to_category_tree(self, tree: dict, article_info: dict):
+    def _add_to_category_tree(self, tree: dict[str, Any], article_info: dict[str, Any]) -> None:
         """
         category tree에 article 추가
 

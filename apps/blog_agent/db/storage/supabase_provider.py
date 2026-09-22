@@ -76,4 +76,4 @@ class SupabaseProvider:
 # Runtime isinstance check requires the Protocol to be @runtime_checkable.
 # Verify at import time only in dev — omit in prod to avoid the overhead.
 def _assert_protocol_satisfied() -> None:
-    assert isinstance(SupabaseProvider.__new__(SupabaseProvider), StorageProvider)  # type: ignore[arg-type]
+    assert isinstance(SupabaseProvider.__new__(SupabaseProvider), StorageProvider)

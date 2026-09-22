@@ -237,7 +237,7 @@ class PostRepository(BaseRepository[Post]):
             "og_image_alt": og_image_alt,
             "priority": priority,
         })
-        return result.scalar_one()
+        return int(result.scalar_one())
 
     async def create_comment(
         self,

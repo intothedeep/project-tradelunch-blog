@@ -19,6 +19,7 @@ import asyncio
 from datetime import datetime
 from typing import Any
 
+from langchain_core.language_models import BaseChatModel
 from langchain_ollama import ChatOllama
 from langgraph.graph import END, StateGraph
 from typing_extensions import TypedDict
@@ -69,7 +70,7 @@ class ProjectManagerAgent(BaseAgent):
     5. 최종 결과 취합
     """
 
-    def __init__(self, llm: ChatOllama = None, enable_llm: bool | None = None):
+    def __init__(self, llm: ChatOllama | None = None, enable_llm: bool | None = None):
         """
         Initialize ProjectManagerAgent.
 
@@ -87,6 +88,7 @@ class ProjectManagerAgent(BaseAgent):
         self.enable_llm = is_llm_enabled() if enable_llm is None else enable_llm
 
         # Initialize LLM only when enabled — never touch the factory when disabled
+        self.llm: BaseChatModel | None
         if llm is not None:
             self.llm = llm
         elif self.enable_llm:
@@ -101,10 +103,10 @@ class ProjectManagerAgent(BaseAgent):
         self.logging_agent = LoggingAgent()
 
         # Configure workflow graph
-        self.workflow = None
+        self.workflow: Any = None
         self.setup_workflow()
 
-    def setup_workflow(self):
+    def setup_workflow(self) -> None:
         """LangGraph 워크플로우 구성"""
         workflow = StateGraph(AgentState)
 
@@ -238,8 +240,10 @@ Examples:
 """
 
         try:
+            if self.llm is None:
+                raise RuntimeError("LLM is not enabled; cannot analyze natural language command")
             response = self.llm.invoke(prompt)
-            analysis = response.content
+            analysis = response.content if isinstance(response.content, str) else str(response.content)
 
             # Parse
             import re
@@ -493,7 +497,7 @@ Examples:
         """
         from pathlib import Path
 
-        result = {
+        result: dict[str, Any] = {
             "exists": False,
             "path": None,
             "matches": []
@@ -549,7 +553,7 @@ Examples:
 
         self._log("Scanning available files...")
 
-        result = {
+        result: dict[str, Any] = {
             "posts": [],
             "docs": {},
             "total_files": 0
@@ -584,6 +588,8 @@ Examples:
             root_dir: 스캔할 루트 디렉토리 (기본값: posts)
         """
 
+        from pathlib import Path
+
         from rich.console import Console
         from rich.tree import Tree
 
@@ -598,7 +604,7 @@ Examples:
 
         tree = Tree(f"📁 [bold]{root_dir}/[/bold]")
 
-        def add_files_to_tree(branch, directory, depth=0):
+        def add_files_to_tree(branch: Tree, directory: Path, depth: int = 0) -> int:
             """Recursively add files and folders to tree"""
             items = sorted(directory.iterdir(), key=lambda x: (x.is_file(), x.name))
 

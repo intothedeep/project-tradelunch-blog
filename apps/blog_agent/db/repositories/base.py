@@ -51,7 +51,7 @@ class BaseRepository(Generic[T]):
         Returns:
             Entity or None if not found.
         """
-        stmt = select(self.model).where(self.model.id == id)
+        stmt = select(self.model).where(getattr(self.model, "id") == id)  # noqa: B009
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
@@ -75,7 +75,7 @@ class BaseRepository(Generic[T]):
         stmt = select(self.model)
 
         if not include_deleted and hasattr(self.model, "deleted_at"):
-            stmt = stmt.where(self.model.deleted_at.is_(None))
+            stmt = stmt.where(getattr(self.model, "deleted_at").is_(None))  # noqa: B009
 
         stmt = stmt.limit(limit).offset(offset)
         result = await self.session.execute(stmt)
@@ -114,7 +114,7 @@ class BaseRepository(Generic[T]):
 
         stmt = (
             update(self.model)
-            .where(self.model.id == id)
+            .where(getattr(self.model, "id") == id)  # noqa: B009
             .values(**data)
             .returning(self.model)
         )
@@ -141,12 +141,13 @@ class BaseRepository(Generic[T]):
 
         stmt = (
             update(self.model)
-            .where(self.model.id == id)
-            .where(self.model.deleted_at.is_(None))
+            .where(getattr(self.model, "id") == id)  # noqa: B009
+            .where(getattr(self.model, "deleted_at").is_(None))  # noqa: B009
             .values(deleted_at=func.current_timestamp())
         )
         result = await self.session.execute(stmt)
-        return result.rowcount > 0
+        rowcount = getattr(result, "rowcount", 0)
+        return bool(rowcount and rowcount > 0)
 
     async def hard_delete(self, id: int) -> bool:
         """
@@ -177,7 +178,7 @@ class BaseRepository(Generic[T]):
         stmt = select(func.count()).select_from(self.model)
 
         if not include_deleted and hasattr(self.model, "deleted_at"):
-            stmt = stmt.where(self.model.deleted_at.is_(None))
+            stmt = stmt.where(getattr(self.model, "deleted_at").is_(None))  # noqa: B009
 
         result = await self.session.execute(stmt)
         return result.scalar() or 0
@@ -192,6 +193,6 @@ class BaseRepository(Generic[T]):
         Returns:
             True if exists, False otherwise.
         """
-        stmt = select(func.count()).select_from(self.model).where(self.model.id == id)
+        stmt = select(func.count()).select_from(self.model).where(getattr(self.model, "id") == id)  # noqa: B009
         result = await self.session.execute(stmt)
         return (result.scalar() or 0) > 0

@@ -22,6 +22,8 @@ This file is the orchestration entry-point only. Business logic lives in:
 import re
 from typing import Any
 
+from langchain_core.language_models import BaseChatModel
+
 from schema import calculate_reading_time, generate_slug_from_title
 
 from .base import BaseAgent
@@ -50,7 +52,7 @@ class ExtractingAgent(BaseAgent):
     4. LLM으로 tags와 description 생성 (항상 사용)
     """
 
-    def __init__(self, llm=None, enable_llm: bool = True):
+    def __init__(self, llm: BaseChatModel | None = None, enable_llm: bool = True):
         """
         Initialize ExtractingAgent.
 
