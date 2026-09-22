@@ -22,7 +22,11 @@ export async function getBlogPostsByUsername(
     cursor: string | number = 0,
     limit: number = 10,
     username: string = '',
-    filters?: TPostFilters
+    filters?: TPostFilters,
+    // Seconds to cache in Next's Data Cache. Omit (the default) to keep the
+    // `no-store` behaviour every feed render relies on. app/sitemap.ts is the
+    // only caller that passes it — see the note in apis/http.server.ts.
+    revalidate?: number
 ): Promise<TPaginatedResponse> {
     const url = username ? `/v1/api/posts/users/${username}` : `/v1/api/posts`;
 
@@ -45,6 +49,7 @@ export async function getBlogPostsByUsername(
     try {
         const envelope = await serverRequest<TEnvelope>({
             path,
+            revalidate,
             fallbackError: `Failed to fetch posts: ${username}`,
         });
         return envelope.data;
