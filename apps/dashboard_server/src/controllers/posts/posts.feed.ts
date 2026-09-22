@@ -56,7 +56,13 @@ export function registerFeedRoutes(router: Router): void {
                     /^\d+$/.test(rawCursor) && rawCursor !== '0'
                         ? rawCursor
                         : '9223372036854775807';
-                const limit = parseInt(req.query.limit || '10', 10);
+                // Clamp: a raw `?limit=` went straight into SQL LIMIT, so one
+                // request could dump the whole table. The cap here is 1000, NOT
+                // the usual 50, because app/sitemap.ts legitimately enumerates
+                // every published post through this route (`limit=1000`) — a 50
+                // cap silently truncates the sitemap. 1000 rows is affordable
+                // now that `content` is no longer selected (see the note below).
+                const limit = clampFeedLimit(req.query.limit, 10, 1000);
 
                 // Fetch one extra row to determine if there are more posts
                 const fetchLimit = limit + 1;
@@ -75,7 +81,10 @@ export function registerFeedRoutes(router: Router): void {
                         p.slug,
                         p.title,
                         p.description,
-                        p.content,
+                        -- content is deliberately NOT selected: feed/list cards never render it
+                        -- (detail uses GET /posts/slug/:slug). Shipping full markdown here was
+                        -- triple-counted — Supabase egress, Fast Origin Transfer, and again in the
+                        -- RSC payload sent to the browser. 2026-09-22 quota-outage fix.
                         p.status,
                         p.created_at,
                         p.updated_at,
@@ -105,7 +114,6 @@ export function registerFeedRoutes(router: Router): void {
                     slug,
                     title,
                     description,
-                    content,
                     status,
                     created_at,
                     updated_at,

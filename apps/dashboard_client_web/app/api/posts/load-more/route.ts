@@ -17,7 +17,12 @@ function splitFacet(raw: string | null): string[] {
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const cursor = searchParams.get('cursor') ?? undefined;
-    const limit = Number(searchParams.get('limit')) || 10;
+    // Clamp to [1, 50] — this handler is publicly reachable, and an unbounded
+    // `?limit=` was reaching the Express feed as a raw SQL LIMIT. Mirrors
+    // clampFeedLimit in dashboard_server (helpers/postsByTag.ts).
+    const rawLimit = Number(searchParams.get('limit'));
+    const limit =
+        Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 50) : 10;
     // Empty username => all-authors global feed (GET /v1/api/posts), used by the
     // homepage. A real username scopes to that author (/v1/api/posts/users/:u).
     const username = searchParams.get('username') ?? '';

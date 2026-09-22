@@ -46,6 +46,15 @@ function hostnameOf(url: string): string {
 const nextConfig: NextConfig = {
     transpilePackages: ['@repo/types'],
     images: {
+        // Bypass Vercel's image optimizer (2026-09-22, quota outage). Every
+        // <Image> was being routed through /_next/image, which re-encodes to
+        // avif/webp at 6 device widths and serves the bytes FROM VERCEL —
+        // burning Image Transformations (Hobby caps at 5,000/mo) and Fast Data
+        // Transfer, and bypassing the OCI + Cloudflare CDN that exists for
+        // exactly this. Uploads are already resized and webp-encoded at write
+        // time (Phase F/F2), so there is little left for the optimizer to do.
+        // The settings below are kept for the day this is re-enabled.
+        unoptimized: true,
         remotePatterns: [
             {
                 protocol: 'https',

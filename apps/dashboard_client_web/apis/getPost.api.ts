@@ -8,7 +8,16 @@ import type { TPost } from '@/apis/blog.types';
 // preventing a private-bearing response from being served to a different viewer.
 // Express GET /v1/api/posts/slug/:slug returns { success, data: post }.
 export const getPostBySlug = cache(
-    async ({ slug, token }: { slug: string; token?: string | null }) => {
+    async ({
+        slug,
+        token,
+        revalidate,
+    }: {
+        slug: string;
+        token?: string | null;
+        /** OG image route only — see the note in apis/http.server.ts. */
+        revalidate?: number;
+    }) => {
         try {
             const envelope = await serverRequest<{
                 success: boolean;
@@ -16,6 +25,7 @@ export const getPostBySlug = cache(
             }>({
                 path: `/v1/api/posts/slug/${slug}`,
                 token,
+                revalidate,
                 fallbackError: `Failed to fetch a post: ${slug}`,
             });
             return envelope.data;

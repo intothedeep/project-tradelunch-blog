@@ -68,7 +68,9 @@ export function registerUserFeedRoutes(router: Router): void {
                     /^\d+$/.test(rawCursor) && rawCursor !== '0'
                         ? rawCursor
                         : '9223372036854775807';
-                const limit = parseInt(req.query.limit || '10', 10);
+                // Clamp: a raw `?limit=` went straight into SQL LIMIT, so one
+                // request could dump the whole table. clampFeedLimit caps at 50.
+                const limit = clampFeedLimit(req.query.limit);
 
                 // Multi-category filter ($5 text[]). OR within the facet via array
                 // overlap (&&) against the category PATH, so each title matches
@@ -99,7 +101,10 @@ export function registerUserFeedRoutes(router: Router): void {
                         p.slug,
                         p.title,
                         p.description,
-                        p.content,
+                        -- content is deliberately NOT selected: feed/list cards never render it
+                        -- (detail uses GET /posts/slug/:slug). Shipping full markdown here was
+                        -- triple-counted — Supabase egress, Fast Origin Transfer, and again in the
+                        -- RSC payload sent to the browser. 2026-09-22 quota-outage fix.
                         p.status,
                         p.category_id,
                         p.updated_at,
@@ -151,7 +156,6 @@ export function registerUserFeedRoutes(router: Router): void {
                     slug,
                     title,
                     description,
-                    content,
                     status,
                     created_at,
                     updated_at,

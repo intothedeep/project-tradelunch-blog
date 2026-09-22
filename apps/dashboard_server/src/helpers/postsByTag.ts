@@ -76,7 +76,10 @@ function buildTagFeedQuery(scoped: boolean): string {
                 p.slug,
                 p.title,
                 p.description,
-                p.content,
+                -- content is deliberately NOT selected: feed/list cards never render it
+                -- (detail uses GET /posts/slug/:slug). Shipping full markdown here was
+                -- triple-counted — Supabase egress, Fast Origin Transfer, and again in the
+                -- RSC payload sent to the browser. 2026-09-22 quota-outage fix.
                 p.status,
                 p.created_at,
                 p.updated_at,
@@ -108,7 +111,6 @@ function buildTagFeedQuery(scoped: boolean): string {
             slug,
             title,
             description,
-            content,
             status,
             created_at,
             updated_at,
