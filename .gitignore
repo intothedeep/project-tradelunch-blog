@@ -43,6 +43,9 @@ z_*
 _docs/
 x_*
 
+# python
+.venv
+
 # agent/claude runtime artifacts (local-only — .claude/ config no longer tracked)
 .agent/
 apps/dashboard_server/supabase/seed.prod.sql
