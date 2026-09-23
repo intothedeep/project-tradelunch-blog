@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     }
 
     try {
-        const post = await getPostBySlug({ slug, token });
+        const post = await getPostBySlug(slug, token);
         const title = post.title as string;
         const description = buildDescription(post);
         // Only pass stored_uri as an explicit override — when absent, Next.js
@@ -97,12 +97,12 @@ export default async function BlogDetailPage({ params }: Props) {
         token = null;
     }
 
-    // Fetches the post again for JSON-LD. NOTE: getPostBySlug's cache() wrapper
-    // keys by object identity, so this does NOT dedupe with the other call sites —
-    // each is a distinct backend round-trip (acceptable: internal, no-store).
+    // Fetches the post again for JSON-LD. getPostBySlug's cache() wrapper keys
+    // by positional value, so this dedupes with the other same-request call
+    // sites passing the same (slug, token) — one Express round-trip total.
     let jsonLd: object[] | null = null;
     try {
-        const post = await getPostBySlug({ slug, token });
+        const post = await getPostBySlug(slug, token);
         jsonLd = [
             buildBlogPostingLd({
                 title: post.title as string,

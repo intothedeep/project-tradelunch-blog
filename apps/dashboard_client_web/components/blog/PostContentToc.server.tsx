@@ -18,7 +18,7 @@ export const PostContentToc = async ({ slug }: { slug: string }) => {
         token = null;
     }
 
-    const post = await getPostBySlug({ slug, token });
+    const post = await getPostBySlug(slug, token);
     const tocItems = await extractTocParsed(post.content || '');
 
     return <TocPublisher items={tocItems} />;

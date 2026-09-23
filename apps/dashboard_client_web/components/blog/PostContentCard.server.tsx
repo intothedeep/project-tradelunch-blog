@@ -33,7 +33,7 @@ export const PostContentCard = async ({
         token = null;
     }
 
-    const post = await getPostBySlug({ slug, token });
+    const post = await getPostBySlug(slug, token);
     const tags: string[] = Array.isArray(post.tags) ? post.tags : [];
 
     // Record-on-view: minimal summary (id is a STRING — never Number()) feeds

@@ -35,10 +35,7 @@ export default async function Image({ params }: Props): Promise<ImageResponse> {
     const { slug } = await params;
 
     try {
-        const post = await getPostBySlug({
-            slug,
-            revalidate: OG_CACHE_SECONDS,
-        });
+        const post = await getPostBySlug(slug, undefined, OG_CACHE_SECONDS);
         const title = (post.title as string | undefined) ?? 'Untitled';
         const subtitle =
             (post.display_name as string | undefined) ??
