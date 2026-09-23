@@ -52,6 +52,10 @@ export const AppliedFilters: React.FC<{ username: string }> = ({
                 href={buildToggleHref(username, current, facet, value)}
                 aria-label={t(removeKey, { value })}
                 className={cn(CHIP)}
+                // Facet-filter crawler trap (quota outage 2026-09-23): same
+                // force-dynamic combinatorics as FilterChip — keep crawlers off.
+                rel="nofollow"
+                prefetch={false}
             >
                 <span className="truncate">{display}</span>
                 <span aria-hidden="true">✕</span>
@@ -69,6 +73,10 @@ export const AppliedFilters: React.FC<{ username: string }> = ({
             <Link
                 href={buildFeedHref(username, { categories: [], tags: [] })}
                 className={CLEAR}
+                // Quota outage 2026-09-23: this is the clean author URL, but it
+                // only renders on filtered pages — no need to crawl/prefetch it.
+                rel="nofollow"
+                prefetch={false}
             >
                 {t('clearAll')}
             </Link>

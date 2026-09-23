@@ -117,6 +117,12 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
                                         badgeVariants({ variant: 'outline' }),
                                         'text-xs transition-colors hover:bg-primary hover:text-primary-foreground'
                                     )}
+                                    // Facet-filter crawler trap (quota outage
+                                    // 2026-09-23): ?category_title= is a
+                                    // force-dynamic feed URL variant; keep
+                                    // crawlers/prefetch off it.
+                                    rel="nofollow"
+                                    prefetch={false}
                                 >
                                     {seg}
                                 </Link>

@@ -71,6 +71,11 @@ export const FilterChip: React.FC<Props> = ({
             aria-current={isActive ? 'true' : undefined}
             aria-label={ariaLabel}
             className={cn(BASE, isActive ? ACTIVE : INACTIVE, className)}
+            // Facet-filter crawler trap (quota outage 2026-09-23): each chip
+            // combination is a distinct force-dynamic URL that re-hits Express;
+            // nofollow + no prefetch keeps crawlers/prefetch off these.
+            rel="nofollow"
+            prefetch={false}
         >
             {isActive ? <span aria-hidden="true">✓</span> : null}
             <span className="truncate">

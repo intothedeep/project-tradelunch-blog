@@ -46,6 +46,13 @@ export default function robots(): MetadataRoute.Robots {
                     '/me',
                     '/settings',
                     '/admin',
+                    // Facet-filter crawler trap (quota outage 2026-09-23): these
+                    // query params combine to ~2^N force-dynamic feed URLs, each
+                    // a fresh Express call; canonical already folds them for
+                    // indexing so crawling every combination has no SEO value.
+                    '/*?*categories=',
+                    '/*?*tags=',
+                    '/*?*category_title=',
                 ],
             },
             {
