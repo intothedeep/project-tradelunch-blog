@@ -44,9 +44,6 @@ target would demand py312-only idioms that break that declared floor). See
 `pyproject.toml` for the exact settings — mypy runs with individual strict
 flags, not `--strict`.
 
-`db/repositories/x_backup/` is soft-deleted (`x_` prefix, see
-`.claude/rules/core.md`) and excluded from mypy; do not treat it as live code.
-
 ### Setup
 
 ```bash

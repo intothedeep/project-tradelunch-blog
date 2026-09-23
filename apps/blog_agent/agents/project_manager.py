@@ -267,7 +267,11 @@ Examples:
 
         except Exception as e:
             self._log(f"Command analysis failed: {e}", "warning")
-            # Fallback: default plan
+            # Deliberate (owner, 2026-09-22): with enable_llm=False the RuntimeError
+            # above lands here, so a natural-language command degrades to the only
+            # plan that matters in practice — extract then upload. The real entry
+            # point is scripts/publish_oneshot.py, which passes an explicit path and
+            # never needs the LLM to infer one. Not a silent-failure bug.
             state["plan"] = ["extract", "upload"]
             state["current_step"] = "analyzed"
 
