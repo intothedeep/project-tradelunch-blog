@@ -13,6 +13,7 @@
 import { Router } from 'express';
 import { pool } from '../../database';
 import { optionalAuth } from '../../middlewares/optionalAuth';
+import { setPostReadCache } from './posts.cache';
 
 export function registerDetailRoutes(router: Router): void {
     /**
@@ -67,6 +68,7 @@ export function registerDetailRoutes(router: Router): void {
                     .json({ success: false, message: 'Post not found' });
             }
 
+            setPostReadCache(req, res);
             res.json({ success: true, data: post });
         } catch (error) {
             console.error(
@@ -148,6 +150,7 @@ export function registerDetailRoutes(router: Router): void {
                     .json({ success: false, message: 'Post not found' });
             }
 
+            setPostReadCache(req, res);
             res.json({ success: true, data: post });
         } catch (error) {
             console.error(

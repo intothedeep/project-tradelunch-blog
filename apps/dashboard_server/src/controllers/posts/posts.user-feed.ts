@@ -19,6 +19,7 @@ import {
 } from '../../helpers/postsByTag';
 import { parseFeedFacet } from '../../helpers/parseFeedFacet';
 import { CATEGORY_PATH_CTE } from './posts.shared';
+import { setPostReadCache } from './posts.cache';
 
 export function registerUserFeedRoutes(router: Router): void {
     /**
@@ -193,19 +194,6 @@ export function registerUserFeedRoutes(router: Router): void {
                 // the owner sees their own drafts/private on their own profile.
                 const viewerId = req.auth?.userId ?? -1;
 
-                // Cache (Option X — TTL/SWR). Authenticated context = an owner may
-                // see their own drafts via `OR p.user_id = $4`, so the response is
-                // per-viewer and MUST NOT be shared-cached. Anonymous (no resolved
-                // token => req.auth undefined) is viewer-agnostic and CDN-cacheable.
-                if (req.auth) {
-                    res.setHeader('Cache-Control', 'private, no-store');
-                } else {
-                    res.setHeader(
-                        'Cache-Control',
-                        'public, s-maxage=60, stale-while-revalidate=86400'
-                    );
-                }
-
                 const { rows } = await pool.query(postsQuery, [
                     username,
                     cursorParam,
@@ -229,6 +217,12 @@ export function registerUserFeedRoutes(router: Router): void {
                     hasMore,
                 };
 
+                // Cache (Option X — TTL/SWR). Authenticated context = an owner may
+                // see their own drafts via `OR p.user_id = $4`, so the response is
+                // per-viewer and MUST NOT be shared-cached. Anonymous (no resolved
+                // token => req.auth undefined) is viewer-agnostic and CDN-cacheable.
+                // Set only on success so a 500 is never edge-cached.
+                setPostReadCache(req, res);
                 res.json({
                     success: true,
                     data,

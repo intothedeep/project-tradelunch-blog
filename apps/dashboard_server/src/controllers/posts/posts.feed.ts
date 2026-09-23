@@ -16,6 +16,7 @@ import {
     listPostsByTag,
 } from '../../helpers/postsByTag';
 import { CATEGORY_PATH_CTE } from './posts.shared';
+import { setPostReadCache } from './posts.cache';
 
 export function registerFeedRoutes(router: Router): void {
     /**
@@ -165,6 +166,7 @@ export function registerFeedRoutes(router: Router): void {
                     hasMore,
                 };
 
+                setPostReadCache(req, res);
                 res.json({
                     success: true,
                     data,
@@ -203,6 +205,7 @@ export function registerFeedRoutes(router: Router): void {
                 const cursor = normalizeCursor(req.query.cursor);
                 const limit = clampFeedLimit(req.query.limit);
                 const data = await listPostsByTag(pool, { tag, cursor, limit });
+                setPostReadCache(req, res);
                 res.json({ success: true, data });
             } catch (error) {
                 console.error('API Error fetching posts by tag:', error);
