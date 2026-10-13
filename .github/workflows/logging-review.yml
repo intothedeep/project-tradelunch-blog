@@ -1,0 +1,88 @@
+# Weekly Cloud Logging volume review (decision #57). The job reads Cloud Logging
+# through Workload Identity Federation (deploy/logging/github-wif.md), runs
+# deploy/logging/check-volume.sh, and opens an issue with a SHORT summary only.
+# The repo is public: volume.txt (full output) is never printed or posted.
+# Change the cron line to change the cadence.
+name: Logging review
+
+on:
+    schedule:
+        - cron: '17 14 * * 1' # every Monday 14:17 UTC (09:17 US Central)
+    workflow_dispatch:
+
+permissions:
+    issues: write
+    id-token: write # lets the job request the OIDC token for GCP
+    contents: read # checkout, to run deploy/logging/check-volume.sh
+
+jobs:
+    review:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+            - id: auth
+              uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+              continue-on-error: true
+              with:
+                  workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+                  service_account: ${{ vars.GCP_LOGGING_SA }}
+
+            - id: gcloud
+              if: steps.auth.outcome == 'success'
+              uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+              continue-on-error: true
+              with:
+                  project_id: mywebsite-511502
+
+            - id: check
+              if: steps.gcloud.outcome == 'success'
+              continue-on-error: true
+              # Output stays in volume.txt: the run log is public.
+              run: deploy/logging/check-volume.sh 7d > volume.txt 2>/dev/null
+
+            - name: Open the review issue
+              if: always()
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GH_REPO: ${{ github.repository }}
+                  CHECK_OUTCOME: ${{ steps.check.outcome }}
+              run: |
+                  target=250
+                  title="Logging review $(date -u +%Y-%m-%d)"
+                  total=""
+                  errors=""
+                  if [ "$CHECK_OUTCOME" = success ] && [ -f volume.txt ]; then
+                      total=$(sed -n 's/^TOTAL_MB=//p' volume.txt | tail -n1)
+                      errors=$(sed -n 's/^BLOG_API_ERRORS=//p' volume.txt | tail -n1)
+                  fi
+
+                  verdict_cmd='⚠️ check on the Mac: `deploy/logging/check-volume.sh 7d`'
+                  if [ -z "$total" ] || [ -z "$errors" ]; then
+                      title="⚠️ $title"
+                      summary="The automated check failed (auth, gcloud or script). Run it on the Mac: \`deploy/logging/check-volume.sh 7d\`."
+                  else
+                      over=$(awk -v t="$total" -v c="$target" 'BEGIN{print (t > c) ? 1 : 0}')
+                      if [ "$over" = 1 ] || [ "$errors" -gt 20 ]; then
+                          title="⚠️ $title"
+                          verdict="$verdict_cmd"
+                      else
+                          verdict="OK"
+                      fi
+                      summary=$(printf '%s\n' \
+                          "| Check (7 days) | Value | Target |" \
+                          "| --- | --- | --- |" \
+                          "| Total volume | ${total} MB | < ${target} MB |" \
+                          "| blog-api ERROR | ${errors} | <= 20 |" \
+                          "" \
+                          "Verdict: ${verdict}")
+                  fi
+
+                  body=$(printf '%s\n' \
+                      "Cloud Logging volume review for the GCP VM (decision #57, option C = keep as is)." \
+                      "" \
+                      "$summary" \
+                      "" \
+                      "- [ ] Syslog senders: nothing new and noisy (run the script on the Mac to see them)" \
+                      "- [ ] Still fine: close this issue. Too noisy: pick A or B in \`deploy/logging/README.md\` \"Volume and noise\"")
+                  gh issue create --title "$title" --body "$body"
