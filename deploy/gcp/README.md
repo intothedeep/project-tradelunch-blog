@@ -172,3 +172,5 @@ ls -1t ~/prettylog/api/releases          # pick an older sha (not x_*)
 | `pm2: command not found` over ssh | nvm not loaded: `source ~/.nvm/nvm.sh` (release.sh does this itself) |
 | browser CORS error | `ALLOWED_ORIGINS` in `shared/api.env`, then reload with `--update-env` |
 | restarts in a loop (`pm2 ls` ↺ climbing) | `pm2 logs blog-api`; memory cap is 200M (`max_memory_restart`) |
+| `ZodError ... expected number, received NaN` | a numeric key in `api.env` (`MAX_FILE_SIZE`, `THUMBNAIL_*`, …) has a unit, a formula or a same-line `# comment`. Keep digits only, or delete the line to use the default. Then `pm2 restart ~/prettylog/ecosystem.config.cjs --only blog-api --update-env` (seen 2026-10-13) |
+| `injected env (0) from .env…` in the out log | harmless: dotenv finds no `.env*` in the release dir; PM2 supplies the env |
