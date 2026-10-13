@@ -73,7 +73,7 @@ export function summarize(data, setName) {
         if (!d) continue
         const cf = STATUSES.map((s) => [s, val(`cf_${t}_${s}`, 'count')]).filter(([, c]) => c > 0)
         rows.push(
-            `| ${t} | ${vals(d).count} | ${vals(d)['p(95)'].toFixed(0)} | ` +
+            `| ${t} | ${f ? vals(f).passes + vals(f).fails : "?"} | ${vals(d)['p(95)'].toFixed(0)} | ` +
                 `${f ? (vals(f).rate * 100).toFixed(2) : '0.00'} | ${cf.map(([s, c]) => `${s} ${c}`).join(', ') || 'none'} |`,
         )
     }
