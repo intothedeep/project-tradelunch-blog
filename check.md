@@ -18,9 +18,14 @@ Claude 세션을 시작하면 이 파일을 먼저 본다. 날짜가 지난 항�
 
 | 항목 | 결정 | 다시 볼 때 |
 | --- | --- | --- |
-| 방화벽 `default-allow-ssh`, `default-allow-rdp` 끄기 | 그대로 둔다 (#69) | 보안 점검을 할 때 |
 | 주간 issue에 egress 넣기 (`roles/monitoring.viewer`) | 보류 (#61) | IAM을 손볼 때. 그동안 `./_scripts/gcp/vm-metrics.sh 7` |
-| HTML 캐시 키 허용 목록 (랜덤 쿼리 우회 a안) | 지금은 과하다 (#68) | 한도 50으로 부족할 때 |
+
+## 중단 (오너, 2026-10-13: 다시 보지 않는다)
+
+| 항목 | 결정 |
+| --- | --- |
+| 방화벽 `default-allow-ssh`, `default-allow-rdp` 끄기 | 중단 (#69) |
+| HTML 캐시 키 허용 목록 (랜덤 쿼리 우회 a안) | 중단 (#68). 대신 Cloudflare 한도 50 / 10 s와 prefetch 줄이기 |
 
 ## 끝난 것
 

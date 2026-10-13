@@ -26,8 +26,8 @@
 | G | CORS 거절을 403으로 | 완료, 운영 확인 (`4d137f2`) |
 | H | 요청 수 제한(rate limit), 부하 시험(load test) | Cloudflare 규칙 운영 중, Express `log` 모드 운영 중, L1 통과, L2-web 약 2 rps에서 한계 (`02-blocking.md`) |
 | I | 주간 issue에 egress 넣기 | **보류** (오너, 2026-10-13) |
-| K | GCP 방화벽 22, 3389 끄기 | 보류 (오너, #69) |
-| M | 랜덤 쿼리로 캐시를 피하는 요청 막기 | a안 보류. b안: Cloudflare 한도 50 / 10 s (#68). prefetch 줄이기는 다음 설계 |
+| K | GCP 방화벽 22, 3389 끄기 | 중단 (오너, #69) |
+| M | 랜덤 쿼리로 캐시를 피하는 요청 막기 | a안 중단. b안: Cloudflare 한도 50 / 10 s (#68). prefetch 줄이기는 다음 설계 |
 | L | 공개 error-logs 쓰기 막기 | 완료, 운영 확인 (`38b4c12`) |
 | J | Supabase Log Query 사용량 | 관찰 중 |
 
