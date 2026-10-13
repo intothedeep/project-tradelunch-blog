@@ -13,7 +13,7 @@ Open decisions follow the design's recommendations unless the owner says otherwi
 [x] 3. API cache rules     Cloudflare answers API GETs        done 2026-10-13
 [x] 4. Alerts              mail when money or memory is high  done 2026-10-13
 [x] 5. Weekly auto check   a weekly issue with cache checks   done 2026-10-13
-[x] 6. Web rate limit      cap one IP on my.                  done 2026-10-13 (429 verified)
+[x] 6. Web rate limit      cap one IP on my.                  done 2026-10-13 (429 verified; 100 → 50 / 10 s, #68)
 ```
 
 | Step | Protects | Who | Done when |
@@ -388,7 +388,7 @@ Cloudflare → prettylog.com → Security → WAF → Rate limiting rules → Cr
 | --- | --- |
 | Rule name | `web rate limit` |
 | Counting | per IP |
-| Requests | 100 |
+| Requests | 50 (was 100; decision #68, 2026-10-13) |
 | Period | 10 seconds |
 | Action | Block |
 | Duration | 10 seconds |
