@@ -9,6 +9,7 @@
 //     field or leave it untouched, but CANNOT null out an existing value.
 // Side effects: DB writes via the writePost helpers; sharp resize + one network
 //          upload to the active storage provider on the image route.
+import { isValidBigintId } from '../../utils/id.utils';
 import { Router } from 'express';
 import type { NextFunction, Request, Response } from 'express';
 import multer from 'multer';
@@ -125,7 +126,7 @@ router.post('', requireAuth, async (req, res) => {
 
         res.status(201).json({ success: true, data: row });
     } catch (error) {
-        console.error('POST /api/posts error:', error);
+        req.log.error({ err: error }, 'POST /api/posts');
         res.status(500).json({
             success: false,
             message: 'failed to create post',
@@ -138,7 +139,7 @@ router.patch('/:postid', requireAuth, async (req, res) => {
         // BIGINT id: keep it a string (never parseInt — JS numbers lose
         // precision past 2^53 and would target the wrong row).
         const postId = String(req.params.postid);
-        if (!/^\d+$/.test(postId)) {
+        if (!isValidBigintId(postId)) {
             res.status(400).json({
                 success: false,
                 message: 'invalid post id',
@@ -200,7 +201,7 @@ router.patch('/:postid', requireAuth, async (req, res) => {
 
         res.json({ success: true, data: row });
     } catch (error) {
-        console.error('PATCH /api/posts/:postid error:', error);
+        req.log.error({ err: error }, 'PATCH /api/posts/:postid');
         res.status(500).json({
             success: false,
             message: 'failed to update post',
@@ -212,7 +213,7 @@ router.delete('/:postid', requireAuth, async (req, res) => {
     try {
         // BIGINT id: keep it a string (never parseInt — see PATCH above).
         const postId = String(req.params.postid);
-        if (!/^\d+$/.test(postId)) {
+        if (!isValidBigintId(postId)) {
             res.status(400).json({
                 success: false,
                 message: 'invalid post id',
@@ -233,7 +234,7 @@ router.delete('/:postid', requireAuth, async (req, res) => {
 
         res.json({ success: true, data: { id: deletedId } });
     } catch (error) {
-        console.error('DELETE /api/posts/:postid error:', error);
+        req.log.error({ err: error }, 'DELETE /api/posts/:postid');
         res.status(500).json({
             success: false,
             message: 'failed to delete post',
@@ -307,7 +308,7 @@ router.post('/images', requireAuth, uploadSingleFile, async (req, res) => {
         const payload: TImageUploadResponse = { publicUrl };
         res.status(200).json({ success: true, data: payload });
     } catch (error) {
-        console.error('POST /api/posts/images error:', error);
+        req.log.error({ err: error }, 'POST /api/posts/images');
         res.status(500).json({
             success: false,
             message: 'failed to upload image',

@@ -19,7 +19,7 @@ router.post('', async (req, res) => {
         await insertErrorLog(pool, row);
         res.status(204).end();
     } catch (error) {
-        console.error('POST /api/error-logs error:', error);
+        req.log.error({ err: error }, 'POST /api/error-logs');
         res.status(500).json({
             success: false,
             message: 'failed to log error',

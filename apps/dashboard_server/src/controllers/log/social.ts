@@ -15,6 +15,7 @@
 //   * sendOk/sendError from helpers/response (shared { success, data } envelope).
 //   * Touches only log, log_likes, follows, users (never posts/comments).
 // Side effects: DB reads/writes via pool.
+import { isValidBigintId } from '../../utils/id.utils';
 import { Router } from 'express';
 import { pool } from '../../database';
 import { requireAuth } from '../../middlewares/requireAuth';
@@ -32,10 +33,6 @@ function clampPageLimit(raw?: string): number {
     return Math.min(n, MAX_PAGE_LIMIT);
 }
 
-function isValidId(value: string): boolean {
-    return /^\d+$/.test(value);
-}
-
 export const logSocialRouter = Router();
 
 // GET /timeline — viewer's followed-users fan-in feed (requireAuth).
@@ -45,7 +42,7 @@ logSocialRouter.get('/timeline', requireAuth, async (req, res) => {
     try {
         const rawCursor =
             typeof req.query.cursor === 'string' ? req.query.cursor : '';
-        const cursor = isValidId(rawCursor)
+        const cursor = isValidBigintId(rawCursor)
             ? rawCursor
             : TIMELINE_CURSOR_SENTINEL;
         const limit = clampPageLimit(
@@ -60,7 +57,7 @@ logSocialRouter.get('/timeline', requireAuth, async (req, res) => {
         );
         sendOk(res, result);
     } catch (error) {
-        console.error('GET /api/log/timeline error:', error);
+        req.log.error({ err: error }, 'GET /api/log/timeline');
         sendError(res, 500, 'failed to load timeline');
     }
 });
@@ -69,7 +66,7 @@ logSocialRouter.get('/timeline', requireAuth, async (req, res) => {
 logSocialRouter.post('/:id/like', requireAuth, async (req, res) => {
     try {
         const logId = String(req.params.id);
-        if (!isValidId(logId)) {
+        if (!isValidBigintId(logId)) {
             sendError(res, 400, 'invalid log id');
             return;
         }
@@ -94,7 +91,7 @@ logSocialRouter.post('/:id/like', requireAuth, async (req, res) => {
             sendError(res, 410, 'cannot like a deleted log node');
             return;
         }
-        console.error('POST /api/log/:id/like error:', error);
+        req.log.error({ err: error }, 'POST /api/log/:id/like');
         sendError(res, 500, 'failed to toggle like');
     }
 });
@@ -103,7 +100,7 @@ logSocialRouter.post('/:id/like', requireAuth, async (req, res) => {
 logSocialRouter.get('/:id/like', optionalAuth, async (req, res) => {
     try {
         const logId = String(req.params.id);
-        if (!isValidId(logId)) {
+        if (!isValidBigintId(logId)) {
             sendError(res, 400, 'invalid log id');
             return;
         }
@@ -112,7 +109,7 @@ logSocialRouter.get('/:id/like', optionalAuth, async (req, res) => {
         const result = await getLogLikeState(pool, logId, viewerId);
         sendOk(res, result);
     } catch (error) {
-        console.error('GET /api/log/:id/like error:', error);
+        req.log.error({ err: error }, 'GET /api/log/:id/like');
         sendError(res, 500, 'failed to read like state');
     }
 });

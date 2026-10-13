@@ -5,6 +5,7 @@
 //   * Authorization is solely requireAdmin (requireAuth + isAdmin assertion).
 //   * Delete is SOFT (helpers/adminPosts.adminSoftDeletePost), never hard.
 // Side effects: DB reads/writes via the adminPosts helpers.
+import { isValidBigintId } from '../../utils/id.utils';
 import { Router, type Request, type Response } from 'express';
 import { pool } from '../../database';
 import { requireAdmin } from '../../middlewares/requireAdmin';
@@ -42,7 +43,7 @@ router.get('/', requireAdmin, async (req: Request, res: Response) => {
         });
         res.json({ success: true, data });
     } catch (error) {
-        console.error('GET /api/admin/posts error:', error);
+        req.log.error({ err: error }, 'GET /api/admin/posts');
         res.status(500).json({
             success: false,
             message: 'failed to list posts',
@@ -57,7 +58,7 @@ router.patch(
         try {
             // postId is a BIGINT — keep it a numeric STRING; never parseInt (precision).
             const postId = String(req.params.postid);
-            if (!/^\d+$/.test(postId)) {
+            if (!isValidBigintId(postId)) {
                 res.status(400).json({
                     success: false,
                     message: 'invalid post id',
@@ -87,9 +88,9 @@ router.patch(
 
             res.json({ success: true, data: row });
         } catch (error) {
-            console.error(
-                'PATCH /api/admin/posts/:postid/status error:',
-                error
+            req.log.error(
+                { err: error },
+                'PATCH /api/admin/posts/:postid/status'
             );
             res.status(500).json({
                 success: false,
@@ -103,7 +104,7 @@ router.delete('/:postid', requireAdmin, async (req: Request, res: Response) => {
     try {
         // postId is a BIGINT — keep it a numeric STRING; never parseInt (precision).
         const postId = String(req.params.postid);
-        if (!/^\d+$/.test(postId)) {
+        if (!isValidBigintId(postId)) {
             res.status(400).json({
                 success: false,
                 message: 'invalid post id',
@@ -119,7 +120,7 @@ router.delete('/:postid', requireAdmin, async (req: Request, res: Response) => {
 
         res.json({ success: true, data: { id: deletedId } });
     } catch (error) {
-        console.error('DELETE /api/admin/posts/:postid error:', error);
+        req.log.error({ err: error }, 'DELETE /api/admin/posts/:postid');
         res.status(500).json({
             success: false,
             message: 'failed to delete post',

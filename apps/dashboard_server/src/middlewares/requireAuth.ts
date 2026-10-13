@@ -24,7 +24,7 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
         req.auth = result.identity;
         next();
     } catch (error) {
-        console.error('requireAuth error:', error);
+        req.log.error({ err: error }, 'requireAuth');
         res.status(500).json({ success: false, message: 'auth failure' });
     }
 };

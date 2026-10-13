@@ -10,6 +10,7 @@
 //   * postid is a BIGINT string — never parseInt (precision past 2^53).
 //   * Soft-deleted posts are excluded (deleted_at IS NULL).
 
+import { isValidBigintId } from '../../utils/id.utils';
 import { Router } from 'express';
 import { pool } from '../../database';
 import { optionalAuth } from '../../middlewares/optionalAuth';
@@ -28,7 +29,12 @@ export function registerDetailRoutes(router: Router): void {
      */
     router.get('/:postid', optionalAuth, async (req, res) => {
         try {
-            const { postid } = req.params;
+            const postid = String(req.params.postid);
+            if (!isValidBigintId(postid)) {
+                return res
+                    .status(404)
+                    .json({ success: false, message: 'Post not found' });
+            }
             // D2.7: anon sees only public; owner sees own post in any status.
             // $1 = postid, $2 = viewer user id (-1 = nobody, never matches user_id).
             // Rule-1: deleted posts are never selected (deleted_at IS NULL).
@@ -71,9 +77,9 @@ export function registerDetailRoutes(router: Router): void {
             setPostReadCache(req, res);
             res.json({ success: true, data: post });
         } catch (error) {
-            console.error(
-                `API Error fetching post ${req.params.postid}:`,
-                error
+            req.log.error(
+                { err: error },
+                `API Error fetching post ${req.params.postid}`
             );
             res.status(500).json({
                 success: false,
@@ -153,9 +159,9 @@ export function registerDetailRoutes(router: Router): void {
             setPostReadCache(req, res);
             res.json({ success: true, data: post });
         } catch (error) {
-            console.error(
-                `API Error fetching post by slug ${req.params.slug}:`,
-                error
+            req.log.error(
+                { err: error },
+                `API Error fetching post by slug ${req.params.slug}`
             );
             res.status(500).json({
                 success: false,

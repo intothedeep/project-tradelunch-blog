@@ -10,6 +10,7 @@
 // Note: this file is ~175 LOC due to the tree CTE SQL verbatim; faithful move
 //   required to keep SQL byte-for-byte identical per refactor contract.
 
+import { isValidBigintId } from '../../utils/id.utils';
 import { Router, Request } from 'express';
 import { pool } from '../../database';
 import { optionalAuth } from '../../middlewares/optionalAuth';
@@ -178,7 +179,7 @@ export function registerUserCategoriesRoutes(router: Router): void {
 
                 sendOk(res, { categories });
             } catch (error) {
-                console.error('API Error fetching categories:', error);
+                req.log.error({ err: error }, 'API Error fetching categories');
                 sendError(res, 500, 'Failed to fetch categories');
             }
         }
@@ -204,6 +205,11 @@ export function registerUserCategoriesRoutes(router: Router): void {
         ) => {
             try {
                 const { username, categoryId } = req.params;
+                if (!isValidBigintId(categoryId)) {
+                    return res
+                        .status(404)
+                        .json({ success: false, message: 'Category not found' });
+                }
                 const rawCursor =
                     typeof req.query.cursor === 'string'
                         ? req.query.cursor
@@ -295,7 +301,7 @@ export function registerUserCategoriesRoutes(router: Router): void {
                     hasMore,
                 });
             } catch (error) {
-                console.error('API Error fetching posts by category:', error);
+                req.log.error({ err: error }, 'API Error fetching posts by category');
                 res.status(500).json({
                     success: false,
                     message: 'Failed to fetch posts',

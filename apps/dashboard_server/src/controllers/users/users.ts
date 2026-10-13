@@ -50,7 +50,7 @@ router.get('/me', requireAuth, async (req, res) => {
             needsOnboarding: user.username === null,
         });
     } catch (error) {
-        console.error('GET /api/users/me error:', error);
+        req.log.error({ err: error }, 'GET /api/users/me');
         sendError(res, 500, 'failed to load profile');
     }
 });
@@ -89,7 +89,7 @@ router.post('/me/username', requireAuth, async (req, res) => {
             username: result.username,
         });
     } catch (error) {
-        console.error('POST /api/users/me/username error:', error);
+        req.log.error({ err: error }, 'POST /api/users/me/username');
         sendError(res, 500, 'failed to claim username');
     }
 });
@@ -108,7 +108,7 @@ router.get('/me/drafts', requireAuth, async (req, res) => {
         const drafts = await listDrafts(pool, req.auth!.userId, limit);
         res.json({ success: true, data: drafts });
     } catch (error) {
-        console.error('GET /api/users/me/drafts error:', error);
+        req.log.error({ err: error }, 'GET /api/users/me/drafts');
         res.status(500).json({
             success: false,
             message: 'failed to load drafts',

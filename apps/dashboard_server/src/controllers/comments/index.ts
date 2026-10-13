@@ -19,6 +19,7 @@
 //     helper; the route maps its typed errors to 403/404/409.
 //   * Edit of a tombstone → CommentDeletedError → 409 (conflict, not 404).
 // Side effects: DB reads/writes via the comments helpers.
+import { isValidBigintId } from '../../utils/id.utils';
 import { Router } from 'express';
 import { pool } from '../../database';
 import { requireAuth } from '../../middlewares/requireAuth';
@@ -56,19 +57,13 @@ function clampPageLimit(raw?: string): number {
     return Math.min(n, MAX_PAGE_LIMIT);
 }
 
-// A Snowflake id is a non-empty run of digits; reject anything else with 400
-// before binding so node-pg never raises a 500 on a malformed BIGINT.
-function isValidId(value: string): boolean {
-    return /^\d+$/.test(value);
-}
-
 // Routes that nest a comment under a post: /api/posts/:postId/comments.
 export const postCommentsRouter = Router();
 
 postCommentsRouter.get('/:postId/comments', optionalAuth, async (req, res) => {
     try {
         const postId = String(req.params.postId);
-        if (!isValidId(postId)) {
+        if (!isValidBigintId(postId)) {
             res.status(400).json({
                 success: false,
                 message: 'invalid post id',
@@ -81,7 +76,7 @@ postCommentsRouter.get('/:postId/comments', optionalAuth, async (req, res) => {
         // falling back to the sentinel rather than binding a bad BIGINT.
         const rawCursor =
             typeof req.query.cursor === 'string' ? req.query.cursor : '';
-        const cursor = isValidId(rawCursor) ? rawCursor : CURSOR_SENTINEL;
+        const cursor = isValidBigintId(rawCursor) ? rawCursor : CURSOR_SENTINEL;
         const limit = clampPageLimit(
             typeof req.query.limit === 'string' ? req.query.limit : undefined
         );
@@ -94,7 +89,7 @@ postCommentsRouter.get('/:postId/comments', optionalAuth, async (req, res) => {
         const payload: TCommentListResponse = { comments, nextCursor, hasMore };
         res.json({ success: true, data: payload });
     } catch (error) {
-        console.error('GET /api/posts/:postId/comments error:', error);
+        req.log.error({ err: error }, 'GET /api/posts/:postId/comments');
         res.status(500).json({
             success: false,
             message: 'failed to load comments',
@@ -105,7 +100,7 @@ postCommentsRouter.get('/:postId/comments', optionalAuth, async (req, res) => {
 postCommentsRouter.post('/:postId/comments', requireAuth, async (req, res) => {
     try {
         const postId = String(req.params.postId);
-        if (!isValidId(postId)) {
+        if (!isValidBigintId(postId)) {
             res.status(400).json({
                 success: false,
                 message: 'invalid post id',
@@ -134,7 +129,7 @@ postCommentsRouter.post('/:postId/comments', requireAuth, async (req, res) => {
             typeof input.parentId === 'string' && input.parentId.length > 0
                 ? input.parentId
                 : null;
-        if (parentId !== null && !isValidId(parentId)) {
+        if (parentId !== null && !isValidBigintId(parentId)) {
             res.status(400).json({
                 success: false,
                 message: 'invalid parent id',
@@ -167,7 +162,7 @@ postCommentsRouter.post('/:postId/comments', requireAuth, async (req, res) => {
             });
             return;
         }
-        console.error('POST /api/posts/:postId/comments error:', error);
+        req.log.error({ err: error }, 'POST /api/posts/:postId/comments');
         res.status(500).json({
             success: false,
             message: 'failed to create comment',
@@ -181,7 +176,7 @@ export const commentsRouter = Router();
 commentsRouter.patch('/:commentId', requireAuth, async (req, res) => {
     try {
         const commentId = String(req.params.commentId);
-        if (!isValidId(commentId)) {
+        if (!isValidBigintId(commentId)) {
             res.status(400).json({
                 success: false,
                 message: 'invalid comment id',
@@ -227,7 +222,7 @@ commentsRouter.patch('/:commentId', requireAuth, async (req, res) => {
             res.status(403).json({ success: false, message: error.message });
             return;
         }
-        console.error('PATCH /api/comments/:commentId error:', error);
+        req.log.error({ err: error }, 'PATCH /api/comments/:commentId');
         res.status(500).json({
             success: false,
             message: 'failed to update comment',
@@ -238,7 +233,7 @@ commentsRouter.patch('/:commentId', requireAuth, async (req, res) => {
 commentsRouter.delete('/:commentId', requireAuth, async (req, res) => {
     try {
         const commentId = String(req.params.commentId);
-        if (!isValidId(commentId)) {
+        if (!isValidBigintId(commentId)) {
             res.status(400).json({
                 success: false,
                 message: 'invalid comment id',
@@ -262,7 +257,7 @@ commentsRouter.delete('/:commentId', requireAuth, async (req, res) => {
             res.status(403).json({ success: false, message: error.message });
             return;
         }
-        console.error('DELETE /api/comments/:commentId error:', error);
+        req.log.error({ err: error }, 'DELETE /api/comments/:commentId');
         res.status(500).json({
             success: false,
             message: 'failed to delete comment',

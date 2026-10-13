@@ -228,7 +228,7 @@ export function registerUserFeedRoutes(router: Router): void {
                     data,
                 });
             } catch (error) {
-                console.error('API Error fetching user posts:', error);
+                req.log.error({ err: error }, 'API Error fetching user posts');
                 res.status(500).json({
                     success: false,
                     message: 'Failed to fetch posts',
@@ -267,7 +267,7 @@ export function registerUserFeedRoutes(router: Router): void {
                 });
                 res.json({ success: true, data });
             } catch (error) {
-                console.error('API Error fetching user posts by tag:', error);
+                req.log.error({ err: error }, 'API Error fetching user posts by tag');
                 res.status(500).json({
                     success: false,
                     message: 'Failed to fetch posts',

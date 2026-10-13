@@ -49,7 +49,7 @@ router.post('', requireAuth, async (req, res) => {
             res.status(400).json({ success: false, message: error.message });
             return;
         }
-        console.error('POST /api/categories error:', error);
+        req.log.error({ err: error }, 'POST /api/categories');
         res.status(500).json({
             success: false,
             message: 'failed to create category',

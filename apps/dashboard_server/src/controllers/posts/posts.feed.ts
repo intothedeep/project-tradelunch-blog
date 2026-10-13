@@ -172,7 +172,7 @@ export function registerFeedRoutes(router: Router): void {
                     data,
                 });
             } catch (error) {
-                console.error('API Error fetching user posts:', error);
+                req.log.error({ err: error }, 'API Error fetching user posts');
                 res.status(500).json({
                     success: false,
                     message: 'Failed to fetch posts',
@@ -208,7 +208,7 @@ export function registerFeedRoutes(router: Router): void {
                 setPostReadCache(req, res);
                 res.json({ success: true, data });
             } catch (error) {
-                console.error('API Error fetching posts by tag:', error);
+                req.log.error({ err: error }, 'API Error fetching posts by tag');
                 res.status(500).json({
                     success: false,
                     message: 'Failed to fetch posts',

@@ -22,7 +22,7 @@ router.get('', async (req: Request<{}, {}, {}, { limit?: string }>, res) => {
         const tags = await listPopularTags(pool, limit);
         res.json({ success: true, data: tags });
     } catch (error) {
-        console.error('API Error fetching popular tags:', error);
+        req.log.error({ err: error }, 'API Error fetching popular tags');
         res.status(500).json({
             success: false,
             message: 'Failed to fetch tags',

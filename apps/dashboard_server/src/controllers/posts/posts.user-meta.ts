@@ -34,7 +34,7 @@ export function registerUserMetaRoutes(router: Router): void {
                 const tags = await listUserPopularTags(pool, username, limit);
                 res.json({ success: true, data: tags });
             } catch (error) {
-                console.error('API Error fetching user popular tags:', error);
+                req.log.error({ err: error }, 'API Error fetching user popular tags');
                 res.status(500).json({
                     success: false,
                     message: 'Failed to fetch tags',
@@ -65,7 +65,7 @@ export function registerUserMetaRoutes(router: Router): void {
                 }
                 res.json({ success: true, data: profile });
             } catch (error) {
-                console.error('API Error fetching user profile:', error);
+                req.log.error({ err: error }, 'API Error fetching user profile');
                 res.status(500).json({
                     success: false,
                     message: 'Failed to fetch profile',

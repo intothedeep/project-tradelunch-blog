@@ -12,7 +12,7 @@ export const optionalAuth: RequestHandler = async (req, _res, next) => {
             req.auth = result.identity;
         }
     } catch (error) {
-        console.error('optionalAuth error (ignored):', error);
+        req.log.warn({ err: error }, 'optionalAuth error (ignored)');
     }
     next();
 };

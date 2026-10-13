@@ -13,6 +13,7 @@
 //     mount at its own prefix without colliding with the post feed's GET
 //     /api/posts; it returns the caller's OWN liked ids (TLikedResponse).
 // Side effects: a DB transaction via the likes helper.
+import { isValidBigintId } from '../../utils/id.utils';
 import { Router } from 'express';
 import { pool } from '../../database';
 import { requireAuth } from '../../middlewares/requireAuth';
@@ -21,16 +22,10 @@ import type { TLikeToggleResponse, TLikedResponse } from '@repo/types';
 
 const router = Router();
 
-// A Snowflake id is a non-empty run of digits; reject anything else with 400
-// rather than letting node-pg raise a 500 on a malformed BIGINT bind.
-function isValidPostId(value: string): boolean {
-    return /^\d+$/.test(value);
-}
-
 router.post('/:postId/like', requireAuth, async (req, res) => {
     try {
         const postId = String(req.params.postId);
-        if (!isValidPostId(postId)) {
+        if (!isValidBigintId(postId)) {
             res.status(400).json({
                 success: false,
                 message: 'invalid post id',
@@ -51,7 +46,7 @@ router.post('/:postId/like', requireAuth, async (req, res) => {
             res.status(404).json({ success: false, message: 'post not found' });
             return;
         }
-        console.error('POST /api/posts/:postId/like error:', error);
+        req.log.error({ err: error }, 'POST /api/posts/:postId/like');
         res.status(500).json({
             success: false,
             message: 'failed to toggle like',
@@ -71,7 +66,7 @@ likesListRouter.get('', requireAuth, async (req, res) => {
         const payload: TLikedResponse = { postIds };
         res.json({ success: true, data: payload });
     } catch (error) {
-        console.error('GET /api/likes error:', error);
+        req.log.error({ err: error }, 'GET /api/likes');
         res.status(500).json({
             success: false,
             message: 'failed to load likes',

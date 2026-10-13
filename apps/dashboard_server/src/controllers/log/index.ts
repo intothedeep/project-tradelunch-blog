@@ -31,6 +31,7 @@
 //   * Body is PLAIN TEXT: trimmed, non-empty, max 500 chars.
 //   * sendOk/sendError from helpers/response (shared { success, data } envelope).
 // Side effects: DB reads/writes via log helpers; pool acquired per request.
+import { isValidBigintId } from '../../utils/id.utils';
 import { Router } from 'express';
 import { pool } from '../../database';
 import { requireAuth } from '../../middlewares/requireAuth';
@@ -67,12 +68,6 @@ function clampPageLimit(raw?: string): number {
     return Math.min(n, MAX_PAGE_LIMIT);
 }
 
-// Reject anything that is not a non-empty digit string — prevents a malformed
-// BIGINT from reaching node-pg and causing a 500.
-function isValidId(value: string): boolean {
-    return /^\d+$/.test(value);
-}
-
 export const logRouter = Router();
 
 // Mount todo-extension routes BEFORE /:username and /:id to prevent the
@@ -90,7 +85,7 @@ logRouter.use(logSocialRouter);
 logRouter.get('/thread/:id', optionalAuth, async (req, res) => {
     try {
         const focusId = String(req.params.id);
-        if (!isValidId(focusId)) {
+        if (!isValidBigintId(focusId)) {
             sendError(res, 400, 'invalid log id');
             return;
         }
@@ -99,7 +94,7 @@ logRouter.get('/thread/:id', optionalAuth, async (req, res) => {
             typeof req.query.childCursor === 'string'
                 ? req.query.childCursor
                 : '';
-        const childCursor = isValidId(rawChildCursor)
+        const childCursor = isValidBigintId(rawChildCursor)
             ? rawChildCursor
             : CHILD_CURSOR_SENTINEL;
         const childLimit = clampPageLimit(
@@ -116,7 +111,7 @@ logRouter.get('/thread/:id', optionalAuth, async (req, res) => {
         }
         sendOk(res, result);
     } catch (error) {
-        console.error('GET /api/log/thread/:id error:', error);
+        req.log.error({ err: error }, 'GET /api/log/thread/:id');
         sendError(res, 500, 'failed to load log thread');
     }
 });
@@ -128,7 +123,7 @@ logRouter.get('/', optionalAuth, async (req, res) => {
     try {
         const rawCursor =
             typeof req.query.cursor === 'string' ? req.query.cursor : '';
-        const cursor = isValidId(rawCursor) ? rawCursor : CURSOR_SENTINEL;
+        const cursor = isValidBigintId(rawCursor) ? rawCursor : CURSOR_SENTINEL;
         const limit = clampPageLimit(
             typeof req.query.limit === 'string' ? req.query.limit : undefined
         );
@@ -136,7 +131,7 @@ logRouter.get('/', optionalAuth, async (req, res) => {
         const result = await listLogGlobalStream(pool, { cursor, limit });
         sendOk(res, result);
     } catch (error) {
-        console.error('GET /api/log error:', error);
+        req.log.error({ err: error }, 'GET /api/log');
         sendError(res, 500, 'failed to load global log stream');
     }
 });
@@ -148,7 +143,7 @@ logRouter.get('/:username', optionalAuth, async (req, res) => {
 
         const rawCursor =
             typeof req.query.cursor === 'string' ? req.query.cursor : '';
-        const cursor = isValidId(rawCursor) ? rawCursor : CURSOR_SENTINEL;
+        const cursor = isValidBigintId(rawCursor) ? rawCursor : CURSOR_SENTINEL;
         const limit = clampPageLimit(
             typeof req.query.limit === 'string' ? req.query.limit : undefined
         );
@@ -156,7 +151,7 @@ logRouter.get('/:username', optionalAuth, async (req, res) => {
         const result = await listLogStream(pool, username, { cursor, limit });
         sendOk(res, result);
     } catch (error) {
-        console.error('GET /api/log/:username error:', error);
+        req.log.error({ err: error }, 'GET /api/log/:username');
         sendError(res, 500, 'failed to load log stream');
     }
 });
@@ -185,7 +180,7 @@ logRouter.post('/', requireAuth, async (req, res) => {
                 ? rawParentId
                 : null;
 
-        if (parentId !== null && !isValidId(parentId)) {
+        if (parentId !== null && !isValidBigintId(parentId)) {
             sendError(res, 400, 'invalid parent id');
             return;
         }
@@ -209,7 +204,7 @@ logRouter.post('/', requireAuth, async (req, res) => {
             sendError(res, 400, error.message);
             return;
         }
-        console.error('POST /api/log error:', error);
+        req.log.error({ err: error }, 'POST /api/log');
         sendError(res, 500, 'failed to create log entry');
     }
 });
@@ -218,7 +213,7 @@ logRouter.post('/', requireAuth, async (req, res) => {
 logRouter.delete('/:id', requireAuth, async (req, res) => {
     try {
         const logId = String(req.params.id);
-        if (!isValidId(logId)) {
+        if (!isValidBigintId(logId)) {
             sendError(res, 400, 'invalid log id');
             return;
         }
@@ -239,7 +234,7 @@ logRouter.delete('/:id', requireAuth, async (req, res) => {
             sendError(res, 403, error.message);
             return;
         }
-        console.error('DELETE /api/log/:id error:', error);
+        req.log.error({ err: error }, 'DELETE /api/log/:id');
         sendError(res, 500, 'failed to delete log entry');
     }
 });

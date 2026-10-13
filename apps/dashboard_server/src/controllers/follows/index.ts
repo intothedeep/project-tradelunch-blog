@@ -63,7 +63,7 @@ followsRouter.post('/:username', requireAuth, async (req, res) => {
             sendError(res, 400, 'cannot follow yourself');
             return;
         }
-        console.error('POST /api/follow/:username error:', error);
+        req.log.error({ err: error }, 'POST /api/follow/:username');
         sendError(res, 500, 'failed to toggle follow');
     }
 });

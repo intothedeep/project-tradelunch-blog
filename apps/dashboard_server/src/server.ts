@@ -67,7 +67,6 @@ app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
     res.send('CORS working');
-    console.log(req.query, req.body);
 });
 
 // NOTE: this module must NOT call app.listen(). The single listener (with

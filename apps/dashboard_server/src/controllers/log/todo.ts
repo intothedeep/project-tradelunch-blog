@@ -16,6 +16,7 @@
 //   * sendOk/sendError from helpers/response (shared { success, data } envelope).
 //   * Touches only `log` + `users` tables (isolation rule from Phase Y).
 // Side effects: DB reads/writes via pool.
+import { isValidBigintId } from '../../utils/id.utils';
 import { Router } from 'express';
 import { pool } from '../../database';
 import { requireAuth } from '../../middlewares/requireAuth';
@@ -40,10 +41,6 @@ function clampPageLimit(raw?: string): number {
     return Math.min(n, MAX_PAGE_LIMIT);
 }
 
-function isValidId(value: string): boolean {
-    return /^\d+$/.test(value);
-}
-
 export const logTodoRouter = Router();
 
 // PATCH /:id/todo — set or clear due_at, and/or mark done/reopen.
@@ -64,7 +61,7 @@ logTodoRouter.patch('/:id/todo', requireAuth, async (req, res) => {
         }
 
         const logId = String(req.params.id);
-        if (!isValidId(logId)) {
+        if (!isValidBigintId(logId)) {
             sendError(res, 400, 'invalid log id');
             return;
         }
@@ -144,7 +141,7 @@ logTodoRouter.patch('/:id/todo', requireAuth, async (req, res) => {
             'no update fields provided (dueAt or done required)'
         );
     } catch (error) {
-        console.error('PATCH /api/log/:id/todo error:', error);
+        req.log.error({ err: error }, 'PATCH /api/log/:id/todo');
         sendError(res, 500, 'failed to update todo state');
     }
 });
@@ -189,7 +186,7 @@ logTodoRouter.get('/todos', requireAuth, async (req, res) => {
         });
         sendOk(res, result);
     } catch (error) {
-        console.error('GET /api/log/todos error:', error);
+        req.log.error({ err: error }, 'GET /api/log/todos');
         sendError(res, 500, 'failed to load todos');
     }
 });

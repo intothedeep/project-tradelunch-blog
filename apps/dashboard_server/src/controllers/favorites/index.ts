@@ -11,6 +11,7 @@
 //   * GET /posts is declared BEFORE /:postId so the literal path is not
 //     swallowed by the :postId param matcher (Express matches in order).
 // Side effects: DB reads/writes via the favorites helpers.
+import { isValidBigintId } from '../../utils/id.utils';
 import { Router } from 'express';
 import { pool } from '../../database';
 import { requireAuth } from '../../middlewares/requireAuth';
@@ -24,19 +25,13 @@ import type { TFavoritesResponse, TFavoriteToggleResponse } from '@repo/types';
 
 const router = Router();
 
-// A Snowflake id is a non-empty run of digits; reject anything else with 400
-// rather than letting node-pg raise a 500 on a malformed BIGINT bind.
-function isValidPostId(value: string): boolean {
-    return /^\d+$/.test(value);
-}
-
 router.get('', requireAuth, async (req, res) => {
     try {
         const postIds = await listFavoritePostIds(pool, req.auth!.userId);
         const payload: TFavoritesResponse = { postIds };
         res.json({ success: true, data: payload });
     } catch (error) {
-        console.error('GET /api/favorites error:', error);
+        req.log.error({ err: error }, 'GET /api/favorites');
         res.status(500).json({
             success: false,
             message: 'failed to load favorites',
@@ -65,7 +60,7 @@ router.get('/posts', requireAuth, async (req, res) => {
         });
         res.json({ success: true, data: result });
     } catch (error) {
-        console.error('GET /api/favorites/posts error:', error);
+        req.log.error({ err: error }, 'GET /api/favorites/posts');
         res.status(500).json({
             success: false,
             message: 'failed to load saved posts',
@@ -76,7 +71,7 @@ router.get('/posts', requireAuth, async (req, res) => {
 router.post('/:postId', requireAuth, async (req, res) => {
     try {
         const postId = String(req.params.postId);
-        if (!isValidPostId(postId)) {
+        if (!isValidBigintId(postId)) {
             res.status(400).json({
                 success: false,
                 message: 'invalid post id',
@@ -93,7 +88,7 @@ router.post('/:postId', requireAuth, async (req, res) => {
             res.status(404).json({ success: false, message: 'post not found' });
             return;
         }
-        console.error('POST /api/favorites/:postId error:', error);
+        req.log.error({ err: error }, 'POST /api/favorites/:postId');
         res.status(500).json({
             success: false,
             message: 'failed to add favorite',
@@ -104,7 +99,7 @@ router.post('/:postId', requireAuth, async (req, res) => {
 router.delete('/:postId', requireAuth, async (req, res) => {
     try {
         const postId = String(req.params.postId);
-        if (!isValidPostId(postId)) {
+        if (!isValidBigintId(postId)) {
             res.status(400).json({
                 success: false,
                 message: 'invalid post id',
@@ -116,7 +111,7 @@ router.delete('/:postId', requireAuth, async (req, res) => {
         const payload: TFavoriteToggleResponse = { postId, favorited: false };
         res.json({ success: true, data: payload });
     } catch (error) {
-        console.error('DELETE /api/favorites/:postId error:', error);
+        req.log.error({ err: error }, 'DELETE /api/favorites/:postId');
         res.status(500).json({
             success: false,
             message: 'failed to remove favorite',
