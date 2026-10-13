@@ -8,7 +8,9 @@ import {
     CorsRejectedError,
     corsRejectionHandler,
 } from './middlewares/corsRejection';
-import { ALLOWED_ORIGINS_LIST } from './config/env.schema';
+import { rateLimit } from './middlewares/rateLimit';
+import { getClientIp, isMatchingKey } from './utils/clientIdentity.utils';
+import { ALLOWED_ORIGINS_LIST, ORIGIN_KEY } from './config/env.schema';
 import { logger } from './lib/logger';
 import { sendError } from './helpers/response';
 
@@ -20,6 +22,9 @@ app.disable('x-powered-by');
 // CORS whitelist is env-driven (ALLOWED_ORIGINS, comma-separated) so each
 // deploy target (local / Vercel preview / prod) controls its own origins
 // without a code change. Parsed once in env.schema (single source of truth).
+const firstHeader = (v: string | string[] | undefined) =>
+    Array.isArray(v) ? v[0] : v;
+
 const whitelist: string[] = ALLOWED_ORIGINS_LIST;
 
 const corsOptions: CorsOptions = {
@@ -40,7 +45,8 @@ const corsOptions: CorsOptions = {
 };
 
 // Mounted first so CORS rejections and every later error are logged with the
-// request id. Bodies and headers are never serialized (id/method/url only).
+// request id. Bodies and headers are never serialized: only id/method/url plus
+// the derived ip (full client IP) and ssr (boolean key match, never the key).
 app.use(
     pinoHttp({
         logger,
@@ -59,7 +65,16 @@ app.use(
             return 'info';
         },
         serializers: {
-            req: (req) => ({ id: req.id, method: req.method, url: req.url }),
+            req: (req) => ({
+                id: req.id,
+                method: req.method,
+                url: req.url,
+                ip: getClientIp(req.headers['cf-connecting-ip'], req.ip),
+                ssr: isMatchingKey(
+                    firstHeader(req.headers['x-origin-key']),
+                    ORIGIN_KEY
+                ),
+            }),
             res: (res) => ({ statusCode: res.statusCode }),
         },
     })
@@ -69,6 +84,10 @@ app.use(cors(corsOptions));
 // Must sit directly after cors(): turns its rejection into a 403 before the
 // terminal errorHandler can log it as an error and write error_log.
 app.use(corsRejectionHandler);
+
+// After CORS so a 429 still carries CORS headers the browser can read; OPTIONS
+// is skipped inside, so preflight is unaffected.
+app.use(rateLimit);
 
 // https://expressjs.com/en/guide/migrating-5.html#path-syntax
 app.options('*every', cors(corsOptions)); // preflight 대응

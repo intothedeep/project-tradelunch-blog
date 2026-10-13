@@ -7,22 +7,15 @@
 //   * ORIGIN_KEY unset -> pass through (old behavior) and warn once at startup,
 //     so Express and Next can deploy in either order without losing logs.
 //   * ORIGIN_KEY set -> a missing or wrong header gets 403 and the handler never runs.
-//   * Compared with timingSafeEqual on equal-length buffers (no timing leak).
-import { timingSafeEqual } from 'crypto';
+//   * Compared timing-safe (isMatchingKey in utils/clientIdentity.utils).
 import type { RequestHandler } from 'express';
 import { ORIGIN_KEY } from '../config/env.schema';
 import { sendError } from '../helpers/response';
 import { logger } from '../lib/logger';
+import { isMatchingKey } from '../utils/clientIdentity.utils';
 
 if (!ORIGIN_KEY) {
     logger.warn('ORIGIN_KEY unset: error-logs ingest is open');
-}
-
-function isMatchingKey(provided: string | undefined, expected: string) {
-    if (!provided) return false;
-    const a = Buffer.from(provided);
-    const b = Buffer.from(expected);
-    return a.length === b.length && timingSafeEqual(a, b);
 }
 
 export const requireOriginKey: RequestHandler = (req, res, next) => {

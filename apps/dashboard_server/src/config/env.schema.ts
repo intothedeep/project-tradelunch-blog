@@ -82,6 +82,10 @@ const envSchema = z.object({
     // only). Unset = gated routes stay open (see middlewares/requireOriginKey).
     ORIGIN_KEY: z.string().min(32).optional(),
 
+    // per-IP rate-limit backstop (middlewares/rateLimit). Unset = log: observe
+    // and warn, never block, until the limits are set from real logs.
+    RATE_LIMIT_MODE: z.enum(['off', 'log', 'enforce']).default('log'),
+
     // cors / app
     ALLOWED_ORIGINS: z.string().default(''),
     APP_URL: z.string().default('http://localhost:3000'),
@@ -138,6 +142,7 @@ export const CLERK_SECRET_KEY = env.CLERK_SECRET_KEY;
 
 // server-to-server shared secret
 export const ORIGIN_KEY = env.ORIGIN_KEY;
+export const RATE_LIMIT_MODE = env.RATE_LIMIT_MODE;
 
 // cors / app
 export const ALLOWED_ORIGINS = env.ALLOWED_ORIGINS;

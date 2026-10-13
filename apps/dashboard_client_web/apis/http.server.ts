@@ -23,10 +23,12 @@ import {
     parseResponse,
 } from '@/apis/http.core';
 
-// Shared secret that proves the call comes from this Next runtime. Sent ONLY on
-// /v1/api/error-logs calls; it is the same header decision D12 option A names in
-// traffic.design.md §7.4. Server-only env (never NEXT_PUBLIC); unset -> no header,
-// so the deploy order with Express does not matter.
+// Shared secret that proves the call comes from this Next runtime. Sent on EVERY
+// serverRequest: Express exempts it from the per-IP rate limit (all SSR calls
+// share the VM's IP) and gates /v1/api/error-logs on it (decision D12 option A,
+// traffic.design.md §7.4). Server-only env (never NEXT_PUBLIC; kept out of
+// http.core buildHeaders so it cannot reach the browser bundle); unset -> no
+// header, so the deploy order with Express does not matter.
 export function originKeyHeaders(): Record<string, string> {
     // Runtime-only secret read; it does not change build output, so it stays out of turbo.json.
     // eslint-disable-next-line turbo/no-undeclared-env-vars
@@ -39,7 +41,7 @@ export type TServerRequest = {
     method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
     body?: unknown;
     token?: string | null;
-    /** Extra request headers (e.g. originKeyHeaders() for error-logs). */
+    /** Extra request headers (originKeyHeaders() is already added for every call). */
     headers?: Record<string, string>;
     signal?: AbortSignal;
     fallbackError: string;
@@ -59,7 +61,11 @@ export async function serverRequest<T>({
 }: TServerRequest): Promise<T> {
     const res = await fetch(`${API_BASE}${path}`, {
         method,
-        headers: { ...buildHeaders(token, body), ...headers },
+        headers: {
+            ...buildHeaders(token, body),
+            ...originKeyHeaders(),
+            ...headers,
+        },
         body: encodeBody(body),
         // Default: bypass Next's fetch cache — Cloudflare is the single edge
         // cache. This prevents stale SSR output from being served to viewers
