@@ -24,15 +24,26 @@ export const RecentPostsList: React.FC<RecentPostsListProps> = async ({
     const t = await getTranslations('blog.filters');
     const { categories, tags } = filters;
 
-    const { posts, nextCursor, hasMore } = await getFeed(
-        undefined,
-        10,
-        username,
-        {
-            categories,
-            tags,
-        }
-    );
+    // An unreachable API must not take the whole page to the error boundary:
+    // the layout, nav and sidebar still render, only this list degrades.
+    let feed: Awaited<ReturnType<typeof getFeed>>;
+    try {
+        feed = await getFeed(undefined, 10, username, { categories, tags });
+    } catch (err) {
+        console.error(
+            '[RecentPostsList] feed fetch failed:',
+            err instanceof Error ? err.message : err
+        );
+        return (
+            <div className="text-center py-8 text-muted-foreground">
+                <p className="text-sm font-mono">
+                    <span className="animate-pulse">▋</span> Posts are
+                    unavailable right now. Please try again in a moment.
+                </p>
+            </div>
+        );
+    }
+    const { posts, nextCursor, hasMore } = feed;
 
     if (posts.length === 0) {
         const isFiltered = categories.length > 0 || tags.length > 0;
