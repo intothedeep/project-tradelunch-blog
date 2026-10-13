@@ -19,6 +19,7 @@ It renders pages (SSR + client) and talks to the Express API ([`dashboard_server
 
 ```sh
 pnpm dev:web                                    # dev → http://localhost:3000
+LOG_REQUESTS=false pnpm dev:web                 # same, without the per-request JSON log lines
 pnpm --filter dashboard_client_web build        # production build
 pnpm --filter dashboard_client_web start:pm2    # production via PM2 (port 3000)
 pnpm --filter dashboard_client_web lint         # next lint --max-warnings 0
@@ -92,6 +93,9 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$PK CLERK_SECRET_KEY=$SK \
 NEXT_PUBLIC_API_BASE=https://blog-api.prettylog.com \
 pnpm --filter dashboard_client_web exec next dev --turbopack -p 443 -H 0.0.0.0 --experimental-https \
 --experimental-https-key certificates/local-key.pem --experimental-https-cert certificates/local.pem
+
+#    Quiet: put LOG_REQUESTS=false in front (with the other variables) to drop the
+#    per-request JSON lines (proxy.ts, decision #58). Default: on, like blog-api.
 
 # 6. Browser: https://local.prettylog.com  (no port) → sign in → write a comment
 #    Ctrl+C when done: 0.0.0.0 is reachable from the local network.

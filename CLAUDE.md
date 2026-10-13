@@ -59,6 +59,7 @@ Run from repo root unless noted:
 ```sh
 pnpm dev                            # turbo run dev (all apps in parallel)
 pnpm dev:web                        # client app only (port 3000)
+LOG_REQUESTS=false pnpm dev:web     # same, silences the proxy.ts request log (decision #58)
 pnpm dev:server                     # dashboard_server only (tsx watch)
 pnpm build                          # turbo run build
 pnpm lint                           # turbo run lint

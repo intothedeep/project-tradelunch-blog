@@ -29,12 +29,16 @@ Mode C therefore serves the local web as `https://local.prettylog.com` (port 443
 
 ---
 
+Every mode prints one JSON line per request in the dev terminal (`proxy.ts`, decision #58),
+the same line `blog-api` writes. Put `LOG_REQUESTS=false` in front of any command below to silence it.
+
 ## A. Read only
 
 From the repo root:
 
 ```sh
 NEXT_PUBLIC_API_BASE=https://blog-api.prettylog.com pnpm dev:web
+# quiet: LOG_REQUESTS=false NEXT_PUBLIC_API_BASE=https://blog-api.prettylog.com pnpm dev:web
 # open http://localhost:3000
 ```
 

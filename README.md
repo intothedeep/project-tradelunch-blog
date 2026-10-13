@@ -73,6 +73,7 @@ Requires Node 24 (`nvm use`) and pnpm 9 (`corepack enable`). Use pnpm only — n
 pnpm install
 pnpm dev             # all apps in parallel
 pnpm dev:web         # client app only — http://localhost:3000
+LOG_REQUESTS=false pnpm dev:web   # same, without the per-request JSON log lines (#58)
 pnpm dev:server      # Express API only
 pnpm dev:agent       # blog_agent CLI
 ```
