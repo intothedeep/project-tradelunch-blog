@@ -242,6 +242,9 @@ Then in a browser: sign in on `https://my.prettylog.com` and write a test commen
 
 Roll back: `~/prettylog/release.sh web <older sha>` (pick one from `ls -1t ~/prettylog/web/releases`).
 
+Request log to Cloud Logging (`log_id("blog-web")`, decision #58): one-time VM apply in
+[`deploy/logging/README.md`](../logging/README.md) "Apply on the VM (once)".
+
 ---
 
 ## Change a secret

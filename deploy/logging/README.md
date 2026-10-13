@@ -203,8 +203,72 @@ Limits:
 - Static files outside the proxy matcher (`_next`, files with a dot) are not logged.
 - Next's own startup lines (`▲ Next.js ...`) are not JSON and stay as text entries.
 
-Apply: copy and restart as in the "Ops Agent → Cloud Logging" section above, using the new `ops-agent.yaml` (it now has both pipelines).
-Then build and deploy the web app, so the new `proxy.ts` runs.
+### Apply on the VM (once)
+
+```text
+1. deploy a web build ─► 2. logrotate 7 days ─► 3. Ops Agent config ─► 4. check
+   (needs proxy.ts)       (independent)           (any order vs 1)       (after 1 and 3)
+```
+
+**1. Deploy a web build that has the new `proxy.ts`** (Mac, then VM)
+
+Any green `GCP build` run at or after commit `f33a917` has it. Deploy it with
+`deploy/gcp/README.md` section 8, steps a–e.
+
+```sh
+gh run list --workflow=gcp.yml --limit 3      # pick a "success" run at/after f33a917
+```
+
+**2. Keep VM log files 7 days** (VM, decision #59; independent of the other steps)
+
+```sh
+sudo sed -i 's/^    rotate 14$/    rotate 7/' /etc/logrotate.d/pm2-tio_taek_lim
+grep rotate /etc/logrotate.d/pm2-tio_taek_lim         # rotate 7
+sudo logrotate -d /etc/logrotate.d/pm2-tio_taek_lim   # dry run: no change, no "error" lines
+```
+
+The rule covers `~/.pm2/logs/*.log`, so the new `blog-web` files need no extra entry.
+Existing files are not removed until there are more than 7 rotations.
+
+**3. Ship `blog-web` with the Ops Agent** (copy on the Mac, apply on the VM)
+
+```sh
+# Mac, repo root
+VM=tio_taek_lim@instance-servers
+Z=(--zone=us-central1-a --tunnel-through-iap)
+gcloud compute scp deploy/logging/ops-agent.yaml $VM:~/prettylog/ "${Z[@]}"
+
+# VM
+sudo cp /etc/google-cloud-ops-agent/config.yaml /etc/google-cloud-ops-agent/x_config.yaml.bak
+sudo cp ~/prettylog/ops-agent.yaml /etc/google-cloud-ops-agent/config.yaml
+sudo systemctl restart google-cloud-ops-agent
+sudo systemctl status google-cloud-ops-agent-fluent-bit --no-pager | head -5   # active (running)
+```
+
+**4. Check** (after steps 1 and 3)
+
+```sh
+# VM: send one request, then look for the JSON line
+curl -m 20 -s -o /dev/null http://localhost:3000/
+tail -n 2 ~/.pm2/logs/blog-web-out-*.log     # {"severity":"INFO","message":"request",...}
+```
+
+Then GCP console → Logging → Logs Explorer:
+
+```text
+log_id("blog-web")
+jsonPayload.message="request"
+```
+
+| Result | Meaning |
+| --- | --- |
+| JSON line in the VM file and the same line in Logs Explorer | done |
+| line in the VM file, nothing in Logs Explorer | Ops Agent config: send `sudo journalctl -u google-cloud-ops-agent-fluent-bit -n 30` |
+| no JSON line in the VM file | an old build is running: check the release sha (`readlink ~/prettylog/web/current`) against step 1 |
+| entries arrive but `severity` is blank | the `blog_web_severity` processor is missing: re-copy `ops-agent.yaml` (step 3) |
+
+Roll back step 3: `sudo cp /etc/google-cloud-ops-agent/x_config.yaml.bak /etc/google-cloud-ops-agent/config.yaml`
+and restart the agent.
 
 Logs Explorer queries:
 
