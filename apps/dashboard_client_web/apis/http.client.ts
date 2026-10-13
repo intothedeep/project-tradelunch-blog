@@ -18,6 +18,20 @@ import {
     type TQuery,
 } from '@/apis/http.core';
 
+// Isomorphic fetchers (getCategories, getComments, get-log-*) run in Server
+// Components too. Those SSR calls must carry the origin key like serverRequest
+// does, or Express logs ssr=false and the per-IP limit (all SSR = one VM IP)
+// counts them (D12, traffic.design.md §7.4). The key is added ONLY when
+// `window` is absent. ORIGIN_KEY is not NEXT_PUBLIC_, so Next never inlines it
+// into the browser bundle, and http.server.ts (server-only) stays unimported.
+function ssrOriginKeyHeaders(): Record<string, string> {
+    if (typeof window !== 'undefined') return {};
+    // Runtime-only secret read; it does not change build output, so it stays out of turbo.json.
+    // eslint-disable-next-line turbo/no-undeclared-env-vars
+    const key = process.env.ORIGIN_KEY;
+    return key ? { 'x-origin-key': key } : {};
+}
+
 export type TClientRequest = {
     path: string;
     method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
@@ -39,7 +53,7 @@ export async function clientRequest<T>({
 }: TClientRequest): Promise<T> {
     const res = await fetch(`${API_BASE}${path}${buildQuery(query)}`, {
         method,
-        headers: buildHeaders(token, body),
+        headers: { ...buildHeaders(token, body), ...ssrOriginKeyHeaders() },
         body: encodeBody(body),
         signal: composeSignal(signal),
     });

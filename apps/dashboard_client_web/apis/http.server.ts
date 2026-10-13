@@ -28,7 +28,9 @@ import {
 // share the VM's IP) and gates /v1/api/error-logs on it (decision D12 option A,
 // traffic.design.md §7.4). Server-only env (never NEXT_PUBLIC; kept out of
 // http.core buildHeaders so it cannot reach the browser bundle); unset -> no
-// header, so the deploy order with Express does not matter.
+// header, so the deploy order with Express does not matter. Isomorphic
+// clientRequest (http.client.ts) adds the same header on the server only
+// (`typeof window === 'undefined'`), so SSR calls through it are also ssr=true.
 export function originKeyHeaders(): Record<string, string> {
     // Runtime-only secret read; it does not change build output, so it stays out of turbo.json.
     // eslint-disable-next-line turbo/no-undeclared-env-vars
