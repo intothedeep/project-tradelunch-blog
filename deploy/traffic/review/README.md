@@ -24,10 +24,10 @@
 | E | 예산 알림(budget), 메모리 알림(alert) | 완료 |
 | F | 점검 도구와 매주 자동 점검 | 완료, issue #5: 14 PASS |
 | G | CORS 거절을 403으로 | 완료, 운영 확인 (`4d137f2`) |
-| H | 요청 수 제한(rate limit), 부하 시험(load test) | 설계 완료 (rev2 `aad898b`), 오너 결정 D5, D9, D11–D14 대기 |
+| H | 요청 수 제한(rate limit), 부하 시험(load test) | Cloudflare 규칙 운영 중, Express `log` 모드 운영 중, L1 통과, L2-web 약 2 rps에서 한계 (`02-blocking.md`) |
 | I | 주간 issue에 egress 넣기 | **보류** (오너, 2026-10-13) |
 | K | GCP 방화벽 22, 3389 끄기 | 오너 승인 대기 (`02-blocking.md`) |
-| L | 공개 error-logs 쓰기 막기 | 코드 완료 `42e1bf3`, 키 설정과 배포 대기 (`03-status-codes.md`) |
+| L | 공개 error-logs 쓰기 막기 | 완료, 운영 확인 (`38b4c12`) |
 | J | Supabase Log Query 사용량 | 관찰 중 |
 
 검토할 것: G의 커밋과 배포, H의 설계(받으면 이 문서에 붙인다).

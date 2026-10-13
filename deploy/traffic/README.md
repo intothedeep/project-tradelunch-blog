@@ -13,7 +13,7 @@ Open decisions follow the design's recommendations unless the owner says otherwi
 [x] 3. API cache rules     Cloudflare answers API GETs        done 2026-10-13
 [x] 4. Alerts              mail when money or memory is high  done 2026-10-13
 [x] 5. Weekly auto check   a weekly issue with cache checks   done 2026-10-13
-[ ] 6. Web rate limit      cap one IP on my.                  owner sets (RL-0, RL-2)
+[x] 6. Web rate limit      cap one IP on my.                  done 2026-10-13 (429 verified)
 ```
 
 | Step | Protects | Who | Done when |
