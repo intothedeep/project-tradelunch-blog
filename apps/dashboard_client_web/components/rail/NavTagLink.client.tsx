@@ -32,6 +32,9 @@ export const NavTagLink: React.FC<Props> = ({ tag, count }) => {
     return (
         <Link
             href={href}
+            // ~30 rail tags prefetch at once on page load and trip the
+            // Cloudflare rate limit (decision #70, option f).
+            prefetch={false}
             aria-current={isActive ? 'page' : undefined}
             className={cn(BASE, isActive ? ACTIVE : INACTIVE)}
         >
