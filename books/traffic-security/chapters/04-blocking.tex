@@ -1,0 +1,610 @@
+% chapters/04-blocking.tex -- part A. 막기: 요청 수 제한 설계, 오너 질문, 한도 규칙, 결정.
+% Results of the load tests (L1, L2, L2-api, L-a) are in part B's chapter 7. Numbers used here
+% are copied from deploy/traffic/review/02-blocking.md and carry a % src: comment.
+\chapter{막기}\label{ch:blocking}
+
+% src: deploy/traffic/README.md §6, deploy/traffic/review/README.md 한눈에 H, 01.status.md 2026-10-13 (L2-api, 7f07df7)
+\paragraph{결과.}
+캐시를 지나 VM까지 오는 요청에는 층 두 개가 있다.
+Cloudflare 규칙 ``web rate limit''은 \code{my.}의 IP당 50 / 10 s를 넘으면 10 s 동안 막는다(L-a, 운영 중).
+Express는 IP당 읽기 120 / 60 s, 쓰기 30 / 60 s를 \texttt{log} 모드로 센다(L-b, 운영 중, 막지 않음).
+두 숫자는 14일 로그 뒤에 다시 정한다.
+시험 방법과 결과는 \Cref{ch:testing}에 있다.
+
+\section{H. 요청 수 제한: 층 설계}\label{sec:bl-design}
+
+\begin{inbrief}
+  \item[Why] 캐시를 지나는 요청이 몰려도 1 GB VM과 Supabase가 버티게 하려고 한다.
+  \item[When] 로그인 요청, POST, 쿼리를 매번 바꾼 요청, 오류 경로가 캐시를 지날 때다.
+  \item[Where] Cloudflare 엣지(L-a)와 Express 안(L-b). 제한하지 않는 목록이 L-c다.
+  \item[How] IP마다 창 안의 요청 수를 세고 한도를 넘으면 막는다. 숫자는 가안이다.
+\end{inbrief}
+% src: deploy/traffic/review/02-blocking.md "H. 요청 수 제한과 부하 시험"
+
+\paragraph{왜 필요했나.}
+캐시는 익명 GET만 막는다.
+캐시를 지나는 요청은 그대로 VM까지 온다.
+로그인 요청, POST, 쿼리를 매번 바꾼 요청, 오류 경로가 그렇다.
+이것이 몰리면 1 GB VM이 버티지 못한다.
+% src: deploy/traffic/review/02-blocking.md H "왜 필요했나"
+
+\paragraph{문제.}
+요청 수에 제한이 없었다.
+VM이 몇 rps까지 버티는지도 몰랐다.
+% src: deploy/traffic/review/02-blocking.md H "문제"
+
+\paragraph{무엇을 바꿨나.}
+\Cref{fig:bl-layers}는 층 세 개를 보인다.
+\Cref{tab:bl-layers}는 각 층의 한도와 끄는 법을 모은다.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[font=\small]
+    \node[flowbox, minimum width=3.0cm] (req) at (0,0) {요청};
+    \node[cfbox, minimum width=7.4cm] (la) at (0,-1.7)
+      {\textbf{L-a} Cloudflare ``web rate limit''\\\texttt{my.}만, IP당 50 / 10 s $\to$ Block 10 s\\제외: \texttt{/\_next/}, 검증된 봇};
+    \node[vmbox, minimum width=7.4cm] (lb) at (0,-4.1)
+      {\textbf{L-b} Express backstop\\\texttt{cf-connecting-ip} 기준(IPv6는 /64), 메모리만\\읽기 120 / 60 s, 쓰기 30 / 60 s $\to$ 429 + \texttt{Retry-After}\\SSR 요청(\texttt{x-origin-key} 일치)은 세지 않음};
+    \node[dbbox, minimum width=3.0cm] (db) at (0,-6.2) {Supabase};
+    \node[badbox, minimum width=3.4cm, font=\scriptsize] (b1) at (6.2,-1.7) {한도 초과: 429\\VM 0 byte};
+    \node[badbox, minimum width=3.4cm, font=\scriptsize] (b2) at (6.2,-4.1) {처음 14일은 \texttt{log} 모드\\(세기만 하고 안 막음)};
+    \node[flowalt, minimum width=7.4cm, font=\scriptsize] (lc) at (0,-7.9)
+      {\textbf{L-c} 제한 안 함: \texttt{/\_next/static}, 엣지 \cfs{HIT}, Next SSR, \texttt{traffic-check.sh}};
+    \draw[flowarrow] (req) -- (la);
+    \draw[flowarrow] (la) -- (lb) node[lbl, midway, right] {통과한 것만};
+    \draw[flowarrow] (lb) -- (db);
+    \draw[flowarrow] (la) -- (b1);
+    \draw[flowarrow] (lb) -- (b2);
+  \end{tikzpicture}
+  \par\smallskip{\scriptsize \flowkey{cfbox} Cloudflare \quad \flowkey{vmbox} VM \quad \flowkey{dbbox} Supabase \quad \flowkey{badbox} 막힘, 로그만 \quad \flowkey{flowalt} 제한 안 함}
+  \caption{요청 수 제한 층 L-a, L-b, L-c. 숫자는 가안이고 L-a만 오너 결정(\texttt{\#68})으로 50이 됐다.}
+  \label{fig:bl-layers}
+  % src: deploy/traffic/review/02-blocking.md H (그림과 표), traffic.design.md §7.4, §7.4.2, §7.4.3, §7.4.5; decisions.plan.md #68
+\end{figure}
+
+\begin{table}[H]
+  \caption{요청 수 제한 세 층. 열은 층, 대상, 한도, 동작, 끄는 법이다.}
+  \label{tab:bl-layers}
+  \centering\footnotesize
+  \begin{tabularx}{\linewidth}{@{}L{1.8cm}L{1.9cm}L{3.2cm}L{3.0cm}Y@{}}
+    \toprule
+    층 & 대상 & 한도 & 동작 & 끄는 법 \\
+    \midrule
+    L-a Cloudflare & \code{my.} & IP당 100 / 10 s (가안) $\to$ \textbf{50 / 10 s} (\decision{68}) & Block 10 s & 대시보드 토글 \\
+    \midrule
+    L-b Express & blog-api & 읽기 120 / 60 s, 쓰기 30 / 60 s (가안) & 429. 처음 14일은 \code{log} 모드(세기만 함) & \code{RATE_LIMIT_MODE=off} + ecosystem restart \\
+    \midrule
+    L-c & \cfs{HIT} 경로, SSR & 없음 & 없음 & \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/02-blocking.md H 표; decisions.plan.md #62, #68
+\end{table}
+
+\paragraph{어떻게: L-b의 세부.}
+\Cref{tab:bl-lb}는 L-b의 설계 값이다.
+이 값은 \texttt{traffic.design.md} \S 7.4.3의 것이다.
+
+\begin{table}[H]
+  \caption{L-b Express backstop의 설계 값.}
+  \label{tab:bl-lb}
+  \centering\footnotesize
+  \begin{tabularx}{\linewidth}{@{}L{3.0cm}Y@{}}
+    \toprule
+    칸 & 값 \\
+    \midrule
+    위치 & \code{server.ts}에서 \code{pinoHttp} 바로 뒤, \code{cors()} 앞. 429도 요청 로그에 남는다 \\
+    \midrule
+    키 & \code{cf-connecting-ip} 헤더. IPv6는 /64 접두사로 묶는다 \\
+    \midrule
+    헤더 없음 & 제한하지 않는다(fail-open). localhost 호출이다 \\
+    \midrule
+    제외 & \code{x-origin-key} 헤더가 env \code{ORIGIN_KEY}와 같은 요청(Next SSR). 비교는 timing-safe \\
+    \midrule
+    틀리거나 없는 키 & 일반 클라이언트처럼 센다. 우회 수단이 아니다 \\
+    \midrule
+    창 & 고정 창(fixed window) 60 s \\
+    \midrule
+    한도 (가안) & 읽기(GET, HEAD, OPTIONS) 120 / 60 s, 쓰기(그 밖) 30 / 60 s, IP당 \\
+    \midrule
+    응답 & 429, \texttt{Retry-After:} <남은 초>, \code{sendError} 봉투. DB 쓰기 없음 \\
+    \midrule
+    모드 & env \code{RATE_LIMIT_MODE} = off / log / enforce. 시작은 log \\
+    \midrule
+    \code{log} 모드 & 막지 않는다. 한도를 넘은 요청마다 warn 한 줄 \code{rate_limit} (bucket, count, limit) \\
+    \midrule
+    키 상한 & 50,000. 넘으면 새 키는 세지 않는다(fail-open) + 분당 warn 1줄 \\
+    \bottomrule
+  \end{tabularx}
+  % src: traffic.design.md §7.4.3 표
+\end{table}
+
+\begin{callout}[fail-open의 전제]
+헤더가 없으면 제한하지 않으므로 3000, 4000번 포트가 인터넷에 열려 있지 않아야 안전하다.
+2026/10/13 확인에서 두 포트에 방화벽 규칙이 없고 앱도 \code{127.0.0.1}에서만 받았다(\Cref{sec:05-firewall}).
+% src: deploy/traffic/review/02-blocking.md "K. GCP 방화벽" 확인 표
+\end{callout}
+
+\paragraph{왜 이 방법인가.}
+\Cref{tab:bl-why}는 선택마다 이유를 적는다.
+
+\begin{table}[H]
+  \caption{H에서 한 선택과 이유.}
+  \label{tab:bl-why}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{4.2cm}Y@{}}
+    \toprule
+    선택 & 이유 \\
+    \midrule
+    \code{blog-api.}를 엣지에서 세지 않는다 & Next SSR이 API를 부르면 모두 VM IP 하나로 보인다. 엣지에서 IP로 세면 사이트가 자기 SSR을 막는다 \\
+    \midrule
+    SSR을 \code{x-origin-key}로 뺀다 & 같은 비밀 헤더를 이미 error-logs 보호에 쓴다(\decision{60}). 새 비밀을 만들지 않는다 \\
+    \midrule
+    Challenge 대신 Block & RSC 요청과 \code{fetch}는 challenge를 풀 수 없다. 앱 안 이동이 깨진다 \\
+    \midrule
+    메모리만 쓴다 & VM이 한 대다. Redis는 메모리와 관리 비용만 늘린다 (\Cref{sec:bl-q2}) \\
+    \midrule
+    \code{log} 모드로 시작한다 & 한도가 틀리면 정상 사용자를 막는다. 14일 동안 세기만 하고 숫자를 본다 \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/02-blocking.md H "왜 이 방법인가"; decisions.plan.md #60
+\end{table}
+
+\paragraph{L-a가 HIT도 세는가.}
+설계는 ``HIT도 센다고 가정''(보수적)이었다.
+Cloudflare 한도 시험에서 \cfs{HIT} 요청도 센다고 확인했다.
+세기는 정확하지 않고 늦게 반영됐다.
+시험 숫자는 \Cref{sec:07-result-la}에 있다.
+% src: traffic.design.md §7.4.1 (HIT 가정), deploy/traffic/review/02-blocking.md "L-a ... 읽는 법"
+
+\paragraph{끄는 법과 되돌리기.}
+
+\begin{table}[H]
+  \caption{층별 롤백.}
+  \label{tab:bl-rollback}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{3.7cm}L{6.2cm}Y@{}}
+    \toprule
+    층 & 끄는 법 & 걸리는 시간 \\
+    \midrule
+    L-a & Cloudflare 규칙 토글 off & 즉시 \\
+    \midrule
+    L-b & VM \code{.env}에서 \code{RATE_LIMIT_MODE=off} $\to$ \code{pm2 restart blog-api --update-env} & 수 초 \\
+    \midrule
+    \code{x-origin-key} & 키 불일치는 ``일반 클라이언트로 센다''일 뿐이다. \code{log} 모드면 영향 0 & 없음 \\
+    \bottomrule
+  \end{tabularx}
+  % src: traffic.design.md §7.4.6
+\end{table}
+
+\paragraph{순서.}
+\Cref{tab:bl-mvp}는 세 단계의 작업과 막는 것이다.
+
+\begin{table}[H]
+  \caption{요청 수 제한과 부하 시험의 단계. 작업 ID는 \texttt{00.tasks.md} Phase TC의 것이다.}
+  \label{tab:bl-mvp}
+  \centering\footnotesize
+  \begin{tabularx}{\linewidth}{@{}L{1.4cm}Y L{3.0cm}@{}}
+    \toprule
+    단계 & 작업 & 막는 것 \\
+    \midrule
+    MVP1 & RL-0 Free 플랜 화면 값 기록(TC-M4-1), LT-1 L1 시험(TC-M4-2), RL-1 로그 필드(TC-M4-3) & 아무것도 막지 않음 \\
+    \midrule
+    MVP2 & RL-2 L-a 켜기(TC-M5-1), RL-3 L-b \code{log} 모드(TC-M5-2), LT-2(TC-M5-3), LT-3a(TC-M5-4) & 엣지만 실제로 막음 \\
+    \midrule
+    MVP3 & RL-4 14일 로그로 한도 확정, \code{enforce}(TC-M6-1), LT-3b(TC-M6-2), RL-5 주간 issue(TC-M6-3) & 둘 다 막음 \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/02-blocking.md H "순서 (§11.1)"
+\end{table}
+
+\begin{callout}[확인 못 한 것]
+Cloudflare Free 플랜의 rate limit 기능 9개(규칙 수, 세는 기준, 기간 등)는 대시보드 화면으로 확인하기로 했다(TC-M4-1).
+\todo{RL-0 화면 값(\texttt{deploy/traffic/README.md} \S 6a 표의 ``Write what you see'' 칸)은 소스에 기록이 없다}
+% src: deploy/traffic/review/02-blocking.md H "확인 못 한 것"; deploy/traffic/README.md §6a
+\end{callout}
+
+\paragraph{확인.}
+시험 결과는 \Cref{ch:testing}에 있다.
+여기서는 한 줄만 옮긴다.
+Cloudflare 한도 50 시험에서 \texttt{/} 150번을 2초에 보내자 200이 53번, 429가 97번이었다.
+% src: deploy/traffic/review/02-blocking.md "L-a 한도 50 확인"; 01.status.md line 57
+
+\section{오너 질문 Q1: \texttt{ALLOWED\_ORIGINS}가 있는데 왜 키가 또 필요한가}\label{sec:bl-q1}
+
+\paragraph{결과.}
+CORS(\texttt{ALLOWED\_ORIGINS})는 브라우저만 지키는 규칙이다.
+서버를 지키는 자물쇠가 아니다.
+\texttt{curl} 같은 요청은 CORS를 지킬 의무가 없다.
+% src: deploy/traffic/review/02-blocking.md "Q1"
+
+\paragraph{문제.}
+\Cref{fig:bl-cors}는 세 요청이 Express에서 어떻게 갈리는지 보인다.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[font=\small]
+    \node[flowbox, minimum width=5.6cm] (c1) at (0,0) {브라우저, 다른 사이트의 JS\\\scriptsize\texttt{Origin: https://evil.example}};
+    \node[flowbox, minimum width=5.6cm] (c2) at (0,-1.7) {\texttt{curl}, 스크립트, 봇\\\texttt{Origin} 헤더 없음};
+    \node[flowbox, minimum width=5.6cm] (c3) at (0,-3.4) {\texttt{curl}, 스크립트, 봇\\\scriptsize\texttt{Origin: https://my.prettylog.com} (위조)};
+    \node[flowbox, minimum width=2.4cm] (ex) at (6.4,-1.7) {Express};
+    \node[goodbox, minimum width=3.6cm] (o1) at (11.2,0) {403 (G)\\CORS가 막는다};
+    \node[badbox, minimum width=3.6cm] (o2) at (11.2,-1.7) {통과 (\texttt{!origin})\\$\to$ INSERT};
+    \node[badbox, minimum width=3.6cm] (o3) at (11.2,-3.4) {통과\\$\to$ INSERT};
+    \draw[flowarrow] (c1) -- (ex); \draw[flowarrow] (c2) -- (ex); \draw[flowarrow] (c3) -- (ex);
+    \draw[flowarrow] (ex) -- (o1); \draw[flowarrow] (ex) -- (o2); \draw[flowarrow] (ex) -- (o3);
+  \end{tikzpicture}
+  \caption{CORS는 브라우저의 JS만 막고 \texttt{curl}과 위조 \texttt{Origin}은 통과시킨다. 통과한 쓰기 요청은 DB 쓰기가 된다.}
+  \label{fig:bl-cors}
+  % src: deploy/traffic/review/02-blocking.md "Q1" (코드 블록)
+\end{figure}
+
+\begin{table}[H]
+  \caption{누가 CORS에 막히는가. 열은 요청한 쪽, CORS가 막나, 이유다.}
+  \label{tab:bl-q1}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{4.2cm}L{2.4cm}Y@{}}
+    \toprule
+    요청한 쪽 & CORS가 막나 & 왜 \\
+    \midrule
+    다른 사이트에서 도는 브라우저 JS & 막는다 & 브라우저가 \code{Origin}을 붙이고, 응답 헤더를 보고 스스로 막는다 \\
+    \midrule
+    \code{curl}, 서버, 봇 & \textbf{못 막는다} & \code{Origin}을 안 붙이거나 마음대로 바꾼다. CORS를 지킬 의무가 없다 \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/02-blocking.md "Q1" 표
+\end{table}
+
+\paragraph{무엇을 바꿨나.}
+DB에 쓰는 서버 전용 경로는 ``누가 보냈는지''를 증명하는 비밀 값으로 지킨다.
+브라우저 규칙(CORS)에 맡기지 않는다.
+그것이 항목 L이다(\Cref{sec:05-errorlogs}).
+% src: deploy/traffic/review/02-blocking.md "Q1" 마지막 줄
+
+\paragraph{왜 \texttt{Origin} 없는 요청을 통과시키나.}
+Next SSR, 헬스 체크, 같은 사이트 요청은 \texttt{Origin}을 보내지 않는다.
+막으면 사이트가 깨진다.
+% src: deploy/traffic/review/02-blocking.md "Q1"
+
+\section{오너 질문 Q2: IP는 어디에 저장하나}\label{sec:bl-q2}
+
+\paragraph{결과.}
+프로세스 메모리(Map)에 저장한다.
+1 GB VM에서도 괜찮다.
+% src: deploy/traffic/review/02-blocking.md "Q2"
+
+\paragraph{무엇을 비교했나.}
+
+\begin{table}[H]
+  \caption{카운터 저장 위치 비교. 열은 위치, 요청마다 드는 비용, VM 한 대에서, 결정이다.}
+  \label{tab:bl-q2}
+  \centering\footnotesize
+  \begin{tabularx}{\linewidth}{@{}L{2.8cm}L{3.0cm}Y L{1.4cm}@{}}
+    \toprule
+    저장 위치 & 요청마다 드는 비용 & VM 한 대에서 & 결정 \\
+    \midrule
+    \textbf{프로세스 메모리 (Map)} & 메모리 읽기, 쓰기 1번 & 충분하다 & \textbf{선택} \\
+    \midrule
+    DB (Supabase) & 요청마다 DB 쓰기 1번 & 공격이 오면 DB까지 같이 무너진다. 막으려던 것을 스스로 만든다 & 버림 \\
+    \midrule
+    Redis & 프로세스 하나 더 (수십 MB) & 서버가 여러 대일 때만 이득 & 버림 \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/02-blocking.md "Q2" 표
+\end{table}
+
+\paragraph{메모리 계산 (추정, 미측정).}
+키 하나는 IP 문자열, 카운터, 창 시작 시각이다.
+Map 오버헤드를 넉넉히 넣어 약 400 B로 잡았다.
+
+\begin{align*}
+  &50{,}000 \times 400\,\text{B} \approx 20\,\text{MB} && \text{최악. 이보다 커지지 않게 키 상한을 둔다} \\
+  &21 \times 400\,\text{B} \approx 8\,\text{KB} && \text{오늘 실제: 하루 IP 약 21개} \\
+  &200\,\text{MB} && \text{blog-api 한도(PM2 \texttt{max\_memory\_restart})}
+\end{align*}
+% src: deploy/traffic/review/02-blocking.md "Q2 메모리 계산 (추정)"
+
+\begin{description}[font=\bfseries]
+  \item[창이 60초라서] 60초가 지나면 카운터가 초기화된다. 메모리에는 최근 1분 안의 IP만 남는다.
+  \item[상한을 넘으면] 오래된 키를 버린다. 메모리가 끝없이 늘지 않는다.
+  \item[잃는 것] 서버를 재시작하면 카운터가 0이 된다. 1분 창이라 문제가 거의 없다.
+\end{description}
+% src: deploy/traffic/review/02-blocking.md "Q2"
+\begin{callout}[추정 대 측정]
+위 계산은 추정이다.
+측정값: 배포 뒤 몇 분에 blog-api는 103 MB였고, L2-api 중에는 106 MB였다(cap 200 MB).
+% src: deploy/traffic/review/02-blocking.md "배포 확인", "L2-api" 표
+\end{callout}
+
+\section{오너 질문 Q3: D12 A안, SSR의 \texttt{x-origin-key}}\label{sec:bl-q3}
+
+\paragraph{결과.}
+Next 서버가 모든 Express 호출에 \texttt{x-origin-key}를 붙인다.
+Express는 값이 \texttt{ORIGIN\_KEY}와 같으면 ``우리 SSR''로 보고 세지 않는다.
+오너가 A안을 골랐다(\decision{64}).
+% src: deploy/traffic/review/02-blocking.md "Q3 A안"; decisions.plan.md #64
+
+\paragraph{문제.}
+방문자 한 명이 페이지를 열면 Next 서버가 Express를 여러 번 부른다.
+이 요청들은 모두 VM 자신에서 온다.
+IP로 세면 방문자 30명만 와도 ``한 IP가 분당 120번''이 되어 사이트가 스스로 막힌다.
+% src: deploy/traffic/review/02-blocking.md "Q3 문제"
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[font=\small]
+    \node[flowbox, minimum width=2.6cm] (v) at (0,0) {방문자 1명};
+    \node[vmbox, minimum width=4.4cm] (n) at (4.6,0) {Next SSR\\\texttt{my.prettylog.com/blog/@taeklim}};
+    \node[flowbox, minimum width=5.4cm, font=\scriptsize] (g1) at (11.0,1.1) {\texttt{GET /posts/users/taeklim/profile}};
+    \node[flowbox, minimum width=5.4cm, font=\scriptsize] (g2) at (11.0,0.37) {\texttt{GET /posts/users/taeklim/categories}};
+    \node[flowbox, minimum width=5.4cm, font=\scriptsize] (g3) at (11.0,-0.37) {\texttt{GET /posts/users/taeklim/tags}};
+    \node[flowbox, minimum width=5.4cm, font=\scriptsize] (g4) at (11.0,-1.1) {\texttt{GET /tags}};
+    \draw[flowarrow] (v) -- (n);
+    \foreach \g in {g1,g2,g3,g4} \draw[flowarrow] (n) -- (\g);
+    \node[badbox, minimum width=7.2cm, font=\scriptsize] at (7.4,-2.2) {오늘 로그: profile 294, tags 164, categories 155 ...\\모두 ``같은 IP''로 보인다};
+  \end{tikzpicture}
+  \caption{페이지 하나를 그릴 때 Next SSR이 Express를 여러 번 부른다. 호출은 모두 VM 한 IP에서 온다.}
+  \label{fig:bl-ssr-calls}
+  % src: deploy/traffic/review/02-blocking.md "Q3 문제" (코드 블록)
+\end{figure}
+
+\paragraph{무엇을 바꿨나.}
+Next 서버가 \texttt{x-origin-key: <비밀>}을 붙인다.
+\Cref{tab:bl-q3}는 오너가 물은 여섯 가지에 답한다.
+
+\begin{table}[H]
+  \caption{D12 A안의 질문과 답.}
+  \label{tab:bl-q3}
+  \centering\footnotesize
+  \begin{tabularx}{\linewidth}{@{}L{3.2cm}Y@{}}
+    \toprule
+    질문 & 답 \\
+    \midrule
+    비밀은 어디에 있나 & VM의 \code{shared/api.env}, \code{shared/web.env}. 저장소, 브라우저, 로그에는 없다 \\
+    \midrule
+    브라우저가 볼 수 있나 & 없다. Next 서버 안에서만 붙인다(\code{NEXT_PUBLIC_} 아님). 브라우저가 직접 부르는 API 요청에는 붙지 않는다 \\
+    \midrule
+    위조하면 & 키를 모르면 일치하지 않는다. 비교는 \code{timingSafeEqual}이라 응답 시간으로 알아낼 수 없다 \\
+    \midrule
+    키가 새면 & VM에서 새 키를 만들어 두 파일을 바꾸고 두 앱을 restart한다 \\
+    \midrule
+    왜 B(VM IP로 판별)가 아닌가 & SSR 호출은 \code{blog-api.prettylog.com}(Cloudflare)을 거쳐 온다. 그때 IP가 무엇으로 보이는지 확인이 더 필요하다. 키는 그런 가정이 없다 \\
+    \midrule
+    덤 & 같은 비밀로 error-logs 쓰기도 막는다(L, \decision{60}). 비밀은 하나만 관리한다 \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/02-blocking.md "Q3 A안" 표 (표는 여섯 행); decisions.plan.md #60
+\end{table}
+
+\paragraph{후속: 키를 안 보내는 SSR 호출(N).}
+배포 확인에서 \texttt{categories} SSR 호출이 \texttt{ssr=false}로 찍혔다.
+서버와 브라우저 양쪽에서 쓰는 fetcher(isomorphic)가 브라우저용 \texttt{clientRequest}를 써서 키가 안 붙었다.
+\texttt{enforce}로 바꾸기 전에 반드시 고쳐야 했다.
+% src: deploy/traffic/review/02-blocking.md "찾은 것: 키를 안 보내는 SSR 호출", "N."
+
+\begin{table}[H]
+  \caption{\texttt{clientRequest}가 어디서 도는지에 따른 헤더 결정(N).}
+  \label{tab:bl-n}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{5.0cm}L{4.6cm}Y@{}}
+    \toprule
+    어디서 도나 & 판별 & 결과 \\
+    \midrule
+    브라우저 & \code{typeof window !== 'undefined'} & 헤더 없음 \\
+    \midrule
+    Next 서버 & \code{typeof window === 'undefined'} & \code{process.env.ORIGIN_KEY}가 있으면 \code{x-origin-key}를 붙임 \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/02-blocking.md "N. 무엇을 바꿨나"
+\end{table}
+
+웹 배포 \commit{7f07df7} 뒤 MISS 페이지 5개를 열었다.
+blog-api 로그의 \texttt{categories} 8건, \texttt{comments} 1건, \texttt{/v1/api/log} 1건이 모두 \texttt{ssr=true}였다(2026/10/13 21:20 UTC).
+% src: deploy/traffic/review/02-blocking.md "N. 확인"
+
+\begin{callout}[확인하지 못한 것]
+빌드된 브라우저 번들을 열어 키 문자열이 없는지 보는 확인은 하지 않았다(로컬 \texttt{next build} 금지).
+브라우저 개발자 도구의 요청 헤더에 \texttt{x-origin-key}가 없는지는 오너가 확인한다.
+fetcher 5개와 키가 새지 않는 두 겹의 이유는 \Cref{sec:05-clientrequest}에 있다.
+% src: deploy/traffic/review/02-blocking.md "N. 왜 브라우저로 키가 새지 않나", "확인 (21:20 UTC)"
+\end{callout}
+
+\section{오너 질문 Q4: L2를 지금 하는 이유}\label{sec:bl-q4}
+
+\begin{itemize}[nosep]
+  \item 오너: ``good time to try cuz I just launched''(\decision{66}).
+  \item 10/13 외부 IP는 약 20개다. 지금 서버에 부하를 주어도 영향을 받는 방문자가 거의 없다.
+  \item 방문자가 늘면 같은 시험이 더 위험해진다. 그래서 지금 기준 숫자(오리진 용량)를 잡아 둔다.
+\end{itemize}
+% src: deploy/traffic/review/02-blocking.md "Q4"; decisions.plan.md #66
+
+\section{한도를 정하는 규칙}\label{sec:bl-threshold}
+
+\paragraph{결과.}
+한도는 ``정상 사용자를 막지 않는 아래 한계''와 ``오리진을 지키는 위 한계'' 사이에서 정한다.
+아래가 위보다 크면 조정 문제가 아니라 오너가 정한다.
+% src: traffic.design.md §7.4.4; deploy/traffic/review/02-blocking.md H "한도를 정하는 규칙"
+
+\paragraph{무엇을 알려고 쓰나.}
+정상 방문자가 IP 하나에서 짧은 창에 몇 번 요청하는가.
+오리진은 몇 rps까지 버티는가.
+
+\begin{table}[H]
+  \caption{한도별 아래 한계와 위 한계. 열은 한도, 아래 한계(정상을 막지 않음), 위 한계(오리진을 지킴)이다.}
+  \label{tab:bl-threshold}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{3.0cm}L{5.2cm}Y@{}}
+    \toprule
+    한도 & 아래 한계 & 위 한계 \\
+    \midrule
+    L-a \code{my.} / 10 s & $\max(3\times \text{로그의 IP·10 s 창 최댓값},\; 3\times N_{\text{page}})$ & $0.5\times C_{\text{web}}\times 10$ \\
+    \midrule
+    L-b 읽기 / 60 s & $\max(3\times \text{로그의 IP·분 최댓값},\; 10\times p99)$ & $0.5\times C_{\text{api}}\times 60$ \\
+    \midrule
+    L-b 쓰기 / 60 s & $\max(3\times \text{쓰기 IP·분 최댓값},\; 10)$ & $0.5\times C_{\text{api}}\times 60$ \\
+    \bottomrule
+  \end{tabularx}
+  % src: traffic.design.md §7.4.4 표
+\end{table}
+
+\begin{description}[font=\bfseries]
+  \item[$N_{\text{page}}$] 오너가 브라우저 DevTools로 센다. \texttt{/}를 열고 10초 스크롤한다. host \texttt{my.}, \texttt{/\_next/} 제외 요청 수다. 오리진 로그는 \cfs{MISS}만 보므로 필요하다.
+  \item[$C_{\text{web}}$, $C_{\text{api}}$] 부하 시험 L2가 잰 오리진 용량(rps)이다. 지금 값은 $C_{\text{web}}$ 약 2 rps, $C_{\text{api}}$는 8 rps 이상이다(시험 상한이라 한계는 못 찾음).
+  \item[정하는 법] 아래 한계 이상, 위 한계 이하에서 10 단위로 올림한다.
+  \item[기간] 14일 로그를 쓴다. 보존 30일 안이다(\decision{57}).
+\end{description}
+% src: traffic.design.md §7.4.4; deploy/traffic/review/02-blocking.md "L2" 읽는 법, "L2-api" 읽는 법
+
+\subsection{오너 기준 정상 사용량}\label{sec:bl-normal}
+
+\paragraph{무엇을 알려고 쓰나.}
+Cloudflare 한도를 낮추면 정상 사용자가 막히는가.
+blog-web 로그(2026/10/13, 시험과 \texttt{curl} 제외, IP 19개)에서 10 s 구간을 세었다.
+\Cref{sec:07-normal-use}에 같은 표가 있다.
+% src: deploy/traffic/review/02-blocking.md "오너 기준 정상 사용량"
+
+\begin{table}[H]
+  \caption{한도별로 그 한도를 넘었을 10 s 구간 수. 100은 로그인과 비로그인 구분이 소스에 없다.}
+  \label{tab:bl-normal}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{3.4cm}L{4.2cm}Y@{}}
+    \toprule
+    한도 (10 s당) & 넘었을 10 s 구간 & 로그인 / 비로그인 \\
+    \midrule
+    20 & 11 & 7 / 4 \\
+    \midrule
+    30 & 9 & 5 / 4 \\
+    \midrule
+    50 & 6 & 3 / 3 \\
+    \midrule
+    70 & 2 & 2 / 0 \\
+    \midrule
+    100 & 0 &  \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/02-blocking.md "오너 기준 정상 사용량" 표
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[barchart, width=0.82\linewidth, height=6.2cm, ymax=13,
+        symbolic x coords={20,30,50,70,100}, xtick=data,
+        xlabel={한도 (10 s당 요청 수)}, ylabel={넘은 10 s 구간 (개)},
+        point meta=explicit symbolic, nodes near coords={\pgfplotspointmeta},
+        nodes near coords style={font=\scriptsize, text=black},
+        every node near coord/.append style={anchor=center}]
+      \addplot[fill=vmcol!70, draw=vmcol] coordinates {(20,7) [7] (30,5) [5] (50,3) [3] (70,2) [2] (100,0) []};
+      \addplot[fill=cfcol!70, draw=cfcol] coordinates {(20,4) [4] (30,4) [4] (50,3) [3] (70,0) [] (100,0) []};
+      \legend{로그인, 비로그인}
+      \node[font=\scriptsize\bfseries, anchor=south] at (axis cs:20,11.3) {11};
+      \node[font=\scriptsize\bfseries, anchor=south] at (axis cs:30,9.4) {9};
+      \node[font=\scriptsize\bfseries, anchor=south] at (axis cs:50,6.4) {6};
+      \node[font=\scriptsize\bfseries, anchor=south] at (axis cs:70,2.4) {2};
+      \node[font=\scriptsize, anchor=south, align=center] at (axis cs:100,0.2) {0 (구분 없음)};
+      \node[font=\scriptsize, fill=goodcol!12, draw=goodcol, anchor=south, align=center] at (axis cs:70,9.2)
+        {오너가 고른 한도: 50\\(\decision{68})};
+      \draw[goodcol, -{Stealth[length=2mm]}] (axis cs:70,9.2) -- (axis cs:50,7.4);
+    \end{axis}
+  \end{tikzpicture}
+  \caption{한도별로 그 한도를 넘었을 10 s 구간 수(막대 위 숫자는 합계). 아래 칸은 로그인, 위 칸은 비로그인이다. 한도 100에서는 0이다.}
+  \label{fig:bl-normal-chart}
+  % src: deploy/traffic/review/02-blocking.md "오너 기준 정상 사용량" 표 (11=7+4, 9=5+4, 6=3+3, 2=2+0, 0); decisions.plan.md #68
+\end{figure}
+
+\paragraph{읽는 법.}
+\begin{itemize}[nosep]
+  \item 최댓값은 10 s에 89번이다. 로그인한 오너의 Mac 브라우저였다.
+  \item 원인: Next \texttt{<Link>}가 화면에 보이는 링크를 미리 받는다(prefetch). 한 번 누를 때 요청이 수십 개 나간다.
+  \item 이 표는 VM까지 온 요청만 센다. Cloudflare는 \cfs{HIT}도 세므로 실제 숫자는 더 크다.
+  \item 한도 50은 이 로그에서 6번 넘었다. 한도 70은 2번, 한도 100은 0번이다.
+\end{itemize}
+% src: deploy/traffic/review/02-blocking.md "오너 기준 정상 사용량"
+
+\paragraph{두 요구가 부딪친다.}
+정상 사용의 최댓값 89는 한도 50보다 크다.
+웹 오리진 용량은 약 2 rps다.
+정상 사용자를 막지 않는 값과 오리진을 지키는 값이 한 숫자로 만나지 않는다.
+\decision{68}이 50을 골랐고 위험을 적었다.
+정상 사용자가 10 s 동안 막힐 수 있고, prefetch를 줄이는 설계가 남은 일이다.
+% src: decisions.plan.md #68; deploy/traffic/review/02-blocking.md "오너 기준 정상 사용량", "L2" 읽는 법
+
+\section{이미 막는 것과 제안}\label{sec:bl-existing}
+
+\begin{table}[H]
+  \caption{이미 막는 것. 열은 무엇, 어떻게, 어디서 다루나이다.}
+  \label{tab:bl-existing}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{4.0cm}Y L{2.2cm}@{}}
+    \toprule
+    무엇 & 어떻게 & 어디 \\
+    \midrule
+    허용 안 된 Origin의 API 호출 & 403, DB 쓰기 없음 & \Cref{sec:05-cors} \\
+    \midrule
+    익명 GET 폭주 & Cloudflare 캐시가 받는다. VM까지 안 온다 & \Cref{ch:reduce-traffic} \\
+    \midrule
+    메모리 폭주 & PM2 \code{max_memory_restart}(web 320M, api 200M), 90 \% 알림 & \Cref{sec:06-alerts} \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/02-blocking.md "이미 막는 것"
+\end{table}
+
+\begin{table}[H]
+  \caption{새 제안 네 개(아직 안 함, H 설계와 함께 결정). 열은 번호, 무엇, 막는 것, 비용과 위험, 어디서이다.}
+  \label{tab:bl-proposals}
+  \centering\footnotesize
+  \begin{tabularx}{\linewidth}{@{}L{0.5cm}L{2.5cm}L{2.7cm}Y L{2.6cm}@{}}
+    \toprule
+    \# & 무엇 & 막는 것 & 비용, 위험 & 어디서 \\
+    \midrule
+    1 & Bot Fight Mode & 알려진 악성 봇 & 정상 크롤러(검색, 미리보기)까지 막을 수 있다. 켜고 로그를 본다 & Cloudflare, Security, Bots \\
+    \midrule
+    2 & 스캐너 경로 차단(WAF custom rule) & \code{/wp-admin}, \code{/wp-login.php}, \code{.php}, \code{/.env}, \code{/.git} 같은 탐색 & 거의 없다. 우리 사이트에는 이런 경로가 없다 & Cloudflare, Security, WAF, Custom rules \\
+    \midrule
+    3 & \code{my.}에 이상한 method 차단 & \code{PUT}, \code{DELETE}, \code{PATCH} 등 & Server Actions는 POST다. POST는 막지 않는다 & WAF custom rule \\
+    \midrule
+    4 & 요청 수 제한(rate limit) & 캐시를 지나는 요청 폭주 & 기준이 너무 낮으면 정상 사용자를 막는다. 로그로 기준을 정한다 & H 설계 \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/02-blocking.md "제안 (아직 안 함, H 설계와 함께 결정)"
+\end{table}
+
+제안 2는 요청 로그로 실제 탐색 요청을 본 뒤 켜는 것을 권한다.
+지금 바로 켜도 정상 사용자에게 영향은 없다.
+% src: deploy/traffic/review/02-blocking.md "제안" 마지막 줄
+
+\section{오너 결정 \#62--\#68}\label{sec:bl-decisions}
+
+\Cref{tab:bl-decisions}는 요청 수 제한에서 오너가 고른 것을 모은다.
+오너의 말은 원문 그대로 영어다.
+
+\begin{table}[H]
+  \caption{요청 수 제한과 부하 시험에서의 오너 결정(2026/10/13). 열은 결정 번호, 질문 ID, 결정, 오너의 말이다.}
+  \label{tab:bl-decisions}
+  \centering\footnotesize
+  \begin{tabularx}{\linewidth}{@{}L{1.0cm}L{1.2cm}Y L{4.0cm}@{}}
+    \toprule
+    번호 & 질문 & 결정 & 오너의 말 \\
+    \midrule
+    \#62 & D5 & 층과 한도: L-a Cloudflare \code{my.} IP당 100 / 10 s Block 10 s, L-b Express 읽기 120 / 60 s 쓰기 30 / 60 s, 메모리 저장. 숫자는 가안 & ``ok. let me know how to do that'' \\
+    \midrule
+    \#63 & D11 & blog-api 로그에 전체 IP와 \code{ssr}을 남긴다 & ``we need to track who is abusing'' \\
+    \midrule
+    \#64 & D12 & SSR 제외 방법은 A안 \code{x-origin-key} (env \code{ORIGIN_KEY}, \decision{60}과 같은 비밀) & ``A'' \\
+    \midrule
+    \#65 & D9 & L1 시험(캐시 \cfs{HIT} 경로) 진행 & ``go forward'' \\
+    \midrule
+    \#66 & D13 & L2 시험(오리진 직접) 지금 1회 & ``good time to try cuz I just launched'' \\
+    \midrule
+    \#67 & D14 & Express 제한은 \code{log} 모드로 시작, 14일 뒤 \code{enforce} & ``start with log'' \\
+    \midrule
+    \#68 & (M) & Cloudflare ``web rate limit''을 IP당 50 / 10 s로 낮춘다(가안 100에서). 위험: 정상 사용이 50을 6번 넘었다. 후속: prefetch 줄이기 설계 & ``cf -> lower the limit to 50 per 10 secs'' \\
+    \bottomrule
+  \end{tabularx}
+  % src: decisions.plan.md #62-#68; deploy/traffic/review/02-blocking.md H "오너 결정" 표
+\end{table}
+
+\paragraph{관련 결정.}
+\decision{69}: 방화벽 \code{default-allow-ssh}, \code{default-allow-rdp}는 그대로 둔다.
+오너의 말: ``it is ok. gcp already taken care of''.
+두 규칙은 0.0.0.0/0에 열려 있고 접속은 IAP 규칙으로 한다(\Cref{sec:05-firewall}).
+% src: decisions.plan.md #69

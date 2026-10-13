@@ -1,0 +1,433 @@
+% chapters/06-observability.tex -- part B. 관찰과 알림.
+% Macros come from part A's preamble.tex. \code is verbatim-like: not in \caption, \section, node text.
+\chapter{관찰과 알림}\label{ch:observability}
+
+% src: deploy/traffic/review/04-observability.md §목표
+\paragraph{결과.}
+캐시가 깨지거나 공격이 오면 사람이 보기 전에 숫자가 먼저 알린다.
+이를 위해 세 가지를 만들었다.
+요청 로그(request log), 예산과 메모리 알림(alert), 매주 자동 점검이다.
+\Cref{tab:06-summary}가 각각이 무엇을 알려 주는지 보인다.
+
+\begin{table}[H]
+  \caption{관찰 수단 네 가지. 무엇을 알려 주고 어디서 보나.}\label{tab:06-summary}
+  % src: deploy/traffic/review/04-observability.md §A §E §F §J; deploy/traffic/README.md §Monitoring commands
+  \small
+  \begin{tabularx}{\linewidth}{L{3.4cm} Y Y}
+    \toprule
+    수단 & 알려 주는 것 & 어디서 보나 \\
+    \midrule
+    A. 웹 요청 로그 & 누가, 어디서, 무엇을 요청하나 & Cloud Logging \code{log_id("blog-web")} \\
+    \midrule
+    E. 예산, 메모리 알림 & 돈과 메모리가 한계에 가까워짐 & 메일 \\
+    \midrule
+    F. 점검 도구, 주간 issue & 캐시 규칙이 아직 맞는지 & 터미널, GitHub issue \\
+    \midrule
+    J. Supabase Log Query & Studio 화면이 로그를 얼마나 읽었나 & Supabase 대시보드 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+%% ---------------------------------------------------------------------------
+\section{웹 요청 로그 (A)}\label{sec:06-requestlog}
+
+\begin{inbrief}
+  \item[Why] 트래픽이 터졌을 때 누가, 어디서, 무엇을 요청하는지 알아야 막을 대상을 고른다.
+  \item[When] 페이지 요청이 VM의 Next 서버에 닿을 때마다 한 줄을 쓴다.
+  \item[Where] \texttt{apps/dashboard\_client\_web/proxy.ts}에서 쓰고 Cloud Logging에서 읽는다.
+  \item[How] JSON 한 줄을 stdout에 쓰고, PM2 로그 파일과 Ops Agent를 거쳐 Cloud Logging에 보낸다.
+\end{inbrief}
+
+% src: deploy/traffic/review/04-observability.md §A; deploy/logging/README.md §Web request log
+\paragraph{결과.}
+Cloud Logging에 INFO 줄, path, country가 보인다.
+상위 경로 조회가 동작한다.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[font=\small]
+    \node[vmbox, minimum width=3.4cm] (px) at (0,0) {\texttt{proxy.ts}\\요청마다 JSON 1줄};
+    \node[vmbox, minimum width=3.4cm] (pm) at (4.6,0) {PM2 로그 파일\\VM에 7일};
+    \node[vmbox, minimum width=3.4cm] (oa) at (9.2,0) {Ops Agent};
+    \node[dbbox, minimum width=3.4cm] (cl) at (9.2,-2.2) {Cloud Logging\\\texttt{log\_id("blog-web")}\\30일};
+    \node[flowbox, minimum width=3.4cm] (qu) at (4.6,-2.2) {Logs Explorer\\\texttt{gcloud logging read}};
+    \draw[flowarrow] (px) -- (pm) node[lbl, midway, above] {stdout};
+    \draw[flowarrow] (pm) -- (oa);
+    \draw[flowarrow] (oa) -- (cl);
+    \draw[flowarrow] (cl) -- (qu) node[lbl, midway, above] {조회};
+  \end{tikzpicture}
+  \caption{웹 요청 로그의 길. \texttt{blog-api}도 같은 PM2와 Ops Agent 길을 쓴다.
+  (src: deploy/traffic/review/04-observability.md §A)}\label{fig:06-log-pipeline}
+\end{figure}
+
+\begin{description}
+  \item[왜 필요했나] 트래픽이 터졌을 때 누가, 어디서, 무엇을 요청하는지 알아야 한다. 그래야 막을 대상을 고를 수 있다.
+  \item[문제] \texttt{blog-web}은 요청을 기록하지 않았다. \texttt{blog-api}에만 로그가 있었다.
+  \item[무엇을 바꿨나] \texttt{proxy.ts}가 페이지 요청마다 JSON 한 줄을 쓴다. 항목은 \Cref{tab:06-log-fields}에 있다.
+  \item[어떻게] PM2 로그 파일, Ops Agent, Cloud Logging 순서로 간다. 보관은 Cloud Logging 30일, VM의 PM2 로그 7일(logrotate \texttt{rotate 7})이다. 로컬에서 끄려면 \texttt{LOG\_REQUESTS=false pnpm dev:web}을 쓴다.
+  \item[왜 이 방법인가] 미들웨어(proxy.ts)에서 찍으면 모든 페이지 요청을 한 곳에서 잡는다. Ops Agent는 이미 \texttt{blog-api} 로그를 보내고 있어서 같은 길에 하나만 더했다. 전체 IP는 오너 결정이다 (\decision{58}). 공격 IP를 정확히 막으려면 필요하다.
+  \item[확인] Cloud Logging에 INFO 줄, path, country가 보인다. 상위 경로 조회가 동작한다.
+  \item[한계] Cloudflare \cfs{HIT} 요청은 VM까지 오지 않으므로 이 로그에 없다. 전체 요청 수는 Cloudflare Analytics에서 본다.
+\end{description}
+
+\begin{table}[H]
+  \caption{웹 요청 로그 한 줄의 항목.}\label{tab:06-log-fields}
+  % src: deploy/logging/README.md §Web request log 항목 표
+  \small
+  \begin{tabularx}{\linewidth}{L{4.2cm} Y}
+    \toprule
+    항목 & 뜻 \\
+    \midrule
+    \code{severity}, \code{message}, \code{time} & 항상 \texttt{INFO}, \texttt{request}, ISO 시각 \\
+    \midrule
+    \code{method}, \code{host}, \code{path}, \code{query} & 요청 줄. \texttt{host}는 공개 Host 헤더 \\
+    \midrule
+    \code{ip} & \textbf{전체} 클라이언트 IP. \texttt{cf-connecting-ip}, 없으면 첫 \texttt{x-forwarded-for}, 없으면 null \\
+    \midrule
+    \code{country}, \code{ray} & \texttt{cf-ipcountry}, \texttt{cf-ray} \\
+    \midrule
+    \code{ua}, \code{referer} & \texttt{user-agent}, \texttt{referer} \\
+    \midrule
+    \code{rsc} & Next RSC 이동 요청이면 true. 페이지 로드와 따로 거를 때 쓴다 \\
+    \midrule
+    \code{signedIn} & \texttt{\_\_session} 쿠키가 있으면 true. 값은 기록하지 않는다 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{로그 조회}\label{sec:06-query}
+
+% src: deploy/logging/README.md §Query the web log
+Logs Explorer와 \texttt{gcloud logging read}는 같은 필터 언어를 쓴다.
+\Cref{tab:06-filters}의 필터를 Query 상자에 붙인다.
+각 줄은 AND로 묶인다.
+
+\begin{table}[H]
+  \caption{자주 쓰는 웹 로그 필터.}\label{tab:06-filters}
+  % src: deploy/logging/README.md §Query the web log 필터 표
+  \small
+  \begin{tabularx}{\linewidth}{L{4.6cm} Y}
+    \toprule
+    목적 & 필터 \\
+    \midrule
+    모든 웹 요청 & \code{log_id("blog-web")} \code{jsonPayload.message="request"} \\
+    \midrule
+    페이지 로드만 (RSC 이동 제외) & \code{log_id("blog-web")} \code{jsonPayload.message="request"} \code{jsonPayload.rsc=false} \\
+    \midrule
+    한 경로 & \code{log_id("blog-web")} \code{jsonPayload.path="/blog"} \\
+    \midrule
+    한 나라 & \code{log_id("blog-web")} \code{jsonPayload.country="KR"} \\
+    \midrule
+    로그인한 방문자 & \code{log_id("blog-web")} \code{jsonPayload.signedIn=true} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{itemize}[nosep]
+  \item 봇 필터와 터미널 명령은 \Cref{ch:commands}에 있다.
+  \item \texttt{jsonPayload.ip}는 일부러 뺐다. 자기 분석에만 더한다. IP를 GitHub issue에 붙이지 않는다. 저장소가 공개다.
+  \item 빈 결과는 아무것도 출력하지 않는다. 일치하는 줄이 없다는 뜻이고 오류가 아니다.
+\end{itemize}
+
+%% ---------------------------------------------------------------------------
+\section{로그 양 스냅샷}\label{sec:06-volume}
+
+\begin{inbrief}
+  \item[Why] 쌓인 로그가 얼마이고, 그중 실제 요청과 문제가 몇 건인지 알아야 한다.
+  \item[When] 2026/10/13 20:10 UTC, Cloud Logging 30일 조회다.
+  \item[Where] \texttt{blog-api}와 \texttt{blog-web} 두 로그다.
+  \item[How] 줄 수, 심각도, 요청 수, 상태 코드를 표로 세었다.
+\end{inbrief}
+
+% src: deploy/traffic/review/04-observability.md §로그 양 스냅샷
+\paragraph{결과.}
+\texttt{blog-api}는 1,837줄 중 요청이 1,370건이다.
+\texttt{blog-web}은 864줄 중 요청이 656건이다.
+\Cref{tab:06-volume}이 두 앱을 나란히 보인다.
+
+\begin{table}[H]
+  \caption{앱별 로그 양 (2026/10/13 20:10 UTC 스냅샷).}\label{tab:06-volume}
+  % src: deploy/traffic/review/04-observability.md §로그 양 스냅샷 첫 표
+  \small
+  \begin{tabularx}{\linewidth}{l l r r r r}
+    \toprule
+    앱 & 첫 로그 (UTC) & 전체 줄 & ERROR & WARNING & 요청 \\
+    \midrule
+    \texttt{blog-api} & 10/13 05:32 & 1,837 & 48 & 121 & 1,370 \\
+    \midrule
+    \texttt{blog-web} & 10/13 18:48 & 864 & 0 & 0 & 656 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{table}[H]
+  \caption{\texttt{blog-web} 요청 656건의 내용.}\label{tab:06-web-requests}
+  % src: deploy/traffic/review/04-observability.md §로그 양 스냅샷 둘째 표
+  \small
+  \begin{tabularx}{\linewidth}{L{4cm} Y}
+    \toprule
+    항목 & 값 \\
+    \midrule
+    시간 & 18시 4, 19시 648, 20시 4 \\
+    \midrule
+    브라우저 / 봇, 도구 & 564 / 92 (\code{curl} 36, \code{facebookexternalhit} 14) \\
+    \midrule
+    로그인 / 비로그인 & 383 / 273 \\
+    \midrule
+    나라 & US 648, SG 2, AU 2, KR 1, GB 1 \\
+    \midrule
+    서로 다른 IP & 21 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{table}[H]
+  \caption{\texttt{blog-api} 상태 코드별 건수.}\label{tab:06-api-status}
+  % src: deploy/traffic/review/04-observability.md §로그 양 스냅샷 셋째 표
+  \small
+  \begin{tabularx}{\linewidth}{L{3cm} r Y}
+    \toprule
+    상태 코드 & 건수 & 설명 \\
+    \midrule
+    200 & 1,076 &  \\
+    \midrule
+    204 & 133 &  \\
+    \midrule
+    304 & 39 &  \\
+    \midrule
+    401 & 93 & 로그인 없이 \code{/users/me} \\
+    \midrule
+    500 & 25 & CORS 거절 24, G로 고침 \\
+    \midrule
+    404 & 22 &  \\
+    \midrule
+    403 & 6 & 배포 확인 요청 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+상태 코드 건수의 합은 1,394건이고 앞 표의 요청 1,370건과 다르다.
+소스는 이유를 적지 않는다.
+두 수는 세는 범위가 다른 것으로 보인다(추정, 확인 안 함).
+% src: deploy/traffic/review/04-observability.md §로그 양 스냅샷 첫 표와 셋째 표 (1,076+133+39+93+25+22+6 = 1,394 대 1,370)
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[
+      xbar, width=0.82\linewidth, height=6.2cm,
+      symbolic y coords={200,204,304,401,500,404,403}, ytick=data, y dir=reverse,
+      xmin=0, xmax=1300, xmajorgrids=true, grid style={black!12},
+      xlabel={Requests (count)}, ylabel={HTTP status},
+      nodes near coords, nodes near coords align={horizontal},
+      tick label style={font=\footnotesize}, label style={font=\footnotesize},
+      every node near coord/.append style={font=\footnotesize},
+      bar width=9pt, enlarge y limits=0.1, axis lines=left,
+    ]
+      \addplot[fill=vmcol!55, draw=vmcol] coordinates {(1076,200) (133,204) (39,304) (93,401) (25,500) (22,404) (6,403)};
+    \end{axis}
+  \end{tikzpicture}
+  \caption{\texttt{blog-api} 상태 코드별 요청 수. 대부분 200이고, 500 25건은 거의 CORS 거절이다.
+  (src: deploy/traffic/review/04-observability.md §로그 양 스냅샷)}\label{fig:06-api-status-chart}
+\end{figure}
+
+\paragraph{읽는 법.}
+\begin{itemize}[nosep]
+  \item 19시의 648건은 오너의 시험이다 (Mac 브라우저 489, 로그인 383). 외부 폭주가 아니다.
+  \item \texttt{blog-web}의 요청이 아닌 208줄은 Ops Agent가 처음 켜질 때 보낸 옛 EPROTO 스택이다. 다시 생기지 않는다.
+  \item \texttt{blog-api}의 \texttt{ZodError} 16줄은 새벽 첫 배포 때 환경 변수 검사 실패다.
+\end{itemize}
+
+%% ---------------------------------------------------------------------------
+\section{예산 알림과 메모리 알림 (E)}\label{sec:06-alerts}
+
+\begin{inbrief}
+  \item[Why] 캐시가 깨지거나 공격이 와도 바로 알아야 한다. 돈과 메모리가 먼저 신호를 준다.
+  \item[When] 무료 체험이 약 2027/01/10에 끝난다. 그 전에 알림이 있어야 한다.
+  \item[Where] GCP 결제 계정(budget)과 Cloud Monitoring(메모리 정책)이다.
+  \item[How] 둘 다 \code{gcloud} 명령으로 만들었다. 메일만 보낸다. 자동 중단은 없다.
+\end{inbrief}
+
+% src: deploy/traffic/review/04-observability.md §E; deploy/traffic/README.md §4 Alerts
+\paragraph{결과.}
+알림 두 개가 켜져 있다.
+\Cref{tab:06-alerts}에 값과 받는 곳을 적었다.
+
+\begin{table}[H]
+  \caption{예산 알림과 메모리 알림.}\label{tab:06-alerts}
+  % src: deploy/traffic/review/04-observability.md §E 무엇을 바꿨나
+  \small
+  \begin{tabularx}{\linewidth}{L{4.6cm} Y Y}
+    \toprule
+    알림 & 값 & 받는 곳 \\
+    \midrule
+    예산 \texttt{prettylog-monthly} & 10 USD/월, 50\,\%, 90\,\%, 100\,\% & 결제 계정 관리자 메일 \\
+    \midrule
+    메모리 \texttt{VM memory used > 90\%} & 5분 넘게 90\,\% 초과 & \texttt{owner-email} 채널 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{description}
+  \item[왜 필요했나] 캐시가 깨지거나 공격이 와도 바로 알아야 한다. 돈과 메모리가 먼저 신호를 준다.
+  \item[문제] 알림이 하나도 없었다. 무료 체험은 약 2027/01/10에 끝난다.
+  \item[어떻게] 둘 다 \code{gcloud}로 만들었다. 메모리 정책은 파일이다: \code{deploy/traffic/memory-alert.json}. 명령은 \Cref{ch:commands}에 있다.
+  \item[왜 이 방법인가] 아래 네 이유다.
+  \item[확인] \texttt{gcloud billing budgets list}에 \texttt{prettylog-monthly}가 보인다. \texttt{gcloud alpha monitoring policies list}에 정책이 보인다 (켜짐, 채널 1개). 오늘 메모리는 35--57\,\%다.
+\end{description}
+
+\begin{itemize}[nosep]
+  \item 예산을 \code{gcloud}로 만든 이유: 콘솔은 서비스를 고르라고 했다. 목록에 Cloud Run만 있었다. 명령으로 만들면 서비스 조건이 없고 모든 서비스가 대상이다.
+  \item 메일만 보내는 이유: 자동으로 끄면 사이트도 함께 죽는다. 판단은 오너가 한다.
+  \item 메모리 90\,\%, 5분인 이유: VM이 1 GB다. 잠깐 튀는 것은 무시하고, 계속 높을 때만 알린다.
+  \item 정책을 파일로 둔 이유: 다시 만들거나 바꿀 때 같은 값을 쓴다.
+\end{itemize}
+
+\begin{callout}[도구 문제]
+\texttt{gcloud components install beta alpha}가 필요했다.
+gcloud는 PATH의 첫 \texttt{python3}를 쓴다.
+\texttt{CLOUDSDK\_PYTHON}을 pyenv 3.13.12로 고정했다.
+\end{callout}
+
+%% ---------------------------------------------------------------------------
+\section{점검 도구와 매주 자동 점검 (F)}\label{sec:06-tools}
+
+\begin{inbrief}
+  \item[Why] 규칙은 한 번 맞춰 두어도 나중에 깨질 수 있다. 사람이 매번 확인하지 않아도 알아야 한다.
+  \item[When] 손으로 필요할 때, 그리고 매주 월요일 14:17 UTC에 자동으로다.
+  \item[Where] Mac 터미널의 스크립트 둘과 GitHub Actions 워크플로 하나다.
+  \item[How] 스크립트가 PASS와 FAIL 줄을 찍고, 주간 워크플로가 그 결과를 issue 하나로 모은다.
+\end{inbrief}
+
+% src: deploy/traffic/review/04-observability.md §F; deploy/traffic/README.md §Monitoring commands §5 Weekly auto check
+\paragraph{결과.}
+issue \#5에서 14 PASS, 0 FAIL이 나왔다.
+일부러 틀린 주소로 돌리면 FAIL이 나왔다 (고의 파손, deliberate breakage).
+
+\begin{table}[H]
+  \caption{점검 도구 세 개.}\label{tab:06-tools}
+  % src: deploy/traffic/review/04-observability.md §F 무엇을 바꿨나
+  \small
+  \begin{tabularx}{\linewidth}{L{5.4cm} Y}
+    \toprule
+    도구 & 하는 일 \\
+    \midrule
+    \code{_scripts/cloudflare/traffic-check.sh} & B와 D의 검사 14개. 줄마다 PASS나 FAIL. FAIL이 있으면 종료 코드 1 \\
+    \midrule
+    \texttt{\_scripts/gcp/vm-metrics.sh [days]} & Cloud Monitoring에서 시간별 최대 메모리, 하루 egress \\
+    \midrule
+    \code{logging-review.yml} & 매주 월요일 14:17 UTC. 로그 점검에 캐시 검사를 더해 issue 1개 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[font=\small]
+    \node[flowbox, minimum width=5.8cm] (tr) at (0,0) {매주 월 14:17 UTC 또는\\\texttt{gh workflow run logging-review.yml}};
+    \node[flowbox, minimum width=5.8cm] (wf) at (0,-1.7) {\texttt{logging-review.yml} (GitHub runner)};
+    \node[flowbox, minimum width=4.6cm] (s1) at (-3.2,-3.5) {로그 양 점검\\(WIF 인증)};
+    \node[flownew, minimum width=4.6cm] (s2) at (3.2,-3.5) {단계 \texttt{cache}\\\texttt{traffic-check.sh}\\(비밀 값 불필요)};
+    \node[flowbox, minimum width=5.8cm] (is) at (0,-5.5) {issue 1개 (공개 URL과 헤더만)};
+    \node[goodbox, minimum width=3.7cm] (r1) at (-4.2,-7.4) {전부 통과\\\texttt{OK (14 PASS, 0 FAIL)}};
+    \node[badbox, minimum width=3.7cm] (r2) at (0,-7.4) {FAIL 있음\\제목에 경고 표시\\FAIL 줄을 나열};
+    \node[badbox, minimum width=3.7cm] (r3) at (4.2,-7.4) {개인 응답이 \cfs{HIT}\\누출 표시를 따로 붙임};
+    \draw[flowarrow] (tr) -- (wf);
+    \draw[flowarrow] (wf) -- (s1);
+    \draw[flowarrow] (wf) -- (s2);
+    \draw[flowarrow] (s1) -- (is);
+    \draw[flowarrow] (s2) -- (is);
+    \draw[flowarrow] (is) -- (r1);
+    \draw[flowarrow] (is) -- (r2);
+    \draw[flowarrow] (is) -- (r3);
+    \draw[flowarrow, dashed] (s2.east) -- ++(0.9,0) |- node[lbl, pos=0.25, right] {HIT 검사는 4번까지 시도} (s2.south east) ;
+  \end{tikzpicture}
+  \flowlegend
+  \caption{주간 issue가 만들어지는 길. 단계 \texttt{cache}가 기존 로그 점검 워크플로에 붙어 있다.
+  (src: deploy/traffic/README.md §5 Weekly auto check, deploy/traffic/review/04-observability.md §F)}\label{fig:06-weekly-issue}
+\end{figure}
+
+\begin{description}
+  \item[왜 필요했나] 규칙은 한 번 맞춰 두어도 나중에 깨질 수 있다. 사람이 매번 확인하지 않아도 알아야 한다.
+  \item[문제] 측정을 손으로 \code{curl} 여러 줄로 했다. 매주 반복하기 어렵다.
+  \item[무엇을 바꿨나] 도구 셋은 \Cref{tab:06-tools}다. 기존 주간 워크플로에 단계 하나를 더했다. 이 단계는 비밀 값이 필요 없다.
+  \item[어떻게] 주간 issue에는 한 줄이 들어간다: \texttt{Cloudflare cache rules: OK (14 PASS, 0 FAIL).} FAIL이 나면 제목에 경고 표시가 붙고 FAIL 줄이 나열된다.
+  \item[왜 이 방법인가] 아래 다섯 이유다.
+  \item[확인] 일부러 틀린 주소(\code{W=https://blog-api.prettylog.com})로 돌리자 웹 검사가 FAIL을 찍었다. issue \#5는 14 PASS, 0 FAIL이다.
+\end{description}
+
+\begin{itemize}[nosep]
+  \item 기존 워크플로에 붙인 이유: issue가 하나로 모인다. 새 워크플로와 권한이 필요 없다.
+  \item GET만 쓰는 이유: HEAD 응답은 GET과 캐시 동작이 다르다.
+  \item \cfs{HIT}를 4번까지 시도하는 이유: 아래 소절에서 설명한다.
+  \item 누출 표시를 따로 둔 이유: 개인 응답이 \cfs{HIT}인 것은 누출이다. 그냥 \cfs{MISS}와 다르게 바로 보이게 했다.
+  \item issue에 넣어도 되는 이유: 공개 URL과 캐시 헤더뿐이다. 로그 원문(\texttt{volume.txt})은 넣지 않는다.
+\end{itemize}
+
+\subsection{거짓 MISS와 재시도 수정}\label{sec:06-false-miss}
+
+% src: deploy/traffic/review/04-observability.md §F 왜 이 방법인가; deploy/traffic/README.md §5; _scripts/cloudflare/traffic-check.sh hit_status
+\paragraph{결과.}
+첫 실행(issue \#4)에서 \cfs{MISS} 2건이 잘못 FAIL이 되었다.
+\code{hit_status}가 최대 4번 시도하도록 고친 뒤 issue \#5는 14 PASS, 0 FAIL이다.
+
+\begin{description}
+  \item[문제] 한 번 데워 둔(warm) 뒤 두 번째 GET이 \cfs{HIT}여야 한다. GitHub runner에서는 \cfs{MISS}가 나왔다.
+  \item[원인] GitHub runner는 연결마다 다른 Cloudflare 캐시 서버로 갈 수 있다.
+  \item[처방] \code{hit_status}가 \cfs{HIT}를 최대 4번 시도하고, 시도 사이에 1초 쉰다. 4번 다 \cfs{MISS}일 때만 진짜 실패로 본다.
+  \item[근거] 연결이 달라서 생긴 \cfs{MISS}는 다시 시도하면 사라질 수 있다. 4번 모두 \cfs{HIT}가 아니면 규칙 문제로 읽는다.
+\end{description}
+
+%% ---------------------------------------------------------------------------
+\section{주간 issue에 egress 넣기 (I, 보류)}\label{sec:06-egress}
+
+\begin{inbrief}
+  \item[Why] egress가 늘었는데 방문이 그대로면 캐시가 깨진 것이다. 매주 보면 빨리 안다.
+  \item[When] 보류 중이다. 오너가 2026/10/13에 결정했다 (D7, \decision{61}).
+  \item[Where] 주간 워크플로의 서비스 계정 권한이다.
+  \item[How] 지금은 Mac에서 \texttt{./\_scripts/gcp/vm-metrics.sh 7}로 본다.
+\end{inbrief}
+
+% src: deploy/traffic/review/04-observability.md §I; decisions.plan.md #61
+워크플로 계정에 \texttt{roles/monitoring.viewer} 권한이 더 필요하다.
+이것은 IAM 변경이다.
+오너가 ``wait''라고 답했다.
+
+%% ---------------------------------------------------------------------------
+\section{Supabase Log Query 사용량 (J, 관찰 중)}\label{sec:06-supabase}
+
+\begin{inbrief}
+  \item[Why] 2026/10/13 하루에 2.82 GB를 썼다. 오너가 많다고 봤다.
+  \item[When] 과금은 2027년 초 유예가 끝난 뒤다.
+  \item[Where] Supabase Studio의 Log Query 지표다.
+  \item[How] 한도와 비교하고 원인을 찾고, 2--3일 뒤 다시 본다.
+\end{inbrief}
+
+% src: deploy/traffic/review/04-observability.md §J
+\paragraph{결과.}
+한도 안이지만 매일 이만큼 쓰면 여유가 적다.
+\Cref{tab:06-supabase}에 숫자를 적었다.
+
+\begin{table}[H]
+  \caption{Supabase Log Query 사용량과 한도.}\label{tab:06-supabase}
+  % src: deploy/traffic/review/04-observability.md §J 문제인가 표
+  \small
+  \begin{tabularx}{\linewidth}{L{5cm} Y}
+    \toprule
+    항목 & 값 \\
+    \midrule
+    무료 한도 & 100 GB/월 \\
+    \midrule
+    10/13 사용 & 2.82 GB (한도의 약 3\,\%) \\
+    \midrule
+    매일 이만큼 쓰면 & 약 85 GB/월. 한도 안이지만 여유가 적다 \\
+    \midrule
+    과금 & 2027년 초 유예 종료 뒤 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{description}
+  \item[원인 찾기] 이 지표는 로그를 \textbf{읽을 때} 스캔한 양이다. 쌓인 양과는 다르다. 이 저장소와 finance 저장소의 코드는 Supabase 로그를 읽지 않는다 (grep 확인). 유력한 원인은 Studio 화면이다 (Logs Explorer, Reports, 홈 차트, 자동 새로고침 탭).
+  \item[할 일] 탭을 닫는다. 짧은 기간으로 본다. API 로그는 Cloud Logging에서 본다. 2--3일 뒤 다시 본다.
+\end{description}

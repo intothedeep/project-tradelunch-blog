@@ -1,0 +1,855 @@
+% chapters/07-testing.tex -- part B. 시험 방법과 결과.
+% Macros come from part A's preamble.tex. \code is verbatim-like: not in \caption, \section, node text.
+\chapter{시험 방법과 결과}\label{ch:testing}
+
+% src: deploy/traffic/review/02-blocking.md §시험 결과; traffic.design.md §10
+\paragraph{결과.}
+2026/10/13에 시험 네 가지를 돌렸다.
+캐시 \cfs{HIT} 경로(L1)는 640건이 모두 \cfs{HIT}였고 VM에 닿은 시험 요청은 0건이었다.
+오리진(origin) \cfs{MISS} 경로는 웹이 초당 2번까지 버티고 4번에서 시간 초과가 생겼다.
+API는 초당 8번에서도 느려지지 않았다.
+Cloudflare 요청 수 제한은 한도 100과 50에서 모두 429를 냈다.
+\Cref{tab:07-results-summary}가 한눈에 보인다.
+
+\begin{table}[H]
+  \caption{시험 결과 요약 (2026/10/13). 자세한 숫자는 이 장의 각 절에 있다.}\label{tab:07-results-summary}
+  % src: deploy/traffic/review/02-blocking.md §시험 결과 L1, L2, L-a, L2-api, L-a 한도 50
+  \small
+  \begin{tabularx}{\linewidth}{L{2.6cm} Y L{2.2cm}}
+    \toprule
+    시험 & 한 줄 결과 & 판정 \\
+    \midrule
+    L1 (run \texttt{38465971720}) & 640건 모두 \cfs{HIT}. VM까지 온 시험 요청 0건 & 통과 \\
+    \midrule
+    L2 web (run \texttt{38466353765}) & 4 rps 단계에서 10건 시간 초과 (3.1\,\%). 5xx 0 & 중단 \\
+    \midrule
+    L2-api (run \texttt{38468411633}) & 450건 모두 \cfs{MISS}, 실패 0, 5xx 0, p95 626 ms & 통과 \\
+    \midrule
+    Cloudflare 한도 100 & 250번 중 200 232, 429 18 & 발동 \\
+    \midrule
+    Cloudflare 한도 50 & 150번 중 200 53, 429 97 & 발동 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+%% ---------------------------------------------------------------------------
+\section{시험 철학: 고의 파손}\label{sec:07-philosophy}
+
+\begin{inbrief}
+  \item[Why] 단위 시험을 쓰지 않는 저장소에서, 규칙이 정말 지켜지는지 증명할 방법이 필요하다.
+  \item[When] 오너 지시(2026/09/04)로 시험이 중지된 동안이다.
+  \item[Where] 실제 운영 시스템 하나뿐이다.
+  \item[How] 일부러 고장을 일으키고, 관찰하고, 정리한다.
+\end{inbrief}
+
+% src: .claude/rules/core.md §Prohibitions (Tests are SUSPENDED, owner directive 2026-09-04)
+이 저장소에서 \code{*.test.*}와 \code{*.spec.*} 파일은 쓰지 않는다.
+시험 실행기(test runner)도 돌리지 않는다.
+대신 실제 시스템에 \term{고의 파손}\eng{deliberate breakage}을 한다.
+고장을 일으키고, 결과를 보고, 정리한다.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[font=\small]
+    \node[flowbox, minimum width=3.6cm] (a) at (0,0) {1. 고장을\\일으킨다};
+    \node[flowbox, minimum width=3.6cm] (b) at (5.2,0) {2. 결과를\\관찰한다};
+    \node[flowbox, minimum width=3.6cm] (c) at (10.4,0) {3. 정리한다};
+    \draw[flowarrow] (a) -- (b);
+    \draw[flowarrow] (b) -- (c);
+  \end{tikzpicture}
+  \caption{고의 파손의 세 걸음. 규칙 원문은 ``trigger the failure, observe it, clean up''이다.
+  (src: .claude/rules/core.md §Prohibitions)}\label{fig:07-breakage-steps}
+\end{figure}
+
+\Cref{tab:07-test-kinds}가 이 장의 시험 세 종류를 나눈다.
+
+\begin{table}[H]
+  \caption{시험 세 종류. 무엇을 알려고 쓰는가.}\label{tab:07-test-kinds}
+  % src: deploy/traffic/README.md §Monitoring commands; deploy/traffic/load/README.md §1; traffic.design.md §10.1
+  \small
+  \begin{tabularx}{\linewidth}{L{3.6cm} Y L{3.4cm}}
+    \toprule
+    시험 & 무엇을 알려고 쓰나 & 어디서 도나 \\
+    \midrule
+    \code{traffic-check.sh} & 캐시 규칙이 아직 맞는가. 개인 응답이 캐시되지 않는가 & Mac, GitHub runner \\
+    \midrule
+    고의 파손 & 한 가지 규칙이 정말 막는가 (403, 429 등) & Mac의 \code{curl} \\
+    \midrule
+    k6 부하 시험 & 엣지가 몰리는 요청을 흡수하는가. 오리진은 \cfs{MISS}를 몇 rps까지 버티는가. 제한이 발동하는가 & GitHub runner만 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+%% ---------------------------------------------------------------------------
+\section{traffic-check.sh: 14개 검사}\label{sec:07-trafficcheck}
+
+\begin{inbrief}
+  \item[Why] 캐시 규칙이 나중에 깨져도 사람이 매번 확인하지 않아도 알게 한다.
+  \item[When] 손으로 필요할 때, 부하 시험 시작 전, 매주 월요일에 돈다.
+  \item[Where] \code{_scripts/cloudflare/traffic-check.sh}. 읽기 전용, GET 약 20번이다.
+  \item[How] 검사마다 기대 패턴(정규식)과 실제 값을 비교해 PASS나 FAIL을 찍는다. FAIL이 있으면 종료 코드 1이다.
+\end{inbrief}
+
+% src: _scripts/cloudflare/traffic-check.sh; deploy/traffic/README.md §Monitoring commands §2 c, §3 c
+\paragraph{결과.}
+2026/10/13에 14개 모두 PASS였다 (0 FAIL).
+\Cref{tab:07-checks}는 검사 14개의 기대값과 README에 적힌 측정값이다.
+
+\begin{table}[H]
+  \caption{\texttt{traffic-check.sh}의 검사 14개. 기대값은 스크립트의 정규식이다.}\label{tab:07-checks}
+  % src: _scripts/cloudflare/traffic-check.sh (기대값); deploy/traffic/README.md §2 c Measured, §3 c Measured, §Monitoring 1 (측정값); 01.status.md 2026-10-13 (14/14)
+  \footnotesize
+  \begin{tabularx}{\linewidth}{r L{3.7cm} L{2.9cm} L{2.9cm} Y}
+    \toprule
+    \# & 검사 & 기대값 & 측정값 (README) & 결과 \\
+    \midrule
+    1 & \texttt{GET /} (HIT, 4번 안에) & \cfs{HIT} & \cfs{MISS} 다음 \cfs{HIT} & PASS \\
+    \midrule
+    2 & \texttt{GET /blog} & \cfs{HIT} & \cfs{HIT} & PASS \\
+    \midrule
+    3 & \texttt{GET /robots.txt} & \cfs{HIT} & \cfs{HIT} & PASS \\
+    \midrule
+    4 & \texttt{GET /sitemap.xml} & \cfs{HIT} & \cfs{HIT} & PASS \\
+    \midrule
+    5 & \code{__session} 쿠키 & \cfs{BYPASS} 또는 \cfs{DYNAMIC} & \cfs{DYNAMIC} & PASS \\
+    \midrule
+    6 & \code{/me} (보호 경로) & \cfs{BYPASS} 또는 \cfs{DYNAMIC} & 307, \cfs{DYNAMIC} & PASS \\
+    \midrule
+    7 & \code{rsc} 헤더, \code{_rsc=} 없음 & \cfs{BYPASS} 또는 \cfs{DYNAMIC} & \cfs{DYNAMIC} & PASS \\
+    \midrule
+    8 & \code{?_rsc=} content-type & \code{text/x-component} & \code{text/x-component} & PASS \\
+    \midrule
+    9 & HTML 브라우저 cache-control & \texttt{private, no-cache, no-store} 로 시작 & 기록 없음 & PASS \\
+    \midrule
+    10 & HTML \code{set-cookie} 개수 & 0 & 0 & PASS \\
+    \midrule
+    11 & \texttt{GET posts?limit=1} (HIT, 4번 안에) & \cfs{HIT} & \cfs{MISS} 다음 \cfs{HIT} & PASS \\
+    \midrule
+    12 & \code{Authorization} 헤더 & \cfs{BYPASS} 또는 \cfs{DYNAMIC} & \cfs{DYNAMIC} & PASS \\
+    \midrule
+    13 & \code{/ping} (Cache-Control 없음) & \cfs{BYPASS}, \cfs{DYNAMIC}, \cfs{MISS} 중 하나 & \cfs{BYPASS} & PASS \\
+    \midrule
+    14 & CORS \code{my.} origin 되돌림 & 요청한 origin과 같음 & \code{my.}와 \code{local.} 모두 자기 \texttt{access-control-}\allowbreak\texttt{allow-origin} & PASS \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{description}
+  \item[읽는 법] 줄마다 PASS나 FAIL이다. 마지막 줄은 \texttt{== N FAIL}이다.
+  \item[FAIL의 뜻] 일반 \texttt{GET} 검사가 \cfs{DYNAMIC}으로 FAIL이면 캐시 규칙이 꺼졌거나 식이 바뀐 것이다.
+    \code{__session}, \code{/me}, \code{Authorization} 검사가 \cfs{HIT}로 FAIL이면 개인 응답이 캐시된다는 뜻이다. 그때는 ``web cache'' 또는 ``api cache''를 바로 끈다.
+    HTML cache-control 검사가 FAIL이면 zone의 Browser Cache TTL이 ``Respect Existing Headers''가 아니다.
+\end{description}
+
+%% ---------------------------------------------------------------------------
+\section{고의 파손 예}\label{sec:07-breakage-examples}
+
+\begin{inbrief}
+  \item[Why] 규칙이 막는다는 증거는 ``막힌 것을 본 것''뿐이다.
+  \item[When] 변경을 배포한 직후다.
+  \item[Where] 운영 시스템에 읽기 위주로, 한 요청씩이다.
+  \item[How] 나쁜 요청 하나를 보내고 기대한 거절 코드가 나오는지 본다.
+\end{inbrief}
+
+% src: deploy/traffic/README.md §Monitoring commands (Verified 2026-10-13), §4 b Check; deploy/traffic/review/03-status-codes.md §G §L; deploy/traffic/review/04-observability.md §F 확인; deploy/traffic/review/02-blocking.md §L-a
+\Cref{tab:07-breakage}에 실제로 한 고의 파손과, 일부러 하지 않은 것 하나를 적었다.
+
+\begin{table}[H]
+  \caption{고의 파손 예. 마지막 줄은 일부러 하지 않은 시험이다.}\label{tab:07-breakage}
+  % src: 각 행의 출처는 본문 위 % src 줄
+  \footnotesize
+  \begin{tabularx}{\linewidth}{L{3.2cm} L{3.5cm} L{2.6cm} Y}
+    \toprule
+    규칙 & 일부러 한 고장 & 기대 & 관찰한 결과 \\
+    \midrule
+    캐시 검사 스크립트 (F) & \code{W=https://blog-api.prettylog.com}, 웹 자리에 API 호스트 (일부러 틀린 주소) & 웹 검사 FAIL & 웹 검사가 FAIL을 찍었다 \\
+    \midrule
+    CORS 거절 (G) & 허용 안 된 Origin의 OPTIONS와 GET (\code{https://evil.example}) & 403 & 403. \code{/users/me}는 \texttt{origin not allowed}. ERROR 0건 \\
+    \midrule
+    error-logs 키 (L) & 키 없이 POST, 틀린 키로 POST & 403 & 둘 다 403 (\texttt{forbidden}), INSERT 없음 \\
+    \midrule
+    JSON 404 (제안 2) & 없는 경로 \code{/v1/api/nope} & 404 JSON & 404 JSON \\
+    \midrule
+    Cloudflare 요청 수 제한 (L-a) & \code{/}를 250번, 6초, 동시 25 & 429 & 200 232, 429 18 \\
+    \midrule
+    메모리 알림 (E) & \textbf{하지 않음} & (없음) & 하지 않았다. VM이 1 GB라서 일부러 채우면 운영 사이트가 위험하다 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+CORS 시험에는 뒷이야기가 있다.
+주간 issue \#5의 ERROR 48줄은 24건이다.
+그중 23건은 로컬 설정이고 1건이 고의 파손 시험이었다.
+모두 우리가 만든 요청이다.
+메모리 알림은 고의 파손의 한계를 보인다.
+운영 사이트를 위험하게 하는 고의 파손은 하지 않는다.
+대신 정책이 있고 켜져 있다는 사실만 확인한다.
+
+%% ---------------------------------------------------------------------------
+\section{요청 수 제한 설계 (H)}\label{sec:07-ratelimit-design}
+
+\begin{inbrief}
+  \item[Why] 캐시는 익명 GET만 막는다. 캐시를 지난 요청이 몰리면 1 GB VM이 버티지 못한다.
+  \item[When] 2026/10/13에 설계했다. L-a는 켰고, L-b는 \texttt{log} 모드다.
+  \item[Where] Cloudflare 엣지(L-a)와 Express(L-b)다.
+  \item[How] 두 겹으로 센다. 시험은 이 겹들이 정말 발동하는지 본다.
+\end{inbrief}
+
+% src: deploy/traffic/review/02-blocking.md §H; decisions.plan.md #62 #67 #68
+\paragraph{결과.}
+Cloudflare 한도는 IP당 100에서 50 / 10 s로 낮췄다 (\decision{68}).
+Express 한도는 읽기 120 / 60 s, 쓰기 30 / 60 s이고 처음 14일은 세기만 한다 (\decision{67}).
+
+\begin{table}[H]
+  \caption{요청 수 제한 세 층.}\label{tab:07-layers}
+  % src: deploy/traffic/review/02-blocking.md §H 무엇을 바꾸나 표; decisions.plan.md #62 #68
+  \small
+  \begin{tabularx}{\linewidth}{L{2.4cm} L{3cm} L{3.8cm} Y}
+    \toprule
+    층 & 대상 & 한도 & 동작과 끄는 법 \\
+    \midrule
+    L-a Cloudflare & \code{my.} & IP당 50 / 10 s (처음 가안 100, \decision{68}) & Block 10 s. 대시보드 토글 \\
+    \midrule
+    L-b Express & \code{blog-api} & 읽기 120 / 60 s, 쓰기 30 / 60 s & 429. 처음 14일은 \texttt{log} 모드(세기만 함). \code{RATE_LIMIT_MODE=off} 후 ecosystem restart \\
+    \midrule
+    L-c & HIT 경로, SSR & 없음 & 없음 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{itemize}[nosep]
+  \item \code{blog-api.}를 엣지에서 세지 않는다. Next SSR이 API를 부르면 모두 VM IP 하나로 보인다. 엣지에서 IP로 세면 사이트가 자기 SSR을 막는다.
+  \item SSR 요청은 \texttt{x-origin-key}가 맞으면 세지 않는다 (\decision{64}).
+  \item Challenge 대신 Block이다. RSC 요청과 \code{fetch}는 challenge를 풀 수 없다. 앱 안 이동이 깨진다.
+  \item 카운터는 프로세스 메모리(Map)에 둔다. DB나 Redis는 요청마다 쓰기가 늘고 VM 한 대에 이득이 없다 (\decision{62}).
+\end{itemize}
+
+%% ---------------------------------------------------------------------------
+\section{k6 부하 시험: 방법}\label{sec:07-k6}
+
+\begin{inbrief}
+  \item[Why] 세 가지를 알려고 한다. 엣지가 burst를 흡수하나, 오리진은 \cfs{MISS}를 몇 rps까지 버티나, 제한이 발동하나.
+  \item[When] 오너가 세트마다 승인한 뒤에, 가장 한가한 시간대에 돈다.
+  \item[Where] GitHub Actions의 \code{load-test.yml}에서만 돈다. Mac에서는 돌리지 않는다.
+  \item[How] k6가 정해진 속도로 공개 URL에 GET을 보내고, 중단 조건에 걸리면 스스로 멈춘다.
+\end{inbrief}
+
+% src: deploy/traffic/load/README.md §1; traffic.design.md §10.1 §10.2
+\subsection{세트별 목적}\label{sec:07-k6-sets}
+
+\begin{table}[H]
+  \caption{부하 시험 세트. 무엇을 알려고 쓰나.}\label{tab:07-sets}
+  % src: deploy/traffic/load/README.md §1 표; traffic.design.md §10.2 표 (L3)
+  \footnotesize
+  \begin{tabularx}{\linewidth}{L{1.6cm} L{2.8cm} L{3.8cm} L{3cm} Y}
+    \toprule
+    세트 & 답하는 질문 & 대상 & 속도 $\times$ 시간 & 총 요청 \\
+    \midrule
+    L1 (\code{l1.js}) & 엣지가 burst를 흡수하는가 & \code{my.prettylog.com/blog/@taeklim/rust-config}, \code{blog-api.prettylog.com/v1/api/posts?limit=1} (둘 다 \cfs{HIT}) & 각 8 rps $\times$ 40 s & 320 + 320 = 640 \\
+    \midrule
+    L2 (\code{l2.js}) web & 오리진은 \cfs{MISS}를 몇 rps까지 버티는가 & \code{my.prettylog.com/?lt=<run>-<n>} (매번 \cfs{MISS}) & 0.5 $\rightarrow$ 1 $\rightarrow$ 2 $\rightarrow$ 4 rps, 단계당 60 s & 450 \\
+    \midrule
+    L2-api (\code{l2.js}의 api 절반) & 같은 질문, API 쪽 & \code{blog-api.prettylog.com/v1/api/posts?limit=1&lt=<run>-<n>} (매번 \cfs{MISS}) & 1 $\rightarrow$ 2 $\rightarrow$ 4 $\rightarrow$ 8 rps, 단계당 30 s & 450 \\
+    \midrule
+    L3-cf (계획) & Cloudflare 제한이 발동하는가 & \code{my.prettylog.com/?lt=<run>-<n>} & 한도를 잠시 20 / 10 s로 낮춘 뒤 3 rps $\times$ 20 s & 60 \\
+    \midrule
+    L3-api (계획) & Express 제한이 발동하는가 & \code{blog-api.prettylog.com/} (DB 없음, 로그 남음) & 2.5 rps $\times$ 120 s & 300 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{itemize}[nosep]
+  \item L2는 web을 먼저, api를 그 뒤에 돌린다. 두 오리진에 동시에 부하를 주지 않는다.
+  \item \code{lt=} 값이 매번 달라서 캐시 키(cache key)가 \cfs{MISS}가 된다. 이 항목은 하루 뒤 만료되고 purge하지 않는다.
+  \item 모든 요청의 User-Agent는 \code{prettylog-load-test/L1} 또는 \code{prettylog-load-test/L2}다. Cloud Logging에서 걸러 낼 수 있다.
+  \item L3를 창(window) 길이의 2배로 보내는 이유: 고정 창은 시계 경계에서 끊긴다. 한 창 길이만 보내면 두 창으로 나뉘어 한도를 안 넘을 수 있다.
+\end{itemize}
+
+\Cref{fig:07-l2-ramp}는 L2 web 단계를 그림으로 보인다.
+각 60초 단계 끝에서 중단 조건을 평가한다.
+통과한 마지막 단계의 rps가 C 값이다.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[font=\footnotesize]
+    \draw[->] (0,0) -- (9.4,0) node[right] {시간};
+    \draw[->] (0,0) -- (0,4.2) node[above] {rps};
+    \foreach \y/\l in {0.7/0.5, 1.4/1, 2.8/2, 3.8/4}
+      \draw (0.08,\y) -- (-0.08,\y) node[left] {\l};
+    \draw[very thick, vmcol] (0,0.7) -- (2.2,0.7) -- (2.2,1.4) -- (4.4,1.4) -- (4.4,2.8) -- (6.6,2.8) -- (6.6,3.8) -- (8.8,3.8);
+    \foreach \x/\l in {1.1/{단계 1\\60 s}, 3.3/{단계 2\\60 s}, 5.5/{단계 3\\60 s}, 7.7/{단계 4\\60 s}}
+      \node[align=center, below] at (\x,-0.1) {\l};
+    \node[badcol, align=center, font=\footnotesize] at (7.7,4.4) {실제 run은\\여기서 중단};
+    \node[goodcol, align=center, font=\footnotesize] at (5.5,3.35) {C\textsubscript{web} 약 2 rps};
+  \end{tikzpicture}
+  \caption{L2 web 단계 계획. 실제 run은 4 rps 단계에서 10건 시간 초과로 중단했다.
+  (src: traffic.design.md §10.3, deploy/traffic/review/02-blocking.md §L2)}\label{fig:07-l2-ramp}
+\end{figure}
+
+\subsection{중단 조건과 통과 기준}\label{sec:07-k6-criteria}
+
+중단 조건은 k6 \texttt{thresholds}의 \texttt{abortOnFail}이다.
+시작 10초 뒤부터 평가한다 (\texttt{delayAbortEval}).
+기준은 run 전에 정했고, run 뒤에 바꾸지 않는다 (사전 등록).
+
+\begin{table}[H]
+  \caption{중단 조건.}\label{tab:07-stop}
+  % src: deploy/traffic/load/README.md §2; traffic.design.md §10.4 item 5
+  \small
+  \begin{tabularx}{\linewidth}{L{2cm} Y}
+    \toprule
+    세트 & 중단 조건 \\
+    \midrule
+    L1 & 200이 아닌 응답이 1\,\%를 넘는다 \\
+    \midrule
+    L2 & 5xx가 1건 이상, 실패율이 2\,\%를 넘는다, p95가 3 s를 넘는다. 하나라도 걸리면 중단 \\
+    \midrule
+    L3 & 없음 (429가 기대값이다) \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{table}[H]
+  \caption{통과 기준 (사전 등록, 설계 \S10.5).}\label{tab:07-pass}
+  % src: traffic.design.md §10.5 표
+  \small
+  \begin{tabularx}{\linewidth}{L{2.8cm} Y}
+    \toprule
+    세트 & 통과 \\
+    \midrule
+    L1 & 응답 200 $\geq$ 99\,\%, \cfs{HIT} $\geq$ 99\,\%, run 시간대 blog-web의 그 path 줄 $\leq$ 10, PM2 재시작 횟수 불변 \\
+    \midrule
+    L2 & 단계별 판정. 재시작 횟수 불변, 메모리 최댓값 $<$ 80\,\%, blog-api 5xx 0 (L2-api) \\
+    \midrule
+    L3-cf & 60건 중 10건 이상 차단, blog-web 그 path 줄 $<$ 60, 한도 100으로 복구 확인 \\
+    \midrule
+    L3-api \texttt{log} & 300건 모두 200, \texttt{rate\_limit} warn 줄 $\geq$ 30 \\
+    \midrule
+    L3-api \texttt{enforce} & 429 + \texttt{Retry-After} $\geq$ 30건. 절반은 \texttt{x-origin-key: wrong}을 붙여도 429. \texttt{error\_log} 증가 0 \\
+    \midrule
+    SSR 제외 & \texttt{log} 모드 14일 동안 \texttt{req.ssr=true} 줄이 있고, 그중 \texttt{rate\_limit} warn은 0 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{itemize}[nosep]
+  \item L2의 첫 run은 판정하지 않는다. C\textsubscript{web}, C\textsubscript{api}의 첫 값만 기록한다.
+  \item 메모리 80\,\%인 이유: 경보는 90\,\%가 5분 이어질 때다. 단계는 60초라서 경보가 울리지 않을 수 있다. 경보는 통과 신호가 아니다.
+  \item k6는 VM 메모리를 볼 수 없다. 그래서 메모리와 재시작 횟수는 run 뒤 점검이 판정한다.
+\end{itemize}
+
+\subsection{workflow가 도는 길}\label{sec:07-k6-workflow}
+
+% src: .github/workflows/load-test.yml; deploy/traffic/load/README.md §3 §4 §5; traffic.design.md §10.4
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[font=\footnotesize]
+    \node[flowbox, minimum width=3cm] (cmd) at (0,0) {main session\\\texttt{gh workflow run}\\\texttt{load-test.yml}\\\texttt{-f set=...}};
+    \node[flowbox, minimum width=3cm] (pre) at (4.2,0) {사전 점검\\\texttt{traffic-check.sh}\\0 FAIL이어야 시작\\(L1은 2번째 GET \cfs{HIT})};
+    \node[flownew, minimum width=3cm] (k6) at (8.4,0) {k6 2.3.0 실행\\중단 조건에 걸리면\\스스로 멈춤};
+    \node[cfbox, minimum width=2.6cm] (cf) at (12.4,0) {Cloudflare 엣지\\\cfs{HIT}면 응답};
+    \node[vmbox, minimum width=2.6cm] (vm) at (12.4,-2.6) {VM\\\cfs{MISS}만 도착\\blog-web, blog-api};
+    \node[dbbox, minimum width=2.6cm] (db) at (12.4,-5.0) {Supabase\\API \cfs{MISS} 때만};
+    \node[flowbox, minimum width=3cm] (out) at (8.4,-2.6) {\texttt{summary.md}\\$\rightarrow$ Job summary\\\texttt{summary.json}\\$\rightarrow$ artifact};
+    \begin{scope}[on background layer]
+      \node[zone, draw=mutecol, fit=(pre)(k6), label={[font=\scriptsize,mutecol]above:GitHub runner (ubuntu-latest)}] {};
+    \end{scope}
+    \draw[flowarrow] (cmd) -- (pre);
+    \draw[flowarrow] (pre) -- (k6);
+    \draw[flowarrow] (k6) -- (cf) node[lbl, midway, above] {GET};
+    \draw[flowarrow] (cf) -- (vm);
+    \draw[flowarrow] (vm) -- (db);
+    \draw[flowarrow] (k6) -- (out);
+  \end{tikzpicture}
+  \caption{\texttt{load-test.yml}이 도는 길. runner는 공개 URL만 부르고 비밀 값을 쓰지 않는다.
+  (src: .github/workflows/load-test.yml, traffic.design.md §10.4)}\label{fig:07-k6-workflow}
+\end{figure}
+
+\begin{table}[H]
+  \caption{workflow와 k6의 상한. 시험이 서버를 해치지 않게 하는 장치다.}\label{tab:07-caps}
+  % src: .github/workflows/load-test.yml; deploy/traffic/load/common.js; deploy/traffic/load/l2.js; traffic.design.md §10.4 item 4
+  \small
+  \begin{tabularx}{\linewidth}{L{4.6cm} Y}
+    \toprule
+    상한 & 값 \\
+    \midrule
+    실행 시간 & \texttt{timeout-minutes: 8}. L2는 약 6.5분 필요 \\
+    \midrule
+    동시 실행 & \texttt{concurrency: load-test}, 1개 (\texttt{cancel-in-progress: false}) \\
+    \midrule
+    입력 & 세트 이름 선택지(L1, L2, L2-api)뿐. 자유 URL 입력 없음 \\
+    \midrule
+    비밀 값 & 필요 없음. 공개 URL만 호출 \\
+    \midrule
+    k6 VU 상한 & \texttt{maxVUs} 20, 미리 할당 10 \\
+    \midrule
+    요청당 \texttt{timeout} / 리다이렉트 & 10 s / 0 \\
+    \midrule
+    총 요청 상한 & 스크립트의 \texttt{overCap}이 L1 대상당 320, L2 대상당 450으로 막음 \\
+    \midrule
+    성공으로 치는 응답 & 200만 (리다이렉트나 4xx는 실패로 센다) \\
+    \midrule
+    k6 버전 & 2.3.0 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{실행 순서}\label{sec:07-k6-run}
+
+\begin{enumerate}[nosep]
+  \item 시작 전: L-b가 \texttt{off}나 \texttt{log}인지 본다. L2-api 8 rps는 \texttt{enforce}면 막힌다.
+  \item 시작 전: PM2 재시작 횟수를 적어 둔다. 가장 한가한 시간대를 고른다.
+  \item 실행: \texttt{gh workflow run load-test.yml -f set=L1}. 세트는 L1, L2, L2-api 중 하나다.
+  \item 관찰: \texttt{gh run watch <id>}. 이상하면 \texttt{gh run cancel <id>}로 바로 끊는다.
+  \item 끝난 뒤: 재시작 횟수가 같은지, 메모리 최댓값(\texttt{./\_scripts/gcp/vm-metrics.sh 1}), blog-web 로그의 시험 줄 수, blog-api 로그의 5xx 수를 본다.
+\end{enumerate}
+
+원본 숫자는 artifact \code{load-test-<set>-<id>}의 \texttt{summary.json}이다.
+이 장의 숫자는 그 요약과 README에 기록된 값을 옮겼다.
+
+%% ---------------------------------------------------------------------------
+\section{결과 1: L1, 캐시 \texorpdfstring{\cfs{HIT}}{HIT} 경로}\label{sec:07-result-l1}
+
+\begin{inbrief}
+  \item[Why] 익명 GET 폭주를 엣지가 받아 주는지 본다.
+  \item[When] run \texttt{38465971720}, 2026/10/13.
+  \item[Where] \code{my.}의 글 페이지와 \code{blog-api.}의 \code{posts?limit=1}이다.
+  \item[How] 각 8 rps $\times$ 40 s. 640건을 보낸다.
+\end{inbrief}
+
+% src: deploy/traffic/review/02-blocking.md §L1: 캐시 HIT 경로 (run 38465971720, 통과)
+\paragraph{결과.}
+통과했다.
+web 320건, api 320건이 모두 \cfs{HIT}였다.
+실패 0건이고 VM에 닿은 시험 요청은 0건이었다.
+
+\begin{table}[H]
+  \caption{L1 결과 (run \texttt{38465971720}).}\label{tab:07-l1}
+  % src: deploy/traffic/review/02-blocking.md §L1 표
+  \small
+  \begin{tabularx}{\linewidth}{L{3.6cm} Y}
+    \toprule
+    항목 & 결과 \\
+    \midrule
+    요청 & 640 (web 320, api 320), 8 rps $\times$ 40 s 씩 \\
+    \midrule
+    \texttt{cf-cache-status} & web \cfs{HIT} 320, api \cfs{HIT} 320 \\
+    \midrule
+    실패 & 0 \\
+    \midrule
+    p95 & 전체 82 ms (web 88, api 73) \\
+    \midrule
+    VM까지 온 시험 요청 & 0 (blog-web 로그에 \texttt{prettylog-load-test} 없음) \\
+    \midrule
+    PM2 재시작 & 전후 같음 (api 5, web 3) \\
+    \midrule
+    메모리 & api 76 $\rightarrow$ 77 MB, web 129 $\rightarrow$ 130 MB \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[
+      ybar, width=0.62\linewidth, height=5.4cm, bar width=24pt,
+      xtick={1,2,3}, xticklabels={전체,web,api}, xmin=0.4, xmax=3.6,
+      ymin=0, ymax=110, ymajorgrids=true, grid style={black!12},
+      ylabel={p95 latency (ms)}, nodes near coords,
+      tick label style={font=\footnotesize}, label style={font=\footnotesize},
+      every node near coord/.append style={font=\footnotesize},
+      axis lines=left,
+    ]
+      \addplot[fill=cfcol!60, draw=cfcol] coordinates {(1,82) (2,88) (3,73)};
+    \end{axis}
+  \end{tikzpicture}
+  \caption{L1의 p95 응답 시간. 세 값 모두 100 ms 아래다.
+  (src: deploy/traffic/review/02-blocking.md §L1)}\label{fig:07-l1-p95}
+\end{figure}
+
+\begin{table}[H]
+  \caption{L1 통과 기준과 측정.}\label{tab:07-l1-pass}
+  % src: traffic.design.md §10.5 L1; deploy/traffic/review/02-blocking.md §L1
+  \small
+  \begin{tabularx}{\linewidth}{L{5.2cm} Y L{1.6cm}}
+    \toprule
+    기준 & 측정 & 판정 \\
+    \midrule
+    응답 200 $\geq$ 99\,\% & 실패 0 & 통과 \\
+    \midrule
+    \cfs{HIT} $\geq$ 99\,\% & web \cfs{HIT} 320, api \cfs{HIT} 320 & 통과 \\
+    \midrule
+    blog-web의 그 path 줄 $\leq$ 10 & 0 (시험 UA 줄 없음) & 통과 \\
+    \midrule
+    재시작 횟수 불변 & api 5, web 3 (전후 같음) & 통과 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\paragraph{읽는 법.}
+익명 GET 폭주는 Cloudflare가 모두 받는다.
+VM은 아무것도 하지 않았다.
+
+%% ---------------------------------------------------------------------------
+\section{결과 2: L2 web, 오리진 \texorpdfstring{\cfs{MISS}}{MISS} 경로}\label{sec:07-result-l2web}
+
+\begin{inbrief}
+  \item[Why] 캐시를 놓친 요청을 웹 오리진이 초당 몇 번까지 처리하는지 안다.
+  \item[When] run \texttt{38466353765}, 2026/10/13 20:53--20:57 UTC.
+  \item[Where] \code{my.prettylog.com/?lt=<run>-<n>}. 매번 \cfs{MISS}다.
+  \item[How] 0.5, 1, 2, 4 rps 단계. 중단 조건을 넘으면 멈춘다.
+\end{inbrief}
+
+% src: deploy/traffic/review/02-blocking.md §L2: 오리진 MISS 경로 (run 38466353765, 중단)
+\paragraph{결과.}
+4 rps 단계에서 중단했다.
+웹 오리진은 \cfs{MISS} 요청을 초당 2번까지 버티고, 4번에서 시간 초과가 생긴다.
+첫 C\textsubscript{web} 값은 약 2 rps다.
+재시작이나 5xx는 없었다.
+서버는 죽지 않고 느려졌다.
+
+\begin{table}[H]
+  \caption{L2 web 단계별 blog-web 로그의 시험 요청 수.}\label{tab:07-l2-stages}
+  % src: deploy/traffic/review/02-blocking.md §L2 단계 표
+  \small
+  \begin{tabularx}{\linewidth}{L{3cm} L{3cm} Y}
+    \toprule
+    단계 (web) & 시각 (UTC) & blog-web 로그의 시험 요청 \\
+    \midrule
+    0.5 rps & 20:53 & 13 \\
+    \midrule
+    1 rps & 20:54 & 44 \\
+    \midrule
+    2 rps & 20:55 & 87 \\
+    \midrule
+    4 rps & 20:56 & 172 \\
+    \midrule
+    중단 & 20:57 & 24 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+단계별 로그 줄의 합은 340이고 시험 요청 web 320과 다르다.
+소스는 이유를 적지 않는다.
+세는 범위가 다른 것으로 보이며, 사전 확인 요청이 로그 줄에 들어갔을 수 있다(추정, 확인 안 함).
+% src: deploy/traffic/review/02-blocking.md §L2 단계 표 (13+44+87+172+24 = 340), §L2 결과 표 (web 320)
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[
+      ybar, width=0.86\linewidth, height=6cm, bar width=22pt,
+      xtick={1,2,3,4,5}, xmin=0.4, xmax=5.6,
+      xticklabels={{0.5 rps\\20:53},{1 rps\\20:54},{2 rps\\20:55},{4 rps\\20:56},{중단\\20:57}},
+      xticklabel style={align=center, font=\footnotesize},
+      ymin=0, ymax=200, ymajorgrids=true, grid style={black!12},
+      ylabel={Requests in blog-web log (count)}, nodes near coords,
+      label style={font=\footnotesize}, tick label style={font=\footnotesize},
+      every node near coord/.append style={font=\footnotesize},
+      axis lines=left,
+    ]
+      \addplot[fill=vmcol!55, draw=vmcol] coordinates {(1,13) (2,44) (3,87) (4,172) (5,24)};
+    \end{axis}
+  \end{tikzpicture}
+  \caption{L2 web, 분 단위 blog-web 로그의 시험 요청 수. 단계가 오를수록 늘고, 중단 분에는 24건만 남았다.
+  (src: deploy/traffic/review/02-blocking.md §L2)}\label{fig:07-l2-web-chart}
+\end{figure}
+
+\begin{table}[H]
+  \caption{L2 web 전체 결과.}\label{tab:07-l2-web}
+  % src: deploy/traffic/review/02-blocking.md §L2 결과 표
+  \small
+  \begin{tabularx}{\linewidth}{L{3.2cm} Y}
+    \toprule
+    항목 & 결과 \\
+    \midrule
+    요청 & web 320 (api 단계는 시작 전에 중단) \\
+    \midrule
+    실패 & web 10건 (3.1\,\%), 모두 10 s 시간 초과. 5xx 0 \\
+    \midrule
+    p95 / 중앙값 & 874 ms / 589 ms \\
+    \midrule
+    중단 이유 & \code{http_req_failed{target:web}} $>$ 2\,\% (사전 등록 기준) \\
+    \midrule
+    PM2 재시작 & 없음 (api 5, web 3) \\
+    \midrule
+    메모리 & web 130 $\rightarrow$ 220 MB (cap 320M), VM available 425 $\rightarrow$ 287 MiB, swap 190 MiB \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{callout}[새로 드러난 위험]
+Cloudflare 한도(처음 가안: IP당 100 / 10 s, 곧 10 rps)는 웹 오리진 용량(약 2 rps)보다 크다.
+매번 다른 쿼리(\texttt{/?x=random})로 \cfs{MISS}를 만들면 IP 하나로도 웹 오리진을 밀 수 있다.
+이 결과가 한도를 50으로 낮춘 \decision{68}의 이유다.
+\end{callout}
+
+%% ---------------------------------------------------------------------------
+\section{결과 3: L2-api}\label{sec:07-result-l2api}
+
+\begin{inbrief}
+  \item[Why] L2 web이 중단돼 API 단계는 돌지 못했다. C\textsubscript{api}가 없으면 Express 한도의 위쪽 한계를 정할 수 없다.
+  \item[When] run \texttt{38468411633}, 2026/10/13 21:09--21:12 UTC. 오너가 승인했다.
+  \item[Where] \code{blog-api.prettylog.com/v1/api/posts?limit=1&lt=<run>-<n>}. 매번 \cfs{MISS}다.
+  \item[How] 1, 2, 4, 8 rps 단계, 각 30 s. 450건.
+\end{inbrief}
+
+% src: deploy/traffic/review/02-blocking.md §L2-api (run 38468411633, 통과, 2026-10-13 21:09-21:12 UTC)
+\paragraph{결과.}
+통과했다.
+450건 모두 \cfs{MISS}로 Express까지 왔다.
+실패와 5xx는 0이었다.
+API 오리진은 초당 8번에서도 느려지지 않았다.
+C\textsubscript{api}는 8 rps 이상이다.
+시험 상한이 8 rps라서 실제 한계는 찾지 못했다.
+
+\begin{table}[H]
+  \caption{L2-api 결과.}\label{tab:07-l2-api}
+  % src: deploy/traffic/review/02-blocking.md §L2-api 표
+  \small
+  \begin{tabularx}{\linewidth}{L{3.6cm} Y}
+    \toprule
+    항목 & 결과 \\
+    \midrule
+    단계 & 1 $\rightarrow$ 2 $\rightarrow$ 4 $\rightarrow$ 8 rps, 각 30 s \\
+    \midrule
+    요청 & 450, 모두 \cfs{MISS} (Express까지 옴) \\
+    \midrule
+    실패 / 5xx & 0 / 0 \\
+    \midrule
+    응답 시간 & 중앙값 501 ms, p95 626 ms, 최대 837 ms \\
+    \midrule
+    PM2 재시작 & 없음 (api 7, web 5) \\
+    \midrule
+    메모리 & api 106 MB, web 179 MB, VM available 354 MiB, swap 110 MiB \\
+    \midrule
+    Express \texttt{rate\_limit} WARN & \textbf{2줄} (21:11:07, 21:11:41), 각 \texttt{bucket=read count=121 limit=120} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[
+      ybar, width=0.7\linewidth, height=5.8cm, bar width=20pt,
+      xtick={1,2}, xticklabels={중앙값,p95}, xmin=0.4, xmax=2.6,
+      ymin=0, ymax=1000, ymajorgrids=true, grid style={black!12},
+      ylabel={Latency (ms)}, nodes near coords,
+      legend style={at={(0.5,1.04)}, anchor=south, legend columns=-1, draw=none, font=\footnotesize},
+      tick label style={font=\footnotesize}, label style={font=\footnotesize},
+      every node near coord/.append style={font=\footnotesize},
+      axis lines=left,
+    ]
+      \addplot[fill=vmcol!55, draw=vmcol] coordinates {(1,589) (2,874)};
+      \addplot[fill=dbcol!55, draw=dbcol] coordinates {(1,501) (2,626)};
+      \legend{L2 web (최대 4 rps), L2-api (최대 8 rps)}
+    \end{axis}
+  \end{tikzpicture}
+  \caption{L2 web과 L2-api의 응답 시간. API는 속도가 두 배인데도 더 빠르다.
+  (src: deploy/traffic/review/02-blocking.md §L2 §L2-api)}\label{fig:07-l2-compare}
+\end{figure}
+
+\begin{itemize}[nosep]
+  \item 웹 오리진(C\textsubscript{web} 약 2 rps)이 먼저 무너진다. 막아야 할 곳은 웹 \cfs{MISS}다.
+  \item L-b \texttt{log} 모드가 설계대로 동작했다. 한 창(60 s)에 한 IP가 120번을 넘자 WARN이 창마다 1줄만 나왔고, 요청은 막지 않았다.
+\end{itemize}
+
+%% ---------------------------------------------------------------------------
+\section{결과 4: Cloudflare 요청 수 제한 발동}\label{sec:07-result-la}
+
+\begin{inbrief}
+  \item[Why] 규칙을 켰다는 것과 규칙이 발동한다는 것은 다르다.
+  \item[When] 2026/10/13 21:00 UTC(한도 100)와 21:21 UTC(한도 50). 둘 다 Mac에서 \code{curl}로 했다.
+  \item[Where] \code{my.prettylog.com}. HIT 경로(\code{/})다.
+  \item[How] 동시 요청 25로 짧은 시간에 많이 보내고 429가 나오는지 본다.
+\end{inbrief}
+
+% src: deploy/traffic/review/02-blocking.md §L-a 한도 100; §L-a 한도 50 확인 (#68)
+\paragraph{결과.}
+한도 100에서 250번 중 429 18건이 나왔다.
+한도 50에서 150번 중 429 97건이 나왔다.
+두 경우 모두 직후에는 200으로 돌아왔다.
+
+\begin{table}[H]
+  \caption{Cloudflare ``web rate limit'' 발동 시험.}\label{tab:07-la}
+  % src: deploy/traffic/review/02-blocking.md §L-a, §L-a 한도 50 확인
+  \small
+  \begin{tabularx}{\linewidth}{L{1.8cm} L{5.4cm} L{2.3cm} Y}
+    \toprule
+    한도 & 시험 & 결과 & 읽는 법 \\
+    \midrule
+    100 & \code{/robots.txt?rl=<n>} 120번, 동시 20 & 모두 200 & 발동 안 함 \\
+    \midrule
+    100 & \code{/} (\cfs{HIT}) 250번, 6초, 동시 25 & 200 232, \textbf{429 18} & HIT 요청도 센다. 약 230번째부터 막혔다 \\
+    \midrule
+    100 & 직후와 12초 뒤 \code{/} & 200 & 차단은 짧게 풀렸다 (10 s) \\
+    \midrule
+    50 & \code{/} (\cfs{HIT}) 150번, 2초, 동시 25 & 200 \textbf{53}, 429 \textbf{97} & 53번째부터 막혔다 \\
+    \midrule
+    50 & 15초 뒤 \code{/} & 200 & 차단은 10초 뒤 풀렸다 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[
+      ybar, width=0.78\linewidth, height=6.2cm, bar width=24pt,
+      xtick={1,2}, xmin=0.4, xmax=2.6, xticklabels={{한도 100\\(250번)},{한도 50\\(150번)}}, xticklabel style={align=center, font=\footnotesize},
+      ymin=0, ymax=280, ymajorgrids=true, grid style={black!12},
+      ylabel={Responses (count)}, nodes near coords,
+      legend style={at={(0.5,1.04)}, anchor=south, legend columns=-1, draw=none, font=\footnotesize},
+      tick label style={font=\footnotesize}, label style={font=\footnotesize},
+      every node near coord/.append style={font=\footnotesize},
+      axis lines=left,
+    ]
+      \addplot[fill=goodcol!55, draw=goodcol] coordinates {(1,232) (2,53)};
+      \addplot[fill=badcol!55, draw=badcol] coordinates {(1,18) (2,97)};
+      \legend{200, 429}
+    \end{axis}
+  \end{tikzpicture}
+  \caption{한도 100과 50에서 200과 429의 개수. 한도를 반으로 줄이자 429가 18건에서 97건이 됐다.
+  (src: deploy/traffic/review/02-blocking.md §L-a)}\label{fig:07-la-burst}
+\end{figure}
+
+\paragraph{읽는 법.}
+\begin{itemize}[nosep]
+  \item 규칙은 동작한다. 한도 100에서는 세기가 정확하지 않고 늦게 반영됐다. 100번째가 아니라 약 230번째부터 막혔다.
+  \item 한도 50에서는 거의 정확했다.
+\end{itemize}
+
+\subsection{정상 사용량으로 한도 점검}\label{sec:07-normal-use}
+
+% src: deploy/traffic/review/02-blocking.md §오너 기준 정상 사용량
+Cloudflare 한도를 낮추면 정상 사용자가 막히는가?
+blog-web 로그(2026/10/13, 시험과 \code{curl} 제외, IP 19개)에서 10초 구간을 세었다.
+
+\begin{table}[H]
+  \caption{한도별로 그 한도를 넘었을 10 s 구간 수.}\label{tab:07-normal-use}
+  % src: deploy/traffic/review/02-blocking.md §오너 기준 정상 사용량 표
+  \small
+  \begin{tabularx}{\linewidth}{L{3.2cm} L{4cm} Y}
+    \toprule
+    한도 (10 s당) & 넘었을 10 s 구간 & 로그인 / 비로그인 \\
+    \midrule
+    20 & 11 & 7 / 4 \\
+    \midrule
+    30 & 9 & 5 / 4 \\
+    \midrule
+    50 & 6 & 3 / 3 \\
+    \midrule
+    70 & 2 & 2 / 0 \\
+    \midrule
+    100 & 0 &  \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{itemize}[nosep]
+  \item 최댓값은 10 s에 89번이다. 로그인한 오너의 Mac 브라우저였다.
+  \item 원인: Next \code{<Link>}가 화면에 보이는 링크를 미리 받는다(prefetch). 한 번 누를 때 요청이 수십 개 나간다.
+  \item 이 표는 VM까지 온 요청만 센다. Cloudflare는 \cfs{HIT}도 세므로 실제 숫자는 더 크다.
+  \item 위험: 한도 50에서 정상 사용자가 10 s 동안 막힐 수 있다 (\decision{68}). prefetch 줄이기는 남은 일이다 (\Cref{ch:decisions}).
+\end{itemize}
+
+%% ---------------------------------------------------------------------------
+\section{결과 5: Express \texttt{log} 모드 확인}\label{sec:07-result-logmode}
+
+\begin{inbrief}
+  \item[Why] \texttt{enforce}로 바꾸기 전에 세는 방식이 설계대로인지 본다.
+  \item[When] 2026/10/13, 배포 \commit{38b4c12} 뒤와 L2-api run 중이다.
+  \item[Where] \texttt{blog-api} 로그의 \texttt{req.ip}, \texttt{req.ssr}, \texttt{rate\_limit} WARN이다.
+  \item[How] 로그 필드를 읽고, L2-api에서 일부러 창 한도를 넘긴다.
+\end{inbrief}
+
+% src: deploy/traffic/review/02-blocking.md §배포 확인: L-b log 모드, ip, ssr; §L2-api
+\paragraph{결과.}
+L2-api 중 한 IP가 한 창(60 s)에 121번째 요청을 보내자 WARN 한 줄이 나왔다 (\texttt{bucket=read count=121 limit=120}).
+WARN은 창마다 한 줄이고 요청은 막히지 않았다.
+기록된 시각은 21:11:07과 21:11:41 두 개다.
+
+\begin{table}[H]
+  \caption{배포 확인 (2026/10/13, \texttt{38b4c12}).}\label{tab:07-logmode}
+  % src: deploy/traffic/review/02-blocking.md §배포 확인 표
+  \small
+  \begin{tabularx}{\linewidth}{L{5cm} Y}
+    \toprule
+    확인 & 결과 \\
+    \midrule
+    blog-api 로그 \code{jsonPayload.req.ip} & 모든 요청에 있음 \\
+    \midrule
+    \texttt{ssr=true} & \texttt{profile}, \texttt{tags}, \texttt{posts/users/.../tags} 같은 SSR 호출 \\
+    \midrule
+    \texttt{ssr=false} & 브라우저와 \code{curl} 요청, 그리고 (당시) SSR의 \texttt{categories} 호출 \\
+    \midrule
+    \texttt{rate\_limit} WARN & 아직 없음 (L2-api 전) \\
+    \midrule
+    메모리 (배포 뒤 몇 분) & api 103 MB, web 171 MB, VM available 359 MiB \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{itemize}[nosep]
+  \item 이 시험이 \texttt{ssr=false}로 찍히는 SSR \texttt{categories} 호출을 찾았다. 그 수정이 \Cref{sec:05-clientrequest}(N)이다.
+  \item \texttt{enforce}로 바꾸기 전에 모든 SSR 요청이 \texttt{ssr=true}여야 한다. 그렇지 않으면 방문자가 늘 때 사이트가 자기 SSR을 막는다.
+\end{itemize}
+
+%% ---------------------------------------------------------------------------
+\section{시험 도구에서 찾은 버그}\label{sec:07-k6-bugs}
+
+\begin{inbrief}
+  \item[Why] 시험 도구도 코드라서 버그가 있다. 결과를 믿기 전에 도구부터 의심한다.
+  \item[When] 첫 L2 시도와 L1 summary를 읽을 때다.
+  \item[Where] \code{deploy/traffic/load/l2.js}, \code{common.js}.
+  \item[How] 각 버그를 커밋으로 고쳤다. \Cref{tab:07-bugs}가 세 건을 요약한다.
+\end{inbrief}
+
+% src: git commits b44b153, 0bf37d0, cbe0f78 (deploy/traffic/load/)
+\begin{table}[H]
+  \caption{시험 도구의 버그 세 건과 수정.}\label{tab:07-bugs}
+  % src: git show b44b153, 0bf37d0, cbe0f78
+  \small
+  \begin{tabularx}{\linewidth}{L{2.4cm} Y Y}
+    \toprule
+    커밋 & 버그 & 수정 \\
+    \midrule
+    \commit{b44b153} & k6가 소수 목표 0.5를 받지 않았다. L2 web의 첫 단계 0.5 rps를 \texttt{target: 0.5}로 적었다 & \texttt{timeUnit}을 \texttt{'2s'}로 바꾸고 목표를 두 배로 적었다 (1, 2, 4, 8). 1은 0.5 rps이고 8은 4 rps다 \\
+    \midrule
+    \commit{0bf37d0} & Job summary의 요청 수 칸이 \texttt{vals(d).count}를 읽었다 & 요청 수를 \texttt{http\_req\_failed}의 \texttt{passes + fails}로 읽는다 \\
+    \midrule
+    \commit{cbe0f78} & L2 web이 4 rps에서 중단돼 api 단계가 아예 돌지 못했다 & 세트 \texttt{L2-api}를 추가했다. \texttt{ONLY=api}일 때 web 시나리오와 web 임계값을 지우고 api를 바로 시작한다 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+수정 전 Job summary 표의 행은 \texttt{| web | undefined | 88 |}처럼 요청 수 칸이 \texttt{undefined}였다(L2 run의 GitHub Actions 로그). \commit{0bf37d0}이 \texttt{common.js}에서 통과와 실패를 함께 세어 고쳤다.
+% src: L2 run log (GitHub Actions), commit 0bf37d0
+
+\begin{description}
+  \item[0.5 rps] k6의 도착률(arrival-rate) 실행기는 정수 목표를 요구한다. 그래서 ``2초당 1건''으로 쓴다. 속도는 같다. \code{l2.js}의 주석이 이렇게 적는다: \texttt{k6 needs whole-number targets}.
+  \item[ONLY=api] 임계값은 데이터가 없는 지표를 평가할 수 없다. web 시나리오를 지웠으면 web 임계값도 함께 지워야 한다.
+\end{description}
+
+%% ---------------------------------------------------------------------------
+\section{시험으로 알게 된 것}\label{sec:07-conclusions}
+
+\begin{table}[H]
+  \caption{시험에서 나온 용량 숫자와 그 쓰임.}\label{tab:07-capacity}
+  % src: deploy/traffic/review/02-blocking.md §L2 §L2-api §L-a
+  \small
+  \begin{tabularx}{\linewidth}{L{3.4cm} L{3.6cm} Y}
+    \toprule
+    값 & 숫자 & 쓰임 \\
+    \midrule
+    C\textsubscript{web} & 약 2 rps (첫 값, 판정 아님) & Cloudflare 한도를 정할 때의 위쪽 한계. 웹 \cfs{MISS}를 막아야 한다 \\
+    \midrule
+    C\textsubscript{api} & 8 rps 이상 (시험 상한) & Express 한도의 위쪽 한계를 정할 때의 근거 \\
+    \midrule
+    L-a 한도 & 100 $\rightarrow$ 50 / 10 s (\decision{68}) & 웹 오리진 용량보다 큰 한도를 낮춤 \\
+    \midrule
+    L-b 한도 & 읽기 120 / 60 s, \texttt{log} 모드 & 14일 로그를 본 뒤 확정 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}

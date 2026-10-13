@@ -1,0 +1,33 @@
+% main.tex -- 트래픽 통제와 보안: prettylog GCP 이전 기록 (2026-10-13)
+% Build (clean first, latex.md §12): latexmk -C && latexmk -xelatex main.tex
+% Part A owns main.tex, preamble.tex, chapters 01-04. Part B owns chapters 05-08 and A.
+\documentclass[11pt,a4paper,oneside]{book}
+\input{preamble}
+
+\title{트래픽 통제와 보안\\[0.4em]\large prettylog GCP 이전 기록 (2026-10-13)}
+\author{Taek Lim \and Claude 정리}
+\date{2026/10/13}
+
+\begin{document}
+\frontmatter
+\maketitle
+\tableofcontents
+\listoffigures
+\listoftables
+\mainmatter
+
+% Each file is optional so that each writer can build alone.
+\InputIfFileExists{chapters/01-overview}{}{}
+\InputIfFileExists{chapters/02-debugging}{}{}
+\InputIfFileExists{chapters/03-reduce-traffic}{}{}
+\InputIfFileExists{chapters/04-blocking}{}{}
+\InputIfFileExists{chapters/05-status-security}{}{}
+\InputIfFileExists{chapters/06-observability}{}{}
+\InputIfFileExists{chapters/07-testing}{}{}
+\InputIfFileExists{chapters/08-decisions}{}{}
+\InputIfFileExists{chapters/09-prefetch}{}{}
+
+\appendix
+\InputIfFileExists{chapters/A-commands}{}{}
+
+\end{document}

@@ -1,0 +1,573 @@
+% chapters/03-reduce-traffic.tex -- part A. 트래픽 줄이기: 캐시 키, B, C, D, M.
+\chapter{트래픽 줄이기}\label{ch:reduce-traffic}
+
+% src: deploy/traffic/review/02-blocking.md "L1: 캐시 HIT 경로", deploy/traffic/review/README.md "한눈에" (B, C, D)
+\paragraph{결과.}
+웹 캐시(B), 브라우저 TTL(C), API 캐시(D) 세 항목이 모두 완료됐고 측정을 통과했다.
+부하 시험 L1에서 640건(web 320, api 320)이 모두 캐시 \cfs{HIT}였다.
+VM까지 온 시험 요청은 0건이었다.
+시험 방법과 전체 결과는 \Cref{ch:testing}에 있다.
+
+\section{캐시 키와 규칙 순서}\label{sec:rt-concepts}
+
+\subsection{캐시 키: ``같은 요청''이라는 이름표}\label{sec:rt-key}
+
+\begin{inbrief}
+  \item[Why] 같은 페이지를 한 번만 그리려고 한다. 이름표가 같으면 저장해 둔 것을 준다.
+  \item[When] 요청 URL이 조금이라도 다를 때 이름표가 달라질 수 있다.
+  \item[Where] Cloudflare 캐시 규칙(Cache Rules)이 이름표를 만든다. 서버는 원래 URL을 그대로 받는다.
+  \item[How] 규칙의 Cache key 설정이 URL의 어느 부분을 이름표에 넣을지 정한다.
+\end{inbrief}
+% src: deploy/traffic/review/01-reduce-traffic.md "M. 랜덤 쿼리로 캐시를 피하는 요청" (문제)
+
+\paragraph{결과.}
+지금 ``web cache'' 규칙은 쿼리 전체를 캐시 키(cache key)에 넣는다.
+그래서 쿼리만 다른 요청은 서로 다른 요청으로 취급된다.
+\Cref{fig:cache-key}가 세 요청을 보인다.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[font=\small, node distance=0.4cm]
+    \node[font=\scriptsize\bfseries] at (0,0.7) {요청 URL};
+    \node[font=\scriptsize\bfseries] at (5.4,0.7) {캐시 키};
+    \node[font=\scriptsize\bfseries] at (11.3,0.7) {결과};
+    \node[flowbox, minimum width=2.2cm] (u1) at (0,0) {\texttt{/}};
+    \node[flowbox, minimum width=4.4cm] (k1) at (5.4,0) {\texttt{my.prettylog.com/}};
+    \node[goodbox, minimum width=3.6cm] (r1) at (11.3,0) {\cfs{HIT}};
+    \node[flowbox, minimum width=2.2cm] (u2) at (0,-1.3) {\texttt{/?x=1}};
+    \node[flowbox, minimum width=4.4cm] (k2) at (5.4,-1.3) {\texttt{my.prettylog.com/?x=1}};
+    \node[badbox, minimum width=3.6cm] (r2) at (11.3,-1.3) {\cfs{MISS}: 서버가 새로 그림};
+    \node[flowbox, minimum width=2.2cm] (u3) at (0,-2.6) {\texttt{/?x=2}};
+    \node[flowbox, minimum width=4.4cm] (k3) at (5.4,-2.6) {\texttt{my.prettylog.com/?x=2}};
+    \node[badbox, minimum width=3.6cm] (r3) at (11.3,-2.6) {\cfs{MISS}: 서버가 새로 그림};
+    \foreach \a/\b/\c in {u1/k1/r1,u2/k2/r2,u3/k3/r3} {
+      \draw[flowarrow] (\a) -- (\b);
+      \draw[flowarrow] (\b) -- (\c);
+    }
+  \end{tikzpicture}
+  \caption{쿼리 전체가 캐시 키에 들어가면 쿼리만 바꾼 요청이 모두 서버까지 온다. 서버가 받는 URL은 그대로다.}
+  \label{fig:cache-key}
+  % src: deploy/traffic/review/01-reduce-traffic.md "M" 문제 (요청 URL / 캐시 키 / 결과 표)
+\end{figure}
+
+\subsection{규칙 네 개와 실행 순서}\label{sec:rt-order}
+
+\paragraph{결과.}
+Cloudflare 캐시 규칙은 네 개다.
+위에서 아래로 보고, 뒤 규칙이 앞 규칙을 덮어쓴다.
+% src: deploy/traffic/README.md "Rule order"
+
+\begin{table}[H]
+  \caption{캐시 규칙 네 개. 열은 순서, 규칙, 대상 host, 동작이다.}
+  \label{tab:rt-rules}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{0.8cm}L{2.6cm}L{3.4cm}Y@{}}
+    \toprule
+    순서 & 규칙 & 대상 & 동작 \\
+    \midrule
+    1 & web cache & \code{my.} GET & 캐시 가능(Eligible), 1일 \\
+    \midrule
+    2 & web bypass & \code{my.} 로그인, 보호 경로 등 & 캐시 안 함(Bypass). 1번 아래에 둔다 \\
+    \midrule
+    3 & api cache & \code{blog-api.} GET & 캐시 가능, 서버의 Cache-Control을 따름 \\
+    \midrule
+    4 & api bypass & \code{blog-api.} + \code{Authorization} 헤더 & 캐시 안 함. 3번 아래에 둔다 \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/README.md "Rule order", §2a, §2b, §3a, §3b
+\end{table}
+
+\Cref{fig:rule-order}는 로그인 쿠키가 있는 요청이 규칙 둘을 모두 만나는 예를 보인다.
+2번이 1번을 덮어써서 결과는 캐시 안 함이다.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[font=\small]
+    \node[flowbox, minimum width=5.6cm] (r1) at (0,0) {\textbf{1. web cache}\\캐시 가능, 1일};
+    \node[badbox, minimum width=5.6cm] (r2) at (0,-1.5) {\textbf{2. web bypass}\\캐시 안 함 (\code{__session} 쿠키 등)};
+    \node[flowbox, minimum width=5.6cm] (r3) at (0,-3.0) {\textbf{3. api cache}\\캐시 가능, 서버 헤더를 따름};
+    \node[badbox, minimum width=5.6cm] (r4) at (0,-4.5) {\textbf{4. api bypass}\\캐시 안 함 (\code{Authorization})};
+    \draw[flowarrow] (r1) -- (r2);
+    \draw[flowarrow] (r2) -- (r3);
+    \draw[flowarrow] (r3) -- (r4);
+    \draw[flowarrow, mutecol] (-3.5,0.4) -- (-3.5,-4.9);
+    \node[font=\scriptsize, rotate=90, anchor=south] at (-3.55,-2.25) {뒤 규칙이 앞 규칙을 덮어쓴다};
+    \node[flowbox, minimum width=4.2cm] (ex) at (7.4,0) {\textbf{예}\\\code{my.} GET + 쿠키\\\code{__session}};
+    \node[flowbox, minimum width=4.2cm] (ex1) at (7.4,-1.5) {1번과 2번 둘 다 맞는다};
+    \node[badbox, minimum width=4.2cm] (ex2) at (7.4,-3.0) {나중 규칙(2번)이 이긴다\\결과: 캐시 안 함 (\cfs{DYNAMIC})};
+    \draw[flowarrow] (ex) -- (ex1);
+    \draw[flowarrow] (ex1) -- (ex2);
+    \draw[dashed, black!40] (r1.east) -- (ex.west);
+    \draw[dashed, black!40] (r2.east) -- (ex1.west);
+  \end{tikzpicture}
+  \caption{규칙 순서와 덮어쓰기. 왼쪽이 순서이고 오른쪽이 쿠키가 있는 요청의 예다.}
+  \label{fig:rule-order}
+  % src: deploy/traffic/README.md "Rule order", §2a (cookie), traffic-check.sh 확인 (__session DYNAMIC) in deploy/traffic/review/01-reduce-traffic.md B 확인
+\end{figure}
+
+\begin{callout}[만드는 순서]
+bypass 규칙을 먼저 만든다. 그렇지 않으면 로그인한 사람의 화면이 하루 동안 캐시될 수 있다.
+새 규칙은 목록 끝에 생긴다. 둘이 다 생기면 ``web bypass''를 ``web cache'' 아래로 끌어 옮긴다.
+% src: deploy/traffic/README.md "Rule order"
+\end{callout}
+
+\section{B. 웹 캐시 규칙 (\texttt{my.prettylog.com})}\label{sec:rt-b}
+
+% src: deploy/traffic/review/01-reduce-traffic.md "B. 웹 캐시 규칙"
+\paragraph{결과.}
+\Cref{tab:rt-b-verify}의 7개 검사가 모두 기대와 맞았다.
+HTML 두 번째 요청부터 \cfs{HIT}이고, 로그인 쿠키나 보호 경로는 캐시에 들어가지 않는다.
+
+\paragraph{왜 필요했나.}
+Cloudflare가 페이지를 대신 응답하면 VM의 CPU, 메모리, egress는 캐시가 놓친 몫만 쓴다.
+
+\paragraph{문제.}
+Next는 HTML에 \code{private, no-store}를 보낸다.
+Cloudflare는 이 헤더를 보고 캐시하지 않았다.
+규칙 전 측정(2026/10/13)에서 HTML과 OG 이미지가 모두 \cfs{DYNAMIC}이었다.
+모든 방문이 VM까지 갔다.
+
+\paragraph{무엇을 바꿨나.}
+캐시 규칙 두 개다.
+
+\begin{table}[H]
+  \caption{B의 규칙 두 개. 열은 규칙, 조건, 동작이다.}
+  \label{tab:rt-b-rules}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{2.3cm}L{5.8cm}Y@{}}
+    \toprule
+    규칙 & 조건 & 동작 \\
+    \midrule
+    web cache & \code{my.} GET. \code{/_next/}와 \code{/api/}는 제외 & 캐시. 헤더를 무시하고 1일. 300--599는 캐시 안 함 \\
+    \midrule
+    web bypass & \code{__session} 쿠키, \code{/write} \code{/me} \code{/settings} \code{/admin} \code{/onboarding}, rsc 헤더(\code{_rsc=} 없음) & 캐시 안 함 \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/01-reduce-traffic.md B "무엇을 바꿨나"
+\end{table}
+
+\paragraph{어떻게.}
+Cloudflare 대시보드의 Caching, Cache Rules에서 만든다.
+bypass를 cache 아래에 둔다.
+아래 규칙이 위 규칙을 덮어쓰기 때문이다(\Cref{fig:rule-order}).
+식은 아래와 같다.
+% src: deploy/traffic/README.md §2a, §2b
+
+\begin{lstlisting}[language={}]
+# web bypass (create first)
+(http.host eq "my.prettylog.com" and (
+  http.cookie contains "__session"
+  or starts_with(http.request.uri.path, "/write")
+  or starts_with(http.request.uri.path, "/me")
+  or starts_with(http.request.uri.path, "/settings")
+  or starts_with(http.request.uri.path, "/admin")
+  or starts_with(http.request.uri.path, "/onboarding")
+  or (any(http.request.headers.names[*] eq "rsc") and not http.request.uri.query contains "_rsc=")
+))
+\end{lstlisting}
+
+\begin{lstlisting}[language={}]
+# web cache
+(http.host eq "my.prettylog.com" and http.request.method eq "GET"
+  and not starts_with(http.request.uri.path, "/_next/")
+  and not starts_with(http.request.uri.path, "/api/"))
+\end{lstlisting}
+
+\paragraph{왜 이 방법인가.}
+\Cref{tab:rt-b-why}는 선택마다 이유를 적는다.
+
+\begin{table}[H]
+  \caption{B에서 한 선택과 이유.}
+  \label{tab:rt-b-why}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{4.4cm}Y@{}}
+    \toprule
+    선택 & 이유 \\
+    \midrule
+    헤더를 무시한다 & Next 코드를 고쳐 \code{public}을 보내게 하면 앱 전체를 바꿔야 한다. 규칙 한 줄로 같은 효과를 낸다 \\
+    \midrule
+    \code{__session}으로 뺀다 & 로그인한 사람만 이 쿠키를 가진다. 로그인 화면이 캐시되면 다른 사람에게 보인다 \\
+    \midrule
+    \code{__client_uat}로 빼지 않는다 & 모든 방문자가 이 쿠키를 받는다. 이것으로 빼면 캐시가 아예 안 된다 \\
+    \midrule
+    rsc 줄을 둔다 & 화면 안 이동 요청(RSC)이 \code{_rsc=} 없이 오면 HTML과 같은 캐시 칸을 쓴다. 섞이면 HTML 대신 RSC 데이터가 보인다 \\
+    \midrule
+    오류를 캐시하지 않는다 & 서버가 잠깐 죽은 순간의 오류 화면이 하루 동안 보이면 안 된다 \\
+    \midrule
+    1일로 둔다 & 오너 결정(2026/09/22). 새 글은 purge로 바로 반영한다 \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/01-reduce-traffic.md B "왜 이 방법인가"
+\end{table}
+
+\paragraph{확인.}
+\Cref{tab:rt-b-verify}는 2026/10/13의 검사다.
+
+\begin{table}[H]
+  \caption{B의 검사와 결과(2026/10/13). 열은 검사, 기대, 결과다.}
+  \label{tab:rt-b-verify}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{5.6cm}L{3.2cm}Y@{}}
+    \toprule
+    검사 & 기대 & 결과 \\
+    \midrule
+    \code{/}, \code{/blog}, \code{/robots.txt}, \code{/sitemap.xml} 두 번째 & \cfs{HIT} & \cfs{HIT} \\
+    \midrule
+    \code{__session}, \code{__session_abc} 쿠키 & 캐시 안 됨 & \cfs{DYNAMIC} \\
+    \midrule
+    \code{/me} & 캐시 안 됨 & 307, \cfs{DYNAMIC} \\
+    \midrule
+    \code{?_rsc=} & \code{text/x-component} & \code{text/x-component}, \cfs{HIT} \\
+    \midrule
+    rsc 헤더, \code{_rsc=} 없음 & 캐시 안 됨 & \cfs{DYNAMIC} \\
+    \midrule
+    캐시된 HTML의 \code{Set-Cookie} & 0 & 0 \\
+    \midrule
+    404 & 캐시에서 안 나감 & \cfs{REVALIDATED} \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/01-reduce-traffic.md B "확인 (10-13)"
+\end{table}
+
+\begin{callout}[보안과 주의]
+로그인 화면과 쿠키는 캐시에 들어가지 않는다. 한 사람의 화면이 다른 사람에게 갈 수 없다.
+보호 경로 목록은 \code{proxy.ts}의 \code{isProtectedRoute}와 같아야 한다. 한쪽만 바꾸지 않는다.
+% src: deploy/traffic/review/01-reduce-traffic.md B "보안", "주의"
+\end{callout}
+
+\section{C. 브라우저 캐시 TTL}\label{sec:rt-c}
+
+% src: deploy/traffic/review/01-reduce-traffic.md "C. 브라우저 캐시 TTL"
+\paragraph{결과.}
+Browser Cache TTL을 Respect Existing Headers(기존 헤더 유지)로 바꿨다.
+캐시된 HTML이 \cfs{HIT}이면서 브라우저에는 \code{private, no-cache, no-store}로 간다.
+
+\paragraph{왜 필요했나.}
+캐시는 Cloudflare에만 있어야 한다.
+그래야 purge 한 번으로 모든 방문자에게 새 글이 보인다.
+
+\paragraph{문제.}
+B를 켠 뒤 캐시된 HTML이 브라우저에 \code{private, max-age=14400}(4시간)으로 갔다.
+원인은 도메인 전체 설정 Browser Cache TTL이 4시간이었던 것이다.
+새 글이 최대 4시간 늦게 보일 수 있었다.
+로그인 직후에도 익명 화면이 보일 수 있었다.
+purge는 브라우저 캐시를 지우지 못한다.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[font=\small]
+    \node[font=\scriptsize\bfseries] at (-0.2,0.9) {바꾸기 전};
+    \node[flowbox, minimum width=2.6cm] (a1) at (-0.2,0) {Cloudflare\\\cfs{HIT}};
+    \node[flownew, minimum width=4.4cm] (a2) at (4.6,0) {Browser Cache TTL = 4시간\\\scriptsize\code{private, max-age=14400}};
+    \node[badbox, minimum width=4.4cm] (a3) at (10.4,0) {새 글이 최대 4시간 늦게 보임\\\scriptsize purge로 지울 수 없음};
+    \draw[flowarrow] (a1) -- (a2); \draw[flowarrow] (a2) -- (a3);
+    \node[font=\scriptsize\bfseries] at (-0.2,-1.5) {바꾼 뒤};
+    \node[flowbox, minimum width=2.6cm] (b1) at (-0.2,-2.4) {Cloudflare\\\cfs{HIT}};
+    \node[flownew, minimum width=4.4cm] (b2) at (4.6,-2.4) {Respect Existing Headers\\\scriptsize\code{private, no-cache, no-store}};
+    \node[goodbox, minimum width=4.4cm] (b3) at (10.4,-2.4) {브라우저가 저장하지 않음\\\scriptsize purge 한 번이면 반영};
+    \draw[flowarrow] (b1) -- (b2); \draw[flowarrow] (b2) -- (b3);
+  \end{tikzpicture}
+  \par\smallskip{\scriptsize \flowkey{flownew} 바뀐 설정 \quad \flowkey{badbox} 문제 \quad \flowkey{goodbox} 해결}
+  \caption{Browser Cache TTL 설정이 브라우저에 가는 헤더를 바꾼다. 파란 상자가 바뀐 설정이다.}
+  \label{fig:browser-ttl}
+  % src: deploy/traffic/review/01-reduce-traffic.md C (문제, 무엇을 바꿨나, 확인)
+\end{figure}
+
+\paragraph{무엇을 바꿨나.}
+Browser Cache TTL을 Respect Existing Headers로 둔다.
+
+\paragraph{어떻게.}
+Cloudflare 대시보드의 Caching, Configuration, Browser Cache TTL에서 바꾼다.
+% src: deploy/traffic/review/01-reduce-traffic.md C "어떻게"
+
+\paragraph{왜 이 방법인가.}
+규칙마다 브라우저 TTL을 정하는 대신 도메인 설정 하나로 끝난다.
+서버가 보낸 헤더(\code{no-store})를 브라우저가 그대로 따른다.
+\code{/_next/static}은 서버가 1년(\code{immutable})을 보내므로 그대로 오래 캐시된다.
+% src: deploy/traffic/review/01-reduce-traffic.md C "왜 이 방법인가"
+
+\paragraph{확인.}
+캐시된 HTML은 \cfs{HIT}이면서 \code{private, no-cache, no-store}다.
+\code{/_next/static}은 \code{max-age=31536000, immutable}이다.
+% src: deploy/traffic/review/01-reduce-traffic.md C "확인"
+
+\section{D. API 캐시 규칙 (\texttt{blog-api.prettylog.com})}\label{sec:rt-d}
+
+% src: deploy/traffic/review/01-reduce-traffic.md "D. API 캐시 규칙"
+\paragraph{결과.}
+\Cref{tab:rt-d-verify}의 6개 검사가 모두 기대와 맞았다.
+글 목록 API의 두 번째 요청은 \cfs{HIT}이고, 인증 요청은 캐시에 들어가지 않는다.
+
+\paragraph{왜 필요했나.}
+글 목록 같은 공개 API를 Cloudflare가 대신 응답하면 VM과 Supabase 부하가 줄어든다.
+
+\paragraph{문제.}
+Express는 \code{public, s-maxage=86400}을 보냈다.
+그런데 Cloudflare는 JSON을 기본으로 캐시하지 않는다.
+그래서 \cfs{DYNAMIC}이었다.
+
+\paragraph{무엇을 바꿨나.}
+캐시 규칙 두 개다.
+
+\begin{table}[H]
+  \caption{D의 규칙 두 개. 열은 규칙, 조건, 동작이다.}
+  \label{tab:rt-d-rules}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{2.3cm}L{4.2cm}Y@{}}
+    \toprule
+    규칙 & 조건 & 동작 \\
+    \midrule
+    api cache & \code{blog-api.} GET & 캐시. 서버 Cache-Control을 따른다. 없으면 캐시 안 함 \\
+    \midrule
+    api bypass & \code{Authorization} 헤더 & 캐시 안 함 \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/01-reduce-traffic.md D "무엇을 바꿨나"
+\end{table}
+
+\paragraph{어떻게.}
+bypass 규칙을 먼저 만들고, 만든 뒤 cache 아래로 옮긴다(\Cref{fig:rule-order}).
+식은 아래와 같다.
+% src: deploy/traffic/README.md §3a, §3b
+
+\begin{lstlisting}[language={}]
+# api bypass
+(http.host eq "blog-api.prettylog.com" and any(http.request.headers.names[*] eq "authorization"))
+# api cache
+(http.host eq "blog-api.prettylog.com" and http.request.method eq "GET")
+\end{lstlisting}
+
+\paragraph{왜 이 방법인가.}
+\begin{description}[font=\bfseries]
+  \item[서버 헤더를 따른다] 어떤 API를 얼마나 캐시할지는 Express가 이미 정한다. 규칙은 그것을 켜기만 한다.
+  \item[``없으면 캐시 안 함''] \code{/ping} 같은 헤더 없는 응답이 캐시되면 안 된다(설계 위험 R8). 이 선택으로 R8이 닫혔다. 결정 D3도 필요 없어졌다.
+  \item[\texttt{Authorization}으로 뺀다] Express의 인증은 이 헤더 하나만 읽는다(\code{requireAuth.ts}, \code{optionalAuth.ts}). 이것만 빼면 개인 응답이 모두 빠진다.
+\end{description}
+% src: deploy/traffic/review/01-reduce-traffic.md D "왜 이 방법인가"
+
+\paragraph{확인.}
+
+\begin{table}[H]
+  \caption{D의 검사와 결과(2026/10/13). 열은 검사, 기대, 결과다.}
+  \label{tab:rt-d-verify}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{5.4cm}L{3.0cm}Y@{}}
+    \toprule
+    검사 & 기대 & 결과 \\
+    \midrule
+    \code{posts?limit=1} 두 번째 & \cfs{HIT} & \cfs{MISS} 뒤 \cfs{HIT} \\
+    \midrule
+    \code{Authorization} 헤더 & 캐시 안 됨 & \cfs{DYNAMIC} \\
+    \midrule
+    \code{/ping} & 캐시 안 됨 & \cfs{BYPASS} \\
+    \midrule
+    \code{/users/me} 401, 없는 글 404 & 캐시에서 안 나감 & \cfs{EXPIRED} \\
+    \midrule
+    OPTIONS & 캐시 안 됨 & 204, \cfs{DYNAMIC} \\
+    \midrule
+    \code{Origin: my.}와 \code{Origin: local.} 번갈아 & 각자 자기 값 & 둘 다 \cfs{HIT}, \code{access-control-allow-origin} 각자 맞음 \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/01-reduce-traffic.md D "확인 (10-13)"
+\end{table}
+
+\section{M. 랜덤 쿼리로 캐시를 피하는 요청}\label{sec:rt-m}
+
+% src: deploy/traffic/review/01-reduce-traffic.md "M", deploy/traffic/review/README.md 한눈에 M, decisions.plan.md #68
+\paragraph{결과.}
+오너가 b안을 골랐다. Cloudflare 한도를 IP당 50 / 10 s로 낮춘다(\decision{68}).
+a안(캐시 키 허용 목록)은 지금은 과하다고 판단했다. 오너가 중단했다(``스탑으로 변경'').
+prefetch를 줄이는 설계는 다음 일이다.
+
+\paragraph{왜 필요한가.}
+L2 시험에서 웹 오리진은 캐시를 놓친 요청을 초당 약 2번까지만 버텼다.
+당시 Cloudflare 한도(IP당 100 / 10 s)는 초당 10번까지 허용했다.
+% src: deploy/traffic/review/01-reduce-traffic.md "M. 왜 필요한가"
+
+\begin{table}[H]
+  \caption{Cloudflare 한도와 웹 오리진 한계(M 시점). 열은 대상과 값이다.}
+  \label{tab:rt-m-gap}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{4.4cm}Y@{}}
+    \toprule
+    대상 & 값 \\
+    \midrule
+    Cloudflare 한도 (당시) & IP당 10초에 100번 = 초당 10번까지 허용 \\
+    \midrule
+    웹 서버 한계 & 캐시를 놓친 요청은 초당 약 2번까지 (L2 시험) \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/01-reduce-traffic.md "M. 왜 필요한가"
+\end{table}
+
+\paragraph{문제.}
+쿼리를 매번 바꾸면 모든 요청이 서버까지 온다(\Cref{fig:cache-key}).
+L2 시험이 이 방법(\texttt{/?lt=}<번호>)을 썼다.
+IP 하나로도 Cloudflare 한도 안에서 웹 서버를 느리게 만들 수 있다.
+% src: deploy/traffic/review/01-reduce-traffic.md "M. 문제"
+
+\paragraph{무엇을 바꿀 수 있나.}
+\Cref{tab:rt-m-options}는 후보를 비교한다.
+
+\begin{table}[H]
+  \caption{M의 대응 후보. 열은 안, 방법, 장점, 단점이다.}
+  \label{tab:rt-m-options}
+  \centering\footnotesize
+  \begin{tabularx}{\linewidth}{@{}L{1.0cm}L{4.0cm}L{3.8cm}Y@{}}
+    \toprule
+    안 & 방법 & 장점 & 단점 \\
+    \midrule
+    a & 캐시 키에 사이트가 쓰는 쿼리만 남긴다 (Cache key, Query string, Include only) & \texttt{/?x=}랜덤도 같은 캐시를 쓴다. \code{utm_*}, \code{fbclid} 방문도 캐시를 쓴다 & 쓰는 쿼리를 하나라도 빠뜨리면 페이지가 섞인다 \\
+    \midrule
+    b & Cloudflare 한도를 낮춘다 & 설정 한 줄 & \cfs{HIT}도 세므로 정상 사용자가 막힐 수 있다 \\
+    \midrule
+    a + b & 둘 다 & 가장 안전 & 할 일이 가장 많다 \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/01-reduce-traffic.md "M. 대응 후보"
+\end{table}
+
+\subsection{a안은 어떻게 동작하나}\label{sec:rt-m-a}
+
+허용 목록에 있는 쿼리만 캐시 키에 남는다.
+목록은 \code{_rsc}, \code{tags}, \code{tag}, \code{categories}, \code{category_title}, \code{cursor}, \code{limit}, ... 이다.
+% src: deploy/traffic/review/01-reduce-traffic.md "M. a안은 어떻게 동작하나"
+
+\begin{table}[H]
+  \caption{a안의 캐시 키 예. 열은 요청 URL, 캐시 키, 결과다.}
+  \label{tab:rt-m-a-example}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{4.4cm}L{4.8cm}Y@{}}
+    \toprule
+    요청 URL & 캐시 키 & 결과 \\
+    \midrule
+    \code{/?x=1} & \code{my.prettylog.com/} & \cfs{HIT} (\code{x}는 목록에 없어서 버림) \\
+    \midrule
+    \texttt{/?x=2\&utm\_source=fb} & \code{my.prettylog.com/} & \cfs{HIT} \\
+    \midrule
+    \code{/blog?tags=rust} & \code{my.prettylog.com/blog?tags=rust} & 처음만 \cfs{MISS} \\
+    \midrule
+    \texttt{/blog?tags=rust\&x=9} & \code{my.prettylog.com/blog?tags=rust} & \cfs{HIT} (\code{x}만 버림) \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/01-reduce-traffic.md "M. a안은 어떻게 동작하나"
+\end{table}
+
+서버(Next)는 원래 URL을 그대로 받는다.
+바뀌는 것은 Cloudflare가 저장하고 찾는 이름표뿐이다.
+
+\subsection{a안의 위험: 목록에서 빠진 쿼리}\label{sec:rt-m-risk}
+
+사이트가 \code{?tags=}를 쓰는데 목록에서 \code{tags}를 빠뜨리면 페이지가 섞인다.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[font=\small]
+    \node[flowbox, text width=5.0cm] (s1) at (0,0) {1. \texttt{/blog?tags=rust} 요청\\캐시 키 \code{/blog}\\``rust 글만'' 그려서 저장};
+    \node[flowbox, text width=4.4cm] (s2) at (6.0,0) {2. \code{/blog} 요청\\캐시 키 \code{/blog}\\\cfs{HIT}};
+    \node[badbox, text width=3.0cm] (s3) at (10.9,0) {``rust 글만'' 보임\\(틀림)};
+    \draw[flowarrow] (s1) -- (s2); \draw[flowarrow] (s2) -- (s3);
+  \end{tikzpicture}
+  \caption{허용 목록에서 \texttt{tags}를 빠뜨렸을 때. 오류 화면 없이 틀린 내용이 하루 동안 보인다.}
+  \label{fig:m-risk}
+  % src: deploy/traffic/review/01-reduce-traffic.md "M. a안의 위험"
+\end{figure}
+
+그래서 쓰는 쿼리를 빠짐없이 찾아야 한다.
+지금까지 찾은 것은 \Cref{tab:rt-m-found}와 같다.
+이 목록은 \texttt{searchParams.get(...)}를 grep한 결과이고 전부가 아니다(2026/10/13).
+\texttt{const \{ x \} = await searchParams} 같은 다른 형태, Route Handler, middleware가 읽는 쿼리가 빠졌을 수 있다.
+
+\begin{table}[H]
+  \caption{지금 찾은 쿼리와 쓰는 곳 수. 전부가 아니다.}
+  \label{tab:rt-m-found}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{5.4cm}Y@{}}
+    \toprule
+    쿼리 & 쓰는 곳 수 \\
+    \midrule
+    \code{category_title} & 5 \\
+    \midrule
+    \code{categories} & 5 \\
+    \midrule
+    \code{tags} & 4 \\
+    \midrule
+    \code{tag}, \code{username}, \code{limit}, \code{cursor} & 각 1 \\
+    \midrule
+    \code{_rsc} & Next 화면 안 이동 \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/01-reduce-traffic.md "M. 지금 찾은 쿼리"
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[xbar, width=0.8\linewidth, height=5.6cm, xmin=0, xmax=6, xtick={0,1,2,3,4,5},
+        symbolic y coords={cursor,limit,username,tag,tags,categories,categorytitle}, yticklabels={cursor,limit,username,tag,tags,categories,category\_title},
+        ytick=data, xmajorgrids=true, grid style={black!12}, axis lines=left,
+        tick label style={font=\footnotesize}, label style={font=\footnotesize},
+        xlabel={쓰는 곳 수 (개)}, bar width=9pt, nodes near coords, nodes near coords style={font=\footnotesize},
+        enlarge y limits=0.1]
+      \addplot[fill=cfcol!70, draw=cfcol] coordinates {(1,cursor) (1,limit) (1,username) (1,tag) (4,tags) (5,categories) (5,categorytitle)};
+    \end{axis}
+  \end{tikzpicture}
+  \caption{\texttt{searchParams.get(...)} grep에서 찾은 쿼리별 사용처 수. \texttt{\_rsc}는 개수가 없어 뺐다.}
+  \label{fig:m-found-chart}
+  % src: deploy/traffic/review/01-reduce-traffic.md "M. 지금 찾은 쿼리" (table values)
+\end{figure}
+
+\subsection{왜 b안만으로는 부족한가}\label{sec:rt-m-b-alone}
+
+\begin{description}[font=\bfseries]
+  \item[규칙은 \cfs{HIT}와 \cfs{MISS}를 가리지 않고 센다.] 오리진 한계(초당 2번)에 맞추려면 10초에 20번 아래로 내려야 한다.
+  \item[prefetch가 요청을 여럿 낸다.] 페이지 하나가 화면 안 이동용 요청(RSC prefetch)을 여러 개 보낸다. 정상 사용자도 막힐 수 있다.
+  \item[결론.] a안으로 캐시를 피하는 길을 없애는 것이 핵심이다. b안은 보조다.
+\end{description}
+% src: deploy/traffic/review/01-reduce-traffic.md "M. 왜 b안만으로는 부족한가"
+
+\subsection{오너 결정과 남은 위험}\label{sec:rt-m-decision}
+
+\begin{callout}[오너 결정 (2026/10/13, \decision{68})]
+b안. Cloudflare 한도를 IP당 50 / 10 s로 낮춘다. a안은 지금은 과하다. 오너가 a안을 중단했다.
+위험: 오늘 로그에서 정상 사용이 50을 6번 넘었다(\Cref{sec:bl-normal}).
+이를 줄이려고 Next prefetch를 줄이는 설계를 다음에 한다.
+% src: deploy/traffic/review/01-reduce-traffic.md "M. 오너 결정"; decisions.plan.md #68
+\end{callout}
+
+\paragraph{a안을 나중에 넣는다면 확인할 것.}
+\Cref{tab:rt-m-check}는 a안을 넣은 뒤의 확인 항목이다.
+이 항목은 a안을 넣을 때 쓴다. 아직 하지 않았다.
+
+\begin{table}[H]
+  \caption{a안을 넣은 뒤 확인할 것(아직 안 함). 열은 확인과 기대다.}
+  \label{tab:rt-m-check}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{6.6cm}Y@{}}
+    \toprule
+    확인 & 기대 \\
+    \midrule
+    \code{/?x=1}, \code{/?x=2} & 두 번째부터 \cfs{HIT} \\
+    \midrule
+    \texttt{/blog?tags=}<태그>와 \code{/blog} & 서로 다른 내용 \\
+    \midrule
+    \code{?_rsc=} 화면 안 이동 & 정상 \\
+    \midrule
+    L2-web 다시 & 대부분 \cfs{HIT}, 오리진까지 거의 안 옴 \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/01-reduce-traffic.md "M. 넣은 뒤 확인할 것"
+\end{table}
+
+\section{발행 뒤 purge}\label{sec:rt-purge}
+
+\paragraph{결과.}
+캐시가 페이지를 하루 동안 쥐고 있으므로 새 글을 발행한 뒤 한 번 purge한다.
+% src: deploy/traffic/README.md "Purge after a new post"
+
+\paragraph{어떻게.}
+\code{./_scripts/cloudflare/cf-purge.sh}를 돌린다.
+또는 대시보드의 Caching, Configuration, Purge Everything을 쓴다.
+두 host를 함께 purge한다.
+HTML만 purge하면 페이지가 옛 API 응답으로 다시 채워진다.
+% src: deploy/traffic/README.md "Purge after a new post"

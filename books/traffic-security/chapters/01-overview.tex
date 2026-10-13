@@ -1,0 +1,261 @@
+% chapters/01-overview.tex -- part A. 개요: 시스템 그림, 상태표, 하루의 순서.
+\chapter{개요}\label{ch:overview}
+
+% src: deploy/traffic/README.md "Progress", deploy/traffic/review/README.md "한눈에"
+\paragraph{결과.}
+2026/10/13 하루에 트래픽 통제 6단계가 모두 끝났다.
+공개 요청은 Cloudflare가 받고, VM은 캐시가 놓친 요청만 처리한다.
+부하 시험 L1에서 640건이 모두 캐시 \cfs{HIT}였고 VM까지 온 시험 요청은 0건이었다.
+% src: deploy/traffic/review/02-blocking.md "L1: 캐시 HIT 경로"
+
+\section{왜 이 책을 쓰나}\label{sec:ov-why}
+
+\begin{inbrief}
+  \item[Why] 트래픽이 몰려도 과금이 터지거나 서버가 죽지 않게 하려고 한다.
+  \item[When] GCP e2-micro VM(메모리 1 GB)으로 옮긴 직후다.
+  \item[Where] Cloudflare 캐시와 요청 수 제한, VM의 Express, 시험과 디버깅 기록이다.
+  \item[How] 변경마다 한 형식으로 쓴다: 왜 필요했나, 문제, 무엇을 바꿨나, 어떻게, 왜 이 방법인가, 확인.
+\end{inbrief}
+
+\paragraph{왜 필요했나.}
+예전 Vercel 시절에 트래픽이 폭주했다.
+원인은 캐시가 없던 페이지와 OG 이미지였다.
+% src: deploy/traffic/review/01-reduce-traffic.md §1
+오너가 2026/10/13에 물었다: ``과금이 터지거나 서버가 터질 걱정을 안 해도 되나?''
+% src: deploy/traffic/review/01-reduce-traffic.md §1 (오너 질문)
+
+\paragraph{목표.}
+공개 트래픽은 Cloudflare가 받는다.
+VM은 캐시가 놓친 요청만 처리한다.
+% src: deploy/traffic/review/01-reduce-traffic.md §1 목표
+
+\section{시스템 그림}\label{sec:ov-system}
+
+\Cref{fig:system}은 방문자에서 Supabase까지 요청이 가는 길을 보인다.
+빨간 동그라미는 통제가 놓인 자리다.
+문자는 \Cref{tab:status}의 항목과 같다.
+% src: deploy/traffic/review/01-reduce-traffic.md §1; traffic.design.md §1, §7.4
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[font=\small]
+    \node[flowbox] (vis) at (0,0) {방문자, 봇, 주간 점검 요청};
+    % Cloudflare edge: four boxes
+    \node[cfbox, text width=4.1cm] (webc) at (-2.2,-2.3)
+      {\textbf{web Cache Rules}\\\texttt{my.} GET, 1일\\bypass: 로그인, 보호 경로\\ \ctlmark{B}};
+    \node[cfbox, text width=4.1cm] (apic) at (2.2,-2.3)
+      {\textbf{api Cache Rules}\\\texttt{blog-api.} GET\\서버 Cache-Control을 따름\\ \ctlmark{D}};
+    \node[cfbox, text width=4.1cm] (btt) at (-2.2,-4.2)
+      {\textbf{Browser Cache TTL}\\Respect Existing Headers\\ \ctlmark{C}};
+    \node[cfbox, text width=4.1cm] (rl) at (2.2,-4.2)
+      {\textbf{web rate limit}\\IP당 50 / 10 s, Block 10 s\\ \ctlmark{H}};
+    \begin{scope}[on background layer]
+      \node[zone, draw=cfcol, fit=(webc)(apic)(btt)(rl), label={[font=\scriptsize,cfcol]above left:Cloudflare edge (Free)}] (edge) {};
+    \end{scope}
+    \node[cfbox] (tun) at (0,-6.7) {Cloudflare Tunnel};
+    \node[vmbox, text width=4.2cm] (web) at (-3.0,-9.0)
+      {\textbf{blog-web} (Next) \texttt{:3000}\\요청마다 JSON 로그 1줄 \ctlmark{A}\\SSR 호출에 \texttt{x-origin-key} \ctlmark{N}};
+    \node[vmbox, text width=4.2cm] (api) at (3.0,-9.0)
+      {\textbf{blog-api} (Express) \texttt{:4000}\\CORS 거절 = 403 \ctlmark{G}\\error-logs 키 \ctlmark{L}\\요청 수 제한 \texttt{log} 모드 \ctlmark{H}};
+    \begin{scope}[on background layer]
+      \node[zone, draw=vmcol, fit=(web)(api), label={[font=\scriptsize,vmcol]below left:GCP e2-micro VM, PM2}] (vm) {};
+    \end{scope}
+    \node[dbbox] (db) at (3.0,-11.6) {Supabase};
+    % side notes
+    \node[flowbox, text width=2.4cm, font=\scriptsize] (hit) at (6.6,-3.2)
+      {\cfs{HIT}: 여기서 바로 응답\\VM 부하 0, egress 0};
+    \node[flowbox, text width=2.4cm, font=\scriptsize] (wk) at (6.6,-0.4)
+      {매주 점검\\(GitHub Actions) \ctlmark{F}};
+    \node[flowbox, text width=2.2cm, font=\scriptsize] (alert) at (6.85,-9.0)
+      {예산 알림, 메모리 알림 90 \% \ctlmark{E}};
+    % arrows
+    \draw[flowarrow] (vis) -- (edge.north);
+    \draw[flowarrow] (wk) -- (vis);
+    \draw[flowarrow] (edge.east |- hit) -- (hit);
+    \draw[flowarrow] (edge.south |- tun.north) -- (tun)
+      node[lbl, midway, right] {\cfs{MISS}, \cfs{BYPASS}, \cfs{DYNAMIC}만 내려간다};
+    \draw[flowarrow] (tun.south) -- ++(0,-0.5) -| (web.north);
+    \draw[flowarrow] (tun.south) -- ++(0,-0.5) -| (api.north);
+    \draw[flowarrow] (web) -- (api) node[lbl, midway, above] {SSR\\호출};
+    \draw[flowarrow] (api) -- (db) node[lbl, midway, right] {API 캐시 MISS 때만};
+    \draw[flowarrow] (alert) -- (vm.east |- alert);
+  \end{tikzpicture}\par\smallskip
+  {\scriptsize \flowkey{cfbox} Cloudflare \quad \flowkey{vmbox} VM \quad \flowkey{dbbox} Supabase
+  \quad \ctlmark{A} 통제 항목 문자}
+  \caption{방문자에서 Supabase까지의 요청 길과 통제 위치. 캐시 \cfs{HIT}는 Cloudflare에서 끝나고, 나머지만 Tunnel을 지나 VM에 닿는다.}
+  \label{fig:system}
+  % src: deploy/traffic/review/01-reduce-traffic.md §1, deploy/traffic/review/02-blocking.md H, traffic.design.md §1
+\end{figure}
+
+\subsection{통제가 놓인 자리}\label{sec:ov-where}
+
+% src: deploy/traffic/review/01-reduce-traffic.md §1 (그림의 오른쪽 표식), 02-blocking.md H
+\begin{table}[H]
+  \caption{통제 문자와 놓인 자리. 열은 항목 문자, 층, 하는 일이다.}
+  \label{tab:ctl-letters}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{1.2cm}L{3.6cm}Y@{}}
+    \toprule
+    문자 & 층 & 하는 일 \\
+    \midrule
+    A & VM, blog-web & 요청마다 JSON 로그 1줄 \\
+    \midrule
+    B & Cloudflare & \texttt{my.} 웹 캐시 규칙(Cache Rules) \\
+    \midrule
+    C & Cloudflare & 브라우저 캐시 TTL을 서버 헤더대로 \\
+    \midrule
+    D & Cloudflare & \texttt{blog-api.} API 캐시 규칙 \\
+    \midrule
+    E & GCP & 예산 알림(budget), 메모리 알림(alert) \\
+    \midrule
+    F & GitHub Actions & 매주 캐시 점검 \\
+    \midrule
+    G & VM, blog-api & 허용 안 된 Origin은 403 \\
+    \midrule
+    H & Cloudflare, VM & 요청 수 제한(rate limit) L-a, L-b \\
+    \midrule
+    L & VM, blog-api & 공개 error-logs 쓰기를 키로 막음 \\
+    \midrule
+    N & VM, blog-web & 서버에서 도는 \texttt{clientRequest}도 키를 보냄 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{한눈에: 항목 A--N의 상태}\label{sec:ov-status}
+
+% src: deploy/traffic/review/README.md "한눈에", 01.status.md 2026-10-13 lines, decisions.plan.md #68 #69
+\Cref{tab:status}는 항목 문자와 오늘의 상태를 모은다.
+H의 숫자는 2026/10/13 마지막 시험까지 반영했다.
+N은 \texttt{02-blocking.md}에만 있고 검토 문서의 한눈에 표에는 없다.
+
+\begin{table}[H]
+  \caption{항목 A--N의 상태 (2026/10/13). 결정 번호는 오너 결정 기록의 번호다.}
+  \label{tab:status}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{0.8cm}L{5.2cm}Y@{}}
+    \toprule
+    \# & 항목 & 상태 \\
+    \midrule
+    A & 웹 요청 로그(request log) & 완료, 운영 중 \\
+    \midrule
+    B & 웹 캐시 규칙(Cache Rules) & 완료, 측정 통과 \\
+    \midrule
+    C & 브라우저 캐시 TTL & 완료, 측정 통과 \\
+    \midrule
+    D & API 캐시 규칙 & 완료, 측정 통과 \\
+    \midrule
+    E & 예산 알림(budget), 메모리 알림(alert) & 완료 \\
+    \midrule
+    F & 점검 도구와 매주 자동 점검 & 완료, issue \#5: 14 PASS \\
+    \midrule
+    G & CORS 거절을 403으로 & 완료, 운영 확인 (\commit{4d137f2}) \\
+    \midrule
+    H & 요청 수 제한(rate limit), 부하 시험(load test) & Cloudflare 규칙 운영 중(IP당 50 / 10 s, \decision{68}). Express \texttt{log} 모드 운영 중. L1 통과, L2-web 약 2 rps에서 한계, L2-api 통과 \\
+    \midrule
+    I & 주간 issue에 egress 넣기 & \textbf{보류} (오너, 2026/10/13) \\
+    \midrule
+    J & Supabase Log Query 사용량 & 관찰 중 \\
+    \midrule
+    K & GCP 방화벽 22, 3389 끄기 & 중단 (오너, \decision{69}) \\
+    \midrule
+    L & 공개 error-logs 쓰기 막기 & 완료, 운영 확인 (\commit{38b4c12}) \\
+    \midrule
+    M & 랜덤 쿼리로 캐시를 피하는 요청 막기 & a안 중단. b안: Cloudflare 한도 50 / 10 s (\decision{68}). prefetch 줄이기는 다음 설계 \\
+    \midrule
+    N & 서버에서 도는 \texttt{clientRequest}도 키를 보냄 & 완료, 웹 배포 \commit{7f07df7}. 서버 로그에서 \texttt{ssr=true} 확인. 브라우저 요청 헤더 확인은 오너가 한다 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{2026/10/13의 순서}\label{sec:ov-timeline}
+
+% src: deploy/traffic/review/README.md "오늘 커밋", 01.status.md 2026-10-13 lines, 02-blocking.md "시험 결과" (clock times)
+\Cref{fig:timeline}은 하루의 일을 순서대로 놓는다.
+간격은 시간 눈금이 아니다.
+시각이 기록된 것은 부하 시험(UTC)뿐이다.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[font=\scriptsize, ev/.style={flowbox, text width=3.15cm, font=\scriptsize}]
+    \draw[flowarrow, black!50] (0,0) -- (15.6,0);
+    \foreach \i/\a/\sh/\txt in {
+      0/south/0.35/{blog-web 살아남. self-proxy 수정 \commit{3a6463a}},
+      1/north/-0.35/{A 요청 로그 운영 시작 \commit{f33a917} \commit{3c365fd} (\decision{58})},
+      2/south/0.35/{실행표와 점검 도구 \commit{48ae20e}. 통제 1--5단계 완료: B, C, D, E},
+      3/north/-0.35/{F 주간 점검 \commit{c3c49ff} \commit{2912bca}. issue \#5: 14 PASS},
+      4/south/0.35/{G CORS 403 배포 \commit{4d137f2}},
+      5/north/-0.35/{\commit{38b4c12} 배포: 키 L, L-b \texttt{log}. L1 통과},
+      6/south/0.35/{L2-web 중단 20:53--20:57. L-a 발동 21:00. L2-api 통과 21:09--21:12},
+      7/north/-0.35/{N 웹 \commit{7f07df7} 21:20. 한도 100 $\to$ 50, 21:21 확인}}
+    {
+      \fill[vmcol] ({1.5+\i*1.75},0) circle (2.5pt);
+      \node[ev, anchor=\a, yshift=\sh cm] at ({1.5+\i*1.75},0) {\txt};
+    }
+  \end{tikzpicture}
+  \caption{2026/10/13의 변경과 시험 순서. 위아래로 번갈아 놓았다.}
+  \label{fig:timeline}
+  % src: deploy/traffic/review/README.md "오늘 커밋", 01.status.md lines 51-57, 02-blocking.md L2, L-a, L2-api, N
+\end{figure}
+
+\section{책의 구성}\label{sec:ov-map}
+
+% src: task brief (chapter list)
+\begin{table}[H]
+  \caption{장 구성. 4장까지는 변경과 시험, 5장부터는 상태 코드, 관찰, 시험 방법, 결정이다.}
+  \label{tab:chapter-map}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{1.4cm}L{3.8cm}Y@{}}
+    \toprule
+    장 & 제목 & 무엇을 알려고 읽나 \\
+    \midrule
+    1 & 개요 & 전체 그림과 오늘의 상태 \\
+    \midrule
+    2 & 디버깅 & 막힌 12가지와 푸는 방법 \\
+    \midrule
+    3 & 트래픽 줄이기 & 캐시가 요청을 어디서 끝내나 (B, C, D, M) \\
+    \midrule
+    4 & 막기 & 캐시를 지난 요청을 어떻게 막나 (H, N) \\
+    \midrule
+    5 & 상태 코드와 보안 & 응답 코드, 비밀 값 \\
+    \midrule
+    6 & 관찰과 알림 & 로그, 알림, 점검 도구 \\
+    \midrule
+    7 & 시험 & 시험 방법과 결과 \\
+    \midrule
+    8 & 결정 & 오너 결정 기록 \\
+    \midrule
+    9 & 무한 스크롤과 미리 받기(prefetch) & 스크롤 한 번에 429가 난 이유와 처방 \\
+    \midrule
+    부록 A & 명령 & 실행 명령 모음 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{읽기 전에: 캐시 응답 값}\label{sec:ov-cfs}
+
+\paragraph{결과.}
+\texttt{cf-cache-status} 헤더 값 하나로 요청이 어디서 끝났는지 알 수 있다.
+\cfs{HIT}만 Cloudflare에서 끝난다.
+% src: deploy/traffic/review/01-reduce-traffic.md §1 (HIT -> Cloudflare가 바로 응답, MISS/BYPASS/DYNAMIC -> 아래로)
+
+\begin{table}[H]
+  \caption{\texttt{cf-cache-status} 값과 VM에 닿는지. 소스에 뜻이 적힌 값만 적었다.}
+  \label{tab:cfs-values}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{2.8cm}L{2.6cm}Y@{}}
+    \toprule
+    값 & VM에 닿나 & 이 책에서 쓰인 뜻 \\
+    \midrule
+    \cfs{HIT} & 아니오 & Cloudflare가 바로 응답. VM 부하 0, egress 0 \\
+    \midrule
+    \cfs{MISS} & 예 & 캐시에 없어 서버가 새로 그렸다 \\
+    \midrule
+    \cfs{BYPASS} & 예 & 규칙이 캐시를 쓰지 않게 했다 (예: \texttt{/ping}) \\
+    \midrule
+    \cfs{DYNAMIC} & 예 & 캐시되지 않았다 (예: \texttt{\_\_session} 쿠키, \texttt{Authorization}) \\
+    \midrule
+    \cfs{EXPIRED}, \cfs{REVALIDATED} & 예 & 오류 응답 검사에서 ``캐시에서 안 나감''으로 읽었다 \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/01-reduce-traffic.md B, D 확인 표; deploy/traffic/README.md §2c, §3c
+\end{table}

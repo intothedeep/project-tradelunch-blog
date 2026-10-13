@@ -1,0 +1,341 @@
+% chapters/09-prefetch.tex -- 무한 스크롤과 미리 받기(prefetch): 스크롤 한 번에 429가 난 사건.
+% ONLY source: deploy/traffic/review/prefetch-source.md (cited as "prefetch-source.md §N").
+% Every number below is copied from that file. Guesses are marked 추정 as the source does.
+% No cookie values, IPs or tokens appear here.
+\chapter{무한 스크롤과 미리 받기(prefetch)}\label{ch:prefetch}
+
+% src: deploy/traffic/review/prefetch-source.md §1, §3, §4
+\paragraph{결과.}
+로그인하지 않고 메인 페이지를 스크롤하면 무한 스크롤(infinite scroll)이 에러 화면을 냈다.
+원인은 카드의 링크가 화면에 보이는 순간 페이지를 미리 받는(prefetch) 것이었다.
+스크롤 한 번에 약 31--41번이 나가고, Cloudflare 한도 50 / 10 s를 넘어 429가 됐다.
+오너가 a, b, c, d를 고치라고 했고, 기대값은 스크롤 한 번에 약 1--2번이다.
+수정 뒤 측정은 아직 없다(\Cref{sec:pf-verify}).
+
+\begin{inbrief}
+  \item[Why] 스크롤 한 번에 요청이 수십 번 나가 Cloudflare 한도 50 / 10 s에 걸렸다. 그 원인과 처방을 남긴다.
+  \item[When] 카드 목록이 있는 페이지에서 \texttt{<Link>}가 많고 한도가 낮을 때다.
+  \item[Where] \texttt{RecentPostCard}, \texttt{RecentPostsList}, \texttt{TagPostsList}, 메뉴 링크다.
+  \item[How] 태그와 댓글 링크의 prefetch를 끈다. 카드 링크는 마우스를 올린 뒤에만 켠다. load-more 실패를 처리한다.
+\end{inbrief}
+
+%% ---------------------------------------------------------------------------
+\section{결과: 수정 전과 수정 후의 흐름}\label{sec:pf-flow}
+
+\paragraph{무엇을 알려고 쓰나.}
+스크롤 한 번이 어떻게 페이지 crash까지 이어졌는지, 수정 뒤에는 어디서 끊기는지 한눈에 본다.
+\Cref{fig:pf-flow}가 두 흐름을 나란히 보인다.
+
+\begin{figure}[H]
+  \centering
+  \resizebox{\linewidth}{!}{%
+  \begin{tikzpicture}[font=\scriptsize]
+    \node[font=\small\bfseries, anchor=west] at (-1.4,1.3) {수정 전};
+    \node[flowbox, minimum width=2.8cm] (b1) at (0,0) {스크롤 1번\\카드 10장이 붙음};
+    \node[badbox, minimum width=2.8cm] (b2) at (3.5,0) {load-more 1\\+ 글 링크 10\\+ 태그 링크 20--30\\= 약 31--41번};
+    \node[cfbox, minimum width=2.8cm] (b3) at (7.0,0) {Cloudflare 한도\\50 / 10 s\\\cfs{HIT}도 센다};
+    \node[badbox, minimum width=2.8cm] (b4) at (10.5,0) {429\\Too Many Requests};
+    \node[badbox, minimum width=2.8cm] (b5) at (14.0,0) {\texttt{res.ok}를 안 봄\\TypeError\\페이지 crash};
+    \draw[flowarrow] (b1) -- (b2);
+    \draw[flowarrow] (b2) -- (b3);
+    \draw[flowarrow] (b3) -- (b4);
+    \draw[flowarrow] (b4) -- (b5);
+
+    \node[font=\small\bfseries, anchor=west] at (-1.4,-2.0) {수정 후 (a--d)};
+    \node[flowbox, minimum width=2.8cm] (a1) at (0,-3.4) {스크롤 1번\\카드 10장이 붙음};
+    \node[goodbox, minimum width=2.8cm] (a2) at (3.5,-3.4) {load-more 1\\+ 마우스를 올린 글만\\= 약 1--2번};
+    \node[cfbox, minimum width=2.8cm] (a3) at (7.0,-3.4) {Cloudflare 한도\\50 / 10 s 이하};
+    \node[goodbox, minimum width=2.8cm] (a4) at (10.5,-3.4) {200\\글이 붙음};
+    \node[flownew, minimum width=2.8cm] (a5) at (14.0,-3.4) {오류 안내 문구\\+ 다시 불러오기\\버튼};
+    \draw[flowarrow] (a1) -- (a2);
+    \draw[flowarrow] (a2) -- (a3);
+    \draw[flowarrow] (a3) -- (a4);
+    \draw[flowarrow] (a3.south) -- ++(0,-0.95) -| (a5.south);
+    \node[lbl] at (10.5,-4.45) {그래도 429면};
+  \end{tikzpicture}}
+  \par\smallskip{\scriptsize \flowkey{badbox} 실패 \quad \flowkey{goodbox} 정상 \quad \flowkey{cfbox} Cloudflare \quad \flowkey{flownew} 새로 넣은 처리}
+  \caption{스크롤 한 번의 흐름. 위는 수정 전, 아래는 a--d 수정 뒤다.}
+  \label{fig:pf-flow}
+  % src: deploy/traffic/review/prefetch-source.md §3 (31--41번, 한도 50 / 10 s, HIT도 센다, TypeError), §4 (a--d, 기대 1--2번), §5 (d의 오류 문구와 다시 불러오기 버튼)
+\end{figure}
+
+%% ---------------------------------------------------------------------------
+\section{문제: 스크롤하면 요청이 79번 나갔다}\label{sec:pf-problem}
+
+\paragraph{무엇을 알려고 쓰나.}
+오너의 브라우저에서 어떤 요청이 몇 번 나갔는가.
+오너가 DevTools Network 화면을 캡처했다(2026/10/13 17:52 로컬).
+하단에는 \texttt{79 requests}, \texttt{264 kB transferred}가 보였다.
+% src: deploy/traffic/review/prefetch-source.md §2 (79 requests, 264 kB, 17:52 로컬)
+
+\paragraph{표.}
+\Cref{tab:pf-observed}는 화면에 보인 28줄을 종류별로 센다.
+
+\begin{table}[H]
+  \caption{DevTools에 보인 요청 28줄의 종류. 화면 하단의 전체 요청은 79번이다.}
+  \label{tab:pf-observed}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{2.6cm}Y L{2.4cm}@{}}
+    \toprule
+    종류 & 보이는 이름 & 보이는 수 \\
+    \midrule
+    태그 페이지 & 태그 이름 16개(\texttt{express}, \texttt{monitoring}, \texttt{linux}, \texttt{jwt} 등). \texttt{blog}는 두 번 나옴 & 16 \\
+    \midrule
+    글 페이지 & 글 제목 2개와 이름이 잘린 줄 2개 & 약 4 \\
+    \midrule
+    메뉴 페이지 & 홈 2번, log, about, resume 4번 & 8 \\
+    \midrule
+    합계 (보이는 줄) &  & 28 \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/prefetch-source.md §2 표 (태그 16, 글 약 4, 메뉴 8), 보이는 줄 28개, 하단 79 requests
+\end{table}
+
+\paragraph{읽는 법.}
+\begin{itemize}[nosep]
+  \item 보이는 28줄 중 1줄을 뺀 나머지는 모두 빨간 실패 표시였다.
+  \item 고른 요청 하나는 \texttt{429 Too Many Requests}였다.
+  \item 그 요청의 헤더에 \code{Next-Router-Prefetch: 1}과 \code{Next-Router-Segment-Prefetch: /_tree}가 있었다.
+  \item 로그인 쿠키가 없었다. 로그인하지 않은 상태다.
+  \item 요청 헤더에 \texttt{Cache-Control: no-cache}가 있었다. DevTools ``Disable cache''가 켜져 있었을 가능성이 있다(추정).
+  \item 79번 중 28번만 화면에 보였다. 나머지 요청의 종류는 모른다.
+\end{itemize}
+% src: deploy/traffic/review/prefetch-source.md §2 (1줄 제외 모두 실패, 429, 헤더, __session 없음, Disable cache 가능성)
+
+%% ---------------------------------------------------------------------------
+\section{원인: 보이는 링크는 모두 미리 받는다}\label{sec:pf-cause}
+
+\paragraph{배경.}
+Next.js 16의 \texttt{<Link>}는 화면에 보이면 대상 페이지를 미리 받는다(prefetch).
+이것이 기본값이다.
+카드 목록에서는 링크가 많아서 보이는 순간 요청이 한꺼번에 나간다.
+% src: deploy/traffic/review/prefetch-source.md §3 (Next.js 16 "^16.2.9", 화면에 보이면 미리 받는다, 기본값)
+
+\subsection{카드 한 장의 링크}\label{sec:pf-links}
+
+\paragraph{무엇을 알려고 쓰나.}
+카드 한 장이 링크 몇 개로 요청 몇 번을 만드는가.
+\Cref{tab:pf-links}는 \texttt{RecentPostCard.client.tsx}의 링크를 수정 전과 수정 후로 비교한다.
+
+\begin{table}[H]
+  \caption{카드 한 장의 \texttt{<Link>}. 줄 번호는 수정 전 파일의 것이다.}
+  \label{tab:pf-links}
+  \centering\footnotesize
+  \begin{tabularx}{\linewidth}{@{}Y L{1.0cm}L{1.7cm}L{2.2cm}L{2.7cm}L{2.2cm}@{}}
+    \toprule
+    링크 & 줄 & 전: prefetch & 전: 카드당 요청 & 후: prefetch & 후: 카드당 요청 \\
+    \midrule
+    카드 전체 $\to$ 글 & :77 & 켜짐 & 1 & 마우스를 올린 뒤에만 켜짐 & 마우스를 올린 글만 \\
+    \midrule
+    작성자 & :112 & 꺼짐 & 0 & 꺼짐 & 0 \\
+    \midrule
+    태그 칩 $\to$ \texttt{/tags/<tag>} & :186 & 켜짐 & 태그 수 (2--3) & 꺼짐 & 0 \\
+    \midrule
+    댓글 수 $\to$ 글 (카드와 같은 주소) & :209 & 켜짐 & 0--1 & 꺼짐 & 0 \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/prefetch-source.md §3 링크 표 (수정 전), §4 표 a, b, c, §5 표 a, b, c (수정 후)
+\end{table}
+
+\subsection{무한 스크롤이 한 번에 부르는 것}\label{sec:pf-loadmore}
+
+\begin{enumerate}[nosep]
+  \item 바닥 감지 칸(sentinel)에 \texttt{IntersectionObserver}를 단다. \texttt{rootMargin}은 \texttt{'200px'}이다.
+  \item 감지 칸이 보이면 \texttt{/api/posts/load-more?...\&limit=10}을 부른다. 카드 10장이 붙는다.
+  \item 요청이 끝나면 effect가 observer를 다시 만든다.
+  \item 감지 칸이 아직 보이면 다음 페이지를 바로 또 부른다.
+\end{enumerate}
+% src: deploy/traffic/review/prefetch-source.md §3 "무한 스크롤" 목록
+
+\paragraph{어림 계산.}
+카드 10장에 태그가 2개나 3개인 경우다.
+
+\begin{align*}
+  &1 + 10 + 20 = 31 && \text{load-more 1, 글 링크 10, 태그 링크 20 (태그 2개)}\\
+  &1 + 10 + 30 = 41 && \text{태그 3개일 때}\\
+  &60\text{--}80 && \text{두 번 빠르게 스크롤한 10 s의 요청}\\
+  &50 && \text{Cloudflare 한도 (IP당 10 s, \decision{68})}
+\end{align*}
+% src: deploy/traffic/review/prefetch-source.md §3 어림 계산 (31--41번), 두 번 스크롤 60--80번, 한도 50 (#68)
+
+Cloudflare 한도는 캐시 \cfs{HIT}도 센다(\Cref{ch:blocking}).
+그래서 캐시가 맞아도 한도에 걸린다.
+% src: deploy/traffic/review/prefetch-source.md §3 (Cloudflare 한도는 캐시 HIT도 센다, L-a 시험 02-blocking.md)
+
+\subsection{추정: 같은 링크가 여러 번 받히는 이유}\label{sec:pf-guess}
+
+\Cref{tab:pf-guess}의 세 가지는 코드를 읽고 세운 추정이다.
+확인하지 않았다.
+
+\begin{table}[H]
+  \caption{같은 링크가 여러 번 받히는 이유. 모두 추정이며 확인하지 않았다.}
+  \label{tab:pf-guess}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{5.6cm}Y@{}}
+    \toprule
+    본 것 & 추정 \\
+    \midrule
+    \code{Next-Router-Segment-Prefetch: /_tree} 헤더. resume 링크가 4번 나옴 & Next 16은 페이지를 조각(segment)으로 나눠 받는다. 링크 하나가 요청 둘 이상이 될 수 있다 \\
+    \midrule
+    \texttt{\_rsc} 값이 다르다. resume 4개가 모두 다르고 \texttt{blog}는 값만 달리 두 번 나옴 & \texttt{\_rsc} 값이 다르면 브라우저 라우터 캐시(router cache)와 Cloudflare 캐시 키(cache key)가 서로 다르다 \\
+    \midrule
+    429로 실패한 prefetch & 링크가 다시 보일 때 또 시도될 수 있다 \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/prefetch-source.md §2 (_rsc 값, resume 4개, blog 두 번), §3 "같은 링크가 여러 번 받히는 이유 (추정, 확인 안 함)"
+\end{table}
+
+\subsection{에러 화면이 나온 이유}\label{sec:pf-crash}
+
+\texttt{RecentPostsList.client.tsx:56-64}(수정 전)는 응답 상태를 보지 않았다.
+아래 코드가 그 줄이다.
+
+\begin{lstlisting}
+const res = await fetch(`/api/posts/load-more?...`);
+const data = await res.json();
+setPosts((prev) => [...prev, ...data.posts]);
+\end{lstlisting}
+% src: deploy/traffic/review/prefetch-source.md §3 "에러 화면이 나오는 이유" (RecentPostsList.client.tsx:56-64 수정 전)
+
+\begin{enumerate}[nosep]
+  \item 429는 Cloudflare 차단 응답이다. 그래서 \texttt{res.json()}이 실패하거나 \texttt{data.posts}가 없다.
+  \item route가 500 \texttt{\{ error: 'Failed to load posts' \}}를 돌려줘도 \texttt{data.posts}가 없다.
+  \item \texttt{[...prev, ...undefined]}가 TypeError를 낸다.
+  \item 페이지가 오류 경계(error boundary)로 넘어간다. 이것이 사용자가 본 에러 화면이다.
+\end{enumerate}
+% src: deploy/traffic/review/prefetch-source.md §3 에러 화면 목록 (app/api/posts/load-more/route.ts:58)
+
+%% ---------------------------------------------------------------------------
+\section{처방: a, b, c, d}\label{sec:pf-fix}
+
+\paragraph{무엇을 알려고 쓰나.}
+원인마다 무엇을 고쳤고, 무엇을 고치지 않았는가.
+오너가 ``a b c d 고쳐줘''라고 했다(2026/10/13).
+\Cref{tab:pf-fix}가 원인과 처방을 짝짓는다.
+
+\begin{table}[H]
+  \caption{원인과 처방. 기대 효과는 카드 10장당이며 기대값이다.}
+  \label{tab:pf-fix}
+  \centering\footnotesize
+  \begin{tabularx}{\linewidth}{@{}L{0.8cm}L{3.4cm}Y L{3.0cm}@{}}
+    \toprule
+    \# & 원인 & 처방 & 기대 효과 \\
+    \midrule
+    a & 태그 칩 링크가 prefetch 켜짐 & 태그 칩 \texttt{<Link>}에 \texttt{prefetch=\{false\}} & 20--30 $\to$ 0 \\
+    \midrule
+    b & 댓글 수 링크가 prefetch 켜짐 & 댓글 수 \texttt{<Link>}에 \texttt{prefetch=\{false\}} & 0--10 $\to$ 0 \\
+    \midrule
+    c & 카드 전체 링크가 화면에 보이면 prefetch & 마우스를 올릴 때만 prefetch. 새 파일 \texttt{HoverPrefetchLink.client.tsx} & 약 10 $\to$ 마우스를 올린 글만 \\
+    \midrule
+    d & load-more가 실패를 처리하지 않아 429가 TypeError로 번짐 & \texttt{res.ok}와 \texttt{Array.isArray(data.posts)} 확인. 실패하면 오류 문구 + 다시 불러오기 버튼 & 에러 화면 없음 \\
+    \midrule
+    Log 메뉴 & 메뉴의 \texttt{/log} 링크도 prefetch함 & Log 메뉴를 숨김(오너: ``and hide log menu''). \texttt{/log} 주소는 그대로 열림 & 메뉴의 \texttt{/log} prefetch가 함께 없어짐 \\
+    \midrule
+    e & 메뉴 링크는 처음 한 번뿐 & 그대로 둠 & 효과가 작아서 유지 \\
+    \midrule
+    쓰지 않은 안 & Cloudflare 규칙에서 \texttt{Next-Router-Prefetch} 헤더가 붙은 요청을 세지 않기 & 쓰지 않음 & 공격자도 그 헤더를 붙여 한도를 피할 수 있다 \\
+    \bottomrule
+  \end{tabularx}
+  % src: deploy/traffic/review/prefetch-source.md §4 표 (a--e, 효과), §4 "쓰지 않은 방법", §5 표 (a--d, Log 메뉴, 메뉴 행)
+\end{table}
+
+\subsection{c: 마우스를 올릴 때만 미리 받기}\label{sec:pf-hover}
+
+\paragraph{결과.}
+카드 링크가 \texttt{prefetch={isActive ? null : false}}를 쓴다.
+처음에는 \texttt{false}라서 요청이 없다.
+\texttt{onMouseEnter}나 \texttt{onFocus}가 오면 \texttt{null}(기본 prefetch)로 바뀐다.
+% src: deploy/traffic/review/prefetch-source.md §5 표 c
+
+\paragraph{왜 \texttt{null}인가.}
+\begin{enumerate}[nosep]
+  \item \texttt{node\_modules/next/dist/client/app-dir/link.d.ts:120}은 \texttt{prefetch?: boolean | 'auto' | null}을 허용한다.
+  \item 같은 파일 :106은 \texttt{false}가 화면 진입 prefetch와 hover prefetch를 둘 다 끈다고 적는다.
+  \item 그래서 \texttt{false}만 쓰면 hover 때도 받지 않는다.
+  \item 그러므로 hover 뒤에만 \texttt{null}로 바꾼다.
+\end{enumerate}
+% src: deploy/traffic/review/prefetch-source.md §5 "c에서 null을 쓴 근거" (link.d.ts:120, :106)
+
+\subsection{d: 실패를 처리하는 guard}\label{sec:pf-guard}
+
+아래 코드는 소스 §5의 설명을 코드 모양으로 옮긴 요약이다.
+실제 파일과 줄 단위로 같지 않다.
+
+\begin{lstlisting}
+const res = await fetch(`/api/posts/load-more?...`);
+if (!res.ok) { setIsError(true); return; }
+const data = await res.json();
+if (!Array.isArray(data.posts)) { setIsError(true); return; }
+setPosts((prev) => [...prev, ...data.posts]);
+\end{lstlisting}
+% src: deploy/traffic/review/prefetch-source.md §5 표 d (res.ok, Array.isArray(data.posts), isError = true)
+
+\begin{itemize}[nosep]
+  \item 이미 보인 글은 남긴다.
+  \item observer를 다시 만들지 않는다. 자동 재시도가 없다.
+  \item 감지 칸 자리에 ``글을 더 불러오지 못했습니다.''와 ``다시 불러오기'' 버튼이 나온다.
+  \item 버튼이 \texttt{isError}를 지우면 로딩이 다시 된다.
+  \item \texttt{TagPostsList.client.tsx}도 같은 패턴이라 함께 고쳤다.
+  \item 문구는 \texttt{messages/\{en,ko\}/blog.json}의 \texttt{blog.feed.loadError}, \texttt{blog.feed.retry}다.
+\end{itemize}
+% src: deploy/traffic/review/prefetch-source.md §5 표 d, 문구 행
+
+%% ---------------------------------------------------------------------------
+\section{근거: 스크롤 한 번의 기대 요청 수}\label{sec:pf-evidence}
+
+\paragraph{무엇을 알려고 쓰나.}
+처방 a--d가 스크롤 한 번의 요청을 얼마나 줄이리라 기대하는가.
+\Cref{fig:pf-chart}는 기대값이다.
+측정값이 아니다.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[barchart, width=0.7\linewidth, height=6.4cm, ymax=58,
+        xmin=0.4, xmax=2.6, xtick={1,2}, xticklabels={수정 전, 수정 후},
+        xticklabel style={font=\footnotesize},
+        ylabel={Requests per scroll (expected)}]
+      \addplot[fill=vmcol!70, draw=vmcol] coordinates {(1,31) (2,1)};
+      \addplot[fill=vmcol!30, draw=vmcol] coordinates {(1,10) (2,1)};
+      \legend{최솟값, 최댓값까지의 폭}
+      \draw[badcol, dashed] (axis cs:0.4,50) -- (axis cs:2.6,50);
+      \node[font=\scriptsize, text=badcol, anchor=south] at (axis cs:2,50.5) {Cloudflare 한도 50 / 10 s};
+      \node[font=\scriptsize\bfseries, anchor=south] at (axis cs:1,41.5) {31--41};
+      \node[font=\scriptsize\bfseries, anchor=south] at (axis cs:2,2.5) {1--2};
+    \end{axis}
+  \end{tikzpicture}
+  \caption{스크롤 한 번의 기대 요청 수(기대값, 측정 아님). 수정 전 31--41번이 수정 후 1--2번이 된다.}
+  \label{fig:pf-chart}
+  % src: deploy/traffic/review/prefetch-source.md §3 어림 계산 (31--41번), §4 "기대: 스크롤 한 번에 약 31--41번 -> 약 1--2번", 한도 50 / 10 s (#68)
+\end{figure}
+
+\paragraph{읽는 법.}
+\begin{itemize}[nosep]
+  \item 점선은 10 s당 한도다. 막대는 스크롤 한 번이다. 두 번 빠르게 스크롤하면 막대의 두 배에 가까워진다.
+  \item 수정 후의 1은 load-more다. 2는 마우스를 올린 글 하나가 더해진 경우다.
+  \item 메뉴 링크의 prefetch는 처음 한 번뿐이라 이 그림에 넣지 않았다.
+\end{itemize}
+% src: deploy/traffic/review/prefetch-source.md §3 (두 번 스크롤 60--80번), §4 표 e (메뉴 링크는 처음 한 번뿐)
+
+\paragraph{정적 검사.}
+\texttt{pnpm --filter dashboard\_client\_web check-types}는 오류 0이었다.
+\texttt{lint}는 경고 0이었다(2026/10/13).
+브라우저에서 429를 다시 일으켜 보지는 않았다.
+수정은 커밋 전이다.
+% src: deploy/traffic/review/prefetch-source.md §5 (check-types 오류 0, lint 경고 0, 브라우저에서 429 재현 안 함, 커밋 전)
+
+%% ---------------------------------------------------------------------------
+\section{배포 뒤 확인}\label{sec:pf-verify}
+
+\begin{callout}[배포 뒤 확인 (오너)]
+수정 전과 같은 방법으로 다시 센다.
+\begin{enumerate}[nosep]
+  \item 로그인하지 않은 창을 연다.
+  \item DevTools에서 Network를 연다.
+  \item 필터에 \texttt{\_rsc}를 쓴다.
+  \item 메인 페이지를 빠르게 스크롤한다.
+  \item 요청 수를 세고 429가 있는지 본다.
+\end{enumerate}
+\todo{배포 뒤 측정 결과(스크롤 한 번의 요청 수, 429 유무)는 오너가 채운다}
+% src: deploy/traffic/review/prefetch-source.md §6 (로그인 안 한 창, Network, 필터 _rsc, 빠르게 스크롤)
+\end{callout}

@@ -1,0 +1,482 @@
+% chapters/A-commands.tex -- part B. 부록: 명령 모음.
+% Macros come from part A's preamble.tex. Listings stay ASCII only (listings + Korean breaks under XeLaTeX).
+% No real secrets, IPs, account IDs, project IDs or emails: placeholders only.
+\chapter{명령 모음}\label{ch:commands}
+
+% src: deploy/gcp/README.md; deploy/traffic/README.md; deploy/logging/README.md
+\paragraph{결과.}
+이 부록은 본문에서 쓴 명령을 묶음별로 모았다.
+계정 ID, IP, 메일, 프로젝트 ID, 키 값은 자리표시자(placeholder)로 바꿨다.
+\Cref{tab:A-index}가 묶음을 찾는 길이다.
+
+\begin{table}[H]
+  \caption{명령 묶음 찾기. 어디서 실행하나.}\label{tab:A-index}
+  % src: deploy/traffic/README.md §Monitoring commands; deploy/gcp/README.md
+  \small
+  \begin{tabularx}{\linewidth}{L{5.2cm} L{2.6cm} Y}
+    \toprule
+    하려는 일 & 어디서 & 절 \\
+    \midrule
+    API 배포와 \texttt{ORIGIN\_KEY} 넣기 & Mac, VM & \Cref{sec:A-deploy-api} \\
+    \midrule
+    웹 배포 & Mac, VM & \Cref{sec:A-deploy-web} \\
+    \midrule
+    PM2 restart, 비밀 값 바꾸기, 롤백 & VM & \Cref{sec:A-pm2} \\
+    \midrule
+    캐시 규칙 점검, 메모리와 egress & Mac & \Cref{sec:A-checks} \\
+    \midrule
+    Cloud Logging 조회 & Mac, 브라우저 & \Cref{sec:A-logging} \\
+    \midrule
+    부하 시험 실행 & Mac (\texttt{gh}) & \Cref{sec:A-loadtest} \\
+    \midrule
+    Cloudflare 규칙 식 & 브라우저 & \Cref{sec:A-cloudflare} \\
+    \midrule
+    예산과 메모리 알림 & Mac & \Cref{sec:A-alerts} \\
+    \midrule
+    고의 파손 \texttt{curl}, 방화벽, purge & Mac & \Cref{sec:A-misc} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{callout}[자리표시자]
+\texttt{<USER>@<VM>}은 VM의 SSH 사용자와 인스턴스 이름이다.
+\texttt{<PROJECT\_ID>}는 GCP 프로젝트 ID, \texttt{<ACCOUNT\_ID>}는 결제 계정 ID, \texttt{<EMAIL>}은 알림 메일이다.
+\texttt{<64 hex chars>}는 \texttt{openssl rand -hex 32}가 만든 값이다.
+실제 값은 저장소와 issue에 넣지 않는다.
+\end{callout}
+
+%% ---------------------------------------------------------------------------
+\section{API 배포와 ORIGIN\_KEY}\label{sec:A-deploy-api}
+
+% src: deploy/gcp/README.md §1 §2 §3 §4; deploy/traffic/review/03-status-codes.md §L 어떻게
+순서는 Mac에서 내려받기, VM으로 복사, VM에서 release다.
+\texttt{ORIGIN\_KEY}는 웹과 API가 같은 값을 써야 한다.
+웹을 먼저, API를 나중에 올린다.
+
+\begin{lstlisting}[language=bash]
+# Mac, repo root: pick a green "GCP build" run and download it
+gh run list --workflow=gcp.yml --limit 5        # pick a run with "success"
+RUN=<run id>
+SHA=$(gh run view $RUN --json headSha --jq .headSha)
+gh run download $RUN -n gcp-$SHA -D x_gh_download
+
+# Mac: copy to the VM (zsh needs an array for the zone options)
+VM=<USER>@<VM>
+Z=(--zone=us-central1-a --tunnel-through-iap)
+gcloud compute ssh $VM "${Z[@]}" --command 'mkdir -p ~/prettylog/shared'
+gcloud compute scp x_gh_download/api-$SHA.tgz \
+  deploy/gcp/ecosystem.config.cjs deploy/gcp/release.sh \
+  $VM:~/prettylog/ "${Z[@]}"
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash]
+# VM: make ONE key and put the same value in both env files (never print it in a shared place)
+openssl rand -hex 32                      # copy the 64 hex chars into both files
+vi ~/prettylog/shared/api.env             # add one line: ORIGIN_KEY=<64 hex chars>
+vi ~/prettylog/shared/web.env             # add the SAME line: ORIGIN_KEY=<64 hex chars>
+chmod 600 ~/prettylog/shared/api.env ~/prettylog/shared/web.env
+# Do not leave "ORIGIN_KEY=" empty: Express will not start (minimum 32 characters).
+
+# VM: release the api build
+cd ~/prettylog
+chmod +x release.sh
+SHA=<the full sha from the Mac step>
+./release.sh api $SHA ~/prettylog/api-$SHA.tgz
+\end{lstlisting}
+
+\begin{itemize}[nosep]
+  \item 키가 없으면 Express는 예전처럼 연다. 그래서 배포 순서가 틀려도 사이트와 오류 기록이 멈추지 않는다. 시작할 때 \texttt{ORIGIN\_KEY unset} 경고가 남는다.
+  \item 두 앱을 ecosystem 파일로 restart해야 새 값을 읽는다. 다음 절의 \texttt{--update-env}를 쓴다.
+\end{itemize}
+
+%% ---------------------------------------------------------------------------
+\section{웹 배포}\label{sec:A-deploy-web}
+
+% src: deploy/gcp/README.md §8 a-e; scratchpad web-release-2026-10-13.facts.md §1 §2 §3
+\paragraph{결과.}
+웹 배포는 다섯 걸음이다: a. 내려받기, b. 복사, d. release, d2. Cloudflare purge, e. 확인.
+c(\texttt{web.env})는 처음 한 번만 한다.
+새 걸음은 d2다. 웹을 올릴 때마다 Cloudflare 캐시(cache)를 비운다.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[node distance=0.35cm, font=\footnotesize]
+    \node[flowbox, minimum width=1.9cm] (a) {a. 내려받기\\\scriptsize Mac};
+    \node[flowbox, minimum width=1.9cm, right=of a] (b) {b. 복사\\\scriptsize Mac $\to$ VM};
+    \node[flowbox, minimum width=1.9cm, right=of b] (d) {d. release\\\scriptsize VM};
+    \node[flownew, minimum width=1.9cm, right=of d] (d2) {d2. purge\\\scriptsize Mac};
+    \node[flowbox, minimum width=1.9cm, right=of d2] (e) {e. 확인\\\scriptsize VM, Mac};
+    \node[flowalt, below=0.6cm of b, minimum width=2.6cm] (c) {c. \texttt{web.env}\\\scriptsize 처음 한 번};
+    \foreach \x/\y in {a/b,b/d,d/d2,d2/e} \draw[flowarrow] (\x) -- (\y);
+    \draw[flowarrow] (c) -- (d);
+  \end{tikzpicture}
+  \flowlegend
+  \caption{웹 배포 순서. 파란 상자는 새로 생긴 걸음이다.}
+  \label{fig:A-web-flow}
+  % src: deploy/gcp/README.md §8 diagram
+\end{figure}
+
+\subsection{a. 어느 run을 받나}\label{sec:A-web-pick}
+
+% src: scratchpad web-release-2026-10-13.facts.md §2
+무엇을 알려고 하나: 받을 GCP build run이 최신 웹 코드를 담고 있는가.
+규칙은 하나다. 초록(success)인 run 중 최신 웹 코드 변경이 head commit에 들어 있는 가장 새 run을 고른다.
+제목이 \texttt{docs:}여도 run은 앱 전체를 빌드한다. 제목은 head commit의 제목일 뿐이다.
+
+\begin{table}[H]
+  \caption{\texttt{gh run list --workflow=gcp.yml --limit 5}가 보인 run (2026/10/13). 고른 것은 첫 행이다.}
+  \label{tab:A-web-runs}
+  \centering\footnotesize
+  \begin{tabularx}{\linewidth}{@{}L{2.8cm}L{1.6cm}Y L{1.3cm}@{}}
+    \toprule
+    Run ID & head commit & 제목 & 선택 \\
+    \midrule
+    \code{38483569041} & \code{4011c84} & \code{docs: purge Cloudflare after every web release; option f (#70)} & 선택 \\
+    \midrule
+    \code{38481670775} & \code{34e2080} & \code{docs(traffic): infinite-scroll 429 and prefetch analysis with fixes (#70)} & \\
+    \midrule
+    \code{38469095335} & \code{7f07df7} & \code{fix(web): isomorphic clientRequest sends x-origin-key ...} & \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+어떻게 고르나.
+\begin{enumerate}[nosep]
+  \item \texttt{gh run list --workflow=gcp.yml --limit 5}로 목록을 본다.
+  \item 최신 웹 코드 변경을 찾는다. 이 날은 \commit{1c5fbba}(\texttt{fix(web): rail tag cloud links do not prefetch})였다.
+  \item 그 commit을 head에 담은 가장 새 초록 run을 고른다. 이 날은 \commit{4011c84}가 \commit{1c5fbba}를 담아서 \texttt{38483569041}이다.
+  \item 산출물(artifact) 이름은 \texttt{gcp-4011c84edb4cb3a02104bf65e105f9a5a8e9ba3f}, 크기는 54,345,655 bytes다.
+\end{enumerate}
+
+읽는 법.
+\begin{itemize}[nosep]
+  \item main의 끝 \commit{1423310}은 docs만 바꿔서 목록에 run이 없었다. 웹 코드는 \commit{4011c84}와 같다. 그래서 \commit{4011c84}의 run을 받아도 된다.
+  \item 목록에서 가장 새 run이 아니라 웹 코드를 담은 가장 새 run을 고른다.
+\end{itemize}
+
+\subsection{b, c, d. 복사와 release}\label{sec:A-web-release}
+
+\begin{lstlisting}[language=bash]
+# Mac: copy the web tarball
+gcloud compute scp x_gh_download/web-$SHA.tgz $VM:~/prettylog/ "${Z[@]}"
+
+# VM, first time only: the web env file (ORIGIN_KEY goes here too, see the previous section)
+vi ~/prettylog/shared/web.env
+chmod 600 ~/prettylog/shared/web.env
+
+# VM: release (first time: pm2 start; later: pm2 reload)
+cd ~/prettylog
+SHA=<the full sha>
+./release.sh web $SHA ~/prettylog/web-$SHA.tgz
+pm2 save                                  # keep blog-web across reboots
+\end{lstlisting}
+
+\subsection{d2. 웹을 올릴 때마다 Cloudflare 캐시를 비운다}\label{sec:A-web-purge}
+
+% src: deploy/gcp/README.md §8 d2; scratchpad web-release-2026-10-13.facts.md §1 §3
+무엇을 알려고 하나: 새 코드가 브라우저에 닿는가, 아니면 옛 HTML이 캐시에서 나가는가.
+웹 캐시 규칙은 HTML을 edge에서 1일 보관한다.
+옛 HTML은 옛 JS를 가리킨다. 그래서 purge하기 전에는 새 코드가 브라우저에 닿지 않는다.
+
+사건(2026/10/13).
+\begin{itemize}[nosep]
+  \item 배포한 뒤 release가 깨진 것처럼 보였다.
+  \item 원인은 \texttt{age: 13671}인 HTML이 계속 나간 것이었다.
+  \item 처방은 매 웹 release 뒤에 purge를 한 걸음으로 두는 것이다.
+\end{itemize}
+
+\begin{lstlisting}[language=bash]
+# Mac, repo root: needs _scripts/cloudflare/.env (CLOUDFLARE_API_TOKEN, CLOUDFLARE_ZONE_ID)
+./_scripts/cloudflare/cf-purge.sh
+# check: MISS, or a small age, passes
+curl -s -o /dev/null -D - https://my.prettylog.com/ | grep -iE "cf-cache-status|^age"
+\end{lstlisting}
+
+\texttt{.env}가 없으면 Cloudflare 대시보드(dashboard)에서 한다: zone $\to$ Caching $\to$ Configuration $\to$ Purge Everything.
+같은 \texttt{cf-purge.sh}를 새 글 뒤에도 쓴다(\Cref{sec:A-misc}). 여기서는 그 명령을 다시 설명하지 않는다.
+
+\begin{table}[H]
+  \caption{purge 점검의 출력과 뜻. 첫 행이 오너의 실제 출력이다(2026/10/13).}
+  \label{tab:A-web-purge-read}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{4.6cm}Y@{}}
+    \toprule
+    출력 & 뜻 \\
+    \midrule
+    \code{age: 29}, \code{cf-cache-status: HIT} & 통과. purge 뒤 첫 요청이 edge를 다시 채웠다. age가 29 s로 작다 \\
+    \midrule
+    \code{cf-cache-status: MISS} & 통과. 캐시가 비었다 \\
+    \midrule
+    \code{age}가 크다(예: \code{13671}) & 실패. purge가 안 됐고 옛 HTML이 나간다 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+읽는 법: ``MISS, 또는 작은 \texttt{age}''면 통과다.
+\texttt{HIT}라는 글자만 보고 실패로 읽지 않는다. \texttt{age}가 작으면 \texttt{HIT}여도 purge 뒤의 HTML이다.
+
+\subsection{e. 확인}\label{sec:A-web-check}
+
+\begin{lstlisting}[language=bash]
+# VM: checks (every curl has a timeout)
+pm2 ls                                    # blog-web online, restart count not climbing
+u=http://localhost:3000
+curl -m 20 -s -o /dev/null -w 'page    %{http_code} %{time_total}s\n' $u/
+pm2 logs blog-web --err --lines 40 --nostream
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash]
+# Mac: public check
+curl -m 30 -s -o /dev/null -w 'my. %{http_code} %{time_total}s\n' https://my.prettylog.com/
+\end{lstlisting}
+
+\begin{callout}[로그 꼬리를 조심한다]
+\texttt{pm2 logs --lines 40}은 파일의 마지막 40줄을 시각 없이 보인다.
+옛 오류와 새 오류를 가를 수 없다.
+release 뒤에 \texttt{ETIMEDOUT}이 보이면 \Cref{sec:dbg-case13}을 먼저 읽는다.
+\end{callout}
+
+%% ---------------------------------------------------------------------------
+\section{PM2 restart, 비밀 값 바꾸기, 롤백}\label{sec:A-pm2}
+
+% src: deploy/gcp/README.md §8 d (ecosystem only), §Change a secret, §Roll back; deploy/traffic/review/03-status-codes.md §L 어떻게
+\begin{lstlisting}[language=bash]
+# VM: only ecosystem.config.cjs changed (no new tarball)
+pm2 restart ~/prettylog/ecosystem.config.cjs --only blog-web --update-env
+
+# VM: change a secret (a bare "pm2 reload blog-api" does NOT re-read the env file)
+vi ~/prettylog/shared/api.env
+pm2 reload ~/prettylog/ecosystem.config.cjs --only blog-api --update-env
+
+# VM: roll back to an older release
+ls -1t ~/prettylog/api/releases           # pick an older sha (not x_*)
+~/prettylog/release.sh api <older sha>    # no tarball = switch back, then reload
+\end{lstlisting}
+
+\begin{itemize}[nosep]
+  \item 키가 새면 VM에서 새 \texttt{ORIGIN\_KEY}를 만들어 \texttt{api.env}와 \texttt{web.env}를 바꾸고 두 앱을 위처럼 restart한다.
+  \item bare \texttt{ecosystem}은 \texttt{\textasciitilde/prettylog} 안에서만 통한다. 전체 경로를 쓴다.
+\end{itemize}
+
+%% ---------------------------------------------------------------------------
+\section{점검 스크립트}\label{sec:A-checks}
+
+% src: deploy/traffic/README.md §Monitoring commands 1 2 3; _scripts/cloudflare/traffic-check.sh; _scripts/gcp/vm-metrics.sh
+\begin{lstlisting}[language=bash]
+# Mac, repo root: cache rules (read-only, about 20 GET requests, exit 1 on any FAIL)
+./_scripts/cloudflare/traffic-check.sh
+
+# deliberate breakage: point the web checks at the wrong host, they must print FAIL
+W=https://blog-api.prettylog.com ./_scripts/cloudflare/traffic-check.sh
+
+# Mac: memory (max per hour) and VM egress (per day), last 7 days. Needs gcloud auth login and jq
+./_scripts/gcp/vm-metrics.sh 7
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash]
+# VM: live state
+free -m                                   # "available" column; below ~100 MiB is tight
+pm2 ls                                    # status online, restart count not climbing
+pm2 monit                                 # live CPU and memory per app; q to quit
+vmstat 5 3                                # si/so above 0 = swapping
+\end{lstlisting}
+
+%% ---------------------------------------------------------------------------
+\section{Cloud Logging 조회}\label{sec:A-logging}
+
+% src: deploy/logging/README.md §Query the web log; deploy/traffic/review/02-blocking.md §N 배포 뒤 확인
+Logs Explorer는 \texttt{\#} 주석을 받지 않는다.
+필터 줄만 붙인다.
+
+\begin{lstlisting}
+log_id("blog-web")
+jsonPayload.message="request"
+jsonPayload.rsc=false
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash]
+# Mac terminal: page loads, last day
+gcloud logging read 'log_id("blog-web") AND jsonPayload.message="request" AND jsonPayload.rsc=false' \
+  --project=<PROJECT_ID> --freshness=1d --limit=20 \
+  --format='table(timestamp,jsonPayload.path,jsonPayload.country,jsonPayload.ua)'
+
+# bots and link-preview fetchers, last day
+gcloud logging read 'log_id("blog-web") AND jsonPayload.ua=~"(?i)bot|crawl|spider|externalhit|slurp|preview|fetch"' \
+  --project=<PROJECT_ID> --freshness=1d --limit=20 \
+  --format='table(timestamp,jsonPayload.path,jsonPayload.ua)'
+
+# top paths, last 7 days (counts)
+gcloud logging read 'log_id("blog-web") AND jsonPayload.message="request" AND jsonPayload.rsc=false' \
+  --project=<PROJECT_ID> --freshness=7d --limit=5000 --format='value(jsonPayload.path)' \
+  | sort | uniq -c | sort -rn | head -20
+\end{lstlisting}
+
+\begin{lstlisting}
+-- blog-api: SSR calls that still go out without the key (browser calls only should remain)
+log_id("blog-api") AND jsonPayload.req.url:"/categories" AND jsonPayload.req.ssr=false
+-- same query for SSR calls
+log_id("blog-api") AND jsonPayload.req.url:"/categories" AND jsonPayload.req.ssr=true
+\end{lstlisting}
+
+\begin{itemize}[nosep]
+  \item \texttt{jsonPayload.ip}는 일부러 뺐다. 분석할 때만 더하고, IP를 GitHub issue에 붙이지 않는다.
+  \item \texttt{--freshness}는 시간 범위이고 \texttt{--limit}은 읽는 행 수의 상한이다.
+\end{itemize}
+
+%% ---------------------------------------------------------------------------
+\section{부하 시험 실행}\label{sec:A-loadtest}
+
+% src: deploy/traffic/load/README.md §4; .github/workflows/load-test.yml
+\begin{lstlisting}[language=bash]
+gh workflow run load-test.yml -f set=L1        # or set=L2, set=L2-api
+gh run list --workflow load-test.yml --limit 1
+gh run watch <id>
+gh run cancel <id>                             # stop at once if anything looks wrong
+\end{lstlisting}
+
+\begin{itemize}[nosep]
+  \item run이 끝나면 Job summary에 표가 뜬다. 원본 숫자는 artifact \texttt{load-test-<set>-<id>}의 \texttt{summary.json}이다.
+  \item 시작 전에 L-b 모드가 \texttt{off}나 \texttt{log}인지 본다. L2-api 8 rps는 \texttt{enforce}면 막힌다.
+  \item 끝난 뒤: \texttt{pm2 ls}의 재시작 횟수와 \texttt{./\_scripts/gcp/vm-metrics.sh 1}의 메모리 최댓값을 본다.
+\end{itemize}
+
+%% ---------------------------------------------------------------------------
+\section{Cloudflare 규칙 식}\label{sec:A-cloudflare}
+
+% src: deploy/traffic/README.md §Rule order §2 a b §3 a b §6 b
+Cache Rules 순서는 위에서 아래다.
+뒤 규칙이 앞 규칙을 덮는다.
+그래서 ``bypass''를 ``cache'' 아래에 둔다.
+
+\begin{table}[H]
+  \caption{Cloudflare 규칙 순서와 동작.}\label{tab:A-cf-rules}
+  % src: deploy/traffic/README.md §Rule order; §6 b
+  \small
+  \begin{tabularx}{\linewidth}{r L{3.2cm} Y}
+    \toprule
+    \# & 규칙 & 동작 \\
+    \midrule
+    1 & web cache & Eligible for cache, Edge TTL 1일 (\texttt{Ignore cache-control header}), Browser TTL은 Respect origin \\
+    \midrule
+    2 & web bypass & Bypass cache (``web cache'' 아래) \\
+    \midrule
+    3 & api cache & Eligible for cache, Edge TTL Respect origin \\
+    \midrule
+    4 & api bypass & Bypass cache (``api cache'' 아래) \\
+    \midrule
+    별도 & web rate limit & IP당 50 / 10 s, Block 10 s (\decision{68}) \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{lstlisting}
+# 2. web bypass (signed-in users and private pages). Create this one first.
+(http.host eq "my.prettylog.com" and (
+  http.cookie contains "__session"
+  or starts_with(http.request.uri.path, "/write")
+  or starts_with(http.request.uri.path, "/me")
+  or starts_with(http.request.uri.path, "/settings")
+  or starts_with(http.request.uri.path, "/admin")
+  or starts_with(http.request.uri.path, "/onboarding")
+  or (any(http.request.headers.names[*] eq "rsc") and not http.request.uri.query contains "_rsc=")
+))
+\end{lstlisting}
+
+\begin{lstlisting}
+# 1. web cache (every other page, 1 day)
+(http.host eq "my.prettylog.com" and http.request.method eq "GET"
+  and not starts_with(http.request.uri.path, "/_next/")
+  and not starts_with(http.request.uri.path, "/api/"))
+\end{lstlisting}
+
+\begin{lstlisting}
+# 4. api bypass (create first)
+(http.host eq "blog-api.prettylog.com" and any(http.request.headers.names[*] eq "authorization"))
+
+# 3. api cache
+(http.host eq "blog-api.prettylog.com" and http.request.method eq "GET")
+
+# web rate limit (counting per IP, 50 requests per 10 seconds, action Block, duration 10 seconds)
+(http.host eq "my.prettylog.com" and not starts_with(http.request.uri.path, "/_next/") and not cf.client.bot)
+\end{lstlisting}
+
+\begin{itemize}[nosep]
+  \item bypass 규칙의 경로 목록은 \texttt{proxy.ts}의 \texttt{isProtectedRoute}와 같아야 한다. 둘을 함께 바꾼다.
+  \item \texttt{\_\_client\_uat}로는 bypass하지 않는다. 모든 방문자가 받는 쿠키다.
+  \item Block이고 Challenge가 아닌 이유: 앱 안 이동(RSC)과 \texttt{fetch}는 challenge를 풀 수 없다.
+  \item \texttt{blog-api.}에는 요청 수 제한을 걸지 않는다. Next SSR 호출이 모두 VM IP 하나로 보인다.
+\end{itemize}
+
+%% ---------------------------------------------------------------------------
+\section{예산과 메모리 알림}\label{sec:A-alerts}
+
+% src: deploy/traffic/README.md §4 Alerts a b
+메일은 \texttt{read}로 입력한다.
+셸 기록과 파일에 남지 않는다.
+
+\begin{lstlisting}[language=bash]
+# a. budget: prettylog-monthly, 10 USD, alerts at 50 / 90 / 100 %
+gcloud billing accounts list              # use the ACCOUNT_ID column; never write it into the repo
+gcloud services enable billingbudgets.googleapis.com
+BA=<ACCOUNT_ID>
+P=$(gcloud config get-value project)      # must be the VM project: echo $P
+gcloud billing budgets create \
+  --billing-account=$BA \
+  --display-name=prettylog-monthly \
+  --budget-amount=10USD \
+  --filter-projects=projects/$P \
+  --threshold-rule=percent=0.5 \
+  --threshold-rule=percent=0.9 \
+  --threshold-rule=percent=1.0
+gcloud billing budgets list --billing-account=$BA \
+  --format='table(displayName,amount.specifiedAmount.units,thresholdRules)'
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash]
+# b. memory alert: memory used above 90 % for 5 minutes
+gcloud components install beta alpha
+export CLOUDSDK_PYTHON=$HOME/.pyenv/versions/3.13.12/bin/python3.13   # pin the python gcloud uses
+
+cd ~/Documents/00_projects/project_tradelunch   # repo root: the policy path is relative
+read 'EMAIL?email: '                      # typed, not saved in a file
+gcloud beta monitoring channels create --display-name=owner-email --type=email \
+  --channel-labels=email_address=$EMAIL    # run ONCE: a second run makes a second channel
+CH=$(gcloud beta monitoring channels list --filter='displayName="owner-email"' --format='value(name)')
+
+gcloud alpha monitoring policies create \
+  --policy-from-file=deploy/traffic/memory-alert.json \
+  --notification-channels=$CH
+gcloud alpha monitoring policies list --format='table(displayName,enabled)'
+\end{lstlisting}
+
+%% ---------------------------------------------------------------------------
+\section{고의 파손 curl, 방화벽, purge}\label{sec:A-misc}
+
+% src: deploy/traffic/review/03-status-codes.md §G 확인, §L 확인; deploy/traffic/review/02-blocking.md §K; deploy/traffic/README.md §Purge after a new post; deploy/gcp/README.md §6
+\begin{lstlisting}[language=bash]
+# CORS rejection: expect 403 (OPTIONS with a disallowed Origin)
+curl -s -o /dev/null -w '%{http_code}\n' -X OPTIONS -H 'Origin: https://evil.example' \
+  -H 'Access-Control-Request-Method: GET' 'https://blog-api.prettylog.com/v1/api/posts?limit=1'
+
+# error-logs without the key: expect 403 (and no INSERT)
+curl -s -o /dev/null -w '%{http_code}\n' -X POST 'https://blog-api.prettylog.com/v1/api/error-logs'
+
+# unknown API path: expect 404 with a JSON body
+curl -s 'https://blog-api.prettylog.com/v1/api/nope'
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash]
+# Purge the whole Cloudflare cache after a new post (both hosts together)
+./_scripts/cloudflare/cf-purge.sh
+\end{lstlisting}
+
+웹 release 뒤의 purge와 점검은 \Cref{sec:A-web-purge}에 있다. 같은 스크립트를 쓴다.
+
+\begin{lstlisting}[language=bash]
+# ON HOLD (decision 69). Disable, do not delete, so it can be undone.
+gcloud compute firewall-rules list
+gcloud compute firewall-rules update default-allow-ssh --disabled
+gcloud compute firewall-rules update default-allow-rdp --disabled
+gcloud compute ssh <USER>@<VM> --zone=us-central1-a --tunnel-through-iap --command 'echo ok'   # ok
+# undo: add --no-disabled to each update command
+\end{lstlisting}

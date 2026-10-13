@@ -1,0 +1,62 @@
+% figkit.sty — figures, flowcharts and floats shared by every document.
+%
+% Only what is the SAME in every document lives here: float placement, the
+% flowchart box styles, and the figure-or-placeholder command. Page layout,
+% fonts and spacing differ per document and stay in that document's own style
+% file (e.g. meeting.sty, the book's preamble.tex), which loads this one.
+%
+% Rules this file implements: .claude/rules/writing/latex.md §7, §14 and
+% .claude/rules/visualization.md §3, §4.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{figkit}[2026/09/28 v0.1 shared figures, flowcharts, floats]
+
+% --- floats: every figure and data table goes in a numbered float [H] (latex.md §14)
+\RequirePackage{float}      % [H]: the float stays where it is written
+\RequirePackage{caption}    % \captionof: a numbered caption outside a float (minipage)
+\RequirePackage{graphicx}
+\RequirePackage{xcolor}
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta, positioning}
+
+% --- flowchart styles (visualization.md §4) -----------------------------------
+% flowbox   an ordinary step
+% flowalt   the baseline / input step (grey, dashed): what stays the same
+% flownew   the step that is new or changed (blue, thick): what the reader looks at
+% flowarrow the arrow between steps
+% Colour on top of flowbox is the caller's choice (e.g. flowbox, fill=blue!8), and
+% must be explained with \flowkey in the figure (visualization.md §3).
+\tikzset{
+  flowbox/.style   = {draw=black!70, rounded corners=2pt, align=center,
+                      font=\small, inner sep=3pt, minimum height=2em},
+  flowalt/.style   = {flowbox, draw=black!45, fill=black!5, dashed},
+  flownew/.style   = {flowbox, draw=blue!60!black, fill=blue!8, line width=0.8pt},
+  flowarrow/.style = {-{Stealth[length=2mm]}, thick, draw=black!60},
+}
+
+% \flowkey{<style>}: a small swatch of a box style, for legends.
+%   \flowkey{flowbox, fill=blue!8} adopted
+\newcommand{\flowkey}[1]{%
+  \tikz[baseline=-0.6ex]\node[#1, minimum width=1.4em, minimum height=0.9em,
+                              inner sep=0pt, text width={}]{};}
+
+% \flowlegend: the standard legend for flowalt / flownew. Label words are macros
+% so a Korean document can \renewcommand them without touching this file.
+\newcommand{\flowaltname}{baseline / unchanged}
+\newcommand{\flownewname}{new or changed}
+\newcommand{\flowlegend}{%
+  \par\smallskip{\centering\scriptsize
+    \flowkey{flowalt}~\flowaltname\quad \flowkey{flownew}~\flownewname\par}}
+
+% \figorbox{<path without or with extension>}{<width>}
+% Includes the figure if the file exists; otherwise draws a dashed box that
+% names the missing path. A document then always builds, and a missing figure
+% is visible on the page instead of stopping the build.
+\newcommand{\figorbox}[2]{%
+  \IfFileExists{#1}{\includegraphics[width=#2]{#1}}{%
+  \IfFileExists{#1.pdf}{\includegraphics[width=#2]{#1.pdf}}{%
+  \IfFileExists{#1.png}{\includegraphics[width=#2]{#1.png}}{%
+    \tikz\node[draw=red!60, dashed, minimum width=#2, minimum height=0.3*#2,
+               align=center, font=\scriptsize\ttfamily]
+      {figure missing:\\ \detokenize{#1}};}}}}
+
+\endinput

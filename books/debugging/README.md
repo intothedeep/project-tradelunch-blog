@@ -1,7 +1,7 @@
 # Debugging casebook
 
-Twelve real faults from 2026-10-13, each with symptom, cause, fix and evidence.
-Result: 11 fixed, 1 open (chapter 3, the missing thumbnail on the CDN).
+Thirteen real cases from 2026-10-13, each with symptom, cause, fix and evidence.
+Result: 11 fixed, 1 open (chapter 3, the missing thumbnail on the CDN), 1 needed no fix (chapter 13).
 
 ## What this book is
 
@@ -10,7 +10,7 @@ Purpose: teach the method behind the fixes, using cases from this repo.
 | Part | File |
 | --- | --- |
 | General method | [`00-method.md`](./00-method.md) |
-| Twelve cases | `01-...md` to `12-...md` |
+| Thirteen cases | `01-...md` to `13-...md` |
 
 Sources are the repo runbooks and code named in each chapter.
 No secret value appears in the book. Key names appear, key values never.
@@ -31,6 +31,7 @@ No secret value appears in the book. Key names appear, key values never.
 | 10 | [`10-zsh-word-splitting.md`](./10-zsh-word-splitting.md) | `gcloud` takes the whole string as the zone | zsh does not split an unquoted string variable | array `Z=(...)` | fixed |
 | 11 | [`11-wif-auth-token-refresh.md`](./11-wif-auth-token-refresh.md) | setup-gcloud: "problem refreshing your current auth tokens" | STS and IAM Credentials APIs were off | `gcloud services enable ...` | fixed |
 | 12 | [`12-pnpm-exec-next-not-found.md`](./12-pnpm-exec-next-not-found.md) | `ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL` | `next` is not installed at the repo root | `pnpm --filter ... exec` | fixed |
+| 13 | [`13-stale-error-log-etimedout.md`](./13-stale-error-log-etimedout.md) | pm2 error log shows `ETIMEDOUT` after a release | The lines are old (last write 20:57:17 UTC, before the release). Cause of the old timeouts unknown | none needed | no fix needed |
 
 ## How to read a chapter
 

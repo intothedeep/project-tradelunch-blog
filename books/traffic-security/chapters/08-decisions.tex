@@ -1,0 +1,189 @@
+% chapters/08-decisions.tex -- part B. 결정과 남은 일.
+% Macros come from part A's preamble.tex. \code is verbatim-like: not in \caption, \section, node text.
+% It keeps spaces (obeyspaces in preamble.tex, checked with pdftotext 2026-10-13).
+\chapter{결정과 남은 일}\label{ch:decisions}
+
+% src: decisions.plan.md #54-#69; deploy/traffic/review/04-observability.md §I
+\paragraph{결과.}
+2026/10/12--13 이틀 동안 오너 결정 16개를 기록했다 (\decision{54}--\decision{69}).
+결정 16개 중 15개는 오너가, 1개는 main session이 오너 지시 범위에서 내렸다.
+남은 일은 \Cref{tab:08-open}에 있다.
+\Cref{fig:08-decision-groups}는 결정 16개를 여섯 묶음으로 보인다.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[font=\small]
+    \node[cfbox, minimum width=4.6cm] (g1) at (0,0) {\textbf{캐시}\\\decision{54}\\\texttt{blog-api.} 캐시 룰 4-a};
+    \node[vmbox, minimum width=4.6cm] (g2) at (5.2,0) {\textbf{로그와 보관}\\\decision{55}, \decision{56}, \decision{57}\\\decision{58}, \decision{59}, \decision{63}};
+    \node[badbox, minimum width=4.6cm] (g3) at (10.4,0) {\textbf{비밀 키}\\\decision{60}, \decision{64}\\\texttt{x-origin-key}};
+    \node[flownew, minimum width=4.6cm] (g4) at (0,-2.4) {\textbf{요청 수 제한}\\\decision{62}, \decision{67}, \decision{68}\\Cloudflare 50 / 10 s, Express \texttt{log}};
+    \node[goodbox, minimum width=4.6cm] (g5) at (5.2,-2.4) {\textbf{시험}\\\decision{65}, \decision{66}\\L1, L2};
+    \node[flowalt, minimum width=4.6cm] (g6) at (10.4,-2.4) {\textbf{보류, 중단}\\\decision{61}: 보류, \decision{69}: 중단\\egress issue, 방화벽};
+  \end{tikzpicture}
+  \flowlegend
+  \caption{결정 16개의 여섯 묶음. 보류와 중단은 점선 회색 상자다.
+  (src: decisions.plan.md \#54--\#69)}\label{fig:08-decision-groups}
+\end{figure}
+
+%% ---------------------------------------------------------------------------
+\section{결정 표 (\#54--\#69)}\label{sec:08-decision-table}
+
+\begin{inbrief}
+  \item[Why] 어떤 선택을 누가 왜 했는지 한 곳에서 찾게 한다.
+  \item[When] 2026/10/12--13에 기록된 결정이다.
+  \item[Where] 원본은 \texttt{decisions.plan.md}다. 이 표는 그 한 줄 요약이다.
+  \item[How] 번호, 날짜, 결정, 누가, 왜를 한 줄씩 적는다.
+\end{inbrief}
+
+% src: decisions.plan.md #54-#69 (each row below)
+\footnotesize
+\begin{longtable}{L{0.8cm} L{1.9cm} L{5.2cm} L{1.5cm} L{4.3cm}}
+  \caption{오너 결정 \#54--\#69 요약. 번호는 \texttt{decisions.plan.md}의 번호다.}\label{tab:08-decisions}\\
+  \toprule
+  \# & 날짜 & 결정 & 누가 & 왜 \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \# & 날짜 & 결정 & 누가 & 왜 \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  % src: decisions.plan.md #54
+  54 & 2026/10/12 & CF2-4: \texttt{blog-api.} 캐시 룰은 4-a. \texttt{Authorization} 요청 헤더가 있으면 Bypass, 나머지는 Edge TTL ``Respect origin'' & 오너 & SSR도 공개 주소를 타므로, Cloudflare \cfs{HIT}가 VM CPU와 egress를 줄이는 유일한 수단이다 \\
+  \midrule
+  % src: decisions.plan.md #55
+  55 & 2026/10/13 & API 서버 로그 순서: PM2 로그 파일과 logrotate, pino JSON 요청 로그, Ops Agent, Cloud Logging & 오너 & 디스크 고갈 방지가 먼저. 구조화 로그는 어느 저장소에도 유효. Ops Agent는 이미 상주해 추가 RAM이 0이다 \\
+  \midrule
+  % src: decisions.plan.md #56
+  56 & 2026/10/13 & 로그 회전은 Ubuntu \texttt{logrotate}. \texttt{pm2-logrotate} 제거 & 오너 & \texttt{pm2-logrotate}는 상주 Node 프로세스로 73 MB가 실측됐다. VM은 953 MB다 \\
+  \midrule
+  % src: decisions.plan.md #57
+  57 & 2026/10/13 & Cloud Logging 양은 C(지금은 그대로). 보관 30일. 매주 점검 & 오너 & 실측 약 4.5 MB/일. 무료 할당 대비 미미하다 \\
+  \midrule
+  % src: decisions.plan.md #58
+  58 & 2026/10/13 & \texttt{blog-web} 요청 로그. \texttt{proxy.ts}가 요청마다 JSON 한 줄. IP는 전체(마스킹 없음) & 오너 & 트래픽 폭증의 원인과 출처를 분석하려고. 캐시 \cfs{MISS}만 오리진에 닿는다 \\
+  \midrule
+  % src: decisions.plan.md #59
+  59 & 2026/10/13 & 보관: Cloud Logging 30일, VM PM2 로그 7일 (\texttt{rotate 7}) & 오너 & VM 디스크와 전체 IP 보관을 줄이려고. 분석은 Cloud Logging 30일로 한다 \\
+  \midrule
+  % src: decisions.plan.md #60
+  60 & 2026/10/13 & error-logs 수집을 \texttt{x-origin-key} 공유 비밀로 막는다 (env \texttt{ORIGIN\_KEY}) & main session (오너 지시 범위) & \texttt{POST /v1/api/error-logs}가 인증 없는 공개 INSERT였다. 요청 1건이 Supabase 1행이다 \\
+  \midrule
+  % src: decisions.plan.md #61
+  61 & 2026/10/13 & D7 보류: 주간 issue에 egress를 넣지 않는다 & 오너 & \texttt{roles/monitoring.viewer} 추가는 IAM 변경이다 \\
+  \midrule
+  % src: decisions.plan.md #62
+  62 & 2026/10/13 & 요청 수 제한 층과 가안 한도 (D5): Cloudflare \texttt{my.} IP당 100 / 10 s, Express 읽기 120 / 60 s, 쓰기 30 / 60 s, 메모리 저장 & 오너 & 캐시를 지난 요청이 1 GB VM과 Supabase까지 온다 \\
+  \midrule
+  % src: decisions.plan.md #63
+  63 & 2026/10/13 & D11: blog-api 로그에 전체 IP와 \texttt{ssr}을 남긴다 & 오너 & 오너 말: 누가 남용하는지 추적해야 한다. IP 없이는 한도도 정하지 못한다 \\
+  \midrule
+  % src: decisions.plan.md #64
+  64 & 2026/10/13 & D12: SSR 제외는 A안, \texttt{x-origin-key} (\decision{60}과 같은 비밀) & 오너 & 버린 안: B는 터널 뒤 IP 확인이 필요하다. C는 제외가 없어 한도가 의미 없어진다 \\
+  \midrule
+  % src: decisions.plan.md #65
+  65 & 2026/10/13 & D9: L1 시험(캐시 \cfs{HIT} 경로) 진행 & 오너 & 이유 기재 없음 \\
+  \midrule
+  % src: decisions.plan.md #66
+  66 & 2026/10/13 & D13: L2 시험(오리진 직접) 지금 1회 & 오너 & 방문자가 아직 거의 없다 (10/13 외부 IP 약 20개) \\
+  \midrule
+  % src: decisions.plan.md #67; deploy/traffic/review/02-blocking.md §H 왜 이 방법인가
+  67 & 2026/10/13 & D14: Express 제한은 \texttt{log} 모드로 시작, 14일 뒤 \texttt{enforce} & 오너 & 이유는 결정 줄에 없다. 설계(H)는 ``한도가 틀리면 정상 사용자를 막는다''고 적는다 \\
+  \midrule
+  % src: decisions.plan.md #68
+  68 & 2026/10/13 & Cloudflare ``web rate limit''을 IP당 50 / 10 s로 낮춘다 (가안 100에서) & 오너 & 웹 오리진 \cfs{MISS} 용량이 약 2 rps다. 정상 사용자가 10 s 막힐 위험이 있다 (50을 넘는 10 s 구간 6번) \\
+  \midrule
+  % src: decisions.plan.md #69
+  69 & 2026/10/13 & 방화벽 \texttt{default-allow-ssh}, \texttt{default-allow-rdp}는 그대로 둔다 (TC-M1-10 중단) & 오너 & 오너 말: GCP가 이미 처리했다. 두 규칙은 0.0.0.0/0에 열려 있다 \\
+\end{longtable}
+\normalsize
+
+%% ---------------------------------------------------------------------------
+\section{남은 일}\label{sec:08-open}
+
+\begin{inbrief}
+  \item[Why] 끝나지 않은 일이 어디서 기다리는지 한 표에서 본다.
+  \item[When] 2026/10/13 기준이다.
+  \item[Where] 변경 전 조건이 있는 것과 오너 결정을 기다리는 것이 섞여 있다.
+  \item[How] 일, 이유, 조건, 근거를 한 줄씩 적는다.
+\end{inbrief}
+
+% src: deploy/traffic/review/02-blocking.md §다음 할 일 §N 확인 §H; decisions.plan.md #61 #67 #68 #69; deploy/traffic/review/04-observability.md §J
+\begin{table}[H]
+  \caption{남은 일 (2026/10/13 기준).}\label{tab:08-open}
+  % src: 각 행의 근거는 4열
+  \footnotesize
+  \begin{tabularx}{\linewidth}{L{3.6cm} Y L{3.2cm} L{2.2cm}}
+    \toprule
+    일 & 이유 & 조건 & 근거 \\
+    \midrule
+    prefetch 줄이기 설계 & Next \texttt{<Link>}가 보이는 링크를 미리 받는다. 한 번 누를 때 요청이 수십 개 나간다. 한도 50에서 정상 사용자가 막힐 수 있다 & 설계가 먼저 (architect) & \decision{68} follow-up \\
+    \midrule
+    Express 한도 확정과 \texttt{enforce} 전환 & 한도는 아직 가안이다. 14일 로그로 확정한다 (RL-4) & \texttt{log} 모드 14일 뒤 (\decision{67}). % src: decisions.plan.md #67 (14일 뒤만 적혀 있다, 날짜 없음)
+ & \decision{67} \\
+    \midrule
+    \texttt{enforce} 전에 SSR 요청 전체가 \texttt{ssr=true}인지 확인 & 아니면 방문자가 늘 때 사이트가 자기 SSR을 막는다 & 다섯 fetcher는 고쳤다. 브라우저 요청 헤더에 \texttt{x-origin-key}가 없는지는 오너가 개발자 도구로 본다 (표 아래 참고) & N 확인 \\
+    \midrule
+    SSR 제외 판정 & \texttt{log} 모드 14일 동안 \texttt{req.ssr=true} 줄이 있고 그중 \texttt{rate\_limit} warn이 0이어야 한다 & 14일 로그 & 설계 \S10.5 \\
+    \midrule
+    Supabase Log Query 다시 보기 & 하루 2.82 GB. Studio 화면이 유력한 원인이다 & 탭을 닫고 2--3일 뒤 & J \\
+    \midrule
+    주간 issue에 egress 넣기 & egress만 늘면 캐시가 깨진 것이다. 워크플로 계정에 \texttt{roles/monitoring.viewer}가 필요하다 & 보류. IAM 변경은 오너 결정 & \decision{61} \\
+    \midrule
+    GCP 방화벽 기본 규칙 끄기 & 22번, 3389번이 인터넷 전체에 열려 있다 & 중단. 켜려면 오너 결정 & \decision{69} \\
+    \midrule
+    보안 헤더(제안 3)와 피드 실패 화면 캐시(제안 4) & HSTS 등이 없다. 피드 실패 200 응답이 하루 캐시될 수 있다 & 설계가 먼저 & \Cref{tab:05-proposals} \\
+    \midrule
+    L3 시험 (L3-cf, L3-api) & 제한이 실제로 발동하는지 세트로 증명한다 & 계획 (MVP2, MVP3). 오너가 세트마다 승인 & \Cref{tab:07-sets} \\
+    \midrule
+    Bot Fight Mode, 스캐너 경로 차단, 이상한 method 차단 & 알려진 봇과 탐색 요청을 막는 제안이다 & 아직 안 함. 스캐너 경로 차단은 요청 로그로 실제 탐색을 본 뒤 켜기를 권한다 & 02-blocking 제안 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\todo{미확인 (오너 확인 대기): 브라우저 요청 헤더에 \texttt{x-origin-key}가 없는지}
+
+%% ---------------------------------------------------------------------------
+\section{무엇을 지켜볼까}\label{sec:08-watch}
+
+\begin{inbrief}
+  \item[Why] 시험이 끝나도 운영 중 신호가 규칙이 깨졌음을 먼저 알려 준다.
+  \item[When] 매주 월요일 issue를 볼 때와, 예산 메일이나 메모리 알림이 왔을 때다.
+  \item[Where] 터미널 스크립트, Cloud Logging, GitHub issue, 메일이다.
+  \item[How] \Cref{tab:08-watch}의 신호를 보고 오른쪽 열의 일을 한다.
+\end{inbrief}
+
+% src: deploy/traffic/README.md §Monitoring commands (Reading tables); deploy/traffic/README.md §5; deploy/traffic/review/03-status-codes.md §G 확인; deploy/traffic/review/02-blocking.md §N
+\begin{table}[H]
+  \caption{지켜볼 신호와 할 일.}\label{tab:08-watch}
+  % src: deploy/traffic/README.md §Monitoring commands 1, 2, §5; 03-status-codes.md §G
+  \footnotesize
+  \begin{tabularx}{\linewidth}{L{3.6cm} Y L{3.4cm}}
+    \toprule
+    신호 & 뜻 & 할 일 \\
+    \midrule
+    메모리가 몇 시간째 90\,\% 근처 & PM2 cap이나 swap을 봐야 한다 & \texttt{vm-metrics.sh 7}, \texttt{pm2 ls} \\
+    \midrule
+    egress가 트래픽 없이 오름 & 캐시가 놓치고 있다 & \texttt{traffic-check.sh} \\
+    \midrule
+    egress가 트래픽과 함께 오름 & 예상된 동작이다 & 예산과 비교 \\
+    \midrule
+    \texttt{traffic-check.sh}가 \cfs{HIT}로 FAIL (개인 응답) & 개인 응답이 캐시된다 & ``web cache'' 또는 ``api cache''를 바로 끈다 \\
+    \midrule
+    주간 issue 제목에 경고 표시 & 캐시 검사에 FAIL이 있다 & issue의 FAIL 줄을 읽는다 \\
+    \midrule
+    blog-api에 ERROR가 새로 생김 & 거절이 아닌 진짜 오류다 (G 이후 ERROR 0건이 기준) & Cloud Logging에서 \texttt{Unhandled Express error}를 찾는다 \\
+    \midrule
+    \texttt{rate\_limit} WARN이 늘거나 \texttt{ssr=false}인 SSR 호출 & 한도를 넘는 IP가 있거나 키 없는 SSR 호출이 있다 & \texttt{enforce} 전에 원인을 찾는다 \\
+    \midrule
+    429가 정상 사용자에게 나옴 & 한도 50이 낮다 (\decision{68}) & prefetch 줄이기 설계 (\decision{68} follow-up) \\
+    \midrule
+    PM2 재시작 횟수가 오름 & PM2 cap에 닿았다 (web 320M, api 200M) & 그 단계 숫자를 용량으로 쓰지 않는다 \\
+    \midrule
+    예산 메일 50\,\%, 90\,\%, 100\,\% & 비용이 한도에 가깝다 & 오너가 판단한다. 자동 중단은 없다 \\
+    \midrule
+    Supabase Log Query 사용량 & Studio 화면이 읽는 양이다 & 탭을 닫고 짧은 기간으로 본다 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}

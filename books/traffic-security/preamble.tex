@@ -1,0 +1,148 @@
+% preamble.tex -- shared by every chapter of 트래픽 통제와 보안.
+% Build: latexmk -xelatex main.tex   (rules/writing/latex.md §1)
+%
+% ===== MACROS FOR CHAPTER WRITERS (part A and part B) =====================
+% Text macros (semantic names, never change them in the body):
+%   \term{x}        a defined or named concept (bold). First use: gloss with \eng.
+%   \eng{x}         English gloss in parentheses, no space: 캐시 키\eng{cache key}
+%   \code{x}        command, path, header, identifier. Breaks at / _ . = etc.
+%                   Do NOT use inside \caption, \section or another macro argument;
+%                   use \texttt{} there.
+%   \decision{N}    prints "결정 #N" (an owner decision row of decisions.plan.md)
+%   \commit{hash}   a git commit hash in \texttt
+%   \cfs{HIT}       a cf-cache-status value (HIT, MISS, DYNAMIC, BYPASS, ...)
+%   \ctlmark{B}     a small red circle with the control letter (A..N), for text
+%   \todo{x}        a gap the sources do not fill (red, boxed). Never fill it by guess.
+% Environments:
+%   callout[title]  grey box for a warning or a key sentence (latex.md §6)
+%   inbrief         "In brief." with \item[Why] \item[When] \item[Where] \item[How]
+% Column types (tabularx / tabular): Y = ragged-right X column,
+%   L{w} = ragged-right paragraph column of width w.
+% Colours: cfcol (Cloudflare, orange), vmcol (VM, blue), dbcol (Supabase, green),
+%   badcol (failure, red), goodcol (pass, green), mutecol (baseline, grey).
+% TikZ styles (on top of figkit's flowbox/flowalt/flownew/flowarrow):
+%   cfbox (Cloudflare box), vmbox (VM box), dbbox (Supabase box),
+%   zone (dashed container), ctl (red circle control marker),
+%   lbl (small arrow label), badbox (failure box), goodbox (pass box).
+% Chart style: \pgfplotsset{barchart} gives a bar chart that follows figures.md.
+% Caption words are "Figure" and "Table" (latex.md §10). Labels: fig: tab: sec: ch:.
+% Chapter labels (use \Cref across writers): ch:overview ch:debugging ch:reduce-traffic
+%   ch:blocking (part A); ch:status-security ch:observability ch:testing ch:decisions
+%   ch:commands (part B, please use exactly these). Part A refers to \Cref{ch:testing}.
+% ==========================================================================
+
+\usepackage[a4paper,margin=25mm]{geometry}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\setCJKmainfont{Apple SD Gothic Neo}   % latex.md §4
+\xeCJKsetup{CJKspace=true}             % latex.md §2, required
+
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{etoolbox}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage[obeyspaces,spaces]{url}
+\usepackage{microtype}
+\usepackage{figkit}                    % float [H], caption, tikz, flowbox styles
+\usetikzlibrary{fit,backgrounds,calc,shapes.geometric}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
+\usepackage[hidelinks]{hyperref}
+\usepackage{cleveref}
+
+\setlength{\emergencystretch}{3em}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+\setcounter{secnumdepth}{3}            % latex.md §15
+\setcounter{tocdepth}{3}
+
+% --- caption words: always English (latex.md §10) -----------------------------
+\renewcommand{\figurename}{Figure}
+\renewcommand{\tablename}{Table}
+\renewcommand{\contentsname}{목차}
+\renewcommand{\appendixname}{부록}
+\captionsetup{font=small,labelfont=bf,labelsep=period}
+\captionsetup[table]{position=above,skip=6pt}
+\captionsetup[figure]{position=below,skip=6pt}
+\crefname{figure}{Figure}{Figures}
+\Crefname{figure}{Figure}{Figures}
+\crefname{table}{Table}{Tables}
+\Crefname{table}{Table}{Tables}
+\crefname{section}{§}{§}
+\Crefname{section}{§}{§}
+\crefname{chapter}{Chapter}{Chapters}
+\Crefname{chapter}{Chapter}{Chapters}
+
+% --- figkit legend words in Korean --------------------------------------------
+\renewcommand{\flowaltname}{기준선}
+\renewcommand{\flownewname}{바뀐 단계}
+
+% --- table helpers -------------------------------------------------------------
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\renewcommand{\arraystretch}{1.15}
+
+% --- colours -------------------------------------------------------------------
+\definecolor{cfcol}{RGB}{230,126,34}
+\definecolor{vmcol}{RGB}{41,98,180}
+\definecolor{dbcol}{RGB}{39,140,90}
+\definecolor{badcol}{RGB}{192,57,43}
+\definecolor{goodcol}{RGB}{39,140,90}
+\definecolor{mutecol}{RGB}{120,120,120}
+
+% --- semantic text macros ------------------------------------------------------
+\DeclareUrlCommand\code{\urlstyle{tt}}
+\newcommand{\term}[1]{\textbf{#1}}
+\newcommand{\eng}[1]{(#1)}
+\newcommand{\decision}[1]{결정~\#{}#1}
+\newcommand{\commit}[1]{\texttt{#1}}
+\newcommand{\cfs}[1]{\texttt{#1}}
+\newcommand{\todo}[1]{\textcolor{badcol}{\textbf{[TODO: #1]}}}
+
+\tikzset{
+  ctl/.style     = {circle, draw=badcol, fill=badcol!12, text=black, inner sep=1pt,
+                    minimum size=1.1em, font=\scriptsize\bfseries},
+  cfbox/.style   = {flowbox, draw=cfcol, fill=cfcol!10},
+  vmbox/.style   = {flowbox, draw=vmcol, fill=vmcol!8},
+  dbbox/.style   = {flowbox, draw=dbcol, fill=dbcol!10},
+  badbox/.style  = {flowbox, draw=badcol, fill=badcol!8},
+  goodbox/.style = {flowbox, draw=goodcol, fill=goodcol!10},
+  zone/.style    = {draw=black!45, dashed, rounded corners=4pt, inner sep=6pt},
+  lbl/.style     = {font=\scriptsize, inner sep=1pt, fill=white, align=center},
+}
+\newcommand{\ctlmark}[1]{\tikz[baseline=(c.base)]\node[ctl] (c) {#1};}
+
+% --- chart style (figures.md: white background, light grid, legend above) -------
+\pgfplotsset{
+  barchart/.style = {
+    ybar stacked, bar width=14pt, ymajorgrids=true, grid style={black!12},
+    axis lines=left, tick label style={font=\footnotesize},
+    label style={font=\footnotesize}, legend style={font=\footnotesize, draw=none},
+    legend columns=-1, legend style={at={(0.5,1.04)}, anchor=south},
+    enlarge x limits=0.15, ymin=0,
+  },
+}
+
+% --- callout box without tcolorbox (latex.md §6) --------------------------------
+\newsavebox{\calloutbox}
+\newenvironment{callout}[1][]
+  {\par\medskip\noindent
+   \begin{lrbox}{\calloutbox}\begin{minipage}{0.92\linewidth}
+   \def\calloutttl{#1}\ifx\calloutttl\empty\else\textbf{#1}\par\smallskip\fi}
+  {\end{minipage}\end{lrbox}%
+   \fcolorbox{black!30}{black!3}{\usebox{\calloutbox}}\par\medskip}
+
+% --- In brief (book.md principle 7) ---------------------------------------------
+\newenvironment{inbrief}
+  {\paragraph{In brief.}\begin{description}[font=\bfseries]}
+  {\end{description}}
+
+% --- listings: never split across pages (latex.md §9) ----------------------------
+\lstset{basicstyle=\ttfamily\scriptsize, breaklines=true, columns=fullflexible,
+        keepspaces=true, frame=single, rulecolor=\color{black!30}}
+\BeforeBeginEnvironment{lstlisting}{\par\medskip\noindent\begin{minipage}{\linewidth}}
+\AfterEndEnvironment{lstlisting}{\end{minipage}\par\medskip}
