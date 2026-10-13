@@ -15,18 +15,18 @@ export const options = {
             executor: 'ramping-arrival-rate',
             exec: 'web',
             startRate: 0,
-            timeUnit: '1s',
+            timeUnit: '2s', // k6 needs whole-number targets: per 2 s, so 1 = 0.5 rps
             preAllocatedVUs: PRE_VUS,
             maxVUs: MAX_VUS,
             stages: [
-                { target: 0.5, duration: '0s' },
-                { target: 0.5, duration: '60s' },
-                { target: 1, duration: '0s' },
+                { target: 1, duration: '0s' }, // 0.5 rps
                 { target: 1, duration: '60s' },
-                { target: 2, duration: '0s' },
+                { target: 2, duration: '0s' }, // 1 rps
                 { target: 2, duration: '60s' },
-                { target: 4, duration: '0s' },
+                { target: 4, duration: '0s' }, // 2 rps
                 { target: 4, duration: '60s' },
+                { target: 8, duration: '0s' }, // 4 rps
+                { target: 8, duration: '60s' },
             ],
         },
         api: {
