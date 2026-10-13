@@ -18,14 +18,14 @@ It renders pages (SSR + client) and talks to the Express API ([`dashboard_server
 ## How
 
 ```sh
-pnpm dev:web                                    # dev → http://localhost:3001
+pnpm dev:web                                    # dev → http://localhost:3000
 pnpm --filter dashboard_client_web build        # production build
 pnpm --filter dashboard_client_web start:pm2    # production via PM2 (port 3000)
 pnpm --filter dashboard_client_web lint         # next lint --max-warnings 0
 pnpm --filter dashboard_client_web check-types  # tsc --noEmit
 ```
 
-- Ports: dev `3001`, prod `3000`.
+- Ports: dev and prod both `3000`.
 - Env: `.env.local` etc. — see `.env.example` for required keys.
 - Directory layout is strict — see [`.claude/rules/nexjts.md`](../../.claude/rules/nexjts.md).
   Path alias `@/*` is this dir; cross-workspace imports use `@repo/*`.

@@ -4,7 +4,7 @@
     "type": "module",
     "private": true,
     "scripts": {
-        "dev": "cross-env next dev --port 3001 --turbopack",
+        "dev": "cross-env next dev --port 3000 --turbopack",
         "build:dev": "cross-env next build",
         "build:prod": "cross-env next build",
         "build": "pnpm run build:dev",

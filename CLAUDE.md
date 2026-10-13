@@ -26,7 +26,7 @@ pnpm + Turborepo monorepo (`workspaces: ["apps/*", "packages/*"]`). Node 24 (`.n
 
 ```
 apps/
-  dashboard_client_web/   Next.js 16 App Router, React 19, Tailwind v4, runs on :3001 (dev) / :3000 (prod)
+  dashboard_client_web/   Next.js 16 App Router, React 19, Tailwind v4, runs on :3000 (dev and prod)
   dashboard_server/       Express 5 + pg Pool (raw SQL) → Supabase; images → OCI Object Storage via src/lib/storage (STORAGE_PROVIDER)
   blog_agent/             Python LangGraph publishing agent (uv-managed; direct DB/storage writer, publish_oneshot.py)
 packages/
@@ -58,7 +58,7 @@ Run from repo root unless noted:
 
 ```sh
 pnpm dev                            # turbo run dev (all apps in parallel)
-pnpm dev:web                        # client app only (port 3001)
+pnpm dev:web                        # client app only (port 3000)
 pnpm dev:server                     # dashboard_server only (tsx watch)
 pnpm build                          # turbo run build
 pnpm lint                           # turbo run lint
@@ -70,7 +70,7 @@ Per-workspace (use `pnpm --filter <name> <script>`):
 
 ```sh
 # dashboard_client_web
-pnpm --filter dashboard_client_web dev          # next dev --turbopack -p 3001
+pnpm --filter dashboard_client_web dev          # next dev --turbopack -p 3000
 pnpm --filter dashboard_client_web build        # next build
 pnpm --filter dashboard_client_web lint         # next lint --max-warnings 0
 
