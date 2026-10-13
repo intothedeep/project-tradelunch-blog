@@ -79,15 +79,15 @@ curl -s -o /dev/null -w '%{http_code}\n' -X OPTIONS -H 'Origin: https://evil.exa
 
 | # | 무엇 | 지금 (측정 10-13) | 바꾸면 | 왜 | 어디서 |
 | --- | --- | --- | --- | --- | --- |
-| 1 | 서버 종류 숨기기 (코드 완료 `42e1bf3`, 배포 대기) | `x-powered-by: Next.js`, `x-powered-by: Express` | 헤더 없음 | 공격자에게 프레임워크를 알려 줄 이유가 없다 | `next.config.ts` `poweredByHeader: false`, Express `app.disable('x-powered-by')` |
-| 2 | 없는 API 경로 (코드 완료 `42e1bf3`, 배포 대기) | 404 + Express 기본 HTML (`Cannot GET /v1/api/nope`) | 404 + JSON `{success:false}` | 응답 형식을 하나로. 내부 경로 모양을 덜 드러낸다 | Express 마지막 404 처리기 |
+| 1 | 서버 종류 숨기기 (배포 완료 `38b4c12`) | `x-powered-by: Next.js`, `x-powered-by: Express` | 헤더 없음 | 공격자에게 프레임워크를 알려 줄 이유가 없다 | `next.config.ts` `poweredByHeader: false`, Express `app.disable('x-powered-by')` |
+| 2 | 없는 API 경로 (배포 완료 `38b4c12`) | 404 + Express 기본 HTML (`Cannot GET /v1/api/nope`) | 404 + JSON `{success:false}` | 응답 형식을 하나로. 내부 경로 모양을 덜 드러낸다 | Express 마지막 404 처리기 |
 | 3 | 보안 헤더 | HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options` 없음 (API 404에만 일부) | 모든 응답에 붙음 | 다운그레이드, MIME 추측, 클릭재킹(clickjacking) 방지 | Cloudflare Transform Rules 또는 앱. HSTS는 Cloudflare SSL/TLS 설정 (preload는 되돌리기 어려우니 빼고 시작) |
 | 4 | 피드 실패 화면이 캐시되지 않게 | 200, 캐시 가능 | 그 응답만 짧게 또는 캐시 안 함 | 일시 장애가 하루 동안 남지 않게 | 설계 필요 (Next에서 응답 헤더를 바꾸기 어렵다) |
 
 - 1, 2는 코드 몇 줄이다. 원하면 G와 같이 배포한다.
 - 3, 4는 설계가 먼저다.
 
-## L. 공개 error-logs 쓰기 막기 (코드 완료 `42e1bf3`, 배포 대기, 결정 #60)
+## L. 공개 error-logs 쓰기 막기 (배포 완료 2026-10-13 `38b4c12`, 결정 #60)
 
 **왜 필요했나:** 설계 검토 중 architect가 "인증 여부 확인 필요"로 남긴 경로를 확인했다.
 
@@ -119,4 +119,4 @@ curl -s -o /dev/null -w '%{http_code}\n' -X OPTIONS -H 'Origin: https://evil.exa
 
 **주의:** `ORIGIN_KEY=`처럼 빈 값을 두면 Express가 시작하지 못한다(최소 32자 검사). 쓰지 않을 때는 줄을 지운다.
 
-**확인 (배포 뒤):** 키 없이 POST → 403. 사이트 정상. Cloud Logging에 `ORIGIN_KEY unset` 경고 없음.
+**확인 (2026-10-13 21:0x UTC, `38b4c12`):** 키 없이 POST → 403 `forbidden`. 틀린 키 → 403. `/v1/api/nope` → 404 JSON. 두 호스트 `x-powered-by` 없음. `/`, `/blog`, 글, `/about` 200. `traffic-check.sh` 0 FAIL. 배포 뒤 ERROR 0건. `ORIGIN_KEY unset` 경고는 21:01:13에 1번 (release.sh의 reload가 키를 읽기 전). 그 뒤 restart부터는 없음.

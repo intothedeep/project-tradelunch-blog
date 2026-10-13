@@ -266,3 +266,20 @@ blog-api 한도 200 MB (PM2 max_memory_restart). 지금 사용량은 VM에서 `p
 | --- | --- |
 | 랜덤 쿼리로 MISS를 만드는 우회를 막는 설계 (architect) | 오리진 용량 약 2 rps가 L-a 한도 10 rps보다 낮다. 후보: HTML 캐시 키에서 모르는 쿼리를 빼기, L-a 한도 낮추기 |
 | L2-api만 다시 (오너 승인) | C_api가 없으면 Express 한도의 위쪽 한계를 정할 수 없다 |
+
+### 배포 확인: L-b `log` 모드, `ip`, `ssr` (2026-10-13, `38b4c12`)
+
+| 확인 | 결과 |
+| --- | --- |
+| blog-api 로그 `jsonPayload.req.ip` | 모든 요청에 있음 |
+| `ssr=true` | `profile`, `tags`, `posts/users/.../tags` 같은 SSR 호출 |
+| `ssr=false` | 브라우저와 `curl` 요청, **그리고 SSR의 `categories` 호출** (아래) |
+| `rate_limit` WARN | 아직 없음 |
+| 메모리 (배포 뒤 몇 분) | api 103 MB, web 171 MB, VM available 359 MiB |
+
+**찾은 것: 키를 안 보내는 SSR 호출**
+
+- `apis/getCategories.api.ts`는 서버와 브라우저 양쪽에서 쓰는 함수다(isomorphic). `clientRequest`를 쓰므로 서버에서 불려도 `x-origin-key`가 붙지 않는다.
+- 같은 패턴 후보: `getComments.api.ts`, `get-log-thread.api.ts`, `get-log-global.api.ts`, `get-log-stream.api.ts`.
+- 지금은 `log` 모드라 막히지 않는다. 이 호출들은 VM IP 하나로 세어진다.
+- **`enforce`로 바꾸기 전(RL-4)에 반드시 고친다.** 그대로 두면 방문자가 늘 때 사이트가 자기 SSR을 막는다.
