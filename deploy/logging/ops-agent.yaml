@@ -1,0 +1,27 @@
+# Google Cloud Ops Agent config for the blog-api VM (decision #55, step ②).
+# Apply: deploy/logging/README.md §②. Copy to /etc/google-cloud-ops-agent/config.yaml,
+# then restart google-cloud-ops-agent.
+#
+# The Ops Agent MERGES this file with its built-in defaults (host metrics + syslog).
+# The VM's stock config.yaml is comments only, so this file adds the blog-api
+# pipeline and leaves the defaults alone; it does not redefine them.
+#
+# Ships the pino JSON lines PM2 writes (apps/dashboard_server/src/lib/logger.ts).
+# Log name in Cloud Logging = the receiver id: log_id("blog-api").
+logging:
+  receivers:
+    blog-api:
+      type: files
+      include_paths:
+        - /home/tio_taek_lim/.pm2/logs/blog-api-out-0.log
+        - /home/tio_taek_lim/.pm2/logs/blog-api-error-0.log
+  processors:
+    blog_api_json:
+      # No time_key: pino writes ISO time ending in "Z"; the entry uses the
+      # read time instead (≤ a few seconds later). The original stays in jsonPayload.time.
+      type: parse_json
+  service:
+    pipelines:
+      blog_api:
+        receivers: [blog-api]
+        processors: [blog_api_json]
