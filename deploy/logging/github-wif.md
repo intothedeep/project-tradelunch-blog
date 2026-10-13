@@ -1,6 +1,6 @@
 # GitHub Actions → GCP without keys (Workload Identity Federation)
 
-Status: **GCP side set up 2026-10-13** (pool + provider ACTIVE, `gh-logging-reader` with `roles/logging.viewer`, repo Variables `GCP_WIF_PROVIDER`, `GCP_LOGGING_SA`). Workflow change in progress. Purpose: let the weekly logging review
+Status: **working since 2026-10-13** — pool + provider ACTIVE, `gh-logging-reader` (`roles/logging.viewer`), STS + IAM Credentials APIs on, repo Variables `GCP_WIF_PROVIDER` and `GCP_LOGGING_SA`. First good run: Actions run 38354550435 → issue #3 (4.5 MB / 7 days, 0 ERROR, OK).
 (`.github/workflows/logging-review.yml`, decision #57) run `check-volume.sh` itself and post
 the result, instead of only opening a reminder issue. The same pool is reused later for the
 automated deploy (task GCP-M3-7) with a separate service account.
@@ -46,6 +46,10 @@ a deploy account (IAP tunnel user + OS Login) later for GCP-M3-7. Each gets only
 P=mywebsite-511502
 N=$(gcloud projects describe $P --format='value(projectNumber)')
 REPO=intothedeep/project-tradelunch-blog
+
+# 0. APIs WIF needs (free). Without them the job logs in, then fails with
+#    "There was a problem refreshing your current auth tokens" (seen 2026-10-13).
+gcloud services enable sts.googleapis.com iamcredentials.googleapis.com iam.googleapis.com --project=$P
 
 # 1. Pool + OIDC provider for GitHub, restricted to this repo
 gcloud iam workload-identity-pools create github --project=$P --location=global
