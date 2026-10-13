@@ -14,6 +14,8 @@ Read these before making changes — they override anything inferred from existi
 
 ## Active Work
 
+**Pending checks:** read [`check.md`](./check.md) at session start and tell the owner which dated items are due (owner, 2026-10-13).
+
 See [`00.plan.md`](./00.plan.md) and [`00.tasks.md`](./00.tasks.md). This repo is **blog-only since
 2026-07-09** — the finance surface lives in the separate `project_tradelunch_finance` repo.
 Currently active: **Phase Y — Log** (Threads-style personal microfeed, `/log/[username]`), M1 shipped
