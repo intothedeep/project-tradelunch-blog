@@ -4,6 +4,10 @@ import pinoHttp from 'pino-http';
 import cors, { CorsOptions } from 'cors';
 import routers from './controllers';
 import { errorHandler } from './middlewares/errorHandler';
+import {
+    CorsRejectedError,
+    corsRejectionHandler,
+} from './middlewares/corsRejection';
 import { ALLOWED_ORIGINS_LIST } from './config/env.schema';
 import { logger } from './lib/logger';
 
@@ -22,7 +26,7 @@ const corsOptions: CorsOptions = {
         if (!origin || whitelist.includes(origin)) {
             callback(null, true);
         } else {
-            callback(new Error('Not allowed by CORS'));
+            callback(new CorsRejectedError(origin));
         }
     },
     credentials: true,
@@ -58,6 +62,9 @@ app.use(
 );
 
 app.use(cors(corsOptions));
+// Must sit directly after cors(): turns its rejection into a 403 before the
+// terminal errorHandler can log it as an error and write error_log.
+app.use(corsRejectionHandler);
 
 // https://expressjs.com/en/guide/migrating-5.html#path-syntax
 app.options('*every', cors(corsOptions)); // preflight 대응
