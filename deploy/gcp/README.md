@@ -1,4 +1,6 @@
-# GCP deploy runbook — Express (`blog-api`)
+# GCP deploy runbook: Express (`blog-api`) and Next (`blog-web`)
+
+Express: sections 0–7 below. Next web: section 8 (same tarball, same steps, `web` in place of `api`).
 
 Manual first deploy (task GCP-M2-9). Design: [`gcp.design.md`](../../gcp.design.md) §3.3–§3.4.
 Decisions: `decisions.plan.md` #47–#54.
@@ -22,6 +24,8 @@ Fixed values:
 | App root on VM | `~/prettylog/` (`api/releases/<sha>/`, `api/current` → symlink, `shared/api.env`) |
 | PM2 app | `blog-api`, `127.0.0.1:4000` (ecosystem sets `PORT`, `NODE_ENV`, `HOST_NAME`) |
 | Public host | `blog-api.prettylog.com` (Cloudflare Tunnel → `localhost:4000`) |
+| PM2 app (web) | `blog-web`, `localhost:3000` (ecosystem sets `PORT`, `NODE_ENV`, `HOSTNAME=localhost`) |
+| Public host (web) | `my.prettylog.com` (same tunnel → `localhost:3000`) |
 
 Always pass the user name to `gcloud`. Without it, `gcloud` logs in as your Mac user (`tio`),
 which has no nvm, Node or PM2.
@@ -147,6 +151,99 @@ curl -sI -H 'Authorization: Bearer x' "$U" | grep -i cf-cache-status            
 
 ---
 
+## 8. Web (`blog-web`)
+
+```text
+Mac: a. download ─► b. scp ─► VM: c. web.env (once) ─► d. release.sh web ─► e. checks (VM, then Mac)
+```
+
+The `gcp-<sha>` artifact holds both tarballs. A run that built the API also built the web.
+
+**a. Download (Mac, repo root)**
+
+```sh
+gh run list --workflow=gcp.yml --limit 5        # pick a run with "success"
+RUN=<run id>
+SHA=$(gh run view $RUN --json headSha --jq .headSha)
+ls x_gh_download/web-$SHA.tgz 2>/dev/null || gh run download $RUN -n gcp-$SHA -D x_gh_download
+echo $SHA
+```
+
+**b. Copy (Mac)**
+
+```sh
+VM=tio_taek_lim@instance-servers
+Z=(--zone=us-central1-a --tunnel-through-iap)
+gcloud compute scp x_gh_download/web-$SHA.tgz $VM:~/prettylog/ "${Z[@]}"
+# ecosystem.config.cjs / release.sh: copy again only when they changed in git
+gcloud compute scp deploy/gcp/ecosystem.config.cjs deploy/gcp/release.sh $VM:~/prettylog/ "${Z[@]}"
+```
+
+**c. Secrets (VM, first time only)**
+
+```sh
+vi ~/prettylog/shared/web.env       # one line: CLERK_SECRET_KEY=sk_live_...
+chmod 600 ~/prettylog/shared/web.env
+```
+
+| Key | Value | If missing |
+| --- | --- | --- |
+| `CLERK_SECRET_KEY` | `sk_live_...` (same as `api.env`) | the Clerk middleware fails on every page |
+
+`NEXT_PUBLIC_*` are baked in at build time (repo Variables in `gcp.yml`); do not put them here.
+Do not set `PORT`, `HOSTNAME` or `NODE_ENV` either: the ecosystem file sets them and wins.
+
+**d. Release (VM)**
+
+```sh
+cd ~/prettylog
+SHA=<the full sha from a>
+./release.sh web $SHA ~/prettylog/web-$SHA.tgz   # first time: pm2 start; later: pm2 reload
+pm2 save                                         # keep blog-web across reboots
+```
+
+If only `ecosystem.config.cjs` changed (no new tarball):
+
+```sh
+pm2 restart ~/prettylog/ecosystem.config.cjs --only blog-web --update-env
+```
+
+**e. Checks**
+
+On the VM (every `curl` has a timeout, so nothing hangs):
+
+```sh
+pm2 ls                                                   # blog-web online, ↺ not climbing
+pm2 env $(pm2 id blog-web | tr -dc '0-9') | grep HOSTNAME   # HOSTNAME: localhost
+ss -ltnp | grep ':3000'                                  # 127.0.0.1:3000 (loopback only)
+u=http://localhost:3000
+curl -m 20 -s -o /dev/null -w 'page    %{http_code} %{time_total}s\n' $u/
+curl -m 10 -s -o /dev/null -w 'static  %{http_code} %{time_total}s\n' $u/robots.txt
+curl -m 10 -s -o /dev/null -w 'api-pub %{http_code} %{time_total}s\n' https://blog-api.prettylog.com/ping
+pm2 logs blog-web --err --lines 40 --nostream            # no "Failed to proxy", no Clerk errors
+free -h; vmstat 5 3                                      # memory gate: si column near 0
+```
+
+From the Mac:
+
+```sh
+curl -m 30 -s -o /dev/null -w 'my. %{http_code} %{time_total}s\n' https://my.prettylog.com/
+curl -m 5 http://<VM external IP>:3000/                  # must time out (firewall)
+```
+
+Then in a browser: sign in on `https://my.prettylog.com` and write a test comment (delete it after).
+
+| Result | Meaning |
+| --- | --- |
+| `page 200`, `my. 200` | done |
+| `page 000` after 20 s, `static 200`, log `Failed to proxy` | Next proxies to itself: `HOSTNAME` is not `localhost` ([`web-self-proxy.md`](./web-self-proxy.md)) |
+| `my. 500` at once, plain `Internal Server Error` | the middleware throws: read `pm2 logs blog-web --err` |
+| `my. 502` | `blog-web` not running, or the tunnel route for `my.` is missing |
+
+Roll back: `~/prettylog/release.sh web <older sha>` (pick one from `ls -1t ~/prettylog/web/releases`).
+
+---
+
 ## Change a secret
 
 ```sh
@@ -173,4 +270,6 @@ ls -1t ~/prettylog/api/releases          # pick an older sha (not x_*)
 | browser CORS error | `ALLOWED_ORIGINS` in `shared/api.env`, then reload with `--update-env` |
 | restarts in a loop (`pm2 ls` ↺ climbing) | `pm2 logs blog-api`; memory cap is 200M (`max_memory_restart`) |
 | `ZodError ... expected number, received NaN` | a numeric key in `api.env` (`MAX_FILE_SIZE`, `THUMBNAIL_*`, …) has a unit, a formula or a same-line `# comment`. Keep digits only, or delete the line to use the default. Then `pm2 restart ~/prettylog/ecosystem.config.cjs --only blog-api --update-env` (seen 2026-10-13) |
+| web: `Failed to proxy http(s)://localhost:3000/` (hang, `EPROTO` or `ECONNREFUSED`) | `blog-web` must run with `HOSTNAME=localhost`; see [`web-self-proxy.md`](./web-self-proxy.md) |
+| `[PM2][ERROR] Process or Namespace ecosystem not found` | a bare `ecosystem` works only inside `~/prettylog`; use the full path `~/prettylog/ecosystem.config.cjs` |
 | `injected env (0) from .env…` in the out log | harmless: dotenv finds no `.env*` in the release dir; PM2 supplies the env |

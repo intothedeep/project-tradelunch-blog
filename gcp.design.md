@@ -132,7 +132,7 @@ outbound ─► Cloudflare edge(tunnel) · Supabase pooler · OCI · Clerk · Gi
 ```
 
 - **바인딩:** Docker가 없으므로(#52) 모든 프로세스가 같은 호스트 네트워크에 있다. 따라서 `127.0.0.1`/`localhost`가 **올바른 대상**이다(rev4의 compose 서비스명 메모는 폐기).
-  - Next standalone은 `HOSTNAME=127.0.0.1`로 loopback에만 바인딩된다.
+  - Next standalone은 `HOSTNAME=localhost`로 loopback(`127.0.0.1`)에만 바인딩된다. `127.0.0.1`을 쓰면 Next가 자기 자신에게 프록시한다(2026-10-13, `deploy/gcp/web-self-proxy.md`).
   - Express는 `app.listen(SERVER_PORT)`(`src/index.ts:18`)에 host 인자가 없어 0.0.0.0에 바인딩된다. `HOST_NAME`은 로그에만 쓰인다. 외부 차단은 GCP 방화벽이 맡는다. loopback 바인딩 코드 변경은 하지 않는다(최소 diff; 방화벽이 1차 방어).
 - **cloudflared:** 프로세스 1개, systemd `cloudflared.service`, `--token-file /etc/cloudflared/token`(오너 VM 실측, #51). 부팅 시 systemd가 올린다. 토큰은 `/etc/cloudflared/token`(root-only)에만 있고 레포에는 없다.
 - **(2) outbound 경로: 외부 IP 유지 vs Cloud NAT.** Tunnel은 outbound만 쓴다. 그러나 VM은 Supabase·OCI·Clerk·Cloudflare edge로 나가야 한다. 외부 IP가 없으면 Cloud NAT가 필요하다.
@@ -194,7 +194,7 @@ GH Actions ubuntu x64 ── build ──► api-<sha>.tgz, web-<sha>.tgz ──
   | `cwd` | `~/prettylog/api/current` | `~/prettylog/web/current/apps/dashboard_client_web` |
   | `script` | `dist/src/index.js` | `server.js` |
   | `exec_mode` / `instances` | `fork` / 1 | `fork` / 1 |
-  | env | `NODE_ENV=production`, `PORT=4000`, `HOST_NAME=127.0.0.1` + `shared/api.env` | `NODE_ENV=production`, `PORT=3000`, `HOSTNAME=127.0.0.1` + `shared/web.env` |
+  | env | `NODE_ENV=production`, `PORT=4000`, `HOST_NAME=127.0.0.1` + `shared/api.env` | `NODE_ENV=production`, `PORT=3000`, `HOSTNAME=localhost` + `shared/web.env` |
   | `max_memory_restart` (초안, §3.1 게이트로 조정) | `200M` | `320M` |
   | `node_args` | `--max-old-space-size=160` | `--max-old-space-size=256` |
 

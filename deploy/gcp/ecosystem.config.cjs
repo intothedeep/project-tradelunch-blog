@@ -51,7 +51,13 @@ module.exports = {
                 ...readEnvFile(path.join(root, 'shared/web.env')),
                 NODE_ENV: 'production',
                 PORT: '3000',
-                HOSTNAME: '127.0.0.1',
+                // `localhost`, not `127.0.0.1` (2026-10-13). Next 16 builds the
+                // middleware request URL as http://localhost:<port> but its
+                // router origin from HOSTNAME. With 127.0.0.1 the two differ,
+                // so Clerk's same-URL rewrite (every request) looked external
+                // and Next proxied to itself: "Failed to proxy http://localhost:3000/".
+                // Still loopback only: localhost resolves to 127.0.0.1 here.
+                HOSTNAME: 'localhost',
             },
         },
     ],
