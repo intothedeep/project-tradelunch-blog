@@ -50,12 +50,12 @@ ls x_gh_download                                     # api-$SHA.tgz  web-$SHA.tg
 
 ```sh
 VM=tio_taek_lim@instance-servers
-Z="--zone=us-central1-a --tunnel-through-iap"
+Z=(--zone=us-central1-a --tunnel-through-iap)   # array: zsh does not split "$Z"
 
-gcloud compute ssh $VM $Z --command 'mkdir -p ~/prettylog/shared'
+gcloud compute ssh $VM "${Z[@]}" --command 'mkdir -p ~/prettylog/shared'
 gcloud compute scp x_gh_download/api-$SHA.tgz \
   deploy/gcp/ecosystem.config.cjs deploy/gcp/release.sh \
-  $VM:~/prettylog/ $Z
+  $VM:~/prettylog/ "${Z[@]}"
 ```
 
 `ecosystem.config.cjs` and `release.sh` change rarely. Copy them again only when they change in git.
@@ -63,7 +63,7 @@ gcloud compute scp x_gh_download/api-$SHA.tgz \
 ## 3. Write the secrets file (VM, first time or when a value changes)
 
 ```sh
-gcloud compute ssh $VM $Z
+gcloud compute ssh $VM "${Z[@]}"
 nano ~/prettylog/shared/api.env
 chmod 600 ~/prettylog/shared/api.env
 ```
