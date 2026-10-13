@@ -413,3 +413,71 @@ Purge everything once after you publish:
 
 Or use the dashboard: Caching → Configuration → Purge Everything.
 Purge both hosts together. If you purge only the HTML, the page refills from the old API answer.
+
+Purge also after **every web release** (`deploy/gcp/README.md` §8 d2). Old cached HTML
+points at old JS, so the new code does not reach browsers until the purge
+(2026-10-13: a release looked like it did nothing because `age: 13671` HTML was served).
+
+## Purge token setup (one time, 2026-10-13)
+
+Why: `cf-purge.sh` reads its token from `_scripts/cloudflare/.env`. Without the file it
+stops with `CLOUDFLARE_API_TOKEN: set CLOUDFLARE_API_TOKEN`.
+Why a custom token: it can purge the cache and nothing else. A leaked token cannot change
+DNS or rules. Do not use the Global API Key (it has the whole account).
+
+### a. Create the token (dashboard)
+
+1. Top-right person icon → **My Profile** → **API Tokens**.
+2. **Create Token**.
+3. At the bottom: **Custom token** → **Get started**.
+4. **Token name**: `prettylog-cache-purge`.
+5. **Permissions**, one row:
+
+   | Field 1 | Field 2 | Field 3 |
+   | --- | --- | --- |
+   | `Zone` | `Cache Purge` | `Purge` |
+
+6. **Zone Resources**, one row:
+
+   | Field 1 | Field 2 | Field 3 |
+   | --- | --- | --- |
+   | `Include` | `Specific zone` | `prettylog.com` |
+
+7. Leave **Client IP Address Filtering** and **TTL** empty.
+8. **Continue to summary** → **Create Token**.
+9. The token shows **once**. Copy it now.
+
+### b. Find the Zone ID
+
+1. Left menu **Domains** → `prettylog.com`.
+2. **Overview** page, scroll down.
+3. **API** box → copy button next to **Zone ID** (on a wide screen it is in the right column).
+
+### c. Write the env file (Mac, repo root)
+
+```sh
+vi _scripts/cloudflare/.env
+```
+
+Two lines, no leading spaces, no `<>`:
+
+```
+CLOUDFLARE_API_TOKEN=<the token>
+CLOUDFLARE_ZONE_ID=<the zone id>
+```
+
+- The file is gitignored (`*.env`). Never paste the token into chat, an issue or a commit.
+
+### d. Check
+
+```sh
+./_scripts/cloudflare/cf-purge.sh --dry-run    # shows what would be sent
+./_scripts/cloudflare/cf-purge.sh              # purge everything
+curl -s -o /dev/null -D - https://my.prettylog.com/ | grep -iE "cf-cache-status|^age"   # MISS, or a small age
+```
+
+Sources (checked 2026-10-13):
+[Create API token](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/),
+[API token permissions](https://developers.cloudflare.com/fundamentals/api/reference/permissions/),
+[Find account and zone IDs](https://developers.cloudflare.com/fundamentals/account/find-account-and-zone-ids/),
+[Invalidate cached content](https://developers.cloudflare.com/cache/guides/invalidate-cache/).
