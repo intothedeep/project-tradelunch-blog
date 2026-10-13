@@ -320,3 +320,65 @@ blog-api 한도 200 MB (PM2 max_memory_restart). 지금 사용량은 VM에서 `p
 - 최댓값은 10 s에 89번이다. 로그인한 오너의 Mac 브라우저였다.
 - 원인: Next `<Link>`가 화면에 보이는 링크를 미리 받는다(prefetch). 한 번 누를 때 요청이 수십 개 나간다.
 - 이 표는 VM까지 온 요청만 센다. Cloudflare는 HIT도 세므로 실제 숫자는 더 크다.
+
+## N. 서버에서 도는 `clientRequest`도 키를 보낸다 (코드 `7f07df7`, 웹 배포 대기, #64)
+
+**왜 필요했나:** Express 요청 수 제한(L-b)은 `ssr=true` 요청을 세지 않는다. Next SSR 요청은 모두 VM IP 하나로 보이기 때문이다. `enforce`로 바꾸기 전에 모든 SSR 요청이 `ssr=true`여야 한다.
+
+**문제:** 배포 확인(2026-10-13) 중 `categories` SSR 호출이 `ssr=false`로 찍혔다.
+
+```text
+Next 서버 코드 ─► serverRequest (http.server.ts) ─► x-origin-key 있음 → ssr=true   ✓
+Next 서버 코드 ─► clientRequest (http.client.ts) ─► 키 없음           → ssr=false  ✗ VM IP로 세어짐
+브라우저 코드  ─► clientRequest (http.client.ts) ─► 키 없음           → ssr=false  ✓ 사용자 IP로 세어짐
+```
+
+- 일부 fetcher는 서버와 브라우저 양쪽에서 쓴다(isomorphic). 이 fetcher들은 브라우저용 `clientRequest`를 쓴다.
+- 그래서 서버에서 불려도 키가 붙지 않았다.
+
+| fetcher | 서버에서 부르는 곳 |
+| --- | --- |
+| `getCategories.api.ts` | `CategorySidebarWrapper.server.tsx`, `sidebar-categories.server.tsx`, `getFilterItems.server.ts` |
+| `getComments.api.ts` | `Comments.server.tsx` |
+| `get-log-thread.api.ts` | `app/log/[username]/[logId]/page.tsx` |
+| `get-log-global.api.ts` | `app/log/page.tsx` |
+| `get-log-stream.api.ts` | `app/log/[username]/page.tsx` |
+
+**무엇을 바꿨나:** `apis/http.client.ts`의 `clientRequest`가 **지금 서버에서 도는지**를 보고 헤더를 정한다.
+
+```text
+clientRequest 호출
+   │
+   ├─ typeof window !== 'undefined'  (브라우저)  → 헤더 없음
+   │
+   └─ typeof window === 'undefined'  (Next 서버) → process.env.ORIGIN_KEY가 있으면
+                                                   x-origin-key: <키> 를 붙임
+```
+
+**어떻게 동작하나:**
+
+1. 같은 파일이 두 번 실행된다. 한 번은 Next 서버(Node)에서, 한 번은 사용자 브라우저에서다.
+2. Node에는 `window` 객체가 없다. 브라우저에는 있다. 그래서 `typeof window`로 어디서 도는지 안다.
+3. 서버에서는 `process.env.ORIGIN_KEY`를 읽어 헤더를 붙인다. 값은 VM의 `shared/web.env`에서 온다.
+4. Express는 그 헤더를 `ORIGIN_KEY`와 비교한다. 같으면 `ssr=true`로 기록하고 요청 수를 세지 않는다.
+
+**왜 브라우저로 키가 새지 않나 (두 겹):**
+
+| 겹 | 이유 |
+| --- | --- |
+| 1. 이름 | `ORIGIN_KEY`는 `NEXT_PUBLIC_`으로 시작하지 않는다. Next는 이런 변수를 브라우저 코드에 넣지 않는다. 브라우저에서는 값이 `undefined`다 |
+| 2. 조건 | 브라우저에서는 `window`가 있으므로 키를 읽는 줄까지 가지 않는다 |
+
+- 확인하지 못한 것: 빌드된 브라우저 번들을 직접 열어 키 문자열이 없는지 보는 확인. 로컬 `next build` 금지라서 하지 않았다. 배포 뒤 브라우저 개발자 도구에서 API 요청 헤더에 `x-origin-key`가 없는지 보면 된다.
+
+**왜 이 방법인가:**
+
+- **`http.server.ts`의 함수를 다시 쓰지 않은 이유:** 그 파일은 `import 'server-only'`가 있다. 브라우저에도 들어가는 `http.client.ts`가 import하면 빌드가 깨진다. 그래서 같은 4줄을 `http.client.ts`에 두었다.
+- **fetcher 5개를 따로 고치지 않은 이유:** `clientRequest` 한 곳만 고치면 지금 것과 앞으로 생길 isomorphic fetcher가 모두 덮인다.
+- **브라우저 요청에 영향 없음:** 브라우저에는 헤더가 붙지 않는다. 그래서 CORS 사전 요청(preflight)도 늘지 않는다.
+
+**배포 뒤 확인:**
+
+- 쿼리: `log_id("blog-api") AND jsonPayload.req.url:"/categories" AND jsonPayload.req.ssr=false`. 브라우저 호출만 남아야 한다.
+- 같은 쿼리를 `ssr=true`로 바꾸면 SSR 호출이 보여야 한다.
+- 브라우저 개발자 도구 → Network → `blog-api` 요청 → Request Headers에 `x-origin-key`가 없어야 한다.
