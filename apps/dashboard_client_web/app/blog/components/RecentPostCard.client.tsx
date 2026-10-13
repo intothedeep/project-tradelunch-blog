@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge, badgeVariants } from '@/components/ui/badge';
 import Image from 'next/image';
 import Link from 'next/link';
+import { HoverPrefetchLink } from '@/components/ui/HoverPrefetchLink.client';
 import clsx from 'clsx';
 import { MessageSquare } from 'lucide-react';
 import { TPost } from '@/apis/blog.types';
@@ -74,7 +75,9 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
             )}
         >
             {href && (
-                <Link
+                // Hover/focus prefetch only: viewport prefetch of every feed
+                // card trips the Cloudflare rate limit (decision #70).
+                <HoverPrefetchLink
                     href={href}
                     aria-label={post.title}
                     className="absolute inset-0 z-0 hover:cursor-pointer"
@@ -186,6 +189,8 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
                         <Link
                             key={idx}
                             href={`/tags/${encodeURIComponent(tag)}`}
+                            // Viewport prefetch trips the Cloudflare rate limit (decision #70).
+                            prefetch={false}
                             className={cn(
                                 badgeVariants({ variant: 'outline' }),
                                 'text-xs hover:bg-secondary hover:text-muted-foreground transition-colors'
@@ -208,6 +213,8 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
                     {href ? (
                         <Link
                             href={href}
+                            // Same href as the overlay link; viewport prefetch trips the rate limit (decision #70).
+                            prefetch={false}
                             aria-label={`${post.commentCount ?? 0} comments`}
                             className={cn(
                                 'relative z-10',

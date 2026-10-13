@@ -8,6 +8,7 @@
 // Side effects: fetches /api/posts/load-more on intersection.
 
 import React, { useEffect, useRef, useState, useTransition } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
 import { type TPost } from '@/apis/blog.types';
@@ -39,29 +40,42 @@ export const TagPostsList: React.FC<Props> = (props) => {
     const [cursor, setCursor] = useState<string | null>(initialCursor);
     const [hasMore, setHasMore] = useState(initialHasMore);
     const [isPending, startTransition] = useTransition();
+    const [isError, setIsError] = useState(false);
+    const t = useTranslations('blog');
 
     const observerRef = useRef<IntersectionObserver | null>(null);
     const loadMoreRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (!hasMore || isPending) return;
+        // isError: stop the observer so a failing load-more (e.g. 429) is not retried
+        // in a loop; the retry button clears it.
+        if (!hasMore || isPending || isError) return;
 
         observerRef.current = new IntersectionObserver(
             (entries) => {
                 const [entry] = entries;
                 if (entry?.isIntersecting && cursor !== null) {
                     startTransition(async () => {
-                        const res = await fetch(
-                            `/api/posts/load-more?cursor=${cursor}&limit=20&tag=${encodeURIComponent(
-                                tag
-                            )}`
-                        );
+                        try {
+                            const res = await fetch(
+                                `/api/posts/load-more?cursor=${cursor}&limit=20&tag=${encodeURIComponent(
+                                    tag
+                                )}`
+                            );
+                            if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-                        const data = await res.json();
+                            const data = await res.json();
+                            if (!Array.isArray(data?.posts))
+                                throw new Error('Malformed load-more response');
 
-                        setPosts((prev) => [...prev, ...data.posts]);
-                        setCursor(data.nextCursor);
-                        setHasMore(data.hasMore);
+                            setPosts((prev) => [...prev, ...data.posts]);
+                            setCursor(data.nextCursor);
+                            setHasMore(data.hasMore);
+                        } catch {
+                            // Keep the posts already shown; a thrown error here
+                            // would reach the error boundary and blank the page.
+                            setIsError(true);
+                        }
                     });
                 }
             },
@@ -75,7 +89,7 @@ export const TagPostsList: React.FC<Props> = (props) => {
             if (observerRef.current && currentRef)
                 observerRef.current.unobserve(currentRef);
         };
-    }, [cursor, hasMore, isPending, tag]);
+    }, [cursor, hasMore, isPending, isError, tag]);
 
     return (
         <div
@@ -95,7 +109,20 @@ export const TagPostsList: React.FC<Props> = (props) => {
                 <div
                     ref={loadMoreRef}
                     className="flex justify-center py-8"
-                />
+                >
+                    {isError && (
+                        <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
+                            <p>{t('feed.loadError')}</p>
+                            <button
+                                type="button"
+                                onClick={() => setIsError(false)}
+                                className="border border-primary/30 px-3 py-1 text-xs font-semibold transition-colors hover:border-primary hover:bg-primary hover:text-primary-foreground"
+                            >
+                                {t('feed.retry')}
+                            </button>
+                        </div>
+                    )}
+                </div>
             )}
 
             {!hasMore && posts.length > 0 && (

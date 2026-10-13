@@ -12,6 +12,10 @@
         "browsePopular": "인기 태그 둘러보기",
         "jumpPlaceholder": "태그로 이동…"
     },
+    "feed": {
+        "loadError": "글을 더 불러오지 못했습니다.",
+        "retry": "다시 불러오기"
+    },
     "comments": {
         "heading": "{count, plural, =0 {댓글} other {댓글 #개}}",
         "empty": "아직 댓글이 없습니다 — 첫 댓글을 남겨보세요.",

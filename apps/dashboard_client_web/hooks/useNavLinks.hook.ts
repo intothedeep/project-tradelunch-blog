@@ -5,7 +5,7 @@
 // (not in a component) avoids a circular import between those components.
 //
 // buildPrimaryNavLinks / usePrimaryNavLinks → the P4 PrimaryNav set
-// (Home / All posts / About / Resume / Write / Saved / My blog). Pure builder
+// (Home / All posts / Explore / About / Resume / Write / Saved / My blog; Log hidden). Pure builder
 // is testable; the hook resolves Clerk username + auth state.
 
 import { useUser } from '@clerk/nextjs';
@@ -36,15 +36,9 @@ export const buildPrimaryNavLinks = (
             labelKey: 'nav.allPosts',
             iconKey: 'allPosts',
         },
-        {
-            // The global Log micro-feed (Phase Y). Public discovery surface: all
-            // users' threads, newest-first. Default Log destination (/log), not a
-            // per-user stream.
-            title: 'Log',
-            href: '/log',
-            labelKey: 'nav.log',
-            iconKey: 'log',
-        },
+        // Log (/log, Phase Y) is hidden from the nav by the owner (2026-10-13).
+        // The route still works; restore the entry here to show it again:
+        // { title: 'Log', href: '/log', labelKey: 'nav.log', iconKey: 'log' }
         {
             // Real search/discovery surface (P6, DEFERRED). Shown DISABLED as a
             // "coming soon" affordance — no `/explore` route exists yet, so the
