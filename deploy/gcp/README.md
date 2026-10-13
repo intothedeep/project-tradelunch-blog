@@ -204,6 +204,19 @@ SHA=<the full sha from a>
 pm2 save                                         # keep blog-web across reboots
 ```
 
+**d2. Purge the Cloudflare cache (Mac, every web release)**
+
+The web cache rule keeps HTML at the edge for 1 day. Old HTML points at old JS, so
+the new code does not reach browsers until the cache is purged (2026-10-13: a release
+looked broken because `age: 13671` HTML was still served).
+
+```sh
+./_scripts/cloudflare/cf-purge.sh     # needs _scripts/cloudflare/.env (CLOUDFLARE_API_TOKEN, CLOUDFLARE_ZONE_ID)
+curl -s -o /dev/null -D - https://my.prettylog.com/ | grep -iE "cf-cache-status|^age"   # MISS, or a small age
+```
+
+No `.env`: Cloudflare dashboard → the zone → Caching → Configuration → Purge Everything.
+
 If only `ecosystem.config.cjs` changed (no new tarball):
 
 ```sh

@@ -99,6 +99,9 @@ setPosts((prev) => [...prev, ...data.posts]);
 | 문구 | `messages/{en,ko}/blog.json` | `blog.feed.loadError`, `blog.feed.retry` |
 | 메뉴 | `hooks/useNavLinks.hook.ts` | Log 메뉴를 뺐다 (오너: "and hide log menu"). `/log` 주소는 그대로 열린다. 메뉴의 `/log` prefetch도 함께 없어진다 |
 
+| f | `components/rail/NavTagLink.client.tsx` | 사이드바 태그 목록 `<Link>`에 `prefetch={false}` (오너: "f안도 지금 고쳐줘", 2026-10-13). 페이지를 열 때 보이는 태그 약 30개를 한꺼번에 미리 받았다. 스크롤과는 상관없다 |
+
+- f를 찾은 방법: 홈 HTML의 `href`를 셌다 (2026-10-13 23:10 UTC, 메인 세션). `/tags/...` 고유 약 30개가 각 2–7번 나왔다. 카드 태그 칩 말고 사이드바 `NavTagLink`도 그 링크를 만들었다. 카드의 카테고리 경로 링크(`?category_title=`)는 이미 `prefetch={false}`였다. 사이드바 카테고리 트리는 `router.push`를 써서 미리 받지 않는다.
 - c에서 `null`을 쓴 근거: `node_modules/next/dist/client/app-dir/link.d.ts:120`은 `prefetch?: boolean | 'auto' | null`을 허용한다. 같은 파일 :106은 `false`가 화면 진입과 hover prefetch를 둘 다 끈다고 적는다. 그래서 hover 뒤에만 `null`로 바꾼다.
 - 정적 검사: `pnpm --filter dashboard_client_web check-types` 오류 0, `lint` 경고 0 (2026-10-13).
 - 브라우저에서 429를 다시 일으켜 보지는 않았다. 배포 뒤 §6으로 확인한다.
@@ -106,3 +109,11 @@ setPosts((prev) => [...prev, ...data.posts]);
 ## 6. 배포 뒤 확인 (오너)
 
 (배포 뒤 같은 방법으로 다시 센다: 로그인 안 한 창, Network, 필터 `_rsc`, 빠르게 스크롤)
+
+### 첫 측정은 예전 코드였다 (2026-10-13)
+
+- 웹 `34e2080`(a–d) 배포 뒤 오너가 셌다: `_rsc` 요청 108 / 전체 177.
+- 메인 세션 확인: 홈 HTML이 `cf-cache-status: HIT`, `age: 13671` (약 3.8시간, 배포 전)였다. HTML에 `/log` 링크가 남아 있었다.
+- 원인: 웹 캐시 규칙이 HTML을 엣지에 1일 둔다. 예전 HTML은 예전 JS 파일을 가리킨다. 그래서 배포한 코드가 브라우저에 가지 않았다.
+- 처방: 웹 배포 뒤에는 Cloudflare 캐시를 비운다 (`_scripts/cloudflare/cf-purge.sh` 또는 대시보드 Purge Everything). `deploy/gcp/README.md` §8에 단계를 넣었다.
+- `cf-purge.sh`는 `_scripts/cloudflare/.env`가 없어 실패했다 (`CLOUDFLARE_API_TOKEN` 없음). 오너가 대시보드에서 비운다.
