@@ -4,7 +4,7 @@
 // Anonymous responses are viewer-agnostic, so the edge may share them. TTL is
 // 24h by OWNER DECISION (same as the Cloudflare edge policy): after publishing,
 // the Vercel edge copy is cleared by redeploying Express (cf-purge.sh does NOT
-// reach it; once blogapi is behind the Cloudflare proxy, it will).
+// reach it; once blog-api is behind the Cloudflare proxy, it will).
 // Authenticated responses can carry an owner's drafts or viewerLiked, so they
 // must never enter a shared cache.
 import type { Request, Response } from 'express';

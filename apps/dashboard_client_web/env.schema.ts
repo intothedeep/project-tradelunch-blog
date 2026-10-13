@@ -28,7 +28,7 @@ const envSchema = z.object({
         // bake `localhost:4000` into the client bundle (favorites etc. → CONN
         // REFUSED). Local dev overrides via `.env.local` (NEXT_PUBLIC_API_BASE=
         // http://localhost:4000). Repoint to a custom api domain once one exists.
-        .default('https://blogapi.prettylog.com')
+        .default('https://blog-api.prettylog.com')
         .catch('https://error.:::apibase.com'),
 
     NEXT_PUBLIC_CDN_ASSETS: z

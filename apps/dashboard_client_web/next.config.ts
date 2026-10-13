@@ -26,7 +26,7 @@ console.log(
 );
 console.log(
     '[build] baked host = NEW (taeklim)?      =',
-    API_BASE.includes('blogapi')
+    API_BASE.includes('blog-api')
 );
 console.log(
     '[build] baked host = OLD (tradelunch)?   =',
