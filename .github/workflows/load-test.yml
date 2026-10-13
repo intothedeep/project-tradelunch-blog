@@ -16,6 +16,7 @@ on:
                 options:
                     - L1
                     - L2
+                    - L2-api
 
 permissions:
     contents: read # checkout, to read the k6 scripts
@@ -58,8 +59,11 @@ jobs:
 
             - name: Run k6
               run: |
-                  script="deploy/traffic/load/$(echo "$SET" | tr 'A-Z' 'a-z').js"
-                  k6 run --env RUN_ID="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" "$script"
+                  # L2-api = the api half of l2.js alone.
+                  only=""
+                  [ "$SET" = L2-api ] && only=api
+                  script="deploy/traffic/load/$(echo "${SET%-api}" | tr 'A-Z' 'a-z').js"
+                  k6 run --env RUN_ID="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" --env ONLY="$only" "$script"
 
             # always(): a run stopped by a threshold still has numbers worth keeping.
             - name: Publish summary

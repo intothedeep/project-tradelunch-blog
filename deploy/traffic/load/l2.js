@@ -59,6 +59,15 @@ export const options = {
     },
 }
 
+// ONLY=api re-runs the api half alone (2026-10-13: the web half aborted at 4 rps,
+// so the api stages never ran). Its web thresholds would then have no data.
+if (__ENV.ONLY === 'api') {
+    delete options.scenarios.web
+    options.scenarios.api.startTime = '0s'
+    delete options.thresholds['http_req_failed{target:web}']
+    delete options.thresholds['http_req_duration{target:web}']
+}
+
 export function web() {
     if (overCap(CAP)) return
     get('web', `${WEB}/?lt=${RUN}-${seq()}`, SET)
