@@ -19,8 +19,8 @@ Cloud Logging   (GCP console → Logging → Logs Explorer)
 | Step | What | Status |
 | --- | --- | --- |
 | ① | Rotate the PM2 log files so they never fill the 30 GB disk | **done 2026-10-13** — Ubuntu `logrotate` (#56) |
-| ⓐ | Structured JSON request logs in Express (pino) | code done 2026-10-13 (`src/lib/logger.ts`), **not deployed yet** |
-| ② | Ship the PM2 files to Cloud Logging with the Ops Agent | todo — after ⓐ is deployed; config = `ops-agent.yaml` here |
+| ⓐ | Structured JSON request logs in Express (pino) | **done 2026-10-13** — deployed `be590a6` |
+| ② | Ship the PM2 files to Cloud Logging with the Ops Agent | **done 2026-10-13** — `ops-agent.yaml` applied; severity mapped |
 
 ---
 
@@ -66,7 +66,7 @@ ls -la ~/.pm2/logs/                                     # rotated: blog-api-out-
 Removed: `pm2 uninstall pm2-logrotate` + `pm2 save`. Its two empty log files were renamed `x_*`.
 ---
 
-## ⓐ Structured request logs (pino) — code done, not deployed
+## ⓐ Structured request logs (pino) — done (deployed 2026-10-13, be590a6)
 
 Goal: every request writes one JSON line, so Cloud Logging can filter by field
 (`jsonPayload.res.statusCode >= 500`, `jsonPayload.responseTime > 1000`).
@@ -84,7 +84,7 @@ No secrets in logs. No log line contains a request body.
 
 ---
 
-## ② Ops Agent → Cloud Logging — todo (after ⓐ)
+## ② Ops Agent → Cloud Logging — done (applied 2026-10-13)
 
 The Ops Agent is already installed and running (`google-cloud-ops-agent*` services). It only
 needs to know where the PM2 files are. Config file: `ops-agent.yaml` in this folder. It only ADDS a `blog-api` pipeline; the agent merges it with its built-in host-metrics and syslog defaults (the stock VM `config.yaml` is comments only).
@@ -125,7 +125,53 @@ alert first.
 
 ---
 
-## Look at logs today (before ②)
+## Volume and noise — option C for now (decision #57)
+
+Cloud Logging bills by **bytes ingested**, not by entry count. Retention: `_Default` bucket,
+**30 days** (owner, 2026-10-13: keep 30 — retention up to 30 days costs nothing extra).
+
+Measured 2026-10-13 (`check-volume.sh 1d`, a day with three Ops Agent restarts and a boot):
+
+| Source | Entries | ≈ MB | What it is |
+| --- | --- | --- | --- |
+| `blog-api` | 421 | 0.2 | the API request / error log (what we want) |
+| `syslog` | 5,007 | 3.4 | VM system log, collected by the Ops Agent by default |
+| `ops-agent-*` | 1,361 | 0.7 | the agent's own logs |
+| other | 146 | 0.2 | guest agent, OS Config, audit |
+
+Top syslog senders that day: `systemd`, `kernel`, `sbkeysync` (Secure Boot keys at boot),
+`google_cloud_ops_agent_engine` (config dump on each restart), `otelopscol`, `cloudflared`
+(`ERR` on every `my.` request while Next is not running — goes away after the Next deploy).
+
+About 4.5 MB/day → far below the monthly free allotment (understood as 50 GiB; verify on the pricing page).
+
+### Options if it gets too noisy
+
+| Option | How | Effect | Cost of it |
+| --- | --- | --- | --- |
+| **A** — stop shipping syslog | in `ops-agent.yaml` add `service.pipelines.default_pipeline: { receivers: [] }` | about 70 % fewer entries; usually only `blog-api` left | VM system logs (cloudflared, systemd) not in the console; still on the VM via `journalctl` |
+| A′ — syslog for cloudflared only | a `files`/`systemd_journald` receiver filtered to `cloudflared` instead of all syslog | keeps tunnel errors in the console | one more receiver to maintain |
+| **B** — Log Router exclusion | Console → Logging → Log Router → `_Default` sink → exclusion, e.g. `log_id("syslog") OR log_id("ops-agent-fluent-bit")` | not stored, not billed; agent unchanged | console setting, not in git |
+| **C** — keep as is (**chosen**) | nothing | — | some noise; filter with `log_id("blog-api")` |
+
+### Weekly review
+
+```text
+every Monday 14:17 UTC  GitHub Actions (logging-review.yml) opens an issue "Logging review <date>"
+                            │  checklist + the command below
+                            ▼
+owner (or ask Claude)   deploy/logging/check-volume.sh 7d   (Mac, repo root, gcloud logged in)
+                            │
+                ┌───────────┴────────────┐
+        still fine → close issue    too noisy → pick A / A′ / B above
+```
+
+The reminder needs no GCP credentials; the check runs where `gcloud` is logged in. Run it by
+hand any time: `deploy/logging/check-volume.sh 7d` (or `30d`).
+
+---
+
+## Look at logs on the VM
 
 ```sh
 pm2 logs blog-api --lines 100 --nostream        # last lines, both streams
