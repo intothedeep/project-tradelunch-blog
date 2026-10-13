@@ -5,7 +5,7 @@
 
 | 문서 | 목적 | 항목 |
 | --- | --- | --- |
-| [`01-reduce-traffic.md`](./01-reduce-traffic.md) | 트래픽 줄이기 | 전체 그림, B 웹 캐시, C 브라우저 TTL, D API 캐시 |
+| [`01-reduce-traffic.md`](./01-reduce-traffic.md) | 트래픽 줄이기 | 전체 그림, B 웹 캐시, C 브라우저 TTL, D API 캐시, M 랜덤 쿼리 우회(설계 전) |
 | [`02-blocking.md`](./02-blocking.md) | 막기 | H 요청 수 제한과 부하 시험(설계 중), 이미 막는 것, 제안 |
 | [`03-status-codes.md`](./03-status-codes.md) | 상태 코드와 보안 | G CORS 403, 상태 코드 정리, 제안(헤더, 404 JSON) |
 | [`04-observability.md`](./04-observability.md) | 관찰과 알림 | A 요청 로그, E 알림, F 점검 도구, I egress 보류, J Supabase Log Query |
@@ -27,6 +27,7 @@
 | H | 요청 수 제한(rate limit), 부하 시험(load test) | Cloudflare 규칙 운영 중, Express `log` 모드 운영 중, L1 통과, L2-web 약 2 rps에서 한계 (`02-blocking.md`) |
 | I | 주간 issue에 egress 넣기 | **보류** (오너, 2026-10-13) |
 | K | GCP 방화벽 22, 3389 끄기 | 오너 승인 대기 (`02-blocking.md`) |
+| M | 랜덤 쿼리로 캐시를 피하는 요청 막기 | 설계 전 (`01-reduce-traffic.md` M) |
 | L | 공개 error-logs 쓰기 막기 | 완료, 운영 확인 (`38b4c12`) |
 | J | Supabase Log Query 사용량 | 관찰 중 |
 

@@ -264,7 +264,7 @@ blog-api 한도 200 MB (PM2 max_memory_restart). 지금 사용량은 VM에서 `p
 
 | 일 | 이유 |
 | --- | --- |
-| 랜덤 쿼리로 MISS를 만드는 우회를 막는 설계 (architect) | 오리진 용량 약 2 rps가 L-a 한도 10 rps보다 낮다. 후보: HTML 캐시 키에서 모르는 쿼리를 빼기, L-a 한도 낮추기 |
+| 랜덤 쿼리로 MISS를 만드는 우회를 막는 설계 (architect, 설명: `01-reduce-traffic.md` M) | 오리진 용량 약 2 rps가 L-a 한도 10 rps보다 낮다. 후보: HTML 캐시 키에서 모르는 쿼리를 빼기, L-a 한도 낮추기 |
 | L2-api만 다시 (오너 승인) | C_api가 없으면 Express 한도의 위쪽 한계를 정할 수 없다 |
 
 ### 배포 확인: L-b `log` 모드, `ip`, `ssr` (2026-10-13, `38b4c12`)

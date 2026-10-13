@@ -123,3 +123,86 @@ Cloudflare Tunnel → GCP e2-micro VM (1 GB)              ← E 메모리 알림
 | OPTIONS | 캐시 안 됨 | 204, DYNAMIC |
 | `Origin: my.`와 `Origin: local.` 번갈아 | 각자 자기 값 | 둘 다 HIT, `access-control-allow-origin` 각자 맞음 |
 
+
+## M. 랜덤 쿼리로 캐시를 피하는 요청 (설계 전, 2026-10-13)
+
+**왜 필요한가:** L2 시험에서 웹 오리진은 캐시를 놓친 요청을 초당 약 2번까지만 버텼다. Cloudflare 한도(IP당 100 / 10 s)는 초당 10번까지 허용한다.
+
+```text
+Cloudflare 한도      IP당 10초에 100번 = 초당 10번까지 허용
+웹 서버 한계          캐시를 놓친 요청은 초당 약 2번까지 (L2 시험)
+```
+
+**문제:** 캐시 키(cache key)는 Cloudflare가 "이 요청은 저장해 둔 그 페이지와 같다"고 판단하는 이름표다. 지금 "web cache" 규칙은 쿼리 전체를 캐시 키에 넣는다.
+
+```text
+요청 URL       캐시 키                     결과
+/              my.prettylog.com/           HIT
+/?x=1          my.prettylog.com/?x=1       MISS → 서버가 새로 그림
+/?x=2          my.prettylog.com/?x=2       MISS → 서버가 새로 그림
+```
+
+- 쿼리를 매번 바꾸면 모든 요청이 서버까지 온다. L2 시험이 이 방법(`/?lt=<번호>`)을 썼다.
+- IP 하나로도 Cloudflare 한도 안에서 웹 서버를 느리게 만들 수 있다.
+
+**대응 후보:**
+
+| 안 | 방법 | 장점 | 단점 |
+| --- | --- | --- | --- |
+| a | 캐시 키에 사이트가 쓰는 쿼리만 남긴다 (Cache key → Query string → Include only) | `/?x=랜덤`도 같은 캐시를 쓴다. `utm_*`, `fbclid` 방문도 캐시를 쓴다 | 쓰는 쿼리를 하나라도 빠뜨리면 페이지가 섞인다 |
+| b | Cloudflare 한도를 낮춘다 | 설정 한 줄 | HIT도 세므로 정상 사용자가 막힐 수 있다 |
+| a + b | 둘 다 | 가장 안전 | 할 일이 가장 많다 |
+
+**a안은 어떻게 동작하나:**
+
+```text
+허용 목록: _rsc, tags, tag, categories, category_title, cursor, limit, ...
+
+요청 URL                     캐시 키                          결과
+/?x=1                        my.prettylog.com/                HIT  (x는 목록에 없어서 버림)
+/?x=2&utm_source=fb          my.prettylog.com/                HIT
+/blog?tags=rust              my.prettylog.com/blog?tags=rust  처음만 MISS
+/blog?tags=rust&x=9          my.prettylog.com/blog?tags=rust  HIT  (x만 버림)
+```
+
+- 서버(Next)는 원래 URL을 그대로 받는다. 바뀌는 것은 Cloudflare가 저장하고 찾는 이름표뿐이다.
+
+**a안의 위험: 목록에서 빠진 쿼리가 있으면 페이지가 섞인다:**
+
+```text
+사이트가 ?tags=를 쓰는데 목록에 tags를 빠뜨리면
+1. /blog?tags=rust 요청  → 캐시 키 /blog → "rust 글만" 그려서 저장
+2. /blog 요청            → 캐시 키 /blog → HIT → "rust 글만" 보임   (틀림)
+```
+
+- 오류 화면 없이 틀린 내용이 하루 동안 보인다. 그래서 쓰는 쿼리를 빠짐없이 찾아야 한다.
+
+**지금 찾은 쿼리 (`searchParams.get(...)` grep, 2026-10-13, 전부가 아님):**
+
+| 쿼리 | 쓰는 곳 수 |
+| --- | --- |
+| `category_title` | 5 |
+| `categories` | 5 |
+| `tags` | 4 |
+| `tag`, `username`, `limit`, `cursor` | 각 1 |
+| `_rsc` | Next 화면 안 이동 |
+
+- 빠졌을 수 있는 것: `const { x } = await searchParams` 같은 다른 형태, Route Handler, 미들웨어가 읽는 쿼리.
+
+**왜 b안만으로는 부족한가:**
+
+- 규칙은 HIT와 MISS를 구분하지 않고 센다.
+- 오리진 한계(초당 2번)에 맞추려면 10초에 20번 아래로 내려야 한다.
+- 페이지 하나가 화면 안 이동용 요청(RSC prefetch)을 여러 개 보낸다. 정상 사용자도 막힐 수 있다.
+- 그래서 a안으로 캐시를 피하는 길을 없애는 것이 핵심이다. b안은 보조다.
+
+**넣은 뒤 확인할 것:**
+
+| 확인 | 기대 |
+| --- | --- |
+| `/?x=1`, `/?x=2` | 두 번째부터 HIT |
+| `/blog?tags=<태그>`와 `/blog` | 서로 다른 내용 |
+| `?_rsc=` 화면 안 이동 | 정상 |
+| L2-web 다시 | 대부분 HIT, 오리진까지 거의 안 옴 |
+
+**다음:** architect가 모든 경로의 쿼리 목록과 규칙 값을 설계한다. main session이 목록을 코드에서 다시 확인한다. 오너가 a, b, a + b 중 고른다.
