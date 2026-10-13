@@ -20,8 +20,15 @@ logging:
       # No time_key: pino writes ISO time ending in "Z"; the entry uses the
       # read time instead (≤ a few seconds later). The original stays in jsonPayload.time.
       type: parse_json
+    blog_api_severity:
+      # parse_json leaves pino's "severity" inside jsonPayload, so entries showed no
+      # severity in Logs Explorer (seen 2026-10-13). Move it to the LogEntry field.
+      type: modify_fields
+      fields:
+        severity:
+          move_from: jsonPayload.severity
   service:
     pipelines:
       blog_api:
         receivers: [blog-api]
-        processors: [blog_api_json]
+        processors: [blog_api_json, blog_api_severity]
