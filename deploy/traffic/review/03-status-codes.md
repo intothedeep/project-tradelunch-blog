@@ -2,7 +2,7 @@
 
 목표: 응답 코드가 실제 의미를 말하게 한다. 거절은 4xx, 서버 고장만 5xx. 오류 응답은 캐시하지 않는다.
 
-## G. CORS 거절을 403으로 (커밋과 배포 전)
+## G. CORS 거절을 403으로 (배포 완료 2026-10-13, `4d137f2`)
 
 **왜 필요했나:** 주간 issue #5에 "blog-api ERROR 48" ⚠️가 떴다. 원인을 찾다가 보안 문제를 발견했다.
 
@@ -41,7 +41,18 @@
 - **403인 이유:** 요청한 쪽이 허락받지 않은 것이다. 서버 고장(5xx)이 아니다.
 - **버린 대안:** `callback(null, false)`로 조용히 넘기는 방법. 이러면 요청이 라우트까지 가서 DB를 읽는다. 브라우저만 막히고 서버 부하는 그대로다.
 
-**확인:** 타입 검사와 빌드 통과. 운영 확인은 배포 뒤에 한다.
+**확인 (운영, 2026-10-13 20:07 UTC, `4d137f2`):**
+
+| 요청 | 결과 |
+| --- | --- |
+| 허용 안 된 Origin, OPTIONS | 403, DYNAMIC |
+| 허용 안 된 Origin, GET `/users/me` | 403, `{"success":false,"message":"origin not allowed"}` |
+| 허용 안 된 Origin, GET `posts` | 403, EXPIRED (캐시에서 그대로 나가지 않음) |
+| `Origin: my.`, OPTIONS / GET | 204 / 200 HIT |
+| Origin 없음 | 200 HIT |
+| Cloud Logging | 403은 WARNING `request completed` 한 줄씩. 배포 뒤 ERROR 0건 |
+
+배포 전 확인: 타입 검사와 빌드 통과.
 
 ```sh
 curl -s -o /dev/null -w '%{http_code}\n' -X OPTIONS -H 'Origin: https://evil.example' \
