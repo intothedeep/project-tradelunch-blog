@@ -1,0 +1,74 @@
+# Load test for the edge cache and the origin (traffic.design.md section 10,
+# decisions #65 L1 and #66 L2). Manual only: the main session starts it with
+#   gh workflow run load-test.yml -f set=L1
+# It runs on a GitHub runner, never on the owner's Mac. It needs no secrets and
+# calls public URLs only. The repo is public, so the log shows only URLs, status
+# codes and timings. Stop it with: gh run cancel <id>
+name: Load test
+
+on:
+    workflow_dispatch:
+        inputs:
+            set:
+                description: 'Test set (L1 = cache HIT burst, L2 = origin MISS capacity)'
+                required: true
+                type: choice
+                options:
+                    - L1
+                    - L2
+
+permissions:
+    contents: read # checkout, to read the k6 scripts
+
+# One run at a time: two runs together would double the load on the origin.
+concurrency:
+    group: load-test
+    cancel-in-progress: false
+
+jobs:
+    load-test:
+        runs-on: ubuntu-latest
+        timeout-minutes: 8 # L2 needs about 6.5 min; this is the hard ceiling
+        env:
+            SET: ${{ inputs.set }}
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+            - uses: grafana/setup-k6-action@43b9fc21641a76002687994433dd586f56e791b1 # v1.2.2
+              with:
+                  k6-version: '2.3.0'
+
+            # Design 10.4 item 6: do not start on a broken cache rule.
+            - name: Pre-check cache rules
+              run: _scripts/cloudflare/traffic-check.sh
+
+            # L1 needs a warm cache: the 2nd GET must be HIT, or the burst
+            # would measure the origin, not the edge.
+            - name: Pre-check L1 targets are cached
+              if: env.SET == 'L1'
+              run: |
+                  for url in \
+                      'https://my.prettylog.com/blog/@taeklim/rust-config' \
+                      'https://blog-api.prettylog.com/v1/api/posts?limit=1'; do
+                      curl -s -o /dev/null "$url"
+                      status=$(curl -s -o /dev/null -D - "$url" | tr -d '\r' | awk -F': ' 'tolower($1)=="cf-cache-status"{print $2}')
+                      echo "$url -> ${status:-none}"
+                      [ "$status" = HIT ] || { echo "Not HIT: the L1 run would hit the origin. Stop."; exit 1; }
+                  done
+
+            - name: Run k6
+              run: |
+                  script="deploy/traffic/load/$(echo "$SET" | tr 'A-Z' 'a-z').js"
+                  k6 run --env RUN_ID="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" "$script"
+
+            # always(): a run stopped by a threshold still has numbers worth keeping.
+            - name: Publish summary
+              if: always()
+              run: '[ -f summary.md ] && cat summary.md >> "$GITHUB_STEP_SUMMARY" || echo "No summary: k6 did not finish." >> "$GITHUB_STEP_SUMMARY"'
+
+            - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              if: always()
+              with:
+                  name: load-test-${{ inputs.set }}-${{ github.run_id }}
+                  path: summary.json
+                  if-no-files-found: ignore
