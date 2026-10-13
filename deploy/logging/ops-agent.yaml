@@ -15,6 +15,15 @@ logging:
       include_paths:
         - /home/tio_taek_lim/.pm2/logs/blog-api-out-0.log
         - /home/tio_taek_lim/.pm2/logs/blog-api-error-0.log
+    # Next.js request log (decision #58, apps/dashboard_client_web/proxy.ts).
+    # Wildcard because the PM2 id changes; rotated files end in a date or .gz,
+    # so they do not match *.log. Next's non-JSON startup lines ("▲ Next.js ...")
+    # fail parse_json and stay as plain text entries.
+    blog-web:
+      type: files
+      include_paths:
+        - /home/tio_taek_lim/.pm2/logs/blog-web-out-*.log
+        - /home/tio_taek_lim/.pm2/logs/blog-web-error-*.log
   processors:
     blog_api_json:
       # No time_key: pino writes ISO time ending in "Z"; the entry uses the
@@ -27,8 +36,19 @@ logging:
       fields:
         severity:
           move_from: jsonPayload.severity
+    blog_web_json:
+      type: parse_json
+    blog_web_severity:
+      # Same reason as blog_api_severity: lift severity out of jsonPayload.
+      type: modify_fields
+      fields:
+        severity:
+          move_from: jsonPayload.severity
   service:
     pipelines:
       blog_api:
         receivers: [blog-api]
         processors: [blog_api_json, blog_api_severity]
+      blog_web:
+        receivers: [blog-web]
+        processors: [blog_web_json, blog_web_severity]

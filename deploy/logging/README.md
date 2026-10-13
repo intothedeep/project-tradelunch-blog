@@ -8,7 +8,7 @@ blog-api (Express)
   │  ⓐ pino: one JSON line per request / error  → stdout / stderr
   ▼
 PM2 log files   ~/.pm2/logs/blog-api-out-0.log, blog-api-error-0.log
-  │  ① rotated daily or at 10 MB, 14 kept, gzip
+  │  ① rotated daily or at 10 MB, 7 kept (7 days), gzip
   ▼
 ② Google Cloud Ops Agent (fluent-bit, already running as root)
   │  tails the PM2 files, parses JSON
@@ -38,7 +38,7 @@ On the VM, `/etc/logrotate.d/pm2-tio_taek_lim`:
     su tio_taek_lim sudo
     daily
     maxsize 10M
-    rotate 14
+    rotate 7
     compress
     delaycompress
     missingok
@@ -52,7 +52,7 @@ On the VM, `/etc/logrotate.d/pm2-tio_taek_lim`:
 | --- | --- |
 | `su tio_taek_lim sudo` | `~/.pm2/logs` is group-writable; logrotate refuses such dirs unless told which user/group to act as |
 | `daily` + `maxsize 10M` | rotate every day, or earlier at the daily run if a file passed 10 MB |
-| `rotate 14` · `compress` · `delaycompress` | keep 14 old files; gzip all but the newest old one |
+| `rotate 7` · `compress` · `delaycompress` | keep 7 old files (7 days on the VM, decision #59; Cloud Logging keeps 30); gzip all but the newest old one |
 | `copytruncate` | PM2 holds the file open; copy then truncate in place (a few lines can be lost in that instant) |
 
 Check:
@@ -168,6 +168,56 @@ owner (or ask Claude)   deploy/logging/check-volume.sh 7d   (Mac, repo root, gcl
 
 The reminder needs no GCP credentials; the check runs where `gcloud` is logged in. Run it by
 hand any time: `deploy/logging/check-volume.sh 7d` (or `30d`).
+
+---
+
+## Web request log (`blog-web`, decision #58)
+
+Goal: see who hits the Next.js site (paths, countries, bots) in Logs Explorer.
+`apps/dashboard_client_web/proxy.ts` writes one JSON line per request to stdout
+(every environment, like blog-api). PM2 stores it in `~/.pm2/logs/blog-web-out-*.log`; the Ops Agent ships it.
+
+| Field | Meaning |
+| --- | --- |
+| `severity`, `message`, `time` | always `INFO`, `request`, ISO time |
+| `method`, `host`, `path`, `query` | request line; `host` is the public Host header |
+| `ip` | **full** client IP: `cf-connecting-ip`, else first `x-forwarded-for`, else null |
+| `country`, `ray` | `cf-ipcountry`, `cf-ray` |
+| `ua`, `referer` | `user-agent`, `referer` |
+| `rsc` | true for Next RSC navigation fetches (filter them apart from page loads) |
+| `signedIn` | true if a `__session` cookie exists (the value is never logged) |
+
+Example line (fake values):
+
+```json
+{"severity":"INFO","message":"request","time":"2026-10-13T09:30:00.000Z","method":"GET","host":"my.prettylog.com","path":"/posts/123","query":"","ip":"203.0.113.7","country":"KR","ray":"0000000000000000-ICN","ua":"Mozilla/5.0","referer":null,"rsc":false,"signedIn":false}
+```
+
+Local: the same lines print in the dev server terminal (`pnpm dev:web`).
+Silence them with `LOG_REQUESTS=false pnpm dev:web`. Default is on.
+
+Limits:
+
+- IPs are full (owner, #58). They are personal data, kept 30 days (#57). Do not export them.
+- Only Cloudflare MISSes reach the origin, so cached hits are not in this log.
+- Static files outside the proxy matcher (`_next`, files with a dot) are not logged.
+- Next's own startup lines (`▲ Next.js ...`) are not JSON and stay as text entries.
+
+Apply: copy and restart as in the "Ops Agent → Cloud Logging" section above, using the new `ops-agent.yaml` (it now has both pipelines).
+Then build and deploy the web app, so the new `proxy.ts` runs.
+
+Logs Explorer queries:
+
+```text
+# all web requests
+log_id("blog-web") jsonPayload.message="request"
+
+# page loads only, then group by jsonPayload.path or jsonPayload.country in the histogram / log fields panel
+log_id("blog-web") jsonPayload.message="request" jsonPayload.rsc=false
+
+# bots
+log_id("blog-web") jsonPayload.ua=~"(?i)bot|crawler|spider"
+```
 
 ---
 

@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import type { NextRequest } from 'next/server';
 
 // Routes that require an authenticated user.
 const isProtectedRoute = createRouteMatcher([
@@ -21,7 +22,50 @@ const isProtectedRoute = createRouteMatcher([
 // and a matching Cloudflare bypass rule. Do not reintroduce silent
 // Accept-Language detection: Cloudflare does not key the cache on `Vary`, so
 // one visitor's language would be served to everyone.
+//
+// Request log (decision #58, traffic analysis): one JSON line per request on
+// stdout, shipped by the Ops Agent. Cloudflare-cached hits never reach the
+// origin, so these lines are MISSes only; static files outside the matcher are
+// not logged. The IP is logged in full on purpose (owner, #58). Only the named
+// fields are read: never Authorization or Cookie values (`signedIn` is just
+// whether the Clerk `__session` cookie exists).
+function toRequestLogLine(req: NextRequest) {
+    const headers = req.headers;
+    return {
+        severity: 'INFO',
+        // `message` matches blog-api's pino messageKey; Cloud Logging shows it as the summary.
+        message: 'request',
+        time: new Date().toISOString(),
+        method: req.method,
+        // nextUrl.host is the internal host behind the tunnel; the Host header is the public one.
+        host: headers.get('host'),
+        path: req.nextUrl.pathname,
+        query: req.nextUrl.search,
+        ip:
+            headers.get('cf-connecting-ip') ??
+            headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+            null,
+        country: headers.get('cf-ipcountry'),
+        ray: headers.get('cf-ray'),
+        ua: headers.get('user-agent'),
+        referer: headers.get('referer'),
+        // RSC navigation fetches vs full page loads.
+        rsc: headers.get('rsc') === '1',
+        signedIn: req.cookies.has('__session'),
+    };
+}
+
 export default clerkMiddleware(async (auth, req) => {
+    // On in every environment like blog-api's pino; LOG_REQUESTS=false silences a noisy local session.
+    // Runtime-only switch: it does not change build output, so it stays out of turbo.json.
+    // eslint-disable-next-line turbo/no-undeclared-env-vars
+    if (process.env.LOG_REQUESTS !== 'false') {
+        try {
+            console.log(JSON.stringify(toRequestLogLine(req)));
+        } catch {
+            // Logging must never break a request.
+        }
+    }
     if (isProtectedRoute(req)) {
         await auth.protect();
     }
