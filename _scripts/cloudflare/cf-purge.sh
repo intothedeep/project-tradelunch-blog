@@ -5,9 +5,9 @@
 # this repo purges on publish. So after publishing a post, the new content is
 # invisible to anonymous visitors until the TTL expires — unless you run this.
 #
-#   ./_scripts/cf-purge.sh                       # purge everything (the usual case)
-#   ./_scripts/cf-purge.sh https://my.prettylog.com/ https://my.prettylog.com/blog
-#   ./_scripts/cf-purge.sh --dry-run             # show what would be sent
+#   ./_scripts/cloudflare/cf-purge.sh                       # purge everything (the usual case)
+#   ./_scripts/cloudflare/cf-purge.sh https://my.prettylog.com/ https://my.prettylog.com/blog
+#   ./_scripts/cloudflare/cf-purge.sh --dry-run             # show what would be sent
 #
 # Credentials, from the environment or a .env file beside this script:
 #   CLOUDFLARE_API_TOKEN  — needs the "Zone → Cache Purge → Purge" permission

@@ -5,6 +5,7 @@
 > 실행 규칙: agent는 curl, ssh, 배포를 하지 않는다. 아래 명령은 오너 또는 main session이 실행한다(`00.tasks.md` Phase GCP 머리말).
 > 테스트 러너(test runner)는 쓰지 않는다(`rules/core.md` Tests SUSPENDED). 검증은 실제 시스템에 대한 고의 파손(deliberate breakage)으로 한다.
 > 출처 표기: 오너 측정 = 2026-10-13 Mac에서 curl 2회. "확인 필요(대시보드)" = Cloudflare Free 플랜 제공 여부를 확신하지 못한 항목.
+> 오너용 5단계 실행표(진행 체크 포함): [`deploy/traffic/README.md`](deploy/traffic/README.md). 이 설계를 줄인 것이다.
 
 ## 0. Mission block (인용: 원본 `00.plan.md` "Phase GCP" #### Mission block. 원본이 이긴다)
 
@@ -60,7 +61,7 @@
 | C1 | web Cache Rules W1–W4 | VM CPU·RAM, egress, 데이터 누출 | Cloudflare Cache Rules | 미적용: `/` DYNAMIC, OG DYNAMIC, robots EXPIRED |
 | C2 | api Cache Rules A1–A2 (#54) | VM CPU, Supabase, egress, 누출 | Cloudflare Cache Rules | 미적용: posts API DYNAMIC |
 | C3 | Tiered Cache | colo별 MISS 감소 → VM | Cloudflare Caching → Tiered Cache | 미확인 |
-| C4 | purge 절차 | 발행 후 stale | `_scripts/cf-purge.sh` | 스크립트 있음, 실측 없음 |
+| C4 | purge 절차 | 발행 후 stale | `_scripts/cloudflare/cf-purge.sh` | 스크립트 있음, 실측 없음 |
 | C5 | 오리진 Cache-Control | 엣지 정책의 원천, 누출 | Express `posts.cache.ts`, Next 라우트 | posts 3곳만 송출 |
 | C6 | API 입력 방어 | Supabase 부하 | Express CORS, `?limit=` clamp | CORS 거부 = 500 + `error_log` INSERT |
 | C7 | rate limiting | cache 우회 폭주 → VM | Cloudflare WAF → Rate limiting | 없음 |
@@ -168,7 +169,7 @@ curl #2 ──► HIT ───────────────────�
 
 - W4의 `rsc` 헤더 조건과 상태 코드 TTL은 Free 제공 여부에 기댄다. 둘 다 확인 필요(대시보드).
 
-- 단건 purge: `./_scripts/cf-purge.sh <url>`.
+- 단건 purge: `./_scripts/cloudflare/cf-purge.sh <url>`.
 - B2, B4는 purge 직후 첫 요청이 그 키를 채우는 시험이다. 순서를 지킨다.
 - B5는 실패 시험이 아니다. "쿼리 우회는 VM에 닿는다"를 기록한다.
 
@@ -248,7 +249,7 @@ cf-purge.sh ──► curl #1 MISS ──► curl #2 HIT
 
 **어떻게 하나:**
 
-1. `./_scripts/cf-purge.sh` (전체, zone `prettylog.com` = 두 host 모두).
+1. `./_scripts/cloudflare/cf-purge.sh` (전체, zone `prettylog.com` = 두 host 모두).
 2. 표본 URL마다 curl 2회.
 3. 기대: `MISS` → `HIT`.
 

@@ -1,0 +1,18 @@
+{
+  "displayName": "VM memory used > 90%",
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "memory used > 90% for 5 min",
+      "conditionThreshold": {
+        "filter": "resource.type = \"gce_instance\" AND metric.type = \"agent.googleapis.com/memory/percent_used\" AND metric.label.state = \"used\"",
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 90,
+        "duration": "300s",
+        "aggregations": [{ "alignmentPeriod": "60s", "perSeriesAligner": "ALIGN_MEAN" }],
+        "trigger": { "count": 1 }
+      }
+    }
+  ],
+  "alertStrategy": { "autoClose": "1800s" }
+}

@@ -218,7 +218,7 @@ GH Actions ubuntu x64 ── build ──► api-<sha>.tgz, web-<sha>.tgz ──
 | 4-b | blog-api. DNS-only 유지 | **Tunnel 선택으로 불가**(§3.3). 기록용으로만 남김 |
 | 4-c | proxied, Cache Rule 없음 | CF 기본은 JSON을 캐시 안 함 → 안전하나 효과 0. 4-a의 1단계로 사용 가능 |
 
-- 4-a 부수 효과: `_scripts/cf-purge.sh`가 처음으로 API 캐시까지 도달한다(현재는 redeploy만 purge, `posts.cache.ts:6-7`).
+- 4-a 부수 효과: `_scripts/cloudflare/cf-purge.sh`가 처음으로 API 캐시까지 도달한다(현재는 redeploy만 purge, `posts.cache.ts:6-7`).
 - B 선택 시 4-a 가치가 커진다: VM CPU가 작고, 오리진 egress 1 GB/월만 무료다(S-GCP-1). 초과분 단가는 CDN Interconnect NA $0.08/GB로 보도됨(S-GCP-9, secondary; Cloudflare 현재 파트너 여부 [STALE] S-GCP-8). CF HIT가 egress를 줄인다.
 - 4-a/4-b는 **오너 선택**. pm이 D-row를 기록한 뒤 작업 시작.
 

@@ -134,6 +134,8 @@ curl -m 5 http://<VM external IP>:4000/ping                               # must
 
 ## 7. Cloudflare cache rules (decision #54, 4-a; once)
 
+Full steps with the web rules, checks and progress: [`../traffic/README.md`](../traffic/README.md).
+
 Caching → Cache Rules, in this order (a later rule overrides an earlier one):
 
 | # | Expression | Action |
