@@ -1,4 +1,5 @@
-# Weekly Cloud Logging volume review (decision #57). The job reads Cloud Logging
+# Weekly Cloud Logging volume review (decision #57) plus the Cloudflare cache
+# check (deploy/traffic/README.md step 5). The job reads Cloud Logging
 # through Workload Identity Federation (deploy/logging/github-wif.md), runs
 # deploy/logging/check-volume.sh, and opens an issue with a SHORT summary only.
 # The repo is public: volume.txt (full output) is never printed or posted.
@@ -41,12 +42,19 @@ jobs:
               # Output stays in volume.txt: the run log is public.
               run: deploy/logging/check-volume.sh 7d > volume.txt 2>/dev/null
 
+            - id: cache
+              continue-on-error: true
+              # Cloudflare cache rules (deploy/traffic/README.md step 5). Only
+              # public URLs and cache headers, so its lines may go into the issue.
+              run: _scripts/cloudflare/traffic-check.sh > cache.txt 2>&1
+
             - name: Open the review issue
               if: always()
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   GH_REPO: ${{ github.repository }}
                   CHECK_OUTCOME: ${{ steps.check.outcome }}
+                  CACHE_OUTCOME: ${{ steps.cache.outcome }}
               run: |
                   target=250
                   title="Logging review $(date -u +%Y-%m-%d)"
@@ -78,10 +86,31 @@ jobs:
                           "Verdict: ${verdict}")
                   fi
 
+                  pass=0
+                  fail=0
+                  failed=""
+                  if [ -f cache.txt ]; then
+                      pass=$(grep -c '^PASS' cache.txt || true)
+                      fail=$(grep -c '^FAIL' cache.txt || true)
+                      failed=$(grep '^FAIL' cache.txt | sed 's/^/    /' || true)
+                  fi
+                  if [ "$CACHE_OUTCOME" = success ]; then
+                      cache="Cloudflare cache rules: OK (${pass} PASS, 0 FAIL)."
+                  else
+                      case "$title" in "⚠️ "*) ;; *) title="⚠️ $title" ;; esac
+                      cache=$(printf '%s\n' \
+                          "Cloudflare cache rules: ⚠️ ${fail} FAIL, ${pass} PASS. Run \`_scripts/cloudflare/traffic-check.sh\` on the Mac." \
+                          "A private answer (__session, /me, Authorization) shown as HIT: turn that cache rule off now." \
+                          "" \
+                          "$failed")
+                  fi
+
                   body=$(printf '%s\n' \
                       "Cloud Logging volume review for the GCP VM (decision #57, option C = keep as is)." \
                       "" \
                       "$summary" \
+                      "" \
+                      "$cache" \
                       "" \
                       "- [ ] Syslog senders: nothing new and noisy (run the script on the Mac to see them)" \
                       "- [ ] Still fine: close this issue. Too noisy: pick A or B in \`deploy/logging/README.md\` \"Volume and noise\"")

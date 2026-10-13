@@ -344,11 +344,14 @@ pm2 monit                             # live CPU and memory per app; q to quit
 vmstat 5 3                            # si/so above 0 = swapping
 ```
 
-## 5. Weekly auto check (Claude builds)
+## 5. Weekly auto check
 
-- Extends `.github/workflows/logging-review.yml`.
-- Once a week it runs `_scripts/cloudflare/traffic-check.sh` and opens an issue with the results.
-- Not built yet. It starts after steps 2 and 3 pass.
+- Workflow: `.github/workflows/logging-review.yml`, every Monday 14:17 UTC, or by hand: `gh workflow run logging-review.yml`.
+- Step `cache` runs `_scripts/cloudflare/traffic-check.sh` on a GitHub runner. No secret is needed.
+- The weekly issue gets one line: `Cloudflare cache rules: OK (14 PASS, 0 FAIL).`
+- On a FAIL the title gets ⚠️ and the issue lists each FAIL line.
+- Its lines are public URLs and cache headers only, so they may go into the public issue.
+- Not in it yet: weekly egress from `vm-metrics.sh`. The workflow account needs `roles/monitoring.viewer` first (IAM change, owner decision D7).
 
 ## Purge after a new post
 
