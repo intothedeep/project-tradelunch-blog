@@ -78,6 +78,10 @@ const envSchema = z.object({
     // auth
     CLERK_SECRET_KEY: z.string().optional(),
 
+    // shared secret the Next runtime sends as `x-origin-key` (server-to-server
+    // only). Unset = gated routes stay open (see middlewares/requireOriginKey).
+    ORIGIN_KEY: z.string().min(32).optional(),
+
     // cors / app
     ALLOWED_ORIGINS: z.string().default(''),
     APP_URL: z.string().default('http://localhost:3000'),
@@ -131,6 +135,9 @@ export const STORAGE_BUCKET = env.STORAGE_BUCKET;
 
 // auth
 export const CLERK_SECRET_KEY = env.CLERK_SECRET_KEY;
+
+// server-to-server shared secret
+export const ORIGIN_KEY = env.ORIGIN_KEY;
 
 // cors / app
 export const ALLOWED_ORIGINS = env.ALLOWED_ORIGINS;

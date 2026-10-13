@@ -1,6 +1,7 @@
-// Purpose: PUBLIC error-log ingest. POST /v1/api/error-logs is called
+// Purpose: error-log ingest. POST /v1/api/error-logs is called
 //          server-to-server by the Next runtime (app/api/log-error), NEVER by
-//          the browser directly, so there is no auth. The body is untrusted: the
+//          the browser directly; the x-origin-key gate is applied where the
+//          router is mounted (controllers/index.ts). The body is untrusted: the
 //          helper coerces/truncates every field before insert. Returns 204 on
 //          success; on DB failure returns 500 but NEVER throws (best-effort log).
 // Invariants:

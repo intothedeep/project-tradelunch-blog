@@ -23,11 +23,24 @@ import {
     parseResponse,
 } from '@/apis/http.core';
 
+// Shared secret that proves the call comes from this Next runtime. Sent ONLY on
+// /v1/api/error-logs calls; it is the same header decision D12 option A names in
+// traffic.design.md §7.4. Server-only env (never NEXT_PUBLIC); unset -> no header,
+// so the deploy order with Express does not matter.
+export function originKeyHeaders(): Record<string, string> {
+    // Runtime-only secret read; it does not change build output, so it stays out of turbo.json.
+    // eslint-disable-next-line turbo/no-undeclared-env-vars
+    const key = process.env.ORIGIN_KEY;
+    return key ? { 'x-origin-key': key } : {};
+}
+
 export type TServerRequest = {
     path: string;
     method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
     body?: unknown;
     token?: string | null;
+    /** Extra request headers (e.g. originKeyHeaders() for error-logs). */
+    headers?: Record<string, string>;
     signal?: AbortSignal;
     fallbackError: string;
     /** Seconds to cache in Next's Data Cache. Omit for the `no-store` default. */
@@ -39,13 +52,14 @@ export async function serverRequest<T>({
     method = 'GET',
     body,
     token,
+    headers,
     signal,
     fallbackError,
     revalidate,
 }: TServerRequest): Promise<T> {
     const res = await fetch(`${API_BASE}${path}`, {
         method,
-        headers: buildHeaders(token, body),
+        headers: { ...buildHeaders(token, body), ...headers },
         body: encodeBody(body),
         // Default: bypass Next's fetch cache — Cloudflare is the single edge
         // cache. This prevents stale SSR output from being served to viewers

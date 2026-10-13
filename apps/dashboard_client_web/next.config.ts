@@ -45,6 +45,8 @@ function hostnameOf(url: string): string {
 }
 
 const nextConfig: NextConfig = {
+    // Do not advertise the framework (measured 2026-10-13: `x-powered-by: Next.js`).
+    poweredByHeader: false,
     transpilePackages: ['@repo/types'],
     // Self-hosted PM2 deploy (GCP): standalone server.js + traced node_modules.
     // The trace root must be the monorepo root: with pnpm node-linker=isolated

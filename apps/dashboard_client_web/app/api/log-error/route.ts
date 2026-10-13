@@ -2,10 +2,10 @@
 // Purpose: browser-side error-boundary ingest. The Next SSR server has NO DB
 // access by design, so this handler is a thin forwarder: it relays the reported
 // error payload server-to-server to Express (POST /v1/api/error-logs, the sole
-// Supabase owner) WITHOUT a token (the Express endpoint is public). It is
+// Supabase owner) WITHOUT a user token (it carries the x-origin-key secret). It is
 // best-effort logging — it must NEVER surface a new error to the caller, so it
 // always answers 204, even when JSON parsing or the forward fails.
-import { serverRequest } from '@/apis/http.server';
+import { originKeyHeaders, serverRequest } from '@/apis/http.server';
 
 export async function POST(req: Request) {
     try {
@@ -14,6 +14,7 @@ export async function POST(req: Request) {
             path: '/v1/api/error-logs',
             method: 'POST',
             body,
+            headers: originKeyHeaders(),
             fallbackError: 'failed to forward error log',
         });
     } catch {

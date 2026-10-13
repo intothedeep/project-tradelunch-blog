@@ -10,8 +10,12 @@ import {
 } from './middlewares/corsRejection';
 import { ALLOWED_ORIGINS_LIST } from './config/env.schema';
 import { logger } from './lib/logger';
+import { sendError } from './helpers/response';
 
 export const app = express();
+
+// Do not advertise the framework (measured 2026-10-13: `x-powered-by: Express`).
+app.disable('x-powered-by');
 
 // CORS whitelist is env-driven (ALLOWED_ORIGINS, comma-separated) so each
 // deploy target (local / Vercel preview / prod) controls its own origins
@@ -88,6 +92,14 @@ app.use('/ping', (_, res) => {
 });
 
 app.use('/v1', routers);
+
+// Unknown path -> JSON 404 instead of Express's default HTML page. Sits after
+// every router (only unmatched requests reach it) and before errorHandler: it
+// is a normal response, not an error, so it writes no error_log; pino-http
+// already logs 4xx at warn.
+app.use((_req, res) => {
+    sendError(res, 404, 'not found');
+});
 
 // Terminal global error handler — MUST stay last. Catches anything a route did
 // not handle (incl. Express-5 async rejections) → error_log (source='express').

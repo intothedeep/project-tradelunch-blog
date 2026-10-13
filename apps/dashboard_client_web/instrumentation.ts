@@ -6,7 +6,7 @@
 // reliable server-side ingest point. Best-effort only: must NEVER throw.
 // Node.js runtime only; edge runtime is out of scope (errors are RSC/SSR/action).
 
-import { serverRequest } from '@/apis/http.server';
+import { originKeyHeaders, serverRequest } from '@/apis/http.server';
 
 type NextInstrumentationRequest = {
     path: string;
@@ -33,6 +33,7 @@ export async function onRequestError(
             path: '/v1/api/error-logs',
             method: 'POST',
             body: payload,
+            headers: originKeyHeaders(),
             fallbackError: 'log-error failed',
         });
     } catch {

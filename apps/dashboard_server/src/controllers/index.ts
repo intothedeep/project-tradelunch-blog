@@ -11,6 +11,7 @@ import tags from './tags';
 import errorLogs from './errorLogs';
 import { logRouter } from './log';
 import { followsRouter } from './follows';
+import { requireOriginKey } from '../middlewares/requireOriginKey';
 
 export const router = Router();
 
@@ -39,9 +40,10 @@ router.use('/api/tags', tags);
 // Viewer-likes list (GET /api/likes) — the caller's own liked ids, on its own
 // prefix so it never collides with the public feed at GET /api/posts.
 router.use('/api/likes', likesListRouter);
-// Error-log ingest (POST /api/error-logs) — PUBLIC, called server-to-server by
-// the Next runtime (app/api/log-error), never by the browser. Its own prefix.
-router.use('/api/error-logs', errorLogs);
+// Error-log ingest (POST /api/error-logs) — called server-to-server by the Next
+// runtime (app/api/log-error), never by the browser. Gated by the x-origin-key
+// shared secret (open only while ORIGIN_KEY is unset). Its own prefix.
+router.use('/api/error-logs', requireOriginKey, errorLogs);
 // Log micro-feed (Phase Y) — /v1/api/log. Routes: GET /:username (stream),
 // GET /thread/:id (focus view), POST / (create), DELETE /:id (soft-delete).
 // Phase Y-M2: GET /timeline, POST /:id/like, GET /:id/like (social).

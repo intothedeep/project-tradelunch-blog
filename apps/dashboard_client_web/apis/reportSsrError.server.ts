@@ -9,6 +9,7 @@ import 'server-only';
 // Side effects: one fire-and-forget network POST.
 
 import { API_BASE } from '@/env.schema';
+import { originKeyHeaders } from '@/apis/http.server';
 
 const ERROR_LOG_ENDPOINT = '/v1/api/error-logs';
 
@@ -23,7 +24,10 @@ export async function reportSsrError(
     try {
         await fetch(`${API_BASE}${ERROR_LOG_ENDPOINT}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...originKeyHeaders(),
+            },
             body: JSON.stringify({ message, path, stack, source: 'ssr' }),
             cache: 'no-store',
         });
