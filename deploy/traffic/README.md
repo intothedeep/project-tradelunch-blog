@@ -13,6 +13,7 @@ Open decisions follow the design's recommendations unless the owner says otherwi
 [x] 3. API cache rules     Cloudflare answers API GETs        done 2026-10-13
 [x] 4. Alerts              mail when money or memory is high  done 2026-10-13
 [x] 5. Weekly auto check   a weekly issue with cache checks   done 2026-10-13
+[ ] 6. Web rate limit      cap one IP on my.                  owner sets (RL-0, RL-2)
 ```
 
 | Step | Protects | Who | Done when |
@@ -354,6 +355,52 @@ vmstat 5 3                            # si/so above 0 = swapping
 - 🚨 appears only when a private answer (`__session`, `/me`, `Authorization`) comes back `HIT`.
 - Its lines are public URLs and cache headers only, so they may go into the public issue.
 - Not in it yet: weekly egress from `vm-metrics.sh`. The workflow account needs `roles/monitoring.viewer` first (IAM change, owner decision D7).
+
+## 6. Web rate limit (Cloudflare, decision #62)
+
+Why: the cache rules stop anonymous GETs only. Requests that miss the cache (signed-in pages, POST, a new query string each time) reach the 1 GB VM. This rule caps one IP on `my.`.
+Design: `traffic.design.md` §7.4.1–§7.4.2. The numbers are provisional until 14 days of logs (§7.4.4).
+
+**a. Read the Free plan values first (RL-0)**
+
+Cloudflare → prettylog.com → Security → WAF → Rate limiting rules → Create rule. Do not save yet. Note what the form offers:
+
+| Item | Design assumes | Write what you see |
+| --- | --- | --- |
+| rules allowed | 1 | |
+| counting characteristics | IP only | |
+| period choices | 10 s | |
+| mitigation timeout choices | 10 s | |
+| actions | Block, Managed Challenge | |
+| fields in the expression | `http.host`, `http.request.uri.path`, `cf.client.bot` | |
+| response code | 429 | |
+
+- If `cf.client.bot` is not offered: drop that line only.
+- If `http.host` is not offered: stop and tell Claude (the rule would also hit `blog-api.`).
+
+**b. Create "web rate limit" (RL-2)**
+
+```text
+(http.host eq "my.prettylog.com" and not starts_with(http.request.uri.path, "/_next/") and not cf.client.bot)
+```
+
+| Field | Value |
+| --- | --- |
+| Rule name | `web rate limit` |
+| Counting | per IP |
+| Requests | 100 |
+| Period | 10 seconds |
+| Action | Block |
+| Duration | 10 seconds |
+
+- Block, not Challenge: in-app navigation (RSC) and `fetch` cannot solve a challenge page.
+- Not on `blog-api.`: Next SSR calls all come from the VM's one IP. Counting them by IP would block the site itself.
+- Off switch: the rule's toggle in the list.
+
+**c. Check (Claude)**
+
+- Normal browsing still works (open `/`, `/blog`, a post, sign in).
+- A capped burst trips it once (set L3-cf, after the load-test workflow exists: `traffic.design.md` §10).
 
 ## Purge after a new post
 
