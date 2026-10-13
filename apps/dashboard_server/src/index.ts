@@ -1,14 +1,15 @@
 import { app } from './server';
 import { SERVER_PORT, HOST_NAME } from './config/env.schema';
 import { pool } from './database';
+import { logger } from './lib/logger';
 
 async function shutdown(signal: string): Promise<void> {
-    console.log(`${signal} received`);
+    logger.info(`${signal} received`);
     try {
         await pool.end();
         process.exit(0);
     } catch (error) {
-        console.error('Shutdown error:', error);
+        logger.error({ err: error }, 'Shutdown error');
         process.exit(1);
     }
 }
@@ -16,7 +17,7 @@ async function shutdown(signal: string): Promise<void> {
 (async () => {
     try {
         app.listen(SERVER_PORT, () => {
-            console.log(
+            logger.info(
                 `Backend listening on port http://${HOST_NAME}:${SERVER_PORT}/ping`
             );
         });
@@ -24,7 +25,7 @@ async function shutdown(signal: string): Promise<void> {
         process.on('SIGTERM', () => shutdown('SIGTERM'));
         process.on('SIGINT', () => shutdown('SIGINT'));
     } catch (error) {
-        console.error('Server startup failed:', error);
+        logger.fatal({ err: error }, 'Server startup failed');
         process.exit(1);
     }
 })();

@@ -6,10 +6,13 @@ import path from 'path';
 // Load .env.local FIRST — dotenv keeps the first value it sees, so this gives
 // local secrets/overrides highest priority (same habit as the Next apps). On
 // Vercel there is no .env.local, so this is a harmless no-op in production.
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+dotenv.config({
+    path: path.resolve(process.cwd(), '.env.local'),
+    quiet: true,
+});
 
 // Load default .env next
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env'), quiet: true });
 
 export const IS_DEVELOPMENT = process.env.NODE_ENV == 'development';
 export const IS_LOCAL = process.env.NODE_ENV == 'local';
@@ -21,7 +24,10 @@ const dotEnvConfigPath =
         : '.env.development';
 
 // Load .env.production to override any variables from .env
-dotenv.config({ path: path.resolve(process.cwd(), dotEnvConfigPath) });
+dotenv.config({
+    path: path.resolve(process.cwd(), dotEnvConfigPath),
+    quiet: true,
+});
 
 const envSchema = z.object({
     NODE_ENV: z
@@ -29,6 +35,9 @@ const envSchema = z.object({
         .default('development'),
     PORT: z.coerce.number().default(4000),
     HOST_NAME: z.string().default('localhost'),
+    LOG_LEVEL: z
+        .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+        .default('info'),
 
     // domain
     SITE_DOMAIN: z.string().default('http://localhost:3000'),
@@ -93,6 +102,7 @@ export const env = envSchema.parse(process.env);
 export const NODE_ENV = env.NODE_ENV;
 export const SERVER_PORT = env.PORT;
 export const HOST_NAME = env.HOST_NAME;
+export const LOG_LEVEL = env.LOG_LEVEL;
 
 export const CDN_ASSETS = env.CDN_ASSETS;
 

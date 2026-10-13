@@ -5,7 +5,7 @@
 //   500. This makes Express's OWN runtime errors visible in the same Supabase
 //   table that already holds 'browser'/'ssr' reports.
 // Invariants:
-//   * Best-effort logging — a DB failure is swallowed (console.error only) and
+//   * Best-effort logging — a DB failure is swallowed (logged only) and
 //     never masks the original error or throws again.
 //   * Must be mounted LAST, after every router (Express identifies it by arity).
 //   * If the response was already partially sent, defer to Express's default.
@@ -13,6 +13,7 @@
 import type { ErrorRequestHandler } from 'express';
 import { pool } from '../database';
 import { buildExpressErrorRow, insertErrorLog } from '../helpers/errorLog';
+import { logger } from '../lib/logger';
 
 export const errorHandler: ErrorRequestHandler = async (
     err,
@@ -20,7 +21,9 @@ export const errorHandler: ErrorRequestHandler = async (
     res,
     next
 ) => {
-    console.error('Unhandled Express error:', err);
+    // req.log carries the request id; fall back when pino-http never ran.
+    const log = req.log ?? logger;
+    log.error({ err }, 'Unhandled Express error');
 
     // Await the insert (not fire-and-forget): on serverless the function can
     // freeze once the response is sent, dropping a pending write. The latency
@@ -33,7 +36,7 @@ export const errorHandler: ErrorRequestHandler = async (
         );
         await insertErrorLog(pool, row);
     } catch (logErr) {
-        console.error('error_log insert failed:', logErr);
+        log.error({ err: logErr }, 'error_log insert failed');
     }
 
     if (res.headersSent) {

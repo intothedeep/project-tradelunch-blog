@@ -1,8 +1,11 @@
 import express from 'express';
+import { randomUUID } from 'crypto';
+import pinoHttp from 'pino-http';
 import cors, { CorsOptions } from 'cors';
 import routers from './controllers';
 import { errorHandler } from './middlewares/errorHandler';
 import { ALLOWED_ORIGINS_LIST } from './config/env.schema';
+import { logger } from './lib/logger';
 
 export const app = express();
 
@@ -27,6 +30,32 @@ const corsOptions: CorsOptions = {
     allowedHeaders: ['Content-Type', 'Authorization'],
     optionsSuccessStatus: 204, // Safari preflight 200 → 204 fix
 };
+
+// Mounted first so CORS rejections and every later error are logged with the
+// request id. Bodies and headers are never serialized (id/method/url only).
+app.use(
+    pinoHttp({
+        logger,
+        genReqId: (req, res) => {
+            const incoming = req.headers['x-request-id'];
+            const id =
+                (Array.isArray(incoming) ? incoming[0] : incoming) ||
+                randomUUID();
+            res.setHeader('x-request-id', id);
+            return id;
+        },
+        autoLogging: { ignore: (req) => req.url === '/ping' },
+        customLogLevel: (_req, res, err) => {
+            if (err || res.statusCode >= 500) return 'error';
+            if (res.statusCode >= 400) return 'warn';
+            return 'info';
+        },
+        serializers: {
+            req: (req) => ({ id: req.id, method: req.method, url: req.url }),
+            res: (res) => ({ statusCode: res.statusCode }),
+        },
+    })
+);
 
 app.use(cors(corsOptions));
 
