@@ -75,14 +75,48 @@ curl -s -o /dev/null -w '%{http_code}\n' -X OPTIONS -H 'Origin: https://evil.exa
 
 **주의 (피드 안내 화면):** 피드를 못 받은 홈은 200으로 나간다. 그래서 "web cache" 규칙이 하루 동안 캐시할 수 있다. 이때는 purge 한 번으로 고친다. 근본 해결은 아래 제안 4.
 
-## 제안 (아직 안 함, 오늘 측정으로 찾음)
+## 제안 (오늘 측정으로 찾음. 1, 2는 코드 완료)
 
 | # | 무엇 | 지금 (측정 10-13) | 바꾸면 | 왜 | 어디서 |
 | --- | --- | --- | --- | --- | --- |
-| 1 | 서버 종류 숨기기 | `x-powered-by: Next.js`, `x-powered-by: Express` | 헤더 없음 | 공격자에게 프레임워크를 알려 줄 이유가 없다 | `next.config.ts` `poweredByHeader: false`, Express `app.disable('x-powered-by')` |
-| 2 | 없는 API 경로 | 404 + Express 기본 HTML (`Cannot GET /v1/api/nope`) | 404 + JSON `{success:false}` | 응답 형식을 하나로. 내부 경로 모양을 덜 드러낸다 | Express 마지막 404 처리기 |
+| 1 | 서버 종류 숨기기 (코드 완료 `42e1bf3`, 배포 대기) | `x-powered-by: Next.js`, `x-powered-by: Express` | 헤더 없음 | 공격자에게 프레임워크를 알려 줄 이유가 없다 | `next.config.ts` `poweredByHeader: false`, Express `app.disable('x-powered-by')` |
+| 2 | 없는 API 경로 (코드 완료 `42e1bf3`, 배포 대기) | 404 + Express 기본 HTML (`Cannot GET /v1/api/nope`) | 404 + JSON `{success:false}` | 응답 형식을 하나로. 내부 경로 모양을 덜 드러낸다 | Express 마지막 404 처리기 |
 | 3 | 보안 헤더 | HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options` 없음 (API 404에만 일부) | 모든 응답에 붙음 | 다운그레이드, MIME 추측, 클릭재킹(clickjacking) 방지 | Cloudflare Transform Rules 또는 앱. HSTS는 Cloudflare SSL/TLS 설정 (preload는 되돌리기 어려우니 빼고 시작) |
 | 4 | 피드 실패 화면이 캐시되지 않게 | 200, 캐시 가능 | 그 응답만 짧게 또는 캐시 안 함 | 일시 장애가 하루 동안 남지 않게 | 설계 필요 (Next에서 응답 헤더를 바꾸기 어렵다) |
 
 - 1, 2는 코드 몇 줄이다. 원하면 G와 같이 배포한다.
 - 3, 4는 설계가 먼저다.
+
+## L. 공개 error-logs 쓰기 막기 (코드 완료 `42e1bf3`, 배포 대기, 결정 #60)
+
+**왜 필요했나:** 설계 검토 중 architect가 "인증 여부 확인 필요"로 남긴 경로를 확인했다.
+
+**문제:** `POST /v1/api/error-logs`는 인증이 없다. 인터넷 누구나 부를 수 있고, 요청 1건마다 Supabase에 1행을 쓴다. CORS 문제(G)보다 직접적인 DB 쓰기 경로다. CORS는 브라우저만 막고, `curl`은 막지 못한다.
+
+**무엇을 바꿨나:**
+
+```text
+브라우저 오류 ─► Next /api/log-error ─► Express /error-logs  (x-origin-key: 비밀)  ─► INSERT
+누구나 curl  ─────────────────────────► Express /error-logs  (헤더 없음)          ─► 403, INSERT 없음
+```
+
+| 파일 | 변경 |
+| --- | --- |
+| `apps/dashboard_server/src/middlewares/requireOriginKey.ts` (새 파일) | `x-origin-key`가 env `ORIGIN_KEY`와 같을 때만 통과. 아니면 403 |
+| `apps/dashboard_server/src/controllers/index.ts` | `/api/error-logs` 앞에 붙임 |
+| `apps/dashboard_client_web/apis/http.server.ts` | `originKeyHeaders()`. 키가 있을 때만 헤더를 만든다 |
+| `instrumentation.ts`, `app/api/log-error/route.ts`, `apis/reportSsrError.server.ts` | `/error-logs`를 부르는 세 곳만 헤더를 보낸다 |
+
+**어떻게:** VM의 `shared/api.env`와 `shared/web.env`에 같은 `ORIGIN_KEY`(64자, `openssl rand -hex 32`)를 넣는다. 웹을 먼저, API를 나중에 올린다. 둘 다 ecosystem 파일로 restart한다.
+
+**왜 이 방법인가:**
+
+- **공유 비밀인 이유:** 이 경로는 Next 서버만 부른다. 사용자 로그인과 상관없다. 서버끼리의 증명에는 비밀 헤더 하나면 된다.
+- **비교에 `timingSafeEqual`을 쓰는 이유:** 응답 시간 차이로 키를 한 글자씩 알아내는 공격을 막는다.
+- **키가 없으면 예전처럼 여는 이유:** 배포 순서가 틀려도 사이트와 오류 기록이 멈추지 않는다. 시작할 때 `ORIGIN_KEY unset` 경고를 남겨 빠뜨린 것을 알 수 있다.
+- **요청 수 제한만으로 막지 않는 이유:** 한도 안의 스팸은 그대로 쌓인다.
+- **같은 헤더를 SSR 제외(D12)에 다시 쓰는 이유:** 비밀을 하나만 관리한다.
+
+**주의:** `ORIGIN_KEY=`처럼 빈 값을 두면 Express가 시작하지 못한다(최소 32자 검사). 쓰지 않을 때는 줄을 지운다.
+
+**확인 (배포 뒤):** 키 없이 POST → 403. 사이트 정상. Cloud Logging에 `ORIGIN_KEY unset` 경고 없음.

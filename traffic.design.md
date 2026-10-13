@@ -390,7 +390,7 @@ pinoHttp ─► rateLimit ─► cors ─► corsRejection ─► json ─► /p
 | 위치 | `server.ts`에서 `pinoHttp` 바로 뒤, `cors()` 앞. 429도 요청 로그에 남는다 |
 | 키 | `cf-connecting-ip` 헤더. IPv6는 /64 접두사로 묶는다 |
 | 헤더 없음 | 제한하지 않는다(fail-open). localhost 호출이다 |
-| 제외 | `x-origin-key` 헤더가 env `ORIGIN_SSR_KEY`와 같은 요청 (= Next SSR). 비교는 timing-safe |
+| 제외 | `x-origin-key` 헤더가 env `ORIGIN_KEY`와 같은 요청 (= Next SSR). 비교는 timing-safe |
 | 틀리거나 없는 키 | 일반 클라이언트처럼 센다. 우회 수단이 아니다 |
 | 창(window) | 고정 창(fixed window) 60 s |
 | 한도 (가안) | 읽기(GET, HEAD, OPTIONS) **120 / 60 s**, 쓰기(그 밖) **30 / 60 s**, IP당 |
@@ -811,7 +811,7 @@ RL-1 로그 필드+키 ──┼─► RL-3 L-b log 모드 ─► (14일) ─┐
 | --- | --- | --- | --- | --- |
 | RL-0 | Free rate limiting 화면 값을 §7.4.1 표에 적는다. N_page를 DevTools로 센다 | USER | 없음 | 표 9칸, N_page 1개 |
 | LT-1 | `load-test.yml` + k6 L1 스크립트, L1-web, L1-api 실행 (D9) | ENG 작성, main session 실행 | 없음 | k6 summary JSON, §10.5 L1 판정 |
-| RL-1 | blog-api 로그에 `req.ip`, `req.ssr` (D11). Next `http.server.ts`가 `x-origin-key` 송신, 두 앱 env `ORIGIN_SSR_KEY` (D12) | ENG + USER(env) | 없음 | Logs Explorer에서 두 필드 확인 |
+| RL-1 | blog-api 로그에 `req.ip`, `req.ssr` (D11). Next `http.server.ts`가 `x-origin-key` 송신, 두 앱 env `ORIGIN_KEY` (D12) | ENG + USER(env) | 없음 | Logs Explorer에서 두 필드 확인 |
 | RL-2 | L-a 규칙 "web rate limit", 가안 100 / 10 s, Block (D5) | USER | RL-0 | 규칙 1개 켜짐 |
 | RL-3 | L-b 미들웨어, `RATE_LIMIT_MODE=log`, 가안 120 / 30 | ENG | RL-1 | `rate_limit` warn 줄이 생기는지 L3-api `log`로 확인 |
 | LT-2 | L2-web, L2-api 실행 (D13). L-b는 `off` 또는 `log` | main session 실행 | LT-1 | C_web, C_api 첫 값 |
