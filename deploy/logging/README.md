@@ -270,26 +270,58 @@ jsonPayload.message="request"
 Roll back step 3: `sudo cp /etc/google-cloud-ops-agent/x_config.yaml.bak /etc/google-cloud-ops-agent/config.yaml`
 and restart the agent.
 
-Logs Explorer queries:
+### Query the web log
+
+Two places run the same filter language. Logs Explorer does not accept `#` comments
+(use `--` if you need one), so paste only the filter lines.
+
+**a. GCP console, Logs Explorer** (<https://console.cloud.google.com/logs/query?project=mywebsite-511502>)
+
+1. Paste a filter into the **Query** box. Each line is ANDed.
+2. Set the time range at the top (for example "Last 7 days").
+3. Click **Run query**.
+4. In **Log fields** (left), click `jsonPayload.path`, `jsonPayload.country` or `jsonPayload.ua`
+   to see counts per value.
+
+| Purpose | Filter |
+| --- | --- |
+| all web requests | `log_id("blog-web")` `jsonPayload.message="request"` |
+| page loads only (no RSC navigation fetches) | `log_id("blog-web")` `jsonPayload.message="request"` `jsonPayload.rsc=false` |
+| bots and link-preview fetchers | `log_id("blog-web")` `jsonPayload.ua=~"(?i)bot\|crawl\|spider\|externalhit\|slurp\|preview\|fetch"` |
+| one path | `log_id("blog-web")` `jsonPayload.path="/blog"` |
+| one country | `log_id("blog-web")` `jsonPayload.country="KR"` |
+| signed-in visitors | `log_id("blog-web")` `jsonPayload.signedIn=true` |
+
+Page loads only, as pasted into the Query box:
 
 ```text
-# all web requests
-log_id("blog-web") jsonPayload.message="request"
-
-# page loads only, then group by jsonPayload.path or jsonPayload.country in the histogram / log fields panel
-log_id("blog-web") jsonPayload.message="request" jsonPayload.rsc=false
-
-# bots
-log_id("blog-web") jsonPayload.ua=~"(?i)bot|crawler|spider"
+log_id("blog-web")
+jsonPayload.message="request"
+jsonPayload.rsc=false
 ```
 
----
-
-## Look at logs on the VM
+**b. Mac terminal** (`gcloud` logged in; join the conditions with `AND` on one line)
 
 ```sh
-pm2 logs blog-api --lines 100 --nostream        # last lines, both streams
-pm2 logs blog-api --err --lines 50 --nostream   # errors only
-tail -f ~/.pm2/logs/blog-api-out-0.log
-zcat ~/.pm2/logs/blog-api-out-0.log-*.gz | grep ' 500 '   # rotated files
+# page loads, last day
+gcloud logging read 'log_id("blog-web") AND jsonPayload.message="request" AND jsonPayload.rsc=false' \
+  --project=mywebsite-511502 --freshness=1d --limit=20 \
+  --format='table(timestamp,jsonPayload.path,jsonPayload.country,jsonPayload.ua)'
+
+# bots and link-preview fetchers, last day
+gcloud logging read 'log_id("blog-web") AND jsonPayload.ua=~"(?i)bot|crawl|spider|externalhit|slurp|preview|fetch"' \
+  --project=mywebsite-511502 --freshness=1d --limit=20 \
+  --format='table(timestamp,jsonPayload.path,jsonPayload.ua)'
+
+# top paths, last 7 days (counts)
+gcloud logging read 'log_id("blog-web") AND jsonPayload.message="request" AND jsonPayload.rsc=false' \
+  --project=mywebsite-511502 --freshness=7d --limit=5000 --format='value(jsonPayload.path)' \
+  | sort | uniq -c | sort -rn | head -20
 ```
+
+- `--freshness` is the time range (`1h`, `1d`, `7d`). `--limit` caps the rows read.
+- An empty result prints nothing (no header). That means no match, not an error.
+- `jsonPayload.ip` is left out on purpose. Add it only for your own analysis. Never paste IPs
+  into a GitHub issue: the repo is public.
+- Bot pattern note: `facebookexternalhit` (Facebook link previews) has no "bot" in its UA, so
+  the pattern also lists `externalhit` (seen 2026-10-13).
