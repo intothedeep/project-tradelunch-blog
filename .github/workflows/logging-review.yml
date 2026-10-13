@@ -98,9 +98,14 @@ jobs:
                       cache="Cloudflare cache rules: OK (${pass} PASS, 0 FAIL)."
                   else
                       case "$title" in "⚠️ "*) ;; *) title="⚠️ $title" ;; esac
+                      # A FAIL whose actual value is HIT = a private answer was cached.
+                      leak=""
+                      if grep -E '^FAIL' cache.txt 2>/dev/null | grep -qE ' HIT \(want'; then
+                          leak="🚨 A private answer (__session, /me, Authorization) came back HIT: turn that cache rule off now."
+                      fi
                       cache=$(printf '%s\n' \
                           "Cloudflare cache rules: ⚠️ ${fail} FAIL, ${pass} PASS. Run \`_scripts/cloudflare/traffic-check.sh\` on the Mac." \
-                          "A private answer (__session, /me, Authorization) shown as HIT: turn that cache rule off now." \
+                          "$leak" \
                           "" \
                           "$failed")
                   fi

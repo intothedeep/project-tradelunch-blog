@@ -12,7 +12,7 @@ Open decisions follow the design's recommendations unless the owner says otherwi
 [x] 2. Web cache rules     Cloudflare answers pages           done 2026-10-13
 [x] 3. API cache rules     Cloudflare answers API GETs        done 2026-10-13
 [x] 4. Alerts              mail when money or memory is high  done 2026-10-13
-[ ] 5. Weekly auto check   a weekly issue with HIT ratios     Claude builds
+[x] 5. Weekly auto check   a weekly issue with cache checks   done 2026-10-13
 ```
 
 | Step | Protects | Who | Done when |
@@ -350,6 +350,8 @@ vmstat 5 3                            # si/so above 0 = swapping
 - Step `cache` runs `_scripts/cloudflare/traffic-check.sh` on a GitHub runner. No secret is needed.
 - The weekly issue gets one line: `Cloudflare cache rules: OK (14 PASS, 0 FAIL).`
 - On a FAIL the title gets ⚠️ and the issue lists each FAIL line.
+- A HIT check tries 4 times. A runner can reach a different Cloudflare cache server per connection (first run 2026-10-13: 2 false MISS).
+- 🚨 appears only when a private answer (`__session`, `/me`, `Authorization`) comes back `HIT`.
 - Its lines are public URLs and cache headers only, so they may go into the public issue.
 - Not in it yet: weekly egress from `vm-metrics.sh`. The workflow account needs `roles/monitoring.viewer` first (IAM change, owner decision D7).
 
