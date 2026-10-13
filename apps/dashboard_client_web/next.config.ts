@@ -51,6 +51,9 @@ const nextConfig: NextConfig = {
     // the real packages live in the root .pnpm store, outside this app dir.
     output: 'standalone',
     outputFileTracingRoot: fileURLToPath(new URL('../..', import.meta.url)),
+    // Dev only: the local-with-prod-Clerk host (LOCAL_PROD_API.md, mode C).
+    // Without it the dev server blocks HMR from that origin.
+    allowedDevOrigins: ['local.prettylog.com'],
     images: {
         // Bypass Vercel's image optimizer (2026-09-22, quota outage). Every
         // <Image> was being routed through /_next/image, which re-encodes to
