@@ -1,6 +1,7 @@
 import { API_BASE, CDN_ASSETS } from '@/env.schema';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { fileURLToPath } from 'node:url';
 
 // Build-time diagnostic: prints once during `next build` (Vercel build log),
 // NOT in the client bundle. Vercel auto-REDACTS any log string equal to an env
@@ -45,6 +46,11 @@ function hostnameOf(url: string): string {
 
 const nextConfig: NextConfig = {
     transpilePackages: ['@repo/types'],
+    // Self-hosted PM2 deploy (GCP): standalone server.js + traced node_modules.
+    // The trace root must be the monorepo root: with pnpm node-linker=isolated
+    // the real packages live in the root .pnpm store, outside this app dir.
+    output: 'standalone',
+    outputFileTracingRoot: fileURLToPath(new URL('../..', import.meta.url)),
     images: {
         // Bypass Vercel's image optimizer (2026-09-22, quota outage). Every
         // <Image> was being routed through /_next/image, which re-encodes to

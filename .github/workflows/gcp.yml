@@ -1,0 +1,79 @@
+name: GCP build
+# Builds the two PM2 release tarballs off-VM (x64 runner = VM arch, design §3.4)
+# and smoke-tests them without secrets. No VM transfer here.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/dashboard_server/**'
+      - 'apps/dashboard_client_web/**'
+      - 'packages/types/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/gcp.yml'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      # pnpm version comes from the root package.json "packageManager" field.
+      - uses: pnpm/action-setup@008330803749db0355799c700092d9a85fd074e9 # v6.0.9
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build api
+        run: |
+          pnpm --filter @repo/types build
+          pnpm --filter dashboard_server build
+          pnpm deploy --filter dashboard_server --prod out/api
+          # pnpm deploy picks files by publish rules: gitignored dist/ can be missing.
+          [ -f out/api/dist/src/index.js ] || cp -r apps/dashboard_server/dist out/api/dist
+          [ -d out/api/node_modules/@repo/types/dist ] || cp -r packages/types/dist out/api/node_modules/@repo/types/dist
+          test -f out/api/dist/src/index.js
+          test -d out/api/node_modules/@repo/types/dist
+          # tar keeps pnpm's relative symlinks; scp -r would flatten them.
+          tar -czf "api-${{ github.sha }}.tgz" -C out/api .
+
+      - name: Build web
+        # NEXT_PUBLIC_* are baked at build time (#21). The || fallbacks equal the
+        # env.schema.ts defaults: an unset Actions variable becomes '' and '' would
+        # fail the schema's .url() and bake the error host. The Clerk secret is runtime-only (#22).
+        env:
+          NEXT_PUBLIC_API_BASE: ${{ vars.NEXT_PUBLIC_API_BASE || 'https://blog-api.prettylog.com' }}
+          NEXT_PUBLIC_CDN_ASSETS: ${{ vars.NEXT_PUBLIC_CDN_ASSETS || 'https://blog-assets.prettylog.com' }}
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL || 'https://my.prettylog.com' }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_DEFAULT_BLOG_AUTHOR: ${{ vars.NEXT_PUBLIC_DEFAULT_BLOG_AUTHOR || 'taeklim' }}
+          NEXT_PUBLIC_GOOGLE_SEARCH_ENGINE: ${{ vars.NEXT_PUBLIC_GOOGLE_SEARCH_ENGINE }}
+          NEXT_PUBLIC_GOOGLE_ADSENSE: ${{ vars.NEXT_PUBLIC_GOOGLE_ADSENSE }}
+        run: |
+          pnpm --filter dashboard_client_web build
+          app=apps/dashboard_client_web
+          # standalone omits .next/static and public (S-GCP-22).
+          cp -r "$app/.next/static" "$app/.next/standalone/$app/.next/static"
+          cp -r "$app/public" "$app/.next/standalone/$app/public"
+          tar -czf "web-${{ github.sha }}.tgz" -C "$app/.next/standalone" .
+
+      - name: Smoke (no secrets, fresh dirs)
+        run: |
+          set -eu
+          tmp="$(mktemp -d)"
+          mkdir "$tmp/api" "$tmp/web"
+          tar -xzf "api-${{ github.sha }}.tgz" -C "$tmp/api"
+          tar -xzf "web-${{ github.sha }}.tgz" -C "$tmp/web"
+          trap 'kill $(jobs -p) 2>/dev/null || true' EXIT
+          (cd "$tmp/api" && PORT=4000 node dist/src/index.js) &
+          (cd "$tmp/web" && PORT=3000 HOSTNAME=127.0.0.1 node apps/dashboard_client_web/server.js) &
+          curl -fsS --retry 10 --retry-connrefused http://127.0.0.1:4000/ping | grep '"status":"ok"'
+          curl -fsSI --retry 10 --retry-connrefused http://127.0.0.1:3000/robots.txt | head -1 | grep ' 200'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gcp-${{ github.sha }}
+          path: |
+            api-${{ github.sha }}.tgz
+            web-${{ github.sha }}.tgz
+          if-no-files-found: error
