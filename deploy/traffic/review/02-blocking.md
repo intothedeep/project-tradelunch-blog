@@ -321,7 +321,7 @@ blog-api 한도 200 MB (PM2 max_memory_restart). 지금 사용량은 VM에서 `p
 - 원인: Next `<Link>`가 화면에 보이는 링크를 미리 받는다(prefetch). 한 번 누를 때 요청이 수십 개 나간다.
 - 이 표는 VM까지 온 요청만 센다. Cloudflare는 HIT도 세므로 실제 숫자는 더 크다.
 
-## N. 서버에서 도는 `clientRequest`도 키를 보낸다 (코드 `7f07df7`, 웹 배포 대기, #64)
+## N. 서버에서 도는 `clientRequest`도 키를 보낸다 (웹 배포 완료 `7f07df7`, #64)
 
 **왜 필요했나:** Express 요청 수 제한(L-b)은 `ssr=true` 요청을 세지 않는다. Next SSR 요청은 모두 VM IP 하나로 보이기 때문이다. `enforce`로 바꾸기 전에 모든 SSR 요청이 `ssr=true`여야 한다.
 
@@ -382,3 +382,15 @@ clientRequest 호출
 - 쿼리: `log_id("blog-api") AND jsonPayload.req.url:"/categories" AND jsonPayload.req.ssr=false`. 브라우저 호출만 남아야 한다.
 - 같은 쿼리를 `ssr=true`로 바꾸면 SSR 호출이 보여야 한다.
 - 브라우저 개발자 도구 → Network → `blog-api` 요청 → Request Headers에 `x-origin-key`가 없어야 한다.
+
+**확인 (2026-10-13 21:20 UTC, 웹 `7f07df7`):** MISS 페이지 5개를 열었다(`/blog/@taeklim`, 글 하나, `/log`). blog-api 로그에서 `categories` 8건, `comments` 1건, `/v1/api/log` 1건이 모두 `ssr=true`였다. 브라우저 요청 헤더 확인은 오너가 개발자 도구로 한다.
+
+### L-a 한도 50 확인 (2026-10-13 21:21 UTC, #68)
+
+| 시험 | 결과 |
+| --- | --- |
+| `/` (HIT) 150번, 2초, 동시 25 | 200 **53**, 429 **97** |
+| 15초 뒤 `/` | 200 |
+
+- 한도 100일 때는 약 230번째부터 막혔다. 50에서는 53번째부터 막혔다. 이번에는 거의 정확했다.
+- 차단은 10초 뒤 풀렸다.
