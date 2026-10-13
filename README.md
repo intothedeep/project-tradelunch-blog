@@ -1,8 +1,14 @@
 # tradelunch
 
-Personal portfolio + financial markets dashboard for Taek Lim.
+Personal portfolio + blog for Taek Lim.
 
 Live: [my.prettylog.com](https://my.prettylog.com)
+
+> **Hosting status (2026-10-12):** both Vercel projects are down (HTTP 402, quota). The owner
+> decided to leave Vercel for GCP. Design draft: [`gcp.design.md`](./gcp.design.md).
+
+The finance dashboard moved to the separate `project_tradelunch_finance` repo on 2026-07-09.
+This repo is blog-only.
 
 ---
 
@@ -10,17 +16,15 @@ Live: [my.prettylog.com](https://my.prettylog.com)
 
 pnpm + Turborepo monorepo, Node 24.
 
-```
+```text
 apps/
-  dashboard_client_web/   Next.js 16 App Router — blog + finance dashboard
-  dashboard_server/       Express 5 + pg Pool → Supabase Postgres — blog + dashboard API
-  blog_agent/             Python (uv) — markdown blog publisher → Supabase
-  stock_collector/        Python (uv) — Yahoo OHLC collector → market data (GitHub Actions cron)
+  dashboard_client_web/   Next.js 16 App Router — blog + Log UI (SSR + client)
+  dashboard_server/       Express 5 + pg Pool (raw SQL) → Supabase Postgres — /v1/api/*
+  blog_agent/             Python (uv) — markdown blog publisher, writes DB + storage directly
 packages/
-  @repo/ui                Shared React components
-  @repo/markdown-parsing  Markdown → HTML pipeline (GFM, KaTeX, prism)
-  @repo/assets            Static assets
-  @repo/types             Shared TypeScript types
+  @repo/db                Supabase migrations + seed + schema snapshot (schema source of truth)
+  @repo/types             Shared API-boundary types
+  @repo/assets            Static assets (images, fonts, icons)
   @repo/{tailwind,eslint,typescript,jest}-config
 ```
 
@@ -28,96 +32,74 @@ Per-app READMEs:
 
 - [`apps/dashboard_client_web`](./apps/dashboard_client_web/README.md) — Next.js client + SSR
 - [`apps/dashboard_server`](./apps/dashboard_server/README.md) — Express API
-- [`apps/blog_agent`](./apps/blog_agent/README.md) — markdown → Supabase publisher (Python)
-- [`apps/stock_collector`](./apps/stock_collector/README.md) — market-data collector (Python)
+- [`apps/blog_agent`](./apps/blog_agent/README.md) — markdown publisher (Python)
 
-Two product surfaces share the Next.js app:
+Product surfaces:
 
-- **Blog / portfolio** — technical posts, infinite scroll, full Markdown + LaTeX
-- **Financial dashboard** — read-only market snapshot (FX, crypto, indices, rates, stocks)
+- **Blog / portfolio** — multi-user technical posts (Clerk auth), Markdown + LaTeX, likes,
+  comments, saved posts, category/tag filters, in-app authoring at `/write`.
+- **Log** — Threads-style microfeed at `/log` and `/log/[username]`: recursive replies, todo
+  marks (owner-only), likes, follows, following timeline.
 
 ---
 
-## Dashboard data pipeline
+## Runtime layout
 
-The finance dashboard is **read-only over pre-collected data** — nothing hits Yahoo at request
-time. A GitHub Actions cron runs the `stock_collector` (Python, yfinance), writes market data to
-Supabase Postgres, and the dashboard serves it through the Express API.
+```text
+browser
+  └─ Cloudflare (DNS; edge cache planned — Phase CF2)
+       ├─ my.prettylog.com       → dashboard_client_web (Next.js: RSC, Server Actions, Route Handlers)
+       │                              └─ calls the API below
+       ├─ blog-api.prettylog.com  → dashboard_server (Express, /v1/api/*)
+       │                              └─ pg Pool → Supabase Postgres (POSTGRES_URL, pooled :6543)
+       └─ blog-assets.prettylog.com → OCI Object Storage (images, proxied by Cloudflare)
 
-```
-GitHub Actions cron
-  └─ stock_collector (Python / yfinance)
-       ├─ market_history     daily OHLC bars (interval '1d')
-       ├─ market_snapshots   latest value + 1-day change (per label)
-       └─ market_rankings / tracked_symbols   weekly market-cap ranking
-  └─ Supabase Postgres
-       └─ dashboard_server   GET /v1/api/dashboard/{snapshot,history}
-            └─ dashboard_client_web   /dashboard
+blog_agent (local CLI) ──► Supabase Postgres + OCI Object Storage (direct write)
 ```
 
-### What is collected & how often
-
-| Workflow              | Schedule (UTC)                         | Collects                                                                    | Writes                                                                                                              |
-| --------------------- | -------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `collector-daily`     | Mon–Fri **21:30** (after the US close) | Daily OHLC for the watchlist (≤42 labels + sticky-ranked symbols) via Yahoo | `market_history` (interval `1d`, incremental) + `market_snapshots` (latest close + 1-day change)                    |
-| `collector-weekly`    | Sun **06:00**                          | S&P500-class market-cap ranking (global + per-sector)                       | `market_rankings` (append) + `tracked_symbols` (sticky top-20 global / top-10 sector) + `symbol_fundamentals` cache |
-| `collector-keepalive` | 1st & 15th **12:00**                   | —                                                                           | touches the repo so GitHub doesn't disable the crons after 60 days idle                                             |
-
-Watchlist — 42 labels, `apps/stock_collector/configs/watchlist.yaml` (editable; add a symbol to
-collect it daily):
-
-- **FX (4):** EUR/USD, USD/KRW, USD/JPY, USD/THB
-- **Crypto (3):** BTC/USD, ETH/USD, SOL/USD
-- **Rates (4):** US 3M, US 5Y, US 10Y, US 30Y
-- **Indices (7):** S&P 500, NASDAQ Composite, NASDAQ 100, NASDAQ 100 Futures, KOSPI, KOSPI 200, KOSDAQ
-- **Stocks (24):** QQQ, QQQM, QLD, TQQQ, SPY, SCHD, SGOV, SHY, IEF, TLT, TSLA, GOOG, AAPL, NVDA, SOXL, IBIT, MSTR, COIN, CRCL, SPCX, SMR, SOFI, XLE, DBA
-
-### Granularity — daily only
-
-The collector stores **daily** bars only (`interval = '1d'`); the dashboard derives the rest
-client-side:
-
-- **Snapshot change** = latest close − previous close (1-day), from the last 2 daily bars.
-- **Chart `D`** = the daily series as-is.
-- **Chart `W` / `M`** = daily bars aggregated into weekly / monthly OHLC buckets.
-- **Chart intraday (`1m`–`4h`)** = _synthesized_ deterministically — **not** real intraday (no
-  sub-day data is collected).
-
-`DASHBOARD_DATA_SOURCE=backend` (frontend env) flips the **snapshot** from mock to live data.
-Chart history currently still reads the static mock map (`app/dashboard/page.tsx`) — wiring it to
-`GET /history` (interval `1d`) is the remaining step to put real candles on the chart.
+- DB connection vars: `POSTGRES_URL` (pooled, runtime) and `POSTGRES_URL_NON_POOLING` (direct,
+  migrations). There is no `DATABASE_URL` in the apps.
+- Image storage is provider-swappable (`STORAGE_PROVIDER`, `oci` in prod). Public URL =
+  `{CDN_ASSETS}/{key}`.
+- Post, comment and log ids are BIGINT beyond 2^53 — they stay strings end to end.
 
 ---
 
 ## Quick start
 
-Requires Node 24 (`nvm use`) and pnpm 9.
+Requires Node 24 (`nvm use`) and pnpm 9 (`corepack enable`). Use pnpm only — never npm or yarn.
 
 ```sh
 pnpm install
-pnpm dev                                # all apps in parallel
-pnpm dev:web                            # client app only — http://localhost:3001
-pnpm --filter dashboard_server dev      # server app only
+pnpm dev             # all apps in parallel
+pnpm dev:web         # client app only — http://localhost:3001
+pnpm dev:server      # Express API only
+pnpm dev:agent       # blog_agent CLI
 ```
 
 Other common scripts:
 
 ```sh
 pnpm build           # production build (turbo run build)
-pnpm lint            # eslint across workspaces
-pnpm check-types     # tsc --noEmit per workspace
+pnpm lint            # lint across workspaces
+pnpm check-types     # tsc --noEmit per workspace (+ mypy for blog_agent)
 pnpm format          # prettier write
 ```
+
+Env files live per app (`.env`, `.env.local`, `.env.production`, `.env.example`).
 
 ---
 
 ## Documentation
 
 - [`CLAUDE.md`](./CLAUDE.md) — repo topology, commands, architecture
-- [`00.plan.md`](./00.plan.md) — current phase plan (active: Phase 2-simple finance dashboard MVP)
-- [`00.tasks.md`](./00.tasks.md) — atomic task list
-- [`.claude/CLAUDE.md`](./.claude/CLAUDE.md) — engineering principles (KISS, SRP, layering, ≤300 LOC)
-- [`.claude/rules/`](./.claude/rules/) — language and framework conventions
+- [`00.plan.md`](./00.plan.md) — product intent + roadmap
+- [`00.tasks.md`](./00.tasks.md) — atomic task list (active: Phase CF2 edge cache, Log gates)
+- [`01.status.md`](./01.status.md) — running status log
+- [`log.plan.md`](./log.plan.md) — Log phases (Y, Y-TD, Y M2)
+- [`decisions.plan.md`](./decisions.plan.md) — resolved architecture decisions
+- [`gcp.design.md`](./gcp.design.md) — Vercel → GCP hosting design (draft)
+- [`.claude/`](./.claude/) — agent harness: engineering principles and rules
 
 ---
 
@@ -139,4 +121,7 @@ manual; an env/config allowlist would be over-engineering for one admin.
 
 ## Tech stack
 
-Next.js 16 · React 19 · TypeScript strict · Tailwind v4 · Radix UI · shadcn/ui · lucide-react · Jotai · TanStack Query v5 · next-intl · Clerk (auth) · Express 5 · pg Pool · Supabase (Postgres + Storage) · Python (uv) · Vercel · GitHub Actions · pnpm 9 · Turborepo · PM2
+Next.js 16 · React 19 · TypeScript strict · Tailwind v4 · Radix UI · shadcn/ui · lucide-react ·
+Jotai · TanStack Query v5 · next-intl · Clerk (auth) · Express 5 · pg Pool · Supabase Postgres ·
+OCI Object Storage · Cloudflare · Python (uv, LangGraph) · GitHub Actions · pnpm 9 · Turborepo ·
+hosting: Vercel → GCP (in progress)

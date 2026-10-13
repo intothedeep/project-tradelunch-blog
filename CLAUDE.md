@@ -48,7 +48,7 @@ The owner names three runtimes in conversation. Use these terms exactly:
 
 - **front** / **client** — client-side React running in the browser (the `"use client"` components of `apps/dashboard_client_web`).
 - **ssr server** / **next server** — the Next.js server runtime of `apps/dashboard_client_web`: React Server Components, Server Actions (`app/actions/`), and Route Handlers (`app/api/`). Runs on Vercel as the frontend project's server side.
-- **express** / **backend** — `apps/dashboard_server`, the standalone Express API served at `/v1/api/*` (its own Vercel project at `blogapi.prettylog.com`, pg `Pool` → Supabase).
+- **express** / **backend** — `apps/dashboard_server`, the standalone Express API served at `/v1/api/*` (`blog-api.prettylog.com`; moving from Vercel to a GCP VM behind a Cloudflare Tunnel, Phase GCP; pg `Pool` → Supabase).
 
 Note: `dashboard_client_web` has BOTH a browser-client and a Next-server runtime, while `dashboard_server` is purely the Express API.
 
