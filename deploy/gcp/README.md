@@ -64,7 +64,7 @@ gcloud compute scp x_gh_download/api-$SHA.tgz \
 
 ```sh
 gcloud compute ssh $VM "${Z[@]}"
-nano ~/prettylog/shared/api.env
+vi ~/prettylog/shared/api.env
 chmod 600 ~/prettylog/shared/api.env
 ```
 
@@ -150,7 +150,7 @@ curl -sI -H 'Authorization: Bearer x' "$U" | grep -i cf-cache-status            
 ## Change a secret
 
 ```sh
-nano ~/prettylog/shared/api.env
+vi ~/prettylog/shared/api.env
 pm2 reload ~/prettylog/ecosystem.config.cjs --only blog-api --update-env
 ```
 
