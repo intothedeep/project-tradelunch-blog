@@ -1,0 +1,2606 @@
+[
+ {
+  "t": 1791969170437,
+  "message": "request",
+  "path": "/api/posts/load-more",
+  "query": "?limit=10&username=",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969170529,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969171477,
+  "message": "request",
+  "path": "/api/posts/load-more",
+  "query": "?cursor=334900349389246464&limit=10&username=",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969171507,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969172577,
+  "message": "request",
+  "path": "/api/posts/load-more",
+  "query": "?cursor=334900349389246464&limit=10&username=",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969172610,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969174883,
+  "message": "request",
+  "path": "/",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969175941,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969177049,
+  "message": "request",
+  "path": "/@taeklim/about",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969178142,
+  "message": "request",
+  "path": "/@taeklim/resume",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969179250,
+  "message": "request",
+  "path": "/",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_anon_1_home",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969179369,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969179384,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969179618,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969180359,
+  "message": "request",
+  "path": "/@taeklim/posts",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_anon_1_posts",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969180519,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969180534,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969180542,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969180624,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969180749,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969181665,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_anon_1_projects",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969181823,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969181880,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969181883,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969181916,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969182559,
+  "message": "request",
+  "path": "/@taeklim/projects/cnn-from-scratch",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_anon_1_project",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969182628,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects/cnn-from-scratch",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969182685,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969182686,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969182725,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969183656,
+  "message": "request",
+  "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_anon_1_post",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969183739,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969183800,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969183814,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969183835,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/368580271928250368/comments",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969188064,
+  "message": "request",
+  "path": "/@taeklim/posts",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969188286,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969188334,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969188343,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969188377,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969188535,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969189163,
+  "message": "request",
+  "path": "/@taeklim/posts",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969190266,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969190395,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969190428,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969190468,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969190472,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969191368,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969192496,
+  "message": "request",
+  "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969192563,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969192612,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969192650,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969192654,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/368580271928250368/comments",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969193579,
+  "message": "request",
+  "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969194620,
+  "message": "request",
+  "path": "/",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969194666,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969194711,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969194785,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969195723,
+  "message": "request",
+  "path": "/@taeklim/posts",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969195883,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969195891,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969195893,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969195896,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969196009,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969196825,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969196962,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969196998,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969197001,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969197065,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969197927,
+  "message": "request",
+  "path": "/@taeklim/projects/cnn-from-scratch",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969198001,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects/cnn-from-scratch",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969198050,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969198062,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969198123,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969199029,
+  "message": "request",
+  "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969199090,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969199096,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969199135,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969199169,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/368580271928250368/comments",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969199183,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969199324,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969200135,
+  "message": "request",
+  "path": "/",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969200183,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969200224,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969200285,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969201241,
+  "message": "request",
+  "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969201300,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969201312,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969201352,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969201391,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969201415,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/368580271928250368/comments",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969201563,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969202339,
+  "message": "request",
+  "path": "/@taeklim/projects/cnn-from-scratch",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969202398,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects/cnn-from-scratch",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969202446,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969202457,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969202524,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969203438,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969203560,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969203597,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969203599,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969203670,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969204545,
+  "message": "request",
+  "path": "/api/posts/load-more",
+  "query": "?limit=10&username=",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969204572,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969205644,
+  "message": "request",
+  "path": "/api/posts/load-more",
+  "query": "?cursor=334900349389246464&limit=10&username=",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969205687,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969206750,
+  "message": "request",
+  "path": "/api/posts/load-more",
+  "query": "?cursor=334900349389246464&limit=10&username=",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969206774,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969207847,
+  "message": "request",
+  "path": "/@taeklim/projects/cnn-from-scratch",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969208945,
+  "message": "request",
+  "path": "/",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969210049,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969211152,
+  "message": "request",
+  "path": "/@taeklim/about",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969212257,
+  "message": "request",
+  "path": "/@taeklim/resume",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969213355,
+  "message": "request",
+  "path": "/",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_auth_1_home",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969213476,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969213485,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969213602,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969214458,
+  "message": "request",
+  "path": "/@taeklim/posts",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_auth_1_posts",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969214654,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969214657,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969214693,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969214861,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969214974,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969215565,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_auth_1_projects",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969215702,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969215749,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969215768,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969215810,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969216664,
+  "message": "request",
+  "path": "/@taeklim/projects/cnn-from-scratch",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_auth_1_project",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969216754,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects/cnn-from-scratch",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969216791,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969216798,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969216861,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969217764,
+  "message": "request",
+  "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_auth_1_post",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969217830,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969217860,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969217890,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969217905,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/368580271928250368/comments",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969217910,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969218067,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969218868,
+  "message": "request",
+  "path": "/",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_auth_1_home",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969218926,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969218955,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969219021,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969219967,
+  "message": "request",
+  "path": "/@taeklim/posts",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_auth_1_posts",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969220125,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969220139,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969220140,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969220217,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969220328,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969221078,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_auth_1_projects",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969221200,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969221244,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969221256,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969221322,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969222173,
+  "message": "request",
+  "path": "/@taeklim/posts",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969222299,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969222336,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969222344,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969222350,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969222406,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969223275,
+  "message": "request",
+  "path": "/@taeklim/posts",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969224377,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969224495,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969224523,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969224539,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969224599,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969225476,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969226579,
+  "message": "request",
+  "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969226633,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969226656,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969226683,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969226702,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/368580271928250368/comments",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969226714,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969226833,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969227679,
+  "message": "request",
+  "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969238705,
+  "message": "request",
+  "path": "/api/posts/load-more",
+  "query": "?limit=10&username=",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969238775,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969239803,
+  "message": "request",
+  "path": "/api/posts/load-more",
+  "query": "?cursor=334900349389246464&limit=10&username=",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969239839,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969240901,
+  "message": "request",
+  "path": "/api/posts/load-more",
+  "query": "?cursor=334900349389246464&limit=10&username=",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969240935,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969243165,
+  "message": "request",
+  "path": "/",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969244263,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969245362,
+  "message": "request",
+  "path": "/@taeklim/about",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969246467,
+  "message": "request",
+  "path": "/@taeklim/resume",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969247575,
+  "message": "request",
+  "path": "/",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_anon_2_home",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969247680,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969247692,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969247751,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969248689,
+  "message": "request",
+  "path": "/@taeklim/posts",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_anon_2_posts",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969248864,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969248871,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969248902,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969249098,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969249173,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969249803,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_anon_2_projects",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969249931,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969249973,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969249983,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969250011,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969250884,
+  "message": "request",
+  "path": "/@taeklim/projects/cnn-from-scratch",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_anon_2_project",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969250953,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects/cnn-from-scratch",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969251007,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969251018,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969251061,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969251985,
+  "message": "request",
+  "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_anon_2_post",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969252059,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969252101,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969252136,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/368580271928250368/comments",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969252140,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969257494,
+  "message": "request",
+  "path": "/@taeklim/posts",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969259735,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969263477,
+  "message": "request",
+  "path": "/",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969263574,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969263591,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969263765,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969264418,
+  "message": "request",
+  "path": "/@taeklim/posts",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969264585,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969264588,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969264641,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969264789,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969264872,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969265517,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969265639,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969265684,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969265687,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969265758,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969266619,
+  "message": "request",
+  "path": "/@taeklim/projects/cnn-from-scratch",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969266693,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects/cnn-from-scratch",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969266749,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969266753,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969266815,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969267722,
+  "message": "request",
+  "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969267784,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969267787,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969267836,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969267866,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969267871,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/368580271928250368/comments",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969268036,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969268822,
+  "message": "request",
+  "path": "/",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969268870,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969268919,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969268971,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969269922,
+  "message": "request",
+  "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969269991,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969270007,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969270050,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969270060,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/368580271928250368/comments",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969270082,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969270209,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969271022,
+  "message": "request",
+  "path": "/@taeklim/projects/cnn-from-scratch",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969271090,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects/cnn-from-scratch",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969271127,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969271141,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969271192,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969272123,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969272258,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969272297,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969272302,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969272366,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969273228,
+  "message": "request",
+  "path": "/api/posts/load-more",
+  "query": "?limit=10&username=",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969273256,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969274326,
+  "message": "request",
+  "path": "/api/posts/load-more",
+  "query": "?cursor=334900349389246464&limit=10&username=",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969274362,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969275432,
+  "message": "request",
+  "path": "/api/posts/load-more",
+  "query": "?cursor=334900349389246464&limit=10&username=",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969275461,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969276529,
+  "message": "request",
+  "path": "/@taeklim/projects/cnn-from-scratch",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969277633,
+  "message": "request",
+  "path": "/",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969278735,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969279834,
+  "message": "request",
+  "path": "/@taeklim/about",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969280938,
+  "message": "request",
+  "path": "/@taeklim/resume",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969282039,
+  "message": "request",
+  "path": "/",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_auth_2_home",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969282124,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969282139,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969282245,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969283151,
+  "message": "request",
+  "path": "/@taeklim/posts",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_auth_2_posts",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969283322,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969283329,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969283426,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969283532,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969283550,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969284245,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_auth_2_projects",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969284371,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969284409,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969284412,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969284493,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969285348,
+  "message": "request",
+  "path": "/@taeklim/projects/cnn-from-scratch",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_auth_2_project",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969285422,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects/cnn-from-scratch",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969285468,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969285479,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969285521,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969286448,
+  "message": "request",
+  "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_auth_2_post",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969286535,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969286545,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969286572,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969286596,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969286619,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/368580271928250368/comments",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969286771,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969287550,
+  "message": "request",
+  "path": "/",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_auth_2_home",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969287594,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969287638,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969287702,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969288650,
+  "message": "request",
+  "path": "/@taeklim/posts",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_auth_2_posts",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969288803,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969288819,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969288824,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969288828,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969289114,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969289753,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_auth_2_projects",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969289867,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969289917,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969289919,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969289999,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969290855,
+  "message": "request",
+  "path": "/@taeklim/posts",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969291008,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969291049,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969291055,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969291056,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969291109,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969291961,
+  "message": "request",
+  "path": "/@taeklim/posts",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969293059,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969293185,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969293213,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969293215,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969293289,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969294162,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969295266,
+  "message": "request",
+  "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969295325,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969295350,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969295385,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969295396,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/368580271928250368/comments",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969295419,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969295566,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969296366,
+  "message": "request",
+  "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969307387,
+  "message": "request",
+  "path": "/api/posts/load-more",
+  "query": "?limit=10&username=",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969307467,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969308493,
+  "message": "request",
+  "path": "/api/posts/load-more",
+  "query": "?cursor=334900349389246464&limit=10&username=",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969308527,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969309595,
+  "message": "request",
+  "path": "/api/posts/load-more",
+  "query": "?cursor=334900349389246464&limit=10&username=",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969309633,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969311851,
+  "message": "request",
+  "path": "/",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969312958,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969314055,
+  "message": "request",
+  "path": "/@taeklim/about",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969315158,
+  "message": "request",
+  "path": "/@taeklim/resume",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969316259,
+  "message": "request",
+  "path": "/",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_anon_3_home",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969316350,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969316375,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969316674,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969317398,
+  "message": "request",
+  "path": "/@taeklim/posts",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_anon_3_posts",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969317554,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969317579,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969317581,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969317799,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969317861,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969318485,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_anon_3_projects",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969318605,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969318659,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969318666,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969318694,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969319601,
+  "message": "request",
+  "path": "/@taeklim/projects/cnn-from-scratch",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_anon_3_project",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969319682,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/projects/cnn-from-scratch",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969319723,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969319740,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/profile",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969319758,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969320668,
+  "message": "request",
+  "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "?cb=cc20261014T091230Z_U4_u4_2_f122265_anon_3_post",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969320737,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969320798,
+  "message": "ssr_fetch",
+  "path": "/v1/api/tags",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969320811,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/368580271928250368/comments",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969320824,
+  "message": "ssr_fetch",
+  "path": "/v1/api/posts/users/taeklim/categories",
+  "query": "",
+  "ua": ""
+ },
+ {
+  "t": 1791969326178,
+  "message": "request",
+  "path": "/@taeklim/posts",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ },
+ {
+  "t": 1791969328374,
+  "message": "request",
+  "path": "/@taeklim/projects",
+  "query": "",
+  "ua": "Mozilla/5.0 (compatible; cc-perf-measure/1; 20261014T091230Z_U4_u4_2_f122265)"
+ }
+]
