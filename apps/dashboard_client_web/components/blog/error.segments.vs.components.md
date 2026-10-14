@@ -16,7 +16,7 @@ app/blog/error.tsx            ← route 레벨 (catch 못함)
 
 ```tsx
 // app/blog/layout.tsx
-import { ErrorBoundary } from '@/app/blog/ErrorBoundary.client';
+import { ErrorBoundary } from '@/components/blog/ErrorBoundary.client';
 
 export const BlogMainLayout = ({ children }: { children: React.ReactNode }) => {
     const dataPromise = getCategoriesByUsername('taeklim');
@@ -116,7 +116,7 @@ export const BlogMainLayout = ({ children }: { children: React.ReactNode }) => {
 'use client';
 
 import { getCategoriesByUsername } from '@/apis/getCategories.api';
-import { CategorySidebar } from '@/app/blog/CategorySidebar.client';
+import { CategorySidebar } from '@/components/blog/CategorySidebar.client';
 import { Suspense, use } from 'react';
 
 export const CategorySidebarWrapper = () => {

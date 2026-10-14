@@ -6,7 +6,7 @@ import { SITE_URL } from '@/env.schema';
 // surfaces moved to the standalone finance_web app.) Note: robots is ADVISORY —
 // Googlebot/Bingbot obey it, but aggressive scrapers may not, so the AI-crawler
 // bucket below is blocked wholesale.
-// Public/indexable: /, /blog, /about, /resume, and published posts.
+// Public/indexable: /, /tags/<tag>, /@<user>/{posts,projects,about,resume,logs}, and published posts.
 
 // Data/AI scraper bots with no SEO value — blocked wholesale. These are the
 // crawlers most likely to hammer the DB-backed pages and often ignore nuance.
