@@ -13,7 +13,7 @@ export const TagCloudSkeleton = () => (
         {CHIP_WIDTHS.map((width, index) => (
             <span
                 key={index}
-                className={`h-6 ${width} animate-pulse rounded-full bg-muted`}
+                className={`h-6 ${width} animate-pulse rounded-none bg-muted`}
             />
         ))}
     </div>

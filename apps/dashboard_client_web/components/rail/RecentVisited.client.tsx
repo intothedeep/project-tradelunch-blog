@@ -36,7 +36,7 @@ export const RecentVisited = () => {
                                     <HoverPrefetchLink
                                         href={href}
                                         title={post.title}
-                                        className="block truncate rounded px-1 py-1 text-sm text-foreground transition-colors hover:bg-accent/50"
+                                        className="block truncate rounded-none px-1 py-1 text-sm text-foreground transition-colors hover:bg-accent/50"
                                     >
                                         {post.title}
                                     </HoverPrefetchLink>

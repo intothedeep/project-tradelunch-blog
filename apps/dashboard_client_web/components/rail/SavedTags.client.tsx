@@ -45,7 +45,7 @@ export const SavedTags = () => {
                                 type="button"
                                 onClick={() => unsaveTag(tag)}
                                 aria-label={t('rail.unsaveTag', { tag })}
-                                className="flex h-[1.375rem] items-center rounded-r-md border border-l-0 border-border px-1 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+                                className="flex h-[1.375rem] items-center rounded-none border border-l-0 border-border px-1 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
                             >
                                 <X className="h-3 w-3" />
                             </button>

@@ -17,7 +17,7 @@ type Props = {
 };
 
 const BASE =
-    'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs transition-colors';
+    'inline-flex items-center gap-1 rounded-none px-2.5 py-1 text-xs transition-colors';
 const INACTIVE = 'border border-border text-foreground hover:bg-accent/50';
 const ACTIVE = 'border border-primary font-semibold text-primary';
 
