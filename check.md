@@ -12,7 +12,8 @@ Claude 세션을 시작하면 이 파일을 먼저 본다. 날짜가 지난 항�
 | 3 | [ ] Express 요청 수 제한: 14일 로그로 한도 확정, `log` → `enforce` | 2026-10-27쯤 | 지금 숫자(읽기 120, 쓰기 30 / 60 s)는 가안이다. 차단 모드로 갈 준비(SSR 키 `7f07df7`)는 끝났다 (#62, #67) | Claude에게 "TC-M6-1 진행" 요청. `traffic.design.md` §7.4.4 규칙으로 계산한다 |
 | 4 | [ ] Supabase Log Query 사용량 다시 보기 | 2026-10-15 ~ 10-16 | 10-13 하루 2.82 GB (무료 100 GB/월). Studio를 덜 열고도 많이 쓰는지 본다 | Supabase → Organization → Usage → Log Query per day. 하루 1 GB 이상이 계속되면 Claude에게 원인 조사 요청 |
 | 5 | [ ] 다음 주간 issue 확인 | 2026-10-19 (월) 14:17 UTC 뒤 | 캐시 검사와 blog-api ERROR 수가 정상인지 본다 | `gh issue list --limit 3`. 기대: `Cloudflare cache rules: OK (14 PASS, 0 FAIL)`, ERROR ≤ 20 |
-| 6 | [ ] 첫 JSON 에러 줄 확인 → 책과 README의 "추정" 표시를 "관찰"로 바꾸기 | 다음 blog-web 에러가 난 뒤 | `35b3630`을 10-14에 배포했다. 에러가 아직 없어 새 줄 형식을 실제로 보지 못했다. 수집은 동작한다 (00:36 UTC `request` 줄 확인) | `gcloud logging read 'LOG_ID("blog-web") AND severity>=WARNING' --freshness=7d --limit 5 --format=json`. 결과를 Claude에게 붙여 준다 |
+| 6 | [ ] 첫 JSON 에러 줄 확인 → 책과 README의 "추정" 표시를 "관찰"로 바꾸기 | 다음 blog-web 에러가 난 뒤 | `35b3630`을 10-14에 배포했다. 에러가 아직 없어 새 줄 형식을 실제로 보지 못했다. 수집은 동작한다 (00:36 UTC `request` 줄 확인) | `gcloud logging read 'LOG_ID("blog-web") AND severity>=WARNING' --freshness=7d --limit 5 --format=json`. 결과를 Claude에게 붙여 준다. 같은 시각의 Next `⨯` 줄과 `digest`가 같은지도 본다 |
+| 7 | [ ] prefetch 요청 수를 정확히 세기 → 책 9장 "배포 뒤 확인"(`sec:pf-verify`)에 넣기 | 시간 날 때 (선택) | 10-14 오너 확인은 "줄었다"뿐이고 개수가 없다. 10-13 기준은 79개 | 로그인 안 한 창 → Network 필터 `_rsc` → 빠르게 스크롤 한 번. 요청 수를 Claude에게 알린다 |
 
 ## 보류 중 (오너 결정)
 
