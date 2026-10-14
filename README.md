@@ -4,8 +4,12 @@ Personal portfolio + blog for Taek Lim.
 
 Live: [my.prettylog.com](https://my.prettylog.com)
 
-> **Hosting status (2026-10-12):** both Vercel projects are down (HTTP 402, quota). The owner
-> decided to leave Vercel for GCP. Design draft: [`gcp.design.md`](./gcp.design.md).
+| Hosting (2026-10-14) | |
+| --- | --- |
+| web + api | GCP VM `instance-servers`, PM2 (`blog-web` :3000, `blog-api` :4000) |
+| edge | Cloudflare (Tunnel, cache rules, rate limit 70 / 10 s) |
+| prod web | `3996711` |
+| Vercel | retired ([`gcp.design.md`](./gcp.design.md)) |
 
 The finance dashboard moved to the separate `project_tradelunch_finance` repo on 2026-07-09.
 This repo is blog-only.
@@ -48,25 +52,199 @@ Product surfaces:
 
 ---
 
-## Runtime layout
+## Infrastructure & architecture
 
-```text
-browser
-  └─ Cloudflare (DNS; edge cache planned — Phase CF2)
-       ├─ my.prettylog.com       → dashboard_client_web (Next.js: RSC, Server Actions, Route Handlers)
-       │                              └─ calls the API below
-       ├─ blog-api.prettylog.com  → dashboard_server (Express, /v1/api/*)
-       │                              └─ pg Pool → Supabase Postgres (POSTGRES_URL, pooled :6543)
-       └─ blog-assets.prettylog.com → OCI Object Storage (images, proxied by Cloudflare)
+### Request path
 
-blog_agent (local CLI) ──► Supabase Postgres + OCI Object Storage (direct write)
+```mermaid
+flowchart LR
+  B["Browser"] --> DNS
+  B -.-> CK["Clerk Production<br/>clerk.prettylog.com"]
+  B --> AS["blog-assets.prettylog.com<br/>Cloudflare Worker"]
+  AS --> OCI["OCI Object Storage<br/>images"]
+
+  subgraph CF["Cloudflare"]
+    DNS["DNS"] --> RL["Rate limit, my. only<br/>70 req / 10 s per IP"]
+    RL --> CR["Cache rules<br/>1 web cache: 1 day<br/>2 web bypass<br/>3 api cache: respect origin<br/>4 api bypass"]
+  end
+
+  CR --> T["Cloudflare Tunnel"]
+
+  subgraph VM["GCP VM instance-servers, us-central1-a"]
+    W["PM2 blog-web<br/>Next.js 16 standalone :3000"]
+    A["PM2 blog-api<br/>Express 5 :4000"]
+  end
+
+  T -->|"my.prettylog.com"| W
+  T -->|"blog-api.prettylog.com"| A
+  W -.->|"SSR calls"| CR
+  A --> DB["Supabase Postgres<br/>POSTGRES_URL pooled :6543"]
+  A -.->|"uploads"| OCI
 ```
 
-- DB connection vars: `POSTGRES_URL` (pooled, runtime) and `POSTGRES_URL_NON_POOLING` (direct,
-  migrations). There is no `DATABASE_URL` in the apps.
-- Image storage is provider-swappable (`STORAGE_PROVIDER`, `oci` in prod). Public URL =
-  `{CDN_ASSETS}/{key}`.
-- Post, comment and log ids are BIGINT beyond 2^53 — they stay strings end to end.
+| Name | Value |
+| --- | --- |
+| Web host | `my.prettylog.com` to `localhost:3000` |
+| API host | `blog-api.prettylog.com` to `localhost:4000` |
+| Assets host | `blog-assets.prettylog.com` |
+| `POSTGRES_URL` | pooled `:6543`, runtime |
+| `POSTGRES_URL_NON_POOLING` | direct `:5432`, migrations |
+| `STORAGE_PROVIDER` | `oci` |
+| Firewall | inbound `tcp:22` from IAP only |
+
+### Next.js request pipeline
+
+```mermaid
+flowchart TD
+  R["Request"] --> M{"GET or HEAD?"}
+  M -->|"yes"| L{"Legacy path?<br/>utils/legacyRedirect.ts"}
+  L -->|"yes"| P308["308 redirect<br/>s-maxage 86400"]
+  L -->|"no"| D{"Dotted path?"}
+  D -->|"in SERVED_FILES"| NX["Pass untouched"]
+  D -->|"other"| NF["404 rewrite"]
+  D -->|"no dot"| C1
+  M -->|"no"| C1
+
+  subgraph CL["Clerk middleware"]
+    C1["Request log line"] --> C2{"Unknown top-level<br/>or wrong route shape?"}
+    C2 -->|"yes"| NF2["404 rewrite"]
+    C2 -->|"no"| C3{"Signed-in prefetch?"}
+    C3 -->|"yes"| SK["Skip existence gate"]
+    C3 -->|"no"| C4["Existence gate via Express<br/>user, project, post, log, ownerOnly<br/>fail-open at 1500 ms"]
+    C4 -->|"missing"| NF3["404 rewrite"]
+    C4 -->|"exists or unknown"| C5["auth.protect on<br/>protected routes"]
+    SK --> C5
+  end
+
+  C5 --> SH
+
+  subgraph APP["App Router, cacheComponents ON"]
+    SH["(shell) layout<br/>left rail"] --> G1["(feed)<br/>/, /tags/[tag]"]
+    SH --> G2["[handle]/(rail)<br/>posts, projects, saved<br/>shared HomeRightRail"]
+    SH --> G3["[handle]/[slug]<br/>post detail<br/>project post: TOC + HomeRightRail"]
+    SH --> G4["[handle]/about, resume,<br/>me, logs, write"]
+  end
+```
+
+| Layer | File |
+| --- | --- |
+| Proxy | `apps/dashboard_client_web/proxy.ts` |
+| Gate kinds, route shapes | `utils/notFoundGate.ts`, `utils/knownTopLevelSegments.ts` |
+| Legacy 308 | `utils/legacyRedirect.ts` |
+| Server `catch` | `unstable_rethrow(error)` first |
+
+### URL map
+
+```mermaid
+flowchart LR
+  ROOT["prettylog.com"]
+  ROOT --> HOME["/"]
+  ROOT --> TAG["/tags/:tag"]
+  ROOT --> SI["/sign-in"]
+  ROOT --> WR["/write"]
+  ROOT --> U["/@u"]
+  U --> UP["posts"]
+  U --> UPR["projects"]
+  UPR --> UPP["projects/:p"]
+  U --> US["slug<br/>post detail"]
+  U --> UA["about"]
+  U --> UR["resume"]
+  U --> UL["logs"]
+  UL --> ULI["logs/:id"]
+  U --> OO["owner only<br/>saved, me"]
+  ROOT --> GONE["404<br/>/log..., /sign-up"]
+  ROOT --> MOVED["308<br/>/about, /resume, /blog..."]
+```
+
+| Kind | Paths |
+| --- | --- |
+| Public | `/`, `/tags/:tag`, `/@u/{posts,projects,projects/:p,:slug,about,resume,logs,logs/:id}` |
+| Owner only | `/@u/saved`, `/@u/me` |
+| Signed in | `/write`, `/settings`, `/admin`, `/onboarding` |
+| Removed, 404 | `/log...`, `/sign-up` |
+| Moved, 308 | `/about`, `/resume`, `/blog...` |
+
+### Cache layers
+
+| Layer | Scope | Setting | Reset |
+| --- | --- | --- | --- |
+| Cloudflare edge, web | HTML, 1 day | cache rule "web cache" | manual `_scripts/cloudflare/cf-purge.sh` |
+| Cloudflare edge, API | GET | respect origin | same purge |
+| Next router cache | browser, per click | `staleTimes.dynamic` 30 s | 30 s |
+| React `cache()` | one request | fetchers in `apis/` | request end |
+| TanStack React Query | one tab | `ReactQueryProvider` | tab close |
+| `cacheComponents` | static shell + Suspense holes | ON | deploy + purge |
+| `'use cache'` | not used | dropped in #111 | |
+
+### Build & deploy
+
+```mermaid
+sequenceDiagram
+  participant Dev as Owner
+  participant GH as GitHub Actions
+  participant Mac as Mac, deploy-web.sh
+  participant VM as GCP VM
+  participant CF as Cloudflare
+
+  Dev->>GH: push main
+  par on push
+    GH->>GH: ci.yml
+  and
+    GH->>GH: cc-standalone-check.yml, route table
+  and
+    GH->>GH: gcp.yml, artifact gcp-sha
+  end
+  Dev->>Mac: ./_scripts/gcp/deploy-web.sh run
+  Mac->>GH: gh run download to .gh-artifacts/
+  Mac->>VM: gcloud compute scp --tunnel-through-iap
+  Mac->>VM: ssh: release.sh web sha
+  VM->>VM: pm2 reload blog-web, pm2 save
+  Mac->>CF: cf-purge.sh
+  Mac->>Mac: curl check, my.prettylog.com
+```
+
+| Script | Job |
+| --- | --- |
+| `_scripts/gcp/deploy-web.sh` | download, copy, release, purge, check |
+| `_scripts/gcp/deploy-api.sh` | `blog-api` deploy |
+| `_scripts/gcp/vm-metrics.sh` | VM memory and egress |
+| `_scripts/cloudflare/cf-purge.sh` | purge the Cloudflare cache |
+| `_scripts/cloudflare/traffic-check.sh` | PASS/FAIL on cache rules |
+
+### Monorepo map
+
+```mermaid
+flowchart LR
+  subgraph APPS["apps"]
+    WEB["dashboard_client_web<br/>Next.js 16"]
+    SRV["dashboard_server<br/>Express 5"]
+    AG["blog_agent<br/>Python, publish_oneshot"]
+  end
+  subgraph PKG["packages"]
+    DBP["@repo/db<br/>migrations, schema"]
+    TY["@repo/types"]
+    AST["@repo/assets"]
+    CFG["*-config<br/>tailwind, eslint,<br/>typescript, jest"]
+  end
+  WEB --> TY
+  SRV --> TY
+  APPS -->|"apps depend on packages"| PKG
+  AG ==> SB[("Supabase Postgres")]
+  AG ==> ST[("OCI Object Storage")]
+  SRV --> SB
+```
+
+### Other GitHub workflows
+
+| File | Trigger | Job |
+| --- | --- | --- |
+| `ci.yml` | push and PR to main | web lint, web and server `check-types` |
+| `gcp.yml` | push to main (api, web, types paths), manual | build api and web tarballs, artifact `gcp-<sha>` |
+| `cc-standalone-check.yml` | push to main (web paths), manual | standalone build, 404/200 route table |
+| `cc-browser-measure.yml` | manual | Playwright, headless chromium |
+| `load-test.yml` | manual | k6 sets L1, L2, L2-api |
+| `logging-review.yml` | Monday 14:17 UTC, manual | weekly issue, cache rules check |
+| `supabase-keepalive.yml` | Monday and Thursday 09:00 UTC, manual | Supabase keepalive |
 
 ---
 
@@ -117,7 +295,7 @@ pnpm --filter dashboard_client_web exec next dev --turbopack -p 443 -H 0.0.0.0 -
 
 - [`CLAUDE.md`](./CLAUDE.md) — repo topology, commands, architecture
 - [`00.plan.md`](./00.plan.md) — product intent + roadmap
-- [`00.tasks.md`](./00.tasks.md) — atomic task list (active: Phase CF2 edge cache, Log gates)
+- [`00.tasks.md`](./00.tasks.md) — atomic task list (Phase CC, PJ closed 2026-10-14)
 - [`01.status.md`](./01.status.md) — running status log
 - [`log.plan.md`](./log.plan.md) — Log phases (Y, Y-TD, Y M2)
 - [`decisions.plan.md`](./decisions.plan.md) — resolved architecture decisions
@@ -148,4 +326,4 @@ manual; an env/config allowlist would be over-engineering for one admin.
 Next.js 16 · React 19 · TypeScript strict · Tailwind v4 · Radix UI · shadcn/ui · lucide-react ·
 Jotai · TanStack Query v5 · next-intl · Clerk (auth) · Express 5 · pg Pool · Supabase Postgres ·
 OCI Object Storage · Cloudflare · Python (uv, LangGraph) · GitHub Actions · pnpm 9 · Turborepo ·
-hosting: Vercel → GCP (in progress)
+hosting: GCP VM (PM2) + Cloudflare Tunnel
