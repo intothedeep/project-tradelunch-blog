@@ -62,3 +62,6 @@ apps/stock_collector/**/__pycache__/
 apps/stock_collector/**/*.pyc
 scripts/migration/00_env.sh
 scripts/migration/_dumps/
+
+# GitHub Actions build artifacts for _scripts/gcp/deploy-*.sh (kept, not soft-deleted)
+.gh-artifacts/

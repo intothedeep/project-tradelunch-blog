@@ -46,8 +46,8 @@ cd ~/Documents/00_projects/project_tradelunch
 gh run list --workflow=gcp.yml --limit 5        # pick a run with "success"
 RUN=<run id>
 SHA=$(gh run view $RUN --json headSha --jq .headSha)
-gh run download $RUN -n gcp-$SHA -D x_gh_download   # repo-local, gitignored by x_*
-ls x_gh_download                                     # api-$SHA.tgz  web-$SHA.tgz
+gh run download $RUN -n gcp-$SHA -D .gh-artifacts   # repo-local, gitignored (.gh-artifacts/)
+ls .gh-artifacts                                     # api-$SHA.tgz  web-$SHA.tgz
 ```
 
 ## 2. Copy files to the VM (your Mac)
@@ -57,7 +57,7 @@ VM=tio_taek_lim@instance-servers
 Z=(--zone=us-central1-a --tunnel-through-iap)   # array: zsh does not split "$Z"
 
 gcloud compute ssh $VM "${Z[@]}" --command 'mkdir -p ~/prettylog/shared'
-gcloud compute scp x_gh_download/api-$SHA.tgz \
+gcloud compute scp .gh-artifacts/api-$SHA.tgz \
   deploy/gcp/ecosystem.config.cjs deploy/gcp/release.sh \
   $VM:~/prettylog/ "${Z[@]}"
 ```
@@ -167,7 +167,7 @@ The `gcp-<sha>` artifact holds both tarballs. A run that built the API also buil
 gh run list --workflow=gcp.yml --limit 5        # pick a run with "success"
 RUN=<run id>
 SHA=$(gh run view $RUN --json headSha --jq .headSha)
-ls x_gh_download/web-$SHA.tgz 2>/dev/null || gh run download $RUN -n gcp-$SHA -D x_gh_download
+ls .gh-artifacts/web-$SHA.tgz 2>/dev/null || gh run download $RUN -n gcp-$SHA -D .gh-artifacts
 echo $SHA
 ```
 
@@ -176,7 +176,7 @@ echo $SHA
 ```sh
 VM=tio_taek_lim@instance-servers
 Z=(--zone=us-central1-a --tunnel-through-iap)
-gcloud compute scp x_gh_download/web-$SHA.tgz $VM:~/prettylog/ "${Z[@]}"
+gcloud compute scp .gh-artifacts/web-$SHA.tgz $VM:~/prettylog/ "${Z[@]}"
 # ecosystem.config.cjs / release.sh: copy again only when they changed in git
 gcloud compute scp deploy/gcp/ecosystem.config.cjs deploy/gcp/release.sh $VM:~/prettylog/ "${Z[@]}"
 ```

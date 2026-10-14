@@ -58,13 +58,13 @@
 gh run list --workflow=gcp.yml --limit 5        # pick a run with "success"
 RUN=<run id>
 SHA=$(gh run view $RUN --json headSha --jq .headSha)
-gh run download $RUN -n gcp-$SHA -D x_gh_download
+gh run download $RUN -n gcp-$SHA -D .gh-artifacts
 
 # Mac: copy to the VM (zsh needs an array for the zone options)
 VM=<USER>@<VM>
 Z=(--zone=us-central1-a --tunnel-through-iap)
 gcloud compute ssh $VM "${Z[@]}" --command 'mkdir -p ~/prettylog/shared'
-gcloud compute scp x_gh_download/api-$SHA.tgz \
+gcloud compute scp .gh-artifacts/api-$SHA.tgz \
   deploy/gcp/ecosystem.config.cjs deploy/gcp/release.sh \
   $VM:~/prettylog/ "${Z[@]}"
 \end{lstlisting}
@@ -158,7 +158,7 @@ c(\texttt{web.env})는 처음 한 번만 한다.
 
 \begin{lstlisting}[language=bash]
 # Mac: copy the web tarball
-gcloud compute scp x_gh_download/web-$SHA.tgz $VM:~/prettylog/ "${Z[@]}"
+gcloud compute scp .gh-artifacts/web-$SHA.tgz $VM:~/prettylog/ "${Z[@]}"
 
 # VM, first time only: the web env file (ORIGIN_KEY goes here too, see the previous section)
 vi ~/prettylog/shared/web.env

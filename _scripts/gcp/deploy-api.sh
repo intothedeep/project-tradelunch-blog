@@ -18,8 +18,8 @@ RUN="${1:-$(gh run list --workflow=gcp.yml --branch main --status success --limi
     --json databaseId --jq '.[0].databaseId')}"
 SHA=$(gh run view "$RUN" --json headSha --jq .headSha)
 echo "run $RUN  sha $SHA"
-TGZ="x_gh_download/api-$SHA.tgz"
-[ -f "$TGZ" ] || gh run download "$RUN" -n "gcp-$SHA" -D x_gh_download
+TGZ=".gh-artifacts/api-$SHA.tgz"
+[ -f "$TGZ" ] || gh run download "$RUN" -n "gcp-$SHA" -D .gh-artifacts
 test -f "$TGZ"
 
 # 2. Copy to the VM. One scp and one ssh: IAP connections are slow and rate limited.
