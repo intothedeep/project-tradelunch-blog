@@ -6,6 +6,7 @@
 // A 404 (unknown user) resolves to null so the rail degrades gracefully; other
 // failures throw for the caller's try/catch.
 
+import { unstable_rethrow } from 'next/navigation';
 import { cache } from 'react';
 import { logServerError } from '@/utils/serverLog.util';
 import { ApiError } from '@/utils/apiError.util';
@@ -29,6 +30,7 @@ export const getUserProfile = cache(
             });
             return envelope.data;
         } catch (error) {
+            unstable_rethrow(error);
             if (error instanceof ApiError && error.status === 404) {
                 return null;
             }

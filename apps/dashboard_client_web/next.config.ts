@@ -47,6 +47,10 @@ function hostnameOf(url: string): string {
 const nextConfig: NextConfig = {
     // Do not advertise the framework (measured 2026-10-13: `x-powered-by: Next.js`).
     poweredByHeader: false,
+    // CC-U4 (cc.design §3.1): static shell + Suspense leaves per route. Route
+    // segment `dynamic`/`revalidate` exports are rejected under this flag.
+    // Kill: git revert the U4 commit + redeploy + purge (not just this line).
+    cacheComponents: true,
     transpilePackages: ['@repo/types'],
     // CC-U2 (cc.design §16): re-clicking a page within 30 s reuses the client
     // router cache instead of a new `_rsc` round trip. Back/forward ignores

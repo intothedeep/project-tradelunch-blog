@@ -4,6 +4,11 @@ import { MarkdownEditor } from '@/components/write/MarkdownEditor.client';
 // integer range, so it is kept as a STRING (never Number()/parseInt — that
 // rounds the id and the by-id lookup then misses, emptying the editor). A
 // non-digit id collapses to a new-post editor (postId null).
+// cacheComponents (CC-U4): one sample so the shell prerenders with known params.
+export function generateStaticParams() {
+    return [{ postId: '1' }];
+}
+
 export default async function WriteEditPage({
     params,
 }: {

@@ -1,11 +1,31 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import {
+    clerkMiddleware,
+    createRouteMatcher,
+    type ClerkMiddlewareAuth,
+} from '@clerk/nextjs/server';
 import {
     NextResponse,
     type NextFetchEvent,
     type NextRequest,
 } from 'next/server';
 import { DEFAULT_BLOG_AUTHOR } from '@/env.schema';
+import { checkExists } from '@/apis/existence.proxy';
 import { legacyRedirectPath } from '@/utils/legacyRedirect';
+import {
+    classifyGatePath,
+    isDottedPath,
+    isUnknownPath,
+    NOT_FOUND_PATH,
+} from '@/utils/notFoundGate';
+import { isOwnerHandle } from '@/utils/owner-handle';
+import { PUBLIC_PATHS } from '@/utils/publicPaths.generated';
+
+// Dotted paths that are real files: public/ (generated) and the two metadata routes.
+const SERVED_FILES = new Set<string>([
+    ...PUBLIC_PATHS,
+    '/robots.txt',
+    '/sitemap.xml',
+]);
 
 // Routes that require an authenticated user.
 const isProtectedRoute = createRouteMatcher([
@@ -63,6 +83,54 @@ function toRequestLogLine(req: NextRequest) {
     };
 }
 
+function rewriteToNotFound(req: NextRequest) {
+    const url = req.nextUrl.clone();
+    url.pathname = NOT_FOUND_PATH;
+    return NextResponse.rewrite(url);
+}
+
+// Real 404 for unknown pages (cc.design.md §18). Under cacheComponents the page
+// gates are Suspense leaves and can only answer 200 plus a not-found view, so
+// the status is decided here, before render. A missing page is rewritten to a
+// path that matches no route. Fail-open: API error or timeout passes the request
+// through to the leaf gate. One JSON line per checked request; no token/cookie.
+async function gateNotFound(auth: ClerkMiddlewareAuth, req: NextRequest) {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return null;
+    const gate = classifyGatePath(req.nextUrl.pathname);
+    if (!gate) return null;
+    const { userId, getToken } = await auth();
+    const signedIn = Boolean(userId);
+    // Signed-in RSC navigations are checked like anonymous ones (decision #103,
+    // #98 option b): the Suspense leaf can only answer 200 plus a not-found view.
+    const isRsc = req.headers.get('rsc') === '1';
+    // Signed-in prefetches skip the check (#106): one menu render prefetches many
+    // gated paths at once, and each check is an Express call. The click itself is
+    // still checked. Anonymous prefetches stay checked: their `_rsc` responses can
+    // be edge-cached, signed-in ones are DYNAMIC.
+    if (signedIn && req.headers.has('next-router-prefetch')) return null;
+
+    const started = Date.now();
+    const token = signedIn ? await getToken() : null;
+    // Signed in but no token: cannot judge (would look anonymous). Pass through.
+    const result =
+        signedIn && !token ? 'unknown' : await checkExists(gate, token);
+    // eslint-disable-next-line turbo/no-undeclared-env-vars
+    if (process.env.LOG_REQUESTS !== 'false') {
+        console.log(
+            JSON.stringify({
+                severity: 'INFO',
+                message: 'gate',
+                kind: gate.kind,
+                result,
+                ms: Date.now() - started,
+                signedIn,
+                rsc: isRsc,
+            })
+        );
+    }
+    return result === 'missing' ? rewriteToNotFound(req) : null;
+}
+
 const clerk = clerkMiddleware(async (auth, req) => {
     // On in every environment like blog-api's pino; LOG_REQUESTS=false silences a noisy local session.
     // Runtime-only switch: it does not change build output, so it stays out of turbo.json.
@@ -74,6 +142,15 @@ const clerk = clerkMiddleware(async (auth, req) => {
             // Logging must never break a request.
         }
     }
+    // Pure path check first: an unknown top-level path or a non-owner /@u/about
+    // would otherwise render under ISR and 500 (cc.design.md section 18).
+    if (
+        (req.method === 'GET' || req.method === 'HEAD') &&
+        isUnknownPath(req.nextUrl.pathname, isOwnerHandle)
+    )
+        return rewriteToNotFound(req);
+    const missing = await gateNotFound(auth, req);
+    if (missing) return missing;
     if (isProtectedRoute(req)) {
         await auth.protect();
     }
@@ -95,17 +172,24 @@ export default function proxy(req: NextRequest, event: NextFetchEvent) {
             res.headers.set('Cache-Control', 'public, s-maxage=86400');
             return res;
         }
+        // Dotted path: a real file passes untouched (no Clerk, no cookies); any
+        // other one is a 404 decided here, before it can reach [handle] (A2).
+        if (isDottedPath(req.nextUrl.pathname))
+            return SERVED_FILES.has(req.nextUrl.pathname)
+                ? NextResponse.next()
+                : rewriteToNotFound(req);
     }
     return clerk(req, event);
 }
 
 export const config = {
     matcher: [
-        // Page routes (skip _next, api, static files). Kept at this reach even
+        // Page routes (skip _next, api, trpc, favicon/). Dotted paths now reach the
+        // proxy, which passes real files and 404s the rest (A2). Kept at this reach even
         // though locale detection is gone: narrowing it to protected routes
         // breaks the root ClerkProvider and any public RSC calling `auth()`,
         // which throw when the middleware has not run (CF2-0b, rejected).
-        '/((?!_next|api|.*\\..*).*)',
+        '/((?!_next|api|trpc|favicon/).*)',
         // Clerk's recommended matcher: always run on API/trpc routes.
         '/(api|trpc)(.*)',
     ],
