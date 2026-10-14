@@ -6,6 +6,7 @@
 // Vestigial Cache-Control/Expires request headers removed — they were no-ops
 // on the request side (only response headers affect caching).
 
+import { cache } from 'react';
 import { logServerError } from '@/utils/serverLog.util';
 import { TPopularTag } from '@repo/types';
 import { serverRequest } from '@/apis/http.server';
@@ -15,20 +16,20 @@ interface TEnvelope {
     data: TPopularTag[];
 }
 
-export async function getUserPopularTags(
-    username: string,
-    limit = 30
-): Promise<TPopularTag[]> {
-    try {
-        const envelope = await serverRequest<TEnvelope>({
-            path: `/v1/api/posts/users/${encodeURIComponent(username)}/tags?limit=${limit}`,
-            fallbackError: `Failed to fetch user popular tags: ${username}`,
-        });
-        return envelope.data;
-    } catch (error) {
-        logServerError('Failed to fetch user popular tags', error, {
-            username,
-        });
-        throw new Error(`Failed to fetch user popular tags: ${username}`);
+// cache(): dedupe per request by value (fetch dedupe is off, see http.core).
+export const getUserPopularTags = cache(
+    async (username: string, limit = 30): Promise<TPopularTag[]> => {
+        try {
+            const envelope = await serverRequest<TEnvelope>({
+                path: `/v1/api/posts/users/${encodeURIComponent(username)}/tags?limit=${limit}`,
+                fallbackError: `Failed to fetch user popular tags: ${username}`,
+            });
+            return envelope.data;
+        } catch (error) {
+            logServerError('Failed to fetch user popular tags', error, {
+                username,
+            });
+            throw new Error(`Failed to fetch user popular tags: ${username}`);
+        }
     }
-}
+);

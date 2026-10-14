@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { auth } from '@clerk/nextjs/server';
 import { getPostBySlug } from '@/apis/getPost.api';
@@ -13,7 +14,15 @@ import { OwnerEditButton } from '@/components/blog/OwnerEditButton.client';
 import { StatusBadge } from '@/components/blog/StatusBadge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { badgeVariants } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+
+const CommentsSkeleton = () => (
+    <div className="mt-6 space-y-3">
+        <Skeleton className="h-5 w-24 rounded-none" />
+        <Skeleton className="h-16 w-full rounded-none" />
+    </div>
+);
 
 export const PostContentCard = async ({
     slug,
@@ -121,10 +130,13 @@ export const PostContentCard = async ({
                 <MarkdownRenderer content={post.content || ''} />
 
                 {/* Threaded comments (public read; write requires auth) */}
-                <Comments
-                    postId={post.id}
-                    ownerUsername={ownerUsername}
-                />
+                {/* Suspense: the post body streams without waiting on comments. */}
+                <Suspense fallback={<CommentsSkeleton />}>
+                    <Comments
+                        postId={post.id}
+                        ownerUsername={ownerUsername}
+                    />
+                </Suspense>
             </CardContent>
         </Card>
     );

@@ -95,11 +95,12 @@ export const TagPostsList: React.FC<Props> = (props) => {
         <div
             className={cn('tag-post-list-container', 'space-y-3 sm:space-y-4')}
         >
-            {posts.map((post) => (
+            {posts.map((post, index) => (
                 <RecentPostCard
                     key={post.id}
                     post={post}
                     cdnBaseUrl={cdnURL}
+                    priority={index === 0}
                 />
             ))}
 

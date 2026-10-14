@@ -6,11 +6,18 @@ type Props = {
     storedUri: string | null;
     alt: string;
     className?: string;
+    // Above-the-fold image (LCP candidate): eager load + preload. First 1-2 only.
+    priority?: boolean;
 };
 
 // stored_uri is normally an absolute URL; only a legacy bare key gets the CDN
 // prefix (same rule as RecentPostCard). Null renders an empty placeholder box.
-export const ProjectThumbnail = ({ storedUri, alt, className }: Props) => {
+export const ProjectThumbnail = ({
+    storedUri,
+    alt,
+    className,
+    priority = false,
+}: Props) => {
     const src = storedUri
         ? /^https?:\/\//.test(storedUri)
             ? storedUri
@@ -24,6 +31,7 @@ export const ProjectThumbnail = ({ storedUri, alt, className }: Props) => {
                     src={src}
                     alt={alt}
                     fill
+                    priority={priority}
                     sizes="(max-width: 768px) 100vw, 320px"
                     className="object-cover"
                 />

@@ -51,7 +51,7 @@ export const ProjectPostList = ({ username, posts }: Props) => {
                 </div>
             </div>
             <ol className="flex flex-col gap-8">
-                {items.map(({ post, order }) => (
+                {items.map(({ post, order }, index) => (
                     <li
                         key={post.id}
                         className="flex flex-col gap-3"
@@ -73,6 +73,7 @@ export const ProjectPostList = ({ username, posts }: Props) => {
                                 storedUri={post.stored_uri}
                                 alt={post.title}
                                 className="aspect-video w-full shrink-0 sm:w-48"
+                                priority={index === 0}
                             />
                             <span className="flex min-w-0 flex-1 flex-col justify-between gap-3 p-4">
                                 <span className="line-clamp-3 text-sm text-muted-foreground">

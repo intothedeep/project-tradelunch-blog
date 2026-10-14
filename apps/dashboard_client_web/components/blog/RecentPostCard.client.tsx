@@ -33,11 +33,14 @@ import { serializeFacet } from '@/utils/filter-state';
 interface RecentPostCardProps {
     post: TPost;
     cdnBaseUrl?: string;
+    // Above-the-fold card (LCP candidate): eager image. First card of a feed only.
+    priority?: boolean;
 }
 
 export const RecentPostCard: React.FC<RecentPostCardProps> = ({
     post,
     cdnBaseUrl = '',
+    priority = false,
 }) => {
     // stored_uri is already an absolute URL (post-publish); only prefix the CDN
     // base for legacy bare-key values.
@@ -163,7 +166,8 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
                             fill
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             className="object-cover"
-                            loading="lazy"
+                            priority={priority}
+                            loading={priority ? undefined : 'lazy'}
                         />
                     </div>
                 )}

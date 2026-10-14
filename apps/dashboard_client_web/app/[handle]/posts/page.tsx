@@ -1,11 +1,11 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 
 import BlogMainPage from '@/components/blog/BlogMainPage';
 import { CategorySidebarWrapper } from '@/components/blog/CategorySidebarWrapper.server';
 import { AppliedFilters } from '@/components/blog/filter/AppliedFilters.client';
-import { FilterChipRow } from '@/components/blog/filter/FilterChipRow.client';
-import { getTagFilterItems } from '@/components/blog/filter/getFilterItems.server';
+import { FilterChipRowLeaf } from '@/components/blog/filter/FilterChipRowLeaf.server';
 import { MobileCategory } from '@/components/blog/MobileCategory.client';
 import { stripUsernameAt } from '@/utils/blog-author';
 import { parseFilterState } from '@/utils/filter-state';
@@ -71,7 +71,6 @@ export default async function BlogPage({ params, searchParams }: PageProps) {
     const filters = parseFilterState(sp);
 
     const t = await getTranslations('blog.filters');
-    const tagItems = await getTagFilterItems(author);
 
     return (
         <>
@@ -82,18 +81,22 @@ export default async function BlogPage({ params, searchParams }: PageProps) {
                 TOC ("Contents") on the detail page. Tags stay a chip row. */}
             <div className="mb-3 flex flex-col gap-2 lg:hidden">
                 <MobileCategory title={t('categories')}>
-                    <CategorySidebarWrapper
-                        username={author}
-                        mode="filter"
-                        bare
-                    />
+                    {/* auth() inside the wrapper is request-time: keep it out
+                        of the page's critical path. */}
+                    <Suspense fallback={null}>
+                        <CategorySidebarWrapper
+                            username={author}
+                            mode="filter"
+                            bare
+                        />
+                    </Suspense>
                 </MobileCategory>
-                <FilterChipRow
-                    username={author}
-                    facet="tags"
-                    items={tagItems}
-                    ariaLabel={t('tags')}
-                />
+                <Suspense fallback={null}>
+                    <FilterChipRowLeaf
+                        username={author}
+                        ariaLabel={t('tags')}
+                    />
+                </Suspense>
             </div>
 
             <BlogMainPage

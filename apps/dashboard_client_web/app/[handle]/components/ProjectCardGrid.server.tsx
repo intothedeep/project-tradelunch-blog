@@ -15,7 +15,7 @@ export const ProjectCardGrid = async ({ username, projects }: Props) => {
 
     return (
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {projects.map((card) => (
+            {projects.map((card, index) => (
                 <li key={card.project_id}>
                     <HoverPrefetchLink
                         href={projectPath(username, card.project)}
@@ -26,6 +26,7 @@ export const ProjectCardGrid = async ({ username, projects }: Props) => {
                                 storedUri={card.overview?.stored_uri ?? null}
                                 alt={card.overview?.title ?? card.project}
                                 className="aspect-video w-full"
+                                priority={index < 2}
                             />
                             <CardContent className="flex flex-col gap-1 p-3 sm:p-4">
                                 <h2 className="text-base font-bold">

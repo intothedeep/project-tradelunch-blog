@@ -106,12 +106,13 @@ export const RecentPostsListClient: React.FC<Props> = (props) => {
                 'space-y-3 sm:space-y-4'
             )}
         >
-            {posts.map((post) => {
+            {posts.map((post, index) => {
                 return (
                     <RecentPostCard
                         key={post.id}
                         post={post}
                         cdnBaseUrl={cdnURL}
+                        priority={index === 0}
                     />
                 );
             })}
