@@ -22,7 +22,7 @@ import {
 type TFacetKey = keyof TFilterState;
 
 const CHIP =
-    'inline-flex items-center gap-1 min-h-11 rounded-full border border-primary px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-accent/50';
+    'inline-flex items-center gap-1 min-h-11 rounded-none border border-primary px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-accent/50';
 const CLEAR =
     'inline-flex items-center min-h-11 px-2 text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-primary hover:underline';
 

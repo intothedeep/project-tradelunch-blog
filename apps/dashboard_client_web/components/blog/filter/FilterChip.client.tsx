@@ -33,7 +33,7 @@ type Props = {
 };
 
 const BASE =
-    'snap-start shrink-0 inline-flex items-center gap-1 min-h-11 rounded-full px-2.5 py-1 text-xs transition-colors';
+    'snap-start shrink-0 inline-flex items-center gap-1 min-h-11 rounded-none px-2.5 py-1 text-xs transition-colors';
 const INACTIVE = 'border border-border text-foreground hover:bg-accent/50';
 const ACTIVE = 'border border-primary font-semibold text-primary';
 
