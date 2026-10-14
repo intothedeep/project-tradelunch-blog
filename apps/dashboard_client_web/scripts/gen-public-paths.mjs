@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* global process */
 // Writes utils/publicPaths.generated.ts from the files under public/. The proxy matcher covers favicon/ too
 // (a missing favicon file must 404). proxy.ts uses the list to let real
 // dotted files through and 404 every other dotted path (cc.design.md section 18,
@@ -30,9 +31,13 @@ if (process.argv.includes('--check')) {
     let current = '';
     try {
         current = readFileSync(out, 'utf8');
-    } catch {}
+    } catch {
+        // No generated file yet: treat as stale.
+    }
     if (current !== body) {
-        console.error('publicPaths.generated.ts is stale: run node scripts/gen-public-paths.mjs');
+        console.error(
+            'publicPaths.generated.ts is stale: run node scripts/gen-public-paths.mjs'
+        );
         process.exit(1);
     }
     console.log(`OK: PUBLIC_PATHS matches public/ (${paths.length} files)`);
