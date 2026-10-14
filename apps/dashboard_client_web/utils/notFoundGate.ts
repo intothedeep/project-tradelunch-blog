@@ -63,6 +63,9 @@ export function isUnknownPath(
     const segs = decodeSegments(pathname);
     if (!segs || segs.length === 0) return false;
     const [first, second] = segs as [string, string?];
+    // `/log` has no child route since P2 (#113): `/log/@u…` would reach the ISR
+    // not-found render, which answers 500 under cacheComponents (attempt 1 bug).
+    if (first === 'log') return segs.length > 1;
     if (!first.startsWith('@')) return !KNOWN_TOP_LEVEL.has(first);
     if (segs.length !== 2 || !second) return false;
     const rawHandle = pathname.split('/').filter(Boolean)[0] as string;
