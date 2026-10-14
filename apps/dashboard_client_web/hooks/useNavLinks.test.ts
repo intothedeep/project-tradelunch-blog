@@ -9,7 +9,7 @@ describe('buildPrimaryNavLinks', () => {
         const hrefs = buildPrimaryNavLinks('taeklim').map((l) => l.href);
         expect(hrefs).toContain('/');
         expect(hrefs).toContain('/write');
-        expect(hrefs).toContain('/me/saved');
+        expect(hrefs).toContain('/@taeklim/saved');
     });
 
     it('includes My blog scoped to the resolved username', () => {

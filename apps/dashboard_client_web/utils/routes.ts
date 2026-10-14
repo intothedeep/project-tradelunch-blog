@@ -28,6 +28,10 @@ export function resumePath(u: string): string {
     return `/${handleOf(u)}/resume`;
 }
 
+export function mePath(u: string): string {
+    return `/${handleOf(u)}/me`;
+}
+
 export function savedPath(u: string): string {
     return `/${handleOf(u)}/saved`;
 }

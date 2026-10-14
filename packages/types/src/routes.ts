@@ -9,6 +9,7 @@ export const RESERVED_HANDLE_SEGMENTS = [
     'about',
     'resume',
     'saved',
+    'me',
     'logs',
 ] as const;
 

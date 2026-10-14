@@ -14,7 +14,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useThemeToggle } from '@/hooks/useThemeToggle.hook';
 import { useTranslations } from 'next-intl';
-import { savedPath } from '@/utils/routes';
+import { mePath, savedPath } from '@/utils/routes';
 
 type NavLink = { title: string; href: string };
 
@@ -139,20 +139,20 @@ export function NavMenu({
                             <DropdownMenuItem asChild>
                                 <Link href="/write">{t('nav.write')}</Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                                <Link href="/me">{t('nav.myDrafts')}</Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                                <Link
-                                    href={
-                                        user?.username
-                                            ? savedPath(user.username)
-                                            : '/me/saved'
-                                    }
-                                >
-                                    {t('nav.saved')}
-                                </Link>
-                            </DropdownMenuItem>
+                            {user?.username && (
+                                <>
+                                    <DropdownMenuItem asChild>
+                                        <Link href={mePath(user.username)}>
+                                            {t('nav.myDrafts')}
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href={savedPath(user.username)}>
+                                            {t('nav.saved')}
+                                        </Link>
+                                    </DropdownMenuItem>
+                                </>
+                            )}
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onSelect={() => openUserProfile()}>

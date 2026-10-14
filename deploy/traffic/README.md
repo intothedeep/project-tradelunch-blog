@@ -55,6 +55,7 @@ Expression (Edit expression):
   or starts_with(http.request.uri.path, "/admin")
   or starts_with(http.request.uri.path, "/onboarding")
   or (starts_with(http.request.uri.path, "/@") and ends_with(http.request.uri.path, "/saved"))
+  or (starts_with(http.request.uri.path, "/@") and ends_with(http.request.uri.path, "/me"))
   or (any(http.request.headers.names[*] eq "rsc") and not http.request.uri.query contains "_rsc=")
 ))
 ```

@@ -43,10 +43,11 @@ export default function robots(): MetadataRoute.Robots {
                     '/sign-up',
                     '/onboarding',
                     '/write',
-                    '/me',
                     '/settings',
                     '/admin',
-                    // Per-viewer saved list (PJ-2-02), `/@u/saved` and `%40u`.
+                    // Per-viewer pages `/@u/me`, `/@u/saved` (and `%40u`).
+                    '/@*/me',
+                    '/%40*/me',
                     '/@*/saved',
                     '/%40*/saved',
                     // Facet-filter crawler trap (quota outage 2026-09-23): these

@@ -424,6 +424,7 @@ MVP1에서 제목이 `[MOCK]`으로 시작하던 카드는 MVP2 원본에 제목
 ### 남은 것
 
 - PJ-1-03 AC2–AC4: Express 예약 slug 400. 로그인한 토큰이 있어야 해서 재지 않았다.
+  - 2026-10-14 측정함 (blog-api ab4c3c0, 오너 token): slug `Posts` 400, 제목 `Projects` 400, 예약 slug 행 0, `pj-guard-check` 성공 (draft id 247, 오너가 `/me`에서 지운다). 원본: `deploy/projects/pj-1-03-guard-2026-10-14.txt`.
 - PJ-1-22: mock 은퇴. 진행 중이다.
 - P1 gate review: reviewer가 한다.
 

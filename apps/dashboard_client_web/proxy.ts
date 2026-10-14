@@ -11,13 +11,11 @@ import { legacyRedirectPath } from '@/utils/legacyRedirect';
 const isProtectedRoute = createRouteMatcher([
     '/onboarding(.*)',
     '/write(.*)',
-    '/me(.*)',
     '/settings(.*)',
     '/admin(.*)',
-    // `/@u/saved` (also `%40u`): the viewer's own list (PJ-2-02). A RegExp
-    // because path-to-regexp strings treat '@' and '*' awkwardly. Keep the
-    // Cloudflare bypass expression in step (deploy/traffic/README.md, PJ-2-04).
-    /^\/(@|%40)[^/]+\/saved\/?$/i,
+    // `/@u/me` and `/@u/saved` are NOT listed: OwnerOnly 404s non-owners
+    // (owner, 2026-10-14), so no sign-in redirect. The Cloudflare bypass
+    // expression must still cover both (deploy/traffic/README.md).
 ]);
 
 // CF2-0a (2026-09-22): the `locale` cookie and its Accept-Language detection

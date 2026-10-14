@@ -14,6 +14,7 @@ RESERVED_HANDLE_SEGMENTS: tuple[str, ...] = (
     "about",
     "resume",
     "saved",
+    "me",
     "logs",
 )
 

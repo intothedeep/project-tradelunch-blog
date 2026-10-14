@@ -5,11 +5,13 @@
 > 위치 근거: 저장소 선례 `gcp.design.md`, `traffic.design.md`와 같은 루트 `*.design.md`다.
 > `00.plan.md` 절과 `00.tasks.md` 행은 product-manager(pm)가 쓴다. 이 문서는 고치지 않는다.
 
-## 0. Mission block (인용 자리)
+## 0. Mission block (인용)
 
-- `00.plan.md`에 이 기능의 mission block이 아직 없다.
-- 초안은 hand-back 메시지에 있다. 블록은 owner 승인 뒤 pm이 `00.plan.md`에 쓴다(`rules/docs.md` §0.1).
-- pm이 절을 만들면, 이 절은 그 블록을 그대로 인용한다.
+> - Mission: 채용 담당자가 프로젝트 결과를 한눈에 보게 한다. (오너 승인 2026-10-13, #79)
+> - Vision: 방문자가 `/@u/...` 한 체계에서 글, 프로젝트, 소개를 로그인 없이 읽는다. 옛 URL은 모두 새 URL로 연결된다. (오너 승인 2026-10-13, #79)
+
+- 원본: `00.plan.md` Phase PJ "Mission block". Constraints, G1, S1, M1–M5는 그곳만 본다.
+- 블록은 `00.plan.md`에만 있다. 이 절은 인용만 한다 (`rules/docs.md` §0.1).
 
 오너 요구 (2026-10-13, dispatch 경유 요약):
 
@@ -504,6 +506,7 @@ projects/[project]/page.tsx (server)            글 목록
 | 모든 fetch | `'use cache'` + `cacheLife` 또는 Suspense 안 dynamic | M | 공개 글 갱신 지연. 오늘 정책(edge 24h, 배포 뒤 purge)과 맞춘다 |
 | 빌드 | 빌드가 "Suspense 밖 uncached data" 오류를 낸다. 모두 고쳐야 빌드가 된다 | M | 빌드는 GH Actions에서만(Phase GCP) |
 
+- 정정 (2026-10-13, `cc.design.md` §11): 첫 행 `getLocale()`은 막힘이 아니다. `i18n/request.ts`가 `requestLocale`을 읽지 않아 `headers()`가 불리지 않는다. CC 설계와 순서는 `cc.design.md`가 이어받는다.
 - 판정: 할 수 있다. 하지만 P1에 넣지 않는다. 막힘이 모든 route에 걸쳐 있다. big-bang 이전이 된다(MVP 사다리 "Repeat" 위반).
 - 따로 쉬운 것: `experimental.staleTimes.dynamic = 30`. client router cache가 30초 동안 페이지를 다시 쓴다. 뒤로 가기와 다시 방문 요청이 준다. 좋아요 수가 30초 늦을 수 있다. CC phase 첫 행으로 둔다.
 

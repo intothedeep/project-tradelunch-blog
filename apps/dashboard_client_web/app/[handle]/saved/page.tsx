@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 
-import { SavedOwnerGate } from '@/components/me/SavedOwnerGate.client';
+import { OwnerOnly } from '@/components/me/OwnerOnly.server';
+import { SavedPostsList } from '@/components/me/SavedPostsList.client';
 
-// Per-viewer page: kept out of the index. The shell reads no request data; the
-// owner check is the client gate (PJ-2-02).
+// Per-viewer page: kept out of the index. Owner-only, 404 for everyone else.
 export const metadata: Metadata = {
     robots: { index: false, follow: false },
 };
@@ -14,5 +14,9 @@ export default async function SavedPage({
     params: Promise<{ handle: string }>;
 }) {
     const { handle } = await params;
-    return <SavedOwnerGate handle={handle} />;
+    return (
+        <OwnerOnly handle={handle}>
+            <SavedPostsList />
+        </OwnerOnly>
+    );
 }

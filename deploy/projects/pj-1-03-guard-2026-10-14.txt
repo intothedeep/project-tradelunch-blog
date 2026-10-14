@@ -1,0 +1,6 @@
+# PJ-1-03 AC2-AC4, Express reserved-slug guard, prod blog-api ab4c3c0, 2026-10-14 ~04:33 UTC
+# owner's signed-in Clerk token (60 s), POST https://blog-api.prettylog.com/v1/api/posts
+AC2 slug="Posts"            -> 400 {"success":false,"message":"slug is reserved: Posts"}
+AC2 title="Projects" (no slug, title-derived) -> 400 {"success":false,"message":"slug is reserved: projects"}
+AC3 select count(*) from posts where lower(slug) in ('posts','projects') and created_at > now()-15 min -> 0
+AC4 slug="pj-guard-check"   -> 201-class success, post id 247, status draft (owner deletes via /me; soft delete)

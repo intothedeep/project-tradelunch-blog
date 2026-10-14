@@ -1,0 +1,9 @@
+# PJ-1-23 final deploy adcfc06 (run 38512101910) + full purge, measured 2026-10-14 from main session
+legacy 308 (1st MISS, 2nd EXPIRED): /blog/@taeklim/rust-config, /blog, /about, /resume, /blog/%40taeklim/rust-config
+  all: HTTP/2 308, cache-control: public, s-maxage=86400, correct location, no set-cookie
+  2nd EXPIRED -> CF "web cache" rule Status code TTL is "200 only"; needs 308 row (USER)
+pages 200, rail=1, [MOCK]=0: /@taeklim/{resume,about,projects,projects/cnn-from-scratch,<cnn post>,posts}, /, /tags/rust
+2nd request HIT: /@taeklim/projects, /@taeklim/resume
+# after owner added CF "web cache" Status code TTL 308 -> 1 day (300-307 and 400-526 no store), 2026-10-14
+legacy 308 2nd request: /blog/@taeklim/rust-config, /blog, /about, /resume, /blog/%40taeklim/rust-config -> cf-cache-status: HIT (all 5)
+PJ-1-03 AC4 draft id 247: deleted_at set by owner via /me (soft delete)
