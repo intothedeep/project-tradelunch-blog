@@ -8,7 +8,7 @@ import { MenuDrawer } from '@/components/MenuDrawer.client';
 import { TopBar } from '@/components/topbar/TopBar.client';
 import { isMenuDrawerOpenAtom } from '@/store/menu.atom';
 import { cn } from '@/lib/utils';
-import { TONE_BG, sectionTone } from '@/utils/section-tone';
+import { TONE_BG_FAINT, sectionTone } from '@/utils/section-tone';
 
 // Desktop Navigation: the single global top bar, rendered on every route.
 export const DesktopNavigation = () => {
@@ -27,7 +27,7 @@ export const MobileNavigation = () => {
             <nav
                 className={cn(
                     'flex h-14 items-center justify-between border-b-2 border-primary backdrop-blur px-4 md:hidden',
-                    tone ? TONE_BG[tone] : 'bg-background/95'
+                    tone ? TONE_BG_FAINT[tone] : 'bg-background/95'
                 )}
             >
                 <Link

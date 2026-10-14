@@ -11,7 +11,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { TONE_BG, sectionTone } from '@/utils/section-tone';
+import { TONE_BG_FAINT, sectionTone } from '@/utils/section-tone';
 import { NavMenu } from '@/components/nav-menu.client';
 import { SearchBar } from '@/components/topbar/SearchBar.client';
 import { SearchTrigger } from '@/components/topbar/SearchTrigger.client';
@@ -27,7 +27,10 @@ export const TopBar = () => {
     // The header takes the tone of the section chosen in the menu (owner,
     // 2026-10-14); pages without a section keep the plain background.
     const tone = sectionTone(usePathname());
-    const NAV_CLASS = cn(NAV_BASE, tone ? TONE_BG[tone] : 'bg-background/95');
+    const NAV_CLASS = cn(
+        NAV_BASE,
+        tone ? TONE_BG_FAINT[tone] : 'bg-background/95'
+    );
     const [searchOpen, setSearchOpen] = useState(false);
     const triggerRef = useRef<HTMLButtonElement>(null);
     const returnFocusRef = useRef(false);

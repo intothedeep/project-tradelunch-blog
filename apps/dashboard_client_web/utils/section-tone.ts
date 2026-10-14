@@ -18,6 +18,16 @@ export const TONE_BG: Record<SectionTone, string> = {
     write: 'bg-tone-write',
 };
 
+// Fainter variant for wide surfaces (the top bar): half the tone over the page.
+export const TONE_BG_FAINT: Record<SectionTone, string> = {
+    home: 'bg-tone-home/50',
+    projects: 'bg-tone-projects/50',
+    saved: 'bg-tone-saved/50',
+    about: 'bg-tone-about/50',
+    posts: 'bg-tone-posts/50',
+    write: 'bg-tone-write/50',
+};
+
 const TONE_BY_HANDLE_SECTION: Record<string, SectionTone> = {
     projects: 'projects',
     saved: 'saved',
