@@ -218,7 +218,8 @@ rail 접힘 상태: 세 안
 | --- | --- | --- | --- |
 | `/@u/projects`, `/@u/projects/<p>` | 숨김 | 보임 | #79 |
 | `/@u/<slug>` 중 프로젝트 글 | 숨김 | 보임 | #79. 경로만으로는 알 수 없다(아래) |
-| `/@u/saved` | 해당 없음 | **숨김** (오늘 rail 없음) | 오늘 동작 유지. §10 Q2 |
+| ~~`/@u/saved`~~ | ~~해당 없음~~ | ~~**숨김** (오늘 rail 없음)~~ | ~~오늘 동작 유지. §10 Q2~~ <!-- SUPERSEDED 2026-10-14: 오너가 `/@u/saved`, `/@u/me`에 공유 왼쪽 rail을 요청. §15.5 --> |
+| `/@u/saved`, `/@u/me` | 보임 | **보임** | 오너 2026-10-14. §15.5 |
 | 그 밖 | 보임 | 보임 | 오늘과 같음 |
 
 - 규칙은 순수 함수 하나: `utils/rail-visibility.ts` `railVisibility(pathname) → { showRail, showRecent }`. `RESERVED_HANDLE_SEGMENTS`(`@repo/types`)를 import해 경로 이름을 고정한다.
@@ -471,10 +472,10 @@ U0a 계측 ─► U0b 기준선 ─► QW1 빠른 수정 ─► QW2 rail 폭 hot
   staleTimes / cacheLife.stale                       static shell (U4)
 ```
 
-| 층 | 익명 | 로그인(`__session`, BYPASS) |
+| 층 | 익명 | 로그인(`__session`, `cf-cache-status: DYNAMIC`, rev2.1 §14.4) |
 | --- | --- | --- |
 | 브라우저 router cache | U2와 U4가 `_rsc` 재요청을 줄인다. 요청 수 한도에 도움 | 같음 |
-| Cloudflare HTML·`_rsc` | 변화 없음. 응답은 shell + 스트림이 한 HTTP 응답이다. 엣지는 전체를 저장한다 | 해당 없음 (BYPASS) |
+| Cloudflare HTML·`_rsc` | 변화 없음. 응답은 shell + 스트림이 한 HTTP 응답이다. 엣지는 전체를 저장한다 | 해당 없음 (저장 안 함, 매번 오리진) |
 | Next 오리진 | MISS 렌더가 싸진다(shell 재사용, U5 캐시) | 효과가 가장 크다. 모든 요청이 오리진에 온다 |
 
 - 익명 HTML의 결정은 그대로다: 1일, 배포 뒤 purge.
@@ -536,7 +537,7 @@ rev1 Q1–Q10과 감사의 열린 항목(B4 선택, D4, §5)을 합쳤다. 중�
 | # | 질문 | 설계 기본값 | 출처 |
 | --- | --- | --- | --- |
 | Q1 | 프로젝트 글 상세에서 RecentVisited 숨김(#79)을 지킬까. 지키려면 잎 신호(`RailContextPublisher`)가 필요하다. `usePathname()`만으로는 알 수 없다 | 지킨다. 잎 신호 | rev1 |
-| Q2 | `/@u/saved`는 오늘 rail이 없다. group 안으로 오면 rail을 보일까 | 숨긴다 (오늘과 같음) | rev1 |
+| ~~Q2~~ | ~~`/@u/saved`는 오늘 rail이 없다. group 안으로 오면 rail을 보일까~~ | ~~숨긴다 (오늘과 같음)~~ | rev1. **대체됨 2026-10-14**: 오너가 saved, me에 공유 왼쪽 rail을 요청했다(§15.5) |
 | Q3 | 기준선 전에 계측 코드 2개를 배포해도 되나: `[nav]`(`instrumentation-client.ts`, 기본 꺼짐), `ssr_fetch` 로그 줄(`http.server.ts`) | 된다. `[nav]`가 없으면 U3, U4 주 지표 = HAR의 prefetch 아닌 `_rsc` 요청 시간. `ssr_fetch`가 없으면 QW1 주 지표를 쓸 수 없고 QW1은 기록만 한다 | rev1 + 감사 §5-6 |
 | Q4 | 서버 렌더 시간: `proxy.ts` 요청 로그에 `durationMs`를 넣을까. MISS TTFB를 대리 지표로 둘까 | TTFB 대리. `ssr_fetch`의 `ms`가 fetch 쪽 시간을 준다 | rev1 |
 | Q5 | `generateStaticParams` sample: `[slug]`, `[project]`를 env 상수, 빌드 때 API 조회, placeholder 중 무엇으로 | env 상수 (`CC_SAMPLE_SLUG`, `CC_SAMPLE_PROJECT`) | rev1 + 감사 A8 |
@@ -614,3 +615,206 @@ rev1 Q1–Q10과 감사의 열린 항목(B4 선택, D4, §5)을 합쳤다. 중�
 | D6 처방 "오른쪽 rail은 parallel route(`@right`)" | 쓰지 않는다. child layout이 ContentFrame으로 오른쪽 rail을 넘긴다. parallel route는 `default.tsx`와 slot 규칙이 더 든다(KISS) | §4.3 |
 | D6 "나중 (CC 뒤)" | 오너가 첫 CC 단위로 당겼다(2026-10-14). U1b | 오너 지시 |
 | §3 "`cc.design.md`가 없다" | 있다. 이 문서다. 감사 §4의 "Phase CC" 행은 §12 추적표가 대신한다 | 이 문서 |
+
+## 14. rev2.1 측정 보정 (measurement amendments, 2026-10-14)
+
+- 입력: `deploy/traffic/review/cc/baseline.md` (data-analyst, curl 측정 3회, 배포 `19f5e31`). 그 파일은 고치지 않는다.
+- 결정: system-architect. 변경 후 측정(post-change run) 전에 고정한다. pm이 #88 행에 Update로 적는다(write-first).
+- 공식 자체(§5.3)는 바꾸지 않는다. "무엇의 p50인가"와 집계 방법만 정한다.
+
+### 14.1 p50 읽기 (baseline.md §2.3)
+
+| 단위 | 고른 읽기 | 버린 읽기 | 이유 |
+| --- | --- | --- | --- |
+| U4 = G-CC | **A**: run마다 W1 로그인 s2–s6 원값 15개(5단계 × 반복 3)의 p50. 그다음 run 3개 값의 중앙값 = 지표. 범위 = run 3개 값의 최댓값 − 최솟값 | B (원값 5개로 낸 p50이라 거칠다), C (p50이 아니라 합이다. 원문과 다르다) | 원문 "p50"에 가장 가깝다. 표본을 모두 쓴다. 주 지표 하나 규칙(`rules/measurement.md` §1)을 지킨다 |
+| U3 | U4와 같은 방식. 5단계 하나(s5)의 원값 3개 p50 → run 3개 중앙값 | | 단계 하나라 A와 B가 같다 |
+| U5 | **A**: run마다 세 페이지 MISS 원값 9개의 p50 → run 3개 중앙값 | 페이지별 (판정이 셋이 된다) | 주 지표 하나. 페이지별 값은 기록만 한다 |
+
+- 단계 섞임 대비: 단계별 run 중앙값은 기록 칸에 계속 남긴다. 한 단계만 나빠지면 기록에서 보인다.
+- 판정 숫자: U4, U3의 **판정 지표는 `[nav]`(브라우저 run)** 다. curl `total_ms` proxy(U4 110 ms, U3 246 ms)는 판정에 쓰지 않는다. 브라우저 기준선 3회가 없으면 U3, U4는 판정할 수 없다.
+- U5는 curl `ttfb_ms`가 원래 지표다. 판정선 140 ms를 지금 고정한다.
+- QW1, QW2는 브라우저 run 없이 판정할 수 있다(§14.2, QW2 판정 (1)). QW2의 (2), (3)은 브라우저 run이 필요하다.
+
+### 14.2 QW1 집계: `ssr_fetch` 줄을 MISS 렌더 하나에 묶는 법
+
+어디에 있나:
+
+| 위치 | 근거 | 용도 |
+| --- | --- | --- |
+| Cloud Logging `LOG_ID("blog-web")` | Ops Agent가 `~/.pm2/logs/blog-web-out-*.log`를 보낸다 (`deploy/logging/README.md` "Web request log", "Log views") | **1차 출처**. main session이 `gcloud logging read`로 읽는다. ssh 없음 |
+| VM 파일 `~/.pm2/logs/blog-web-out-0.log` (logrotate 7일) | 같은 README §① | 대체 출처. Cloud Logging 줄 수가 모자랄 때만 |
+
+- 두 줄은 같은 프로세스(VM 시계)에서 나온다: `proxy.ts` 요청 줄(`message: "request"`, `query`, `ua`, `time`)과 `ssr_fetch` 줄(`time` = fetch 끝).
+- 요청 id는 없다. 그래서 시간 창으로 묶는다. 창의 경계는 Mac 시계가 아니라 VM의 요청 줄로 정한다(시계 차이를 없앤다).
+
+묶는 규칙:
+
+```
+MISS 요청 i  ─ proxy 줄: message=request, query에 cb 값, ua에 runId   → t_i
+                │  ssr_fetch 줄들 (t_i < time ≤ t_next)               → count_i
+다음 요청    ─ proxy 줄 (출처 무관, 다음 시각)                         → t_next   (상한 t_i + 5 s)
+```
+
+1. 실행 끝(마지막 요청 + 30초) 뒤에 한 번 읽는다. Cloud Logging 수집 지연 때문이다.
+2. 질의 (main session, Mac, 저장소 루트):
+
+```sh
+# manifest has no run-level start/end: take the span of the MISS windows, padded 10 s each side
+R=<run 폴더>; W='.metrics.arms.anon.miss_windows'
+A=$(jq -r "[$W[].start] | min" $R/manifest.json); B=$(jq -r "[$W[].end] | max" $R/manifest.json)
+A=$(date -u -j -v-10S -f '%Y-%m-%dT%H:%M:%S' "${A%%.*}" +%Y-%m-%dT%H:%M:%SZ); B=$(date -u -j -v+10S -f '%Y-%m-%dT%H:%M:%S' "${B%%.*}" +%Y-%m-%dT%H:%M:%SZ)
+gcloud logging read "LOG_ID(\"blog-web\") AND timestamp>=\"$A\" AND timestamp<=\"$B\" AND (jsonPayload.message=\"request\" OR jsonPayload.message=\"ssr_fetch\")" \
+  --order=asc --limit=5000 --format=json > $R/blog-web-log.json
+```
+
+3. 집계 (main session, 저장된 파일만 읽는다, "Allowed locally"): `_scripts/perf/ssr-fetch-count.mjs <run 폴더>` (developer가 쓴다).
+   - `manifest.json` `metrics.arms.anon.miss_windows`의 각 창에서 `path`와 `cb` 값을 얻는다.
+   - `blog-web-log.json`에서 `query`에 그 `cb`가 있는 request 줄을 찾는다 → `t_i`.
+   - `t_i` 다음의 첫 request 줄 시각 → `t_next`. 없으면 `t_i + 5 s`.
+   - 그 사이 `ssr_fetch` 줄을 센다. 경로별 수도 남긴다(`/posts/slug/` 수 = 감사 §5-7 답).
+   - 오염 검사: 창 안에 `ua`에 runId가 없는 request 줄이 있고, 그 줄이 `/_next/`가 아니면 그 창을 **오염**으로 표시하고 뺀다.
+   - 출력: `$R/ssr_fetch.csv` (창, 페이지, count, 경로별 count, 오염 여부)와 run 값 = 세 페이지 count 합의 반복 중앙값.
+4. 판정: run 값 3개의 중앙값과 범위로 §5.3 QW1 공식.
+
+대체(fallback):
+
+| 조건 | 대체 |
+| --- | --- |
+| Cloud Logging의 request 줄 수 < 그 run의 요청 수 (수집 누락) | 같은 질의 범위를 VM 파일에서 읽는다: `gcloud compute ssh $VM "${Z[@]}" --command 'grep -h -E "\"message\":\"(request|ssr_fetch)\"" ~/.pm2/logs/blog-web-out-0.log'` 1회 → `$R/blog-web-log.jsonl`. 같은 집계. ssh는 1회만(`rules/ssh.md`) |
+| 오염 창이 페이지마다 3개 중 2개 이상 | 그 run을 버리고 다시 돈다. 트래픽이 적은 시각(UTC 05–07시, 기준선 시각)에 |
+| `cb` 줄을 못 찾음 (`query` 필드 없음 등) | 창 = 스크립트의 `[start, end]` ± 0 s, VM과 Mac 시계 차를 `ntp` 정상으로 가정하고 표시 `clock-window`. 판정 행에 그 표시를 적는다 |
+
+- 기준선 QW1 값: 세 기준선 run의 로그가 아직 남아 있다(30일). 위 절차를 그 세 폴더에 그대로 돌린다. 새 run이 필요 없다. 단 U0a(`ssr_fetch`)가 `19f5e31`에 들어 있어야 한다. 아니면 QW1 기준선은 새로 3회 잰다.
+
+### 14.3 측정 스크립트 보정 (`_scripts/perf/cc-measure.mjs`, developer)
+
+| 빈틈 | 보정 |
+| --- | --- |
+| `manifest.json`에 `web_sha` 없음 | 응답 헤더에 배포 sha가 없다(`grep` 0건). 배포 표시는 VM의 `~/prettylog/web/current` symlink다(`deploy/gcp/release.sh` 41행 `releases/<sha>`). 스크립트는 **`--web-sha` 필수 인자**로 받는다. 없으면 시작하지 않는다. main session이 실행 전 ssh 1회로 읽는다: `gcloud compute ssh $VM "${Z[@]}" --command 'basename "$(readlink ~/prettylog/web/current)"'` |
+| `unit` 키 없음 | `--unit` 필수 인자 (`U0b`, `QW1`, …). `manifest.json` 최상위 키 |
+| 폴더 이름의 sha가 로컬 HEAD라 헷갈림 | 폴더 = `<T>_<unit>_<tag><n>_web<web_sha7>`. 로컬 HEAD는 `manifest.json` `harness_sha`, `harness_dirty`로 이름을 바꿔 남긴다. 이미 만든 기준선 폴더는 개명하지 않는다(`rules/measurement.md` §2.3 5번). 그 셋의 `web_sha` = `19f5e31`은 `00.runs.md` 행에 "dispatch 기록"으로 적는다 |
+| `rail_cookie_*_same_html` sha 비교를 믿을 수 없음 | HTML HIT 본문 sha가 응답마다 달라진다(baseline.md §5 5번). sha 비교 키 2개를 지운다. 대신 rail `<aside>`의 class 문자열을 뽑아 비교한다: `border-r-2 border-primary`가 든 첫 `<aside class="…">`의 class 값 전체. 키: `rail_aside_class_plain`, `_cookie`, `_cookie_fresh`, 그리고 `rail_width_same` = 세 값이 같은가. QW2 뒤에는 폭 class가 바뀔 수 있어서 `w-64` 문자열이 아니라 class 전체를 비교한다 |
+| `har_summary.py` 없음 | 만들지 않는다. 브라우저 측정은 `cc-browser-measure.yml`이 맡는다. 그 workflow의 요약 출력이 §5.4의 `har_summary.py` 역할을 대신한다. 조건: 그 출력이 `_rsc` 수, 10초 창 최대 요청 수, 링크당 prefetch 수, `[nav]` 줄, hydration 오류 수, `text/x-component` 바이트 합을 run 폴더에 파일로 남긴다. 빠진 칸이 있으면 그 workflow를 고친다 |
+| W4 메뉴 목록에 `/log`가 있음 | 메뉴에서 `/log`는 숨겨져 있다(`hooks/useNavLinks.hook.ts:56-58`, 오너 2026-10-13). W4 메뉴 = 실제 익명 메뉴: Home, Projects, About, Resume. `/log`를 뺀다. `Explore`는 `disabled`라 링크가 아니다(같은 파일 116행) |
+| W4 prefetch 본문을 저장하지 않음 | 1 KB 미만 응답은 본문을 `w4_<name>.rsc`로 저장한다. §14.4 2번 확인용 |
+
+### 14.4 기준선에서 나온 사실 두 개
+
+1. **로그인 팔은 `BYPASS`가 아니라 `DYNAMIC`이다.** 모든 로그인 응답이 `cf-cache-status: DYNAMIC`이다(baseline.md §5 4번, `traffic-check.txt` 5행). 뜻은 같다: 엣지가 저장하지 않고 매번 오리진에 간다. §5.2와 §8.1의 "BYPASS" 표현을 "DYNAMIC(저장 안 함)"으로 읽는다. §8.1 표는 고쳤다. 로그인 `hit.*` 행은 HIT가 아니라 오리진 두 번째 호출이다.
+2. **About, Resume 메뉴 prefetch가 232, 233 B다(다른 메뉴는 47–80 KB).**
+   - 링크 대상: `/@taeklim/about`, `/@taeklim/resume` (`aboutPath`, `resumePath`). 두 route는 있다. 상태 200, `text/x-component`.
+   - 추정 원인: 두 segment에 `loading.tsx`가 없다. 동적 route의 prefetch는 가장 가까운 loading 경계까지만 받는다. 경계가 없어서 거의 빈 응답이다. 그래서 prefetch 요청은 나가지만 클릭은 여전히 왕복이다. 본문을 저장하지 않아 확인 못함. §14.3 마지막 행이 확인한다.
+   - `/log` 182 B는 스크립트만 보낸 요청이다. 실제 메뉴에 없다. 낭비 요청이 아니다.
+   - 판단: 지금 고치지 않는다. 이유: 요청 2개는 첫 화면에 한 번뿐이고 엣지 HIT라 싸다(#70 e와 같은 판단). U4 뒤 두 page는 완전 static이 되어 prefetch가 내용 전체를 담는다(§7.2). 그러면 이 요청은 쓸모 있게 된다.
+   - 다만 확인 결과 본문이 redirect나 오류면 QW1에 한 줄을 더한다: 두 메뉴 링크를 `HoverPrefetchLink`로. 그 판단은 §14.3 본문 저장 뒤 한다.
+
+## 15. U1c 공유 오른쪽 rail (decision #93, 2026-10-14)
+
+### 15.1 무엇을 알려고 하나
+
+- #93: `/`, `/@u/projects`, `/@u/projects/<p>`, `/@u/saved`, `/@u/posts`가 오른쪽 rail 하나를 쓴다. posts는 rail 위에 프로필 카드를 두고 인기 태그를 뺀다. 글 상세, about, resume, me는 제외다.
+- 막힘: `(shell)/layout.tsx`는 `[handle]` 위라 `params.handle`이 없다. 요청 API도 쓸 수 없다(§3.1). `HomeRightRail`은 server 컴포넌트라 client `usePathname()`으로 username을 넘길 수 없다.
+
+### 15.2 세 안과 판정
+
+| 안 | 내용 | 맞는가 | rail이 유지되는 이동 (W1 기준) | 비용과 위험 | 판정 |
+| --- | --- | --- | --- | --- | --- |
+| (i) | `(shell)`에 rail 하나, `HOME_FEED_AUTHOR` 고정 | 아니다. 다른 handle의 `/@u/projects`가 소유자 데이터를 보인다. posts 카드를 rail 위에 둘 수 없다 | `/` ↔ 모든 곳 | handle 무시는 다중 사용자 코드(`/@u/…`, #71 Vision)와 어긋난다 | 버림 |
+| (ii) | 오늘처럼 layout마다 `rightRail` (렌더 자리 3곳: `(feed)`, `posts`, `projects`, 그리고 `saved`는 rail 없음) | 맞다 | `projects` ↔ `projects/<p>`만 | posts ↔ projects마다 rail이 다시 mount되고 다시 받는다 | 바탕으로 쓴다 |
+| (iii) | parallel route slot `(shell)/@right/…` | 맞게 만들 수는 있다 | **(ii′)와 같다.** slot 하위 트리는 URL을 따라간다. `/`와 `/@u/projects`는 서로 다른 slot segment라 다시 mount된다 | 아래 표 | 버림 |
+| **(ii′) 권고** | (ii) + `[handle]/(rail)` route group 하나. 그 layout이 handle을 받아 rail을 한 번 렌더한다. 렌더 자리 2곳: `(feed)/layout`, `[handle]/(rail)/layout` | 맞다 | posts ↔ projects ↔ `<p>` ↔ saved (같은 handle) | `/` ↔ `/@u/*`에서만 다시 mount. 프로필 카드는 모든 (rail) page에서 server가 렌더하고 client가 posts에서만 보인다 | **채택** |
+
+(iii)을 버린 근거 (Next 16.2.9 문서, `node_modules/next/dist/docs/01-app/`):
+
+| 확인 항목 | 문서 | 이 앱에서의 결과 |
+| --- | --- | --- |
+| 부드러운 이동(soft navigation)에서 slot 유지 | `parallel-routes.md` 97–99행: 맞지 않는 slot은 **이전 subpage를 그대로 보인다** | 글 상세처럼 제외할 route로 가면 이전 rail이 남는다. 막으려면 `@right/[...rest]/page.tsx`(null)와 제외 route마다 null page가 필요하다 |
+| 새로 고침(hard load) | 같은 파일 91, 100행: 맞지 않는 slot은 `default.js`, 없으면 404 | 모든 URL에 slot page나 catch-all이 있어야 한다. 하나 빠지면 그 URL 전체가 404다 |
+| `default.js` 필수 | `02-guides/upgrading/version-16.md` 942–946행: 없으면 빌드 실패 | `@right/default.tsx` 필수. `children` 쪽 `(shell)/default.tsx`도 필요할 수 있다(93행) |
+| 한 instance 유지 | slot도 segment마다 따로 렌더된다 | `/`(slot 루트 page)와 `/@u/projects`(slot `[handle]/projects` page)는 다른 segment라 다시 mount된다. 같은 handle 안의 유지는 (ii′)도 준다. 이득 없음 |
+| `notFound()` 경계 | posts의 알 수 없는 사용자 404는 layout에서 던진다 | slot page는 children layout과 따로 돈다. 404가 될 요청에서도 slot의 rail fetch가 나간다 |
+| `loading.tsx` | children의 loading은 slot을 감싸지 않는다 | slot마다 Suspense를 따로 둬야 한다 |
+| cacheComponents | `parallel-routes.md` 69행: 같은 단계의 slot 하나가 dynamic이면 모두 dynamic | `(shell)` 단계에 slot을 두면 모든 children의 static 판정이 slot에 묶인다. U4에 불리하다 |
+
+측정할 효과 (U1c 주 지표 = U1b와 같은 W1 익명 RSC 바이트, 브라우저 HAR):
+
+| W1 이동 | (ii) 오늘 | (ii′) 뒤 |
+| --- | --- | --- |
+| s2 `/` → posts | 다시 받음 | 다시 받음 (자리 2곳 경계) |
+| s3 posts → projects | 다시 받음 | **유지** |
+| s4 projects → `<p>` | 유지 | 유지 |
+| s5 `<p>` → 글 상세 | 제외 route | 제외 route |
+| s6 글 → `/` | 다시 받음 | 다시 받음 |
+
+- 판정선: 줄어든 바이트 ≥ max(범위 × 2, 기준 HAR의 오른쪽 rail 조각 크기 × 0.5). 기대: 한 번(s3)만큼 준다.
+- curl 바이트로는 판정하지 않는다. curl은 `Next-Router-State-Tree`가 없어 언제나 전체 트리를 받는다(baseline.md §2.1).
+- 서버 비용: 로그인 이동에서 rail fetch(tree, categories, recents)가 s3에서 사라진다. QW1 지표(`ssr_fetch`)로 기록만 한다.
+
+### 15.3 구조 (U1c 뒤)
+
+```
+app/(shell)/
+├── layout.tsx                  RailFrame (왼쪽 rail 1번)               불변
+├── (feed)/layout.tsx           ContentFrame + HomeRightRail()          렌더 자리 1, 불변
+└── [handle]/
+    ├── layout.tsx              '@' 검사                                 불변
+    ├── (rail)/                                                          새 route group (URL 불변)
+    │   ├── layout.tsx          handle → 사용자 404 → ContentFrame
+    │   │                         rightRail = RightRail
+    │   │                           ├─ PostsProfileSlot (client, posts에서만 보임)
+    │   │                           │    └─ <Suspense><UserProfileCard username/></Suspense>
+    │   │                           └─ HomeRightRail username            렌더 자리 2
+    │   ├── posts/   layout.tsx = 모바일 머리 + children만 (ContentFrame 없음)
+    │   ├── projects/ (list)/ [project]/   projects/layout.tsx 은퇴(x_)
+    │   └── saved/   layout.tsx 은퇴(x_)
+    ├── [slug]/ about/ resume/ me/    오른쪽 rail 제외 (오늘 그대로)
+    └── page.tsx                       /@u → 308
+```
+
+### 15.4 developer 파일 계획 (순서대로, 커밋 2개)
+
+커밋 1: 이동만 (`git mv`, 내용 변경 없음, URL 불변)
+
+| # | 명령 |
+| --- | --- |
+| 1 | `git mv 'app/(shell)/[handle]/posts' 'app/(shell)/[handle]/(rail)/posts'` |
+| 2 | `git mv 'app/(shell)/[handle]/projects' 'app/(shell)/[handle]/(rail)/projects'` |
+| 3 | `git mv 'app/(shell)/[handle]/saved' 'app/(shell)/[handle]/(rail)/saved'` |
+| 4 | import 1곳 고침: `components/blog/sidebar-blog.server.tsx:5` `@/app/(shell)/[handle]/posts/loading` → `(rail)/posts/loading`. 그 밖은 `rg -n "\[handle\]/(posts\|projects\|saved)" app components apis hooks utils`로 0건 확인 |
+
+커밋 2: rail 하나로 (모두 `apps/dashboard_client_web/` 아래)
+
+| # | 파일 | 변경 |
+| --- | --- | --- |
+| 5 | `app/(shell)/[handle]/(rail)/layout.tsx` (새) | `await params` → `username`. `if (!(await getUserProfile(username))) notFound()` (posts layout에서 옮김. 이제 projects, saved에도 같은 404). `<ContentFrame main={children} rightRail={<RightRail><PostsProfileSlot card={<Suspense fallback={<ProfileCardSkeleton/>}><UserProfileCard username={username}/></Suspense>} /><HomeRightRail username={username} /></RightRail>} />` |
+| 6 | `components/rail/PostsProfileSlot.client.tsx` (새) | `usePathname()` → `isPostsPath(pathname)`이면 `card`를 렌더, 아니면 null. 상태 없음 |
+| 7 | `utils/rail-visibility.ts` | 순수 함수 `isPostsPath(pathname)` 추가: decode 뒤 `^/@[^/]+/posts/?$` |
+| 8 | `app/(shell)/[handle]/(rail)/posts/layout.tsx` | ContentFrame, `notFound`, `UserContextRail` 제거. 반환 = `<><div className="mb-3 lg:hidden"><Suspense fallback={<MobileContextHeaderSkeleton/>}><MobileContextHeader username={username}/></Suspense></div>{children}</>` (D12도 여기서 닫힘) |
+| 9 | `app/(shell)/[handle]/(rail)/projects/layout.tsx` | `x_layout.tsx`로 이름 변경 (soft-delete). (rail) layout이 대신한다 |
+| 10 | `app/(shell)/[handle]/(rail)/saved/layout.tsx` | `x_layout.tsx`로 이름 변경. saved는 이제 오른쪽 rail을 받는다(#93) |
+| 11 | `app/(shell)/[handle]/(rail)/projects/[project]/layout.tsx` | 불변 (프로젝트 404 경계) |
+| 12 | `components/rail/HomeRightRail.server.tsx` | 불변. 인기 태그를 보이지 않는지 확인만. 보이면 #93대로 뺀다 |
+
+- skeleton 두 개(`ProfileCardSkeleton`, `MobileContextHeaderSkeleton`)가 없으면 기존 `RailCardSkeleton`을 쓴다. 새 파일을 만들지 않는다.
+- `UserContextRail`은 지우지 않는다. 글 상세(`[slug]/layout.tsx`)가 아직 쓴다.
+
+검증 (테스트 러너 없음, 고의 파손):
+
+| 확인 | 기대 |
+| --- | --- |
+| smoke §7.3 15개 | status, `location` 불변 |
+| `/@nope/posts`, `/@nope/projects` | 404 (layout 경계라 shell보다 먼저) |
+| `/@taeklim/posts` | rail 위 프로필 카드 + 공유 rail. `/@taeklim/projects`에는 카드 없음 |
+| `/@taeklim/saved` (로그인 소유자) | 왼쪽 rail + 오른쪽 공유 rail |
+| 고의 파손 | `isPostsPath`를 항상 false로 → posts에서 카드 사라짐 확인 → 되돌림 |
+| 브라우저 posts → projects | Network에서 rail 조각이 다시 오지 않음, React DevTools에서 `HomeRightRail` 하위가 다시 mount되지 않음 |
+| 가드 | §5.3 전부 |
+
+되돌림: 커밋 2 `git revert` (커밋 1은 URL과 동작 불변이라 남겨도 된다) + 재배포 + purge.
+
+### 15.5 pm에게: 대체된 결정
+
+- §10 Q2와 CC 행 AC7("`/@u/saved`에서 rail 숨김")은 **대체됨**. 오너가 2026-10-14에 `/@u/saved`, `/@u/me`에도 공유 왼쪽 rail을 명시적으로 요청했다(dispatch 경유).
+- 코드는 이미 그렇게 되어 있다: `utils/rail-visibility.ts` 5행 주석 "The rail itself stays on every (shell) route (saved and me…)".
+- 오른쪽 rail: saved는 #93의 공유 rail을 받는다. me는 오른쪽 rail에서 제외다(#93).
+- `decisions.plan.md`에 Q2 대체 행이 필요하다. Supersedes = Q2 기본값과 AC7.

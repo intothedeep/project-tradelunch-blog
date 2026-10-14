@@ -1,0 +1,3215 @@
+{
+  "code_version": "v1",
+  "code_sha": "5b54f3f63fa1",
+  "clerk_session_sha": "a71ceb70441c",
+  "run_id": "20261014T054229Z_QW1_qw1_2_61d48bc",
+  "unit": "QW1",
+  "web_sha": "61d48bca3ed81cec4c9390cbb5201fb2ac3b80ca",
+  "harness_sha": "141742df8ed2942ba0a0db6c9b68ba057f500995",
+  "git_dirty": true,
+  "params": {
+    "base": "https://my.prettylog.com",
+    "runs": 3,
+    "arms": [
+      "anon",
+      "auth"
+    ],
+    "only": [
+      "w1",
+      "w2",
+      "w3",
+      "w4",
+      "miss",
+      "hit",
+      "rsc",
+      "guards"
+    ],
+    "user": "taeklim",
+    "tag": "qw1_2",
+    "unit": "QW1",
+    "gapMs": 1100,
+    "warmup": true,
+    "externals": true,
+    "project": "cnn-from-scratch",
+    "slug": "cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+    "rail_state": "cookie unset (expanded) for all arms"
+  },
+  "env": {
+    "node": "v24.3.0",
+    "platform": "darwin 27.0.0",
+    "started": "20261014T054229Z",
+    "requests": 200
+  },
+  "aborted": null,
+  "metrics": {
+    "arms": {
+      "anon": {
+        "steps": {
+          "w1.s1_home": {
+            "ttfb_ms": {
+              "values": [
+                42,
+                94,
+                45
+              ],
+              "median": 45,
+              "min": 42,
+              "max": 94,
+              "range": 52
+            },
+            "total_ms": {
+              "values": [
+                48,
+                95,
+                48
+              ],
+              "median": 48,
+              "min": 48,
+              "max": 95,
+              "range": 47
+            },
+            "bytes": {
+              "values": [
+                273226,
+                273226,
+                273226
+              ],
+              "median": 273226,
+              "min": 273226,
+              "max": 273226,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "HIT",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "w1.s2_posts": {
+            "ttfb_ms": {
+              "values": [
+                50,
+                77,
+                40
+              ],
+              "median": 50,
+              "min": 40,
+              "max": 77,
+              "range": 37
+            },
+            "total_ms": {
+              "values": [
+                51,
+                79,
+                40
+              ],
+              "median": 51,
+              "min": 40,
+              "max": 79,
+              "range": 39
+            },
+            "bytes": {
+              "values": [
+                87878,
+                87878,
+                87878
+              ],
+              "median": 87878,
+              "min": 87878,
+              "max": 87878,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "HIT",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "w1.s3_projects": {
+            "ttfb_ms": {
+              "values": [
+                51,
+                39,
+                40
+              ],
+              "median": 40,
+              "min": 39,
+              "max": 51,
+              "range": 12
+            },
+            "total_ms": {
+              "values": [
+                52,
+                40,
+                41
+              ],
+              "median": 41,
+              "min": 40,
+              "max": 52,
+              "range": 12
+            },
+            "bytes": {
+              "values": [
+                72146,
+                72146,
+                72146
+              ],
+              "median": 72146,
+              "min": 72146,
+              "max": 72146,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "HIT",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "w1.s4_project": {
+            "ttfb_ms": {
+              "values": [
+                41,
+                42,
+                40
+              ],
+              "median": 41,
+              "min": 40,
+              "max": 42,
+              "range": 2
+            },
+            "total_ms": {
+              "values": [
+                41,
+                43,
+                41
+              ],
+              "median": 41,
+              "min": 41,
+              "max": 43,
+              "range": 2
+            },
+            "bytes": {
+              "values": [
+                76311,
+                76311,
+                76311
+              ],
+              "median": 76311,
+              "min": 76311,
+              "max": 76311,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "HIT",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "w1.s5_post": {
+            "ttfb_ms": {
+              "values": [
+                39,
+                47,
+                40
+              ],
+              "median": 40,
+              "min": 39,
+              "max": 47,
+              "range": 8
+            },
+            "total_ms": {
+              "values": [
+                40,
+                48,
+                40
+              ],
+              "median": 40,
+              "min": 40,
+              "max": 48,
+              "range": 8
+            },
+            "bytes": {
+              "values": [
+                73940,
+                73940,
+                73940
+              ],
+              "median": 73940,
+              "min": 73940,
+              "max": 73940,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "HIT",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "w1.s6_home": {
+            "ttfb_ms": {
+              "values": [
+                52,
+                46,
+                40
+              ],
+              "median": 46,
+              "min": 40,
+              "max": 52,
+              "range": 12
+            },
+            "total_ms": {
+              "values": [
+                52,
+                46,
+                40
+              ],
+              "median": 46,
+              "min": 40,
+              "max": 52,
+              "range": 12
+            },
+            "bytes": {
+              "values": [
+                89045,
+                89045,
+                89045
+              ],
+              "median": 89045,
+              "min": 89045,
+              "max": 89045,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "HIT",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "w2.back1_post": {
+            "ttfb_ms": {
+              "values": [
+                46,
+                43,
+                41
+              ],
+              "median": 43,
+              "min": 41,
+              "max": 46,
+              "range": 5
+            },
+            "total_ms": {
+              "values": [
+                46,
+                44,
+                41
+              ],
+              "median": 44,
+              "min": 41,
+              "max": 46,
+              "range": 5
+            },
+            "bytes": {
+              "values": [
+                73940,
+                73940,
+                73940
+              ],
+              "median": 73940,
+              "min": 73940,
+              "max": 73940,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "HIT",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "w2.back2_project": {
+            "ttfb_ms": {
+              "values": [
+                43,
+                43,
+                39
+              ],
+              "median": 43,
+              "min": 39,
+              "max": 43,
+              "range": 4
+            },
+            "total_ms": {
+              "values": [
+                44,
+                44,
+                39
+              ],
+              "median": 44,
+              "min": 39,
+              "max": 44,
+              "range": 5
+            },
+            "bytes": {
+              "values": [
+                76311,
+                76311,
+                76311
+              ],
+              "median": 76311,
+              "min": 76311,
+              "max": 76311,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "HIT",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "w2.back3_projects": {
+            "ttfb_ms": {
+              "values": [
+                107,
+                43,
+                95
+              ],
+              "median": 95,
+              "min": 43,
+              "max": 107,
+              "range": 64
+            },
+            "total_ms": {
+              "values": [
+                107,
+                44,
+                95
+              ],
+              "median": 95,
+              "min": 44,
+              "max": 107,
+              "range": 63
+            },
+            "bytes": {
+              "values": [
+                72146,
+                72146,
+                72146
+              ],
+              "median": 72146,
+              "min": 72146,
+              "max": 72146,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "HIT",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "w3.lm1": {
+            "ttfb_ms": {
+              "values": [
+                184,
+                214,
+                216
+              ],
+              "median": 214,
+              "min": 184,
+              "max": 216,
+              "range": 32
+            },
+            "total_ms": {
+              "values": [
+                189,
+                214,
+                216
+              ],
+              "median": 214,
+              "min": 189,
+              "max": 216,
+              "range": 27
+            },
+            "bytes": {
+              "values": [
+                9076,
+                9076,
+                9076
+              ],
+              "median": 9076,
+              "min": 9076,
+              "max": 9076,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "w3.lm2": {
+            "ttfb_ms": {
+              "values": [
+                127,
+                251,
+                123
+              ],
+              "median": 127,
+              "min": 123,
+              "max": 251,
+              "range": 128
+            },
+            "total_ms": {
+              "values": [
+                128,
+                251,
+                124
+              ],
+              "median": 128,
+              "min": 124,
+              "max": 251,
+              "range": 127
+            },
+            "bytes": {
+              "values": [
+                9109,
+                9109,
+                9109
+              ],
+              "median": 9109,
+              "min": 9109,
+              "max": 9109,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "w3.lm2_again": {
+            "ttfb_ms": {
+              "values": [
+                127,
+                151,
+                125
+              ],
+              "median": 127,
+              "min": 125,
+              "max": 151,
+              "range": 26
+            },
+            "total_ms": {
+              "values": [
+                128,
+                153,
+                125
+              ],
+              "median": 128,
+              "min": 125,
+              "max": 153,
+              "range": 28
+            },
+            "bytes": {
+              "values": [
+                9109,
+                9109,
+                9109
+              ],
+              "median": 9109,
+              "min": 9109,
+              "max": 9109,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "w4.card_hover": {
+            "ttfb_ms": {
+              "values": [
+                50,
+                54,
+                44
+              ],
+              "median": 50,
+              "min": 44,
+              "max": 54,
+              "range": 10
+            },
+            "total_ms": {
+              "values": [
+                57,
+                54,
+                45
+              ],
+              "median": 54,
+              "min": 45,
+              "max": 57,
+              "range": 12
+            },
+            "bytes": {
+              "values": [
+                67639,
+                67639,
+                67639
+              ],
+              "median": 67639,
+              "min": 67639,
+              "max": 67639,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "HIT",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "w4.menu_home": {
+            "ttfb_ms": {
+              "values": [
+                41,
+                41,
+                46
+              ],
+              "median": 41,
+              "min": 41,
+              "max": 46,
+              "range": 5
+            },
+            "total_ms": {
+              "values": [
+                41,
+                42,
+                48
+              ],
+              "median": 42,
+              "min": 41,
+              "max": 48,
+              "range": 7
+            },
+            "bytes": {
+              "values": [
+                74002,
+                74002,
+                74002
+              ],
+              "median": 74002,
+              "min": 74002,
+              "max": 74002,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "HIT",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "w4.menu_projects": {
+            "ttfb_ms": {
+              "values": [
+                40,
+                45,
+                45
+              ],
+              "median": 45,
+              "min": 40,
+              "max": 45,
+              "range": 5
+            },
+            "total_ms": {
+              "values": [
+                41,
+                45,
+                46
+              ],
+              "median": 45,
+              "min": 41,
+              "max": 46,
+              "range": 5
+            },
+            "bytes": {
+              "values": [
+                66857,
+                66857,
+                66857
+              ],
+              "median": 66857,
+              "min": 66857,
+              "max": 66857,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "HIT",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "w4.menu_about": {
+            "ttfb_ms": {
+              "values": [
+                84,
+                42,
+                39
+              ],
+              "median": 42,
+              "min": 39,
+              "max": 84,
+              "range": 45
+            },
+            "total_ms": {
+              "values": [
+                84,
+                42,
+                40
+              ],
+              "median": 42,
+              "min": 40,
+              "max": 84,
+              "range": 44
+            },
+            "bytes": {
+              "values": [
+                232,
+                232,
+                232
+              ],
+              "median": 232,
+              "min": 232,
+              "max": 232,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "HIT",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "w4.menu_resume": {
+            "ttfb_ms": {
+              "values": [
+                37,
+                36,
+                35
+              ],
+              "median": 36,
+              "min": 35,
+              "max": 37,
+              "range": 2
+            },
+            "total_ms": {
+              "values": [
+                37,
+                38,
+                36
+              ],
+              "median": 37,
+              "min": 36,
+              "max": 38,
+              "range": 2
+            },
+            "bytes": {
+              "values": [
+                233,
+                233,
+                233
+              ],
+              "median": 233,
+              "min": 233,
+              "max": 233,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "HIT",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "miss.home": {
+            "ttfb_ms": {
+              "values": [
+                192,
+                249,
+                173
+              ],
+              "median": 192,
+              "min": 173,
+              "max": 249,
+              "range": 76
+            },
+            "total_ms": {
+              "values": [
+                344,
+                369,
+                339
+              ],
+              "median": 344,
+              "min": 339,
+              "max": 369,
+              "range": 30
+            },
+            "bytes": {
+              "values": [
+                273486,
+                273486,
+                273486
+              ],
+              "median": 273486,
+              "min": 273486,
+              "max": 273486,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "MISS",
+              "MISS",
+              "MISS"
+            ]
+          },
+          "miss.posts": {
+            "ttfb_ms": {
+              "values": [
+                301,
+                286,
+                298
+              ],
+              "median": 298,
+              "min": 286,
+              "max": 301,
+              "range": 15
+            },
+            "total_ms": {
+              "values": [
+                376,
+                470,
+                354
+              ],
+              "median": 376,
+              "min": 354,
+              "max": 470,
+              "range": 116
+            },
+            "bytes": {
+              "values": [
+                284232,
+                284323,
+                284323
+              ],
+              "median": 284323,
+              "min": 284232,
+              "max": 284323,
+              "range": 91
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "MISS",
+              "MISS",
+              "MISS"
+            ]
+          },
+          "miss.projects": {
+            "ttfb_ms": {
+              "values": [
+                216,
+                171,
+                210
+              ],
+              "median": 210,
+              "min": 171,
+              "max": 216,
+              "range": 45
+            },
+            "total_ms": {
+              "values": [
+                335,
+                295,
+                326
+              ],
+              "median": 326,
+              "min": 295,
+              "max": 335,
+              "range": 40
+            },
+            "bytes": {
+              "values": [
+                174725,
+                174725,
+                174725
+              ],
+              "median": 174725,
+              "min": 174725,
+              "max": 174725,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "MISS",
+              "MISS",
+              "MISS"
+            ]
+          },
+          "miss.project": {
+            "ttfb_ms": {
+              "values": [
+                239,
+                322,
+                209
+              ],
+              "median": 239,
+              "min": 209,
+              "max": 322,
+              "range": 113
+            },
+            "total_ms": {
+              "values": [
+                372,
+                440,
+                274
+              ],
+              "median": 372,
+              "min": 274,
+              "max": 440,
+              "range": 166
+            },
+            "bytes": {
+              "values": [
+                190791,
+                190791,
+                190791
+              ],
+              "median": 190791,
+              "min": 190791,
+              "max": 190791,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "MISS",
+              "MISS",
+              "MISS"
+            ]
+          },
+          "miss.post": {
+            "ttfb_ms": {
+              "values": [
+                341,
+                368,
+                318
+              ],
+              "median": 341,
+              "min": 318,
+              "max": 368,
+              "range": 50
+            },
+            "total_ms": {
+              "values": [
+                473,
+                431,
+                464
+              ],
+              "median": 464,
+              "min": 431,
+              "max": 473,
+              "range": 42
+            },
+            "bytes": {
+              "values": [
+                143105,
+                143105,
+                143105
+              ],
+              "median": 143105,
+              "min": 143105,
+              "max": 143105,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "MISS",
+              "MISS",
+              "MISS"
+            ]
+          },
+          "hit.home": {
+            "ttfb_ms": {
+              "values": [
+                47,
+                45,
+                47
+              ],
+              "median": 47,
+              "min": 45,
+              "max": 47,
+              "range": 2
+            },
+            "total_ms": {
+              "values": [
+                50,
+                48,
+                49
+              ],
+              "median": 49,
+              "min": 48,
+              "max": 50,
+              "range": 2
+            },
+            "bytes": {
+              "values": [
+                273486,
+                273486,
+                273486
+              ],
+              "median": 273486,
+              "min": 273486,
+              "max": 273486,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "HIT",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "hit.posts": {
+            "ttfb_ms": {
+              "values": [
+                62,
+                48,
+                45
+              ],
+              "median": 48,
+              "min": 45,
+              "max": 62,
+              "range": 17
+            },
+            "total_ms": {
+              "values": [
+                63,
+                51,
+                46
+              ],
+              "median": 51,
+              "min": 46,
+              "max": 63,
+              "range": 17
+            },
+            "bytes": {
+              "values": [
+                284232,
+                284323,
+                284323
+              ],
+              "median": 284323,
+              "min": 284232,
+              "max": 284323,
+              "range": 91
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "HIT",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "hit.projects": {
+            "ttfb_ms": {
+              "values": [
+                44,
+                43,
+                46
+              ],
+              "median": 44,
+              "min": 43,
+              "max": 46,
+              "range": 3
+            },
+            "total_ms": {
+              "values": [
+                45,
+                44,
+                46
+              ],
+              "median": 45,
+              "min": 44,
+              "max": 46,
+              "range": 2
+            },
+            "bytes": {
+              "values": [
+                174725,
+                174725,
+                174725
+              ],
+              "median": 174725,
+              "min": 174725,
+              "max": 174725,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "HIT",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "rsc_full.posts": {
+            "ttfb_ms": {
+              "values": [
+                264,
+                40,
+                41
+              ],
+              "median": 41,
+              "min": 40,
+              "max": 264,
+              "range": 224
+            },
+            "total_ms": {
+              "values": [
+                552,
+                40,
+                41
+              ],
+              "median": 41,
+              "min": 40,
+              "max": 552,
+              "range": 512
+            },
+            "bytes": {
+              "values": [
+                87878,
+                87878,
+                87878
+              ],
+              "median": 87878,
+              "min": 87878,
+              "max": 87878,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "MISS",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "rsc_pref.posts": {
+            "ttfb_ms": {
+              "values": [
+                212,
+                44,
+                43
+              ],
+              "median": 44,
+              "min": 43,
+              "max": 212,
+              "range": 169
+            },
+            "total_ms": {
+              "values": [
+                402,
+                45,
+                43
+              ],
+              "median": 45,
+              "min": 43,
+              "max": 402,
+              "range": 359
+            },
+            "bytes": {
+              "values": [
+                68177,
+                68177,
+                68177
+              ],
+              "median": 68177,
+              "min": 68177,
+              "max": 68177,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "MISS",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "rsc_full.projects": {
+            "ttfb_ms": {
+              "values": [
+                209,
+                40,
+                40
+              ],
+              "median": 40,
+              "min": 40,
+              "max": 209,
+              "range": 169
+            },
+            "total_ms": {
+              "values": [
+                326,
+                41,
+                42
+              ],
+              "median": 42,
+              "min": 41,
+              "max": 326,
+              "range": 285
+            },
+            "bytes": {
+              "values": [
+                72146,
+                72146,
+                72146
+              ],
+              "median": 72146,
+              "min": 72146,
+              "max": 72146,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "MISS",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "rsc_pref.projects": {
+            "ttfb_ms": {
+              "values": [
+                160,
+                47,
+                137
+              ],
+              "median": 137,
+              "min": 47,
+              "max": 160,
+              "range": 113
+            },
+            "total_ms": {
+              "values": [
+                282,
+                48,
+                138
+              ],
+              "median": 138,
+              "min": 48,
+              "max": 282,
+              "range": 234
+            },
+            "bytes": {
+              "values": [
+                66857,
+                66857,
+                66857
+              ],
+              "median": 66857,
+              "min": 66857,
+              "max": 66857,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "MISS",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "rsc_full.post": {
+            "ttfb_ms": {
+              "values": [
+                227,
+                45,
+                81
+              ],
+              "median": 81,
+              "min": 45,
+              "max": 227,
+              "range": 182
+            },
+            "total_ms": {
+              "values": [
+                487,
+                45,
+                82
+              ],
+              "median": 82,
+              "min": 45,
+              "max": 487,
+              "range": 442
+            },
+            "bytes": {
+              "values": [
+                73940,
+                73940,
+                73940
+              ],
+              "median": 73940,
+              "min": 73940,
+              "max": 73940,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "MISS",
+              "HIT",
+              "HIT"
+            ]
+          },
+          "rsc_pref.post": {
+            "ttfb_ms": {
+              "values": [
+                187,
+                125,
+                50
+              ],
+              "median": 125,
+              "min": 50,
+              "max": 187,
+              "range": 137
+            },
+            "total_ms": {
+              "values": [
+                413,
+                125,
+                51
+              ],
+              "median": 125,
+              "min": 51,
+              "max": 413,
+              "range": 362
+            },
+            "bytes": {
+              "values": [
+                46087,
+                46087,
+                46087
+              ],
+              "median": 46087,
+              "min": 46087,
+              "max": 46087,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "MISS",
+              "HIT",
+              "HIT"
+            ]
+          }
+        },
+        "w1_nav_total_ms_s2_s6": {
+          "values": [
+            236,
+            256,
+            202
+          ],
+          "median": 236,
+          "min": 202,
+          "max": 256,
+          "range": 54
+        },
+        "w1_xcomponent_bytes": {
+          "values": [
+            399320,
+            399320,
+            399320
+          ],
+          "median": 399320,
+          "min": 399320,
+          "max": 399320,
+          "range": 0
+        },
+        "w2_requests_emulated": 3,
+        "w3_load_more_requests": 3,
+        "set_cookie_lines": 0,
+        "miss_windows": [
+          {
+            "run": 1,
+            "name": "home",
+            "path": "/?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_1_home",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_1_home",
+            "start": "2026-10-14T05:42:57.529Z",
+            "end": "2026-10-14T05:42:57.874Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 1,
+            "name": "posts",
+            "path": "/@taeklim/posts?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_1_posts",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_1_posts",
+            "start": "2026-10-14T05:42:58.630Z",
+            "end": "2026-10-14T05:42:59.006Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 1,
+            "name": "projects",
+            "path": "/@taeklim/projects?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_1_projects",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_1_projects",
+            "start": "2026-10-14T05:42:59.731Z",
+            "end": "2026-10-14T05:43:00.065Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 1,
+            "name": "project",
+            "path": "/@taeklim/projects/cnn-from-scratch?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_1_project",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_1_project",
+            "start": "2026-10-14T05:43:00.832Z",
+            "end": "2026-10-14T05:43:01.205Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 1,
+            "name": "post",
+            "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_1_post",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_1_post",
+            "start": "2026-10-14T05:43:01.933Z",
+            "end": "2026-10-14T05:43:02.406Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 2,
+            "name": "home",
+            "path": "/?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_2_home",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_2_home",
+            "start": "2026-10-14T05:44:06.122Z",
+            "end": "2026-10-14T05:44:06.491Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 2,
+            "name": "posts",
+            "path": "/@taeklim/posts?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_2_posts",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_2_posts",
+            "start": "2026-10-14T05:44:07.222Z",
+            "end": "2026-10-14T05:44:07.692Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 2,
+            "name": "projects",
+            "path": "/@taeklim/projects?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_2_projects",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_2_projects",
+            "start": "2026-10-14T05:44:08.322Z",
+            "end": "2026-10-14T05:44:08.616Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 2,
+            "name": "project",
+            "path": "/@taeklim/projects/cnn-from-scratch?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_2_project",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_2_project",
+            "start": "2026-10-14T05:44:09.423Z",
+            "end": "2026-10-14T05:44:09.863Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 2,
+            "name": "post",
+            "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_2_post",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_2_post",
+            "start": "2026-10-14T05:44:10.525Z",
+            "end": "2026-10-14T05:44:10.956Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 3,
+            "name": "home",
+            "path": "/?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_3_home",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_3_home",
+            "start": "2026-10-14T05:45:14.378Z",
+            "end": "2026-10-14T05:45:14.717Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 3,
+            "name": "posts",
+            "path": "/@taeklim/posts?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_3_posts",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_3_posts",
+            "start": "2026-10-14T05:45:15.479Z",
+            "end": "2026-10-14T05:45:15.834Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 3,
+            "name": "projects",
+            "path": "/@taeklim/projects?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_3_projects",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_3_projects",
+            "start": "2026-10-14T05:45:16.581Z",
+            "end": "2026-10-14T05:45:16.907Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 3,
+            "name": "project",
+            "path": "/@taeklim/projects/cnn-from-scratch?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_3_project",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_3_project",
+            "start": "2026-10-14T05:45:17.681Z",
+            "end": "2026-10-14T05:45:17.955Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 3,
+            "name": "post",
+            "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_3_post",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_anon_3_post",
+            "start": "2026-10-14T05:45:18.782Z",
+            "end": "2026-10-14T05:45:19.246Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          }
+        ]
+      },
+      "auth": {
+        "steps": {
+          "w1.s1_home": {
+            "ttfb_ms": {
+              "values": [
+                241,
+                175,
+                140
+              ],
+              "median": 175,
+              "min": 140,
+              "max": 241,
+              "range": 101
+            },
+            "total_ms": {
+              "values": [
+                501,
+                421,
+                524
+              ],
+              "median": 501,
+              "min": 421,
+              "max": 524,
+              "range": 103
+            },
+            "bytes": {
+              "values": [
+                276257,
+                276257,
+                276257
+              ],
+              "median": 276257,
+              "min": 276257,
+              "max": 276257,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "w1.s2_posts": {
+            "ttfb_ms": {
+              "values": [
+                108,
+                119,
+                114
+              ],
+              "median": 114,
+              "min": 108,
+              "max": 119,
+              "range": 11
+            },
+            "total_ms": {
+              "values": [
+                291,
+                273,
+                287
+              ],
+              "median": 287,
+              "min": 273,
+              "max": 291,
+              "range": 18
+            },
+            "bytes": {
+              "values": [
+                88955,
+                88955,
+                88955
+              ],
+              "median": 88955,
+              "min": 88955,
+              "max": 88955,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "w1.s3_projects": {
+            "ttfb_ms": {
+              "values": [
+                180,
+                113,
+                107
+              ],
+              "median": 113,
+              "min": 107,
+              "max": 180,
+              "range": 73
+            },
+            "total_ms": {
+              "values": [
+                305,
+                267,
+                355
+              ],
+              "median": 305,
+              "min": 267,
+              "max": 355,
+              "range": 88
+            },
+            "bytes": {
+              "values": [
+                73223,
+                73223,
+                73223
+              ],
+              "median": 73223,
+              "min": 73223,
+              "max": 73223,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "w1.s4_project": {
+            "ttfb_ms": {
+              "values": [
+                102,
+                113,
+                108
+              ],
+              "median": 108,
+              "min": 102,
+              "max": 113,
+              "range": 11
+            },
+            "total_ms": {
+              "values": [
+                276,
+                253,
+                302
+              ],
+              "median": 276,
+              "min": 253,
+              "max": 302,
+              "range": 49
+            },
+            "bytes": {
+              "values": [
+                77388,
+                77388,
+                77388
+              ],
+              "median": 77388,
+              "min": 77388,
+              "max": 77388,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "w1.s5_post": {
+            "ttfb_ms": {
+              "values": [
+                110,
+                109,
+                114
+              ],
+              "median": 110,
+              "min": 109,
+              "max": 114,
+              "range": 5
+            },
+            "total_ms": {
+              "values": [
+                465,
+                443,
+                395
+              ],
+              "median": 443,
+              "min": 395,
+              "max": 465,
+              "range": 70
+            },
+            "bytes": {
+              "values": [
+                73940,
+                73940,
+                73940
+              ],
+              "median": 73940,
+              "min": 73940,
+              "max": 73940,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "w1.s6_home": {
+            "ttfb_ms": {
+              "values": [
+                110,
+                115,
+                108
+              ],
+              "median": 110,
+              "min": 108,
+              "max": 115,
+              "range": 7
+            },
+            "total_ms": {
+              "values": [
+                288,
+                302,
+                242
+              ],
+              "median": 288,
+              "min": 242,
+              "max": 302,
+              "range": 60
+            },
+            "bytes": {
+              "values": [
+                90122,
+                90122,
+                90122
+              ],
+              "median": 90122,
+              "min": 90122,
+              "max": 90122,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "w2.back1_post": {
+            "ttfb_ms": {
+              "values": [
+                110,
+                103,
+                147
+              ],
+              "median": 110,
+              "min": 103,
+              "max": 147,
+              "range": 44
+            },
+            "total_ms": {
+              "values": [
+                363,
+                382,
+                344
+              ],
+              "median": 363,
+              "min": 344,
+              "max": 382,
+              "range": 38
+            },
+            "bytes": {
+              "values": [
+                73940,
+                73940,
+                73940
+              ],
+              "median": 73940,
+              "min": 73940,
+              "max": 73940,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "w2.back2_project": {
+            "ttfb_ms": {
+              "values": [
+                109,
+                105,
+                110
+              ],
+              "median": 109,
+              "min": 105,
+              "max": 110,
+              "range": 5
+            },
+            "total_ms": {
+              "values": [
+                310,
+                248,
+                261
+              ],
+              "median": 261,
+              "min": 248,
+              "max": 310,
+              "range": 62
+            },
+            "bytes": {
+              "values": [
+                77388,
+                77388,
+                77388
+              ],
+              "median": 77388,
+              "min": 77388,
+              "max": 77388,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "w2.back3_projects": {
+            "ttfb_ms": {
+              "values": [
+                108,
+                147,
+                148
+              ],
+              "median": 147,
+              "min": 108,
+              "max": 148,
+              "range": 40
+            },
+            "total_ms": {
+              "values": [
+                267,
+                251,
+                308
+              ],
+              "median": 267,
+              "min": 251,
+              "max": 308,
+              "range": 57
+            },
+            "bytes": {
+              "values": [
+                73223,
+                73223,
+                73223
+              ],
+              "median": 73223,
+              "min": 73223,
+              "max": 73223,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "w3.lm1": {
+            "ttfb_ms": {
+              "values": [
+                203,
+                221,
+                130
+              ],
+              "median": 203,
+              "min": 130,
+              "max": 221,
+              "range": 91
+            },
+            "total_ms": {
+              "values": [
+                203,
+                221,
+                132
+              ],
+              "median": 203,
+              "min": 132,
+              "max": 221,
+              "range": 89
+            },
+            "bytes": {
+              "values": [
+                9076,
+                9076,
+                9076
+              ],
+              "median": 9076,
+              "min": 9076,
+              "max": 9076,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "w3.lm2": {
+            "ttfb_ms": {
+              "values": [
+                151,
+                154,
+                119
+              ],
+              "median": 151,
+              "min": 119,
+              "max": 154,
+              "range": 35
+            },
+            "total_ms": {
+              "values": [
+                152,
+                156,
+                120
+              ],
+              "median": 152,
+              "min": 120,
+              "max": 156,
+              "range": 36
+            },
+            "bytes": {
+              "values": [
+                9109,
+                9109,
+                9109
+              ],
+              "median": 9109,
+              "min": 9109,
+              "max": 9109,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "w3.lm2_again": {
+            "ttfb_ms": {
+              "values": [
+                131,
+                121,
+                127
+              ],
+              "median": 127,
+              "min": 121,
+              "max": 131,
+              "range": 10
+            },
+            "total_ms": {
+              "values": [
+                131,
+                123,
+                127
+              ],
+              "median": 127,
+              "min": 123,
+              "max": 131,
+              "range": 8
+            },
+            "bytes": {
+              "values": [
+                9109,
+                9109,
+                9109
+              ],
+              "median": 9109,
+              "min": 9109,
+              "max": 9109,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "w4.card_hover": {
+            "ttfb_ms": {
+              "values": [
+                163,
+                114,
+                103
+              ],
+              "median": 114,
+              "min": 103,
+              "max": 163,
+              "range": 60
+            },
+            "total_ms": {
+              "values": [
+                572,
+                295,
+                358
+              ],
+              "median": 358,
+              "min": 295,
+              "max": 572,
+              "range": 277
+            },
+            "bytes": {
+              "values": [
+                68716,
+                68716,
+                68716
+              ],
+              "median": 68716,
+              "min": 68716,
+              "max": 68716,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "w4.menu_home": {
+            "ttfb_ms": {
+              "values": [
+                125,
+                106,
+                111
+              ],
+              "median": 111,
+              "min": 106,
+              "max": 125,
+              "range": 19
+            },
+            "total_ms": {
+              "values": [
+                267,
+                248,
+                304
+              ],
+              "median": 267,
+              "min": 248,
+              "max": 304,
+              "range": 56
+            },
+            "bytes": {
+              "values": [
+                75079,
+                75079,
+                75079
+              ],
+              "median": 75079,
+              "min": 75079,
+              "max": 75079,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "w4.menu_projects": {
+            "ttfb_ms": {
+              "values": [
+                112,
+                111,
+                121
+              ],
+              "median": 112,
+              "min": 111,
+              "max": 121,
+              "range": 10
+            },
+            "total_ms": {
+              "values": [
+                262,
+                251,
+                290
+              ],
+              "median": 262,
+              "min": 251,
+              "max": 290,
+              "range": 39
+            },
+            "bytes": {
+              "values": [
+                67934,
+                67934,
+                67934
+              ],
+              "median": 67934,
+              "min": 67934,
+              "max": 67934,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "w4.menu_about": {
+            "ttfb_ms": {
+              "values": [
+                96,
+                100,
+                96
+              ],
+              "median": 96,
+              "min": 96,
+              "max": 100,
+              "range": 4
+            },
+            "total_ms": {
+              "values": [
+                96,
+                100,
+                96
+              ],
+              "median": 96,
+              "min": 96,
+              "max": 100,
+              "range": 4
+            },
+            "bytes": {
+              "values": [
+                232,
+                232,
+                232
+              ],
+              "median": 232,
+              "min": 232,
+              "max": 232,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "w4.menu_resume": {
+            "ttfb_ms": {
+              "values": [
+                92,
+                95,
+                147
+              ],
+              "median": 95,
+              "min": 92,
+              "max": 147,
+              "range": 55
+            },
+            "total_ms": {
+              "values": [
+                93,
+                95,
+                147
+              ],
+              "median": 95,
+              "min": 93,
+              "max": 147,
+              "range": 54
+            },
+            "bytes": {
+              "values": [
+                233,
+                233,
+                233
+              ],
+              "median": 233,
+              "min": 233,
+              "max": 233,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "miss.home": {
+            "ttfb_ms": {
+              "values": [
+                124,
+                196,
+                126
+              ],
+              "median": 126,
+              "min": 124,
+              "max": 196,
+              "range": 72
+            },
+            "total_ms": {
+              "values": [
+                306,
+                718,
+                313
+              ],
+              "median": 313,
+              "min": 306,
+              "max": 718,
+              "range": 412
+            },
+            "bytes": {
+              "values": [
+                276517,
+                276517,
+                276517
+              ],
+              "median": 276517,
+              "min": 276517,
+              "max": 276517,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "miss.posts": {
+            "ttfb_ms": {
+              "values": [
+                254,
+                222,
+                260
+              ],
+              "median": 254,
+              "min": 222,
+              "max": 260,
+              "range": 38
+            },
+            "total_ms": {
+              "values": [
+                315,
+                287,
+                338
+              ],
+              "median": 315,
+              "min": 287,
+              "max": 338,
+              "range": 51
+            },
+            "bytes": {
+              "values": [
+                287263,
+                287263,
+                287311
+              ],
+              "median": 287263,
+              "min": 287263,
+              "max": 287311,
+              "range": 48
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "miss.projects": {
+            "ttfb_ms": {
+              "values": [
+                219,
+                200,
+                113
+              ],
+              "median": 200,
+              "min": 113,
+              "max": 219,
+              "range": 106
+            },
+            "total_ms": {
+              "values": [
+                275,
+                360,
+                295
+              ],
+              "median": 295,
+              "min": 275,
+              "max": 360,
+              "range": 85
+            },
+            "bytes": {
+              "values": [
+                177756,
+                177756,
+                177756
+              ],
+              "median": 177756,
+              "min": 177756,
+              "max": 177756,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "miss.project": {
+            "ttfb_ms": {
+              "values": [
+                163,
+                179,
+                172
+              ],
+              "median": 172,
+              "min": 163,
+              "max": 179,
+              "range": 16
+            },
+            "total_ms": {
+              "values": [
+                267,
+                301,
+                291
+              ],
+              "median": 291,
+              "min": 267,
+              "max": 301,
+              "range": 34
+            },
+            "bytes": {
+              "values": [
+                193822,
+                193822,
+                193822
+              ],
+              "median": 193822,
+              "min": 193822,
+              "max": 193822,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "miss.post": {
+            "ttfb_ms": {
+              "values": [
+                302,
+                273,
+                295
+              ],
+              "median": 295,
+              "min": 273,
+              "max": 302,
+              "range": 29
+            },
+            "total_ms": {
+              "values": [
+                409,
+                397,
+                428
+              ],
+              "median": 409,
+              "min": 397,
+              "max": 428,
+              "range": 31
+            },
+            "bytes": {
+              "values": [
+                143148,
+                143148,
+                143148
+              ],
+              "median": 143148,
+              "min": 143148,
+              "max": 143148,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "hit.home": {
+            "ttfb_ms": {
+              "values": [
+                155,
+                127,
+                195
+              ],
+              "median": 155,
+              "min": 127,
+              "max": 195,
+              "range": 68
+            },
+            "total_ms": {
+              "values": [
+                298,
+                273,
+                368
+              ],
+              "median": 298,
+              "min": 273,
+              "max": 368,
+              "range": 95
+            },
+            "bytes": {
+              "values": [
+                276517,
+                276517,
+                276517
+              ],
+              "median": 276517,
+              "min": 276517,
+              "max": 276517,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "hit.posts": {
+            "ttfb_ms": {
+              "values": [
+                223,
+                227,
+                212
+              ],
+              "median": 223,
+              "min": 212,
+              "max": 227,
+              "range": 15
+            },
+            "total_ms": {
+              "values": [
+                282,
+                286,
+                308
+              ],
+              "median": 286,
+              "min": 282,
+              "max": 308,
+              "range": 26
+            },
+            "bytes": {
+              "values": [
+                287220,
+                287220,
+                287263
+              ],
+              "median": 287220,
+              "min": 287220,
+              "max": 287263,
+              "range": 43
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "hit.projects": {
+            "ttfb_ms": {
+              "values": [
+                119,
+                122,
+                113
+              ],
+              "median": 119,
+              "min": 113,
+              "max": 122,
+              "range": 9
+            },
+            "total_ms": {
+              "values": [
+                253,
+                257,
+                324
+              ],
+              "median": 257,
+              "min": 253,
+              "max": 324,
+              "range": 71
+            },
+            "bytes": {
+              "values": [
+                177756,
+                177756,
+                177756
+              ],
+              "median": 177756,
+              "min": 177756,
+              "max": 177756,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "rsc_full.posts": {
+            "ttfb_ms": {
+              "values": [
+                110,
+                112,
+                103
+              ],
+              "median": 110,
+              "min": 103,
+              "max": 112,
+              "range": 9
+            },
+            "total_ms": {
+              "values": [
+                268,
+                303,
+                260
+              ],
+              "median": 268,
+              "min": 260,
+              "max": 303,
+              "range": 43
+            },
+            "bytes": {
+              "values": [
+                88955,
+                88955,
+                88955
+              ],
+              "median": 88955,
+              "min": 88955,
+              "max": 88955,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "rsc_pref.posts": {
+            "ttfb_ms": {
+              "values": [
+                98,
+                100,
+                152
+              ],
+              "median": 100,
+              "min": 98,
+              "max": 152,
+              "range": 54
+            },
+            "total_ms": {
+              "values": [
+                356,
+                323,
+                341
+              ],
+              "median": 341,
+              "min": 323,
+              "max": 356,
+              "range": 33
+            },
+            "bytes": {
+              "values": [
+                69254,
+                69254,
+                69254
+              ],
+              "median": 69254,
+              "min": 69254,
+              "max": 69254,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "rsc_full.projects": {
+            "ttfb_ms": {
+              "values": [
+                116,
+                108,
+                109
+              ],
+              "median": 109,
+              "min": 108,
+              "max": 116,
+              "range": 8
+            },
+            "total_ms": {
+              "values": [
+                305,
+                248,
+                269
+              ],
+              "median": 269,
+              "min": 248,
+              "max": 305,
+              "range": 57
+            },
+            "bytes": {
+              "values": [
+                73223,
+                73223,
+                73223
+              ],
+              "median": 73223,
+              "min": 73223,
+              "max": 73223,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "rsc_pref.projects": {
+            "ttfb_ms": {
+              "values": [
+                104,
+                150,
+                171
+              ],
+              "median": 150,
+              "min": 104,
+              "max": 171,
+              "range": 67
+            },
+            "total_ms": {
+              "values": [
+                260,
+                251,
+                313
+              ],
+              "median": 260,
+              "min": 251,
+              "max": 313,
+              "range": 62
+            },
+            "bytes": {
+              "values": [
+                67934,
+                67934,
+                67934
+              ],
+              "median": 67934,
+              "min": 67934,
+              "max": 67934,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "rsc_full.post": {
+            "ttfb_ms": {
+              "values": [
+                200,
+                112,
+                110
+              ],
+              "median": 112,
+              "min": 110,
+              "max": 200,
+              "range": 90
+            },
+            "total_ms": {
+              "values": [
+                373,
+                349,
+                418
+              ],
+              "median": 373,
+              "min": 349,
+              "max": 418,
+              "range": 69
+            },
+            "bytes": {
+              "values": [
+                73940,
+                73940,
+                73940
+              ],
+              "median": 73940,
+              "min": 73940,
+              "max": 73940,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          },
+          "rsc_pref.post": {
+            "ttfb_ms": {
+              "values": [
+                147,
+                139,
+                102
+              ],
+              "median": 139,
+              "min": 102,
+              "max": 147,
+              "range": 45
+            },
+            "total_ms": {
+              "values": [
+                363,
+                407,
+                465
+              ],
+              "median": 407,
+              "min": 363,
+              "max": 465,
+              "range": 102
+            },
+            "bytes": {
+              "values": [
+                46087,
+                46087,
+                46087
+              ],
+              "median": 46087,
+              "min": 46087,
+              "max": 46087,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "DYNAMIC",
+              "DYNAMIC",
+              "DYNAMIC"
+            ]
+          }
+        },
+        "w1_nav_total_ms_s2_s6": {
+          "values": [
+            1625,
+            1538,
+            1581
+          ],
+          "median": 1581,
+          "min": 1538,
+          "max": 1625,
+          "range": 87
+        },
+        "w1_xcomponent_bytes": {
+          "values": [
+            403628,
+            403628,
+            403628
+          ],
+          "median": 403628,
+          "min": 403628,
+          "max": 403628,
+          "range": 0
+        },
+        "w2_requests_emulated": 3,
+        "w3_load_more_requests": 3,
+        "set_cookie_lines": 0,
+        "miss_windows": [
+          {
+            "run": 1,
+            "name": "home",
+            "path": "/?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_1_home",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_1_home",
+            "start": "2026-10-14T05:43:31.985Z",
+            "end": "2026-10-14T05:43:32.291Z",
+            "status": 200,
+            "cf_cache_status": "DYNAMIC"
+          },
+          {
+            "run": 1,
+            "name": "posts",
+            "path": "/@taeklim/posts?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_1_posts",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_1_posts",
+            "start": "2026-10-14T05:43:33.087Z",
+            "end": "2026-10-14T05:43:33.402Z",
+            "status": 200,
+            "cf_cache_status": "DYNAMIC"
+          },
+          {
+            "run": 1,
+            "name": "projects",
+            "path": "/@taeklim/projects?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_1_projects",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_1_projects",
+            "start": "2026-10-14T05:43:34.188Z",
+            "end": "2026-10-14T05:43:34.463Z",
+            "status": 200,
+            "cf_cache_status": "DYNAMIC"
+          },
+          {
+            "run": 1,
+            "name": "project",
+            "path": "/@taeklim/projects/cnn-from-scratch?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_1_project",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_1_project",
+            "start": "2026-10-14T05:43:35.290Z",
+            "end": "2026-10-14T05:43:35.557Z",
+            "status": 200,
+            "cf_cache_status": "DYNAMIC"
+          },
+          {
+            "run": 1,
+            "name": "post",
+            "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_1_post",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_1_post",
+            "start": "2026-10-14T05:43:36.392Z",
+            "end": "2026-10-14T05:43:36.801Z",
+            "status": 200,
+            "cf_cache_status": "DYNAMIC"
+          },
+          {
+            "run": 2,
+            "name": "home",
+            "path": "/?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_2_home",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_2_home",
+            "start": "2026-10-14T05:44:40.254Z",
+            "end": "2026-10-14T05:44:40.972Z",
+            "status": 200,
+            "cf_cache_status": "DYNAMIC"
+          },
+          {
+            "run": 2,
+            "name": "posts",
+            "path": "/@taeklim/posts?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_2_posts",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_2_posts",
+            "start": "2026-10-14T05:44:41.354Z",
+            "end": "2026-10-14T05:44:41.641Z",
+            "status": 200,
+            "cf_cache_status": "DYNAMIC"
+          },
+          {
+            "run": 2,
+            "name": "projects",
+            "path": "/@taeklim/projects?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_2_projects",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_2_projects",
+            "start": "2026-10-14T05:44:42.455Z",
+            "end": "2026-10-14T05:44:42.815Z",
+            "status": 200,
+            "cf_cache_status": "DYNAMIC"
+          },
+          {
+            "run": 2,
+            "name": "project",
+            "path": "/@taeklim/projects/cnn-from-scratch?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_2_project",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_2_project",
+            "start": "2026-10-14T05:44:43.556Z",
+            "end": "2026-10-14T05:44:43.858Z",
+            "status": 200,
+            "cf_cache_status": "DYNAMIC"
+          },
+          {
+            "run": 2,
+            "name": "post",
+            "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_2_post",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_2_post",
+            "start": "2026-10-14T05:44:44.657Z",
+            "end": "2026-10-14T05:44:45.055Z",
+            "status": 200,
+            "cf_cache_status": "DYNAMIC"
+          },
+          {
+            "run": 3,
+            "name": "home",
+            "path": "/?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_3_home",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_3_home",
+            "start": "2026-10-14T05:45:48.510Z",
+            "end": "2026-10-14T05:45:48.823Z",
+            "status": 200,
+            "cf_cache_status": "DYNAMIC"
+          },
+          {
+            "run": 3,
+            "name": "posts",
+            "path": "/@taeklim/posts?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_3_posts",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_3_posts",
+            "start": "2026-10-14T05:45:49.610Z",
+            "end": "2026-10-14T05:45:49.949Z",
+            "status": 200,
+            "cf_cache_status": "DYNAMIC"
+          },
+          {
+            "run": 3,
+            "name": "projects",
+            "path": "/@taeklim/projects?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_3_projects",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_3_projects",
+            "start": "2026-10-14T05:45:50.712Z",
+            "end": "2026-10-14T05:45:51.007Z",
+            "status": 200,
+            "cf_cache_status": "DYNAMIC"
+          },
+          {
+            "run": 3,
+            "name": "project",
+            "path": "/@taeklim/projects/cnn-from-scratch?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_3_project",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_3_project",
+            "start": "2026-10-14T05:45:51.811Z",
+            "end": "2026-10-14T05:45:52.103Z",
+            "status": 200,
+            "cf_cache_status": "DYNAMIC"
+          },
+          {
+            "run": 3,
+            "name": "post",
+            "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first?cb=cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_3_post",
+            "cb": "cc20261014T054229Z_QW1_qw1_2_61d48bc_auth_3_post",
+            "start": "2026-10-14T05:45:52.913Z",
+            "end": "2026-10-14T05:45:53.342Z",
+            "status": 200,
+            "cf_cache_status": "DYNAMIC"
+          }
+        ]
+      }
+    },
+    "guards": {
+      "status_nope": 404,
+      "status_nope_handle": 404,
+      "status_nope_slug": 404,
+      "rail_aside_class_plain": "hidden w-64 shrink-0 border-r-2 border-primary transition-[width] duration-200 md:block in-data-[rail=collapsed]:w-14 in-data-[rail=collapsed]:overflow-hidden",
+      "rail_aside_class_cookie": "hidden w-64 shrink-0 border-r-2 border-primary transition-[width] duration-200 md:block in-data-[rail=collapsed]:w-14 in-data-[rail=collapsed]:overflow-hidden",
+      "rail_aside_class_cookie_fresh": "hidden w-64 shrink-0 border-r-2 border-primary transition-[width] duration-200 md:block in-data-[rail=collapsed]:w-14 in-data-[rail=collapsed]:overflow-hidden",
+      "rail_width_same": true,
+      "rail_cache_status": [
+        "MISS",
+        "HIT",
+        "MISS"
+      ],
+      "public_set_cookie_lines": 0
+    }
+  }
+}

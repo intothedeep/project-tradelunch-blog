@@ -1,0 +1,355 @@
+[
+  {
+    "arm": "anon",
+    "rail": "expanded",
+    "run": 1,
+    "metrics": {
+      "w1_s1_home_nav_ms": null,
+      "w1_s2_posts_nav_ms": 91,
+      "w1_s2_posts_rsc_nonprefetch": 1,
+      "w1_s3_projects_nav_ms": 20,
+      "w1_s3_projects_rsc_nonprefetch": 1,
+      "w1_s4_project_nav_ms": 35,
+      "w1_s4_project_rsc_nonprefetch": 1,
+      "w1_s5_post_nav_ms": 74,
+      "w1_s5_post_rsc_nonprefetch": 1,
+      "w1_s6_home_nav_ms": 21,
+      "w1_s6_home_rsc_nonprefetch": 1,
+      "w1_nav_ms_s2_s6": 241,
+      "w1_rsc_total": 16,
+      "w1_rsc_nonprefetch": 5,
+      "w2_back3_rsc": 0,
+      "w2_back3_rsc_nonprefetch": 0,
+      "g_a_max_10s": 23,
+      "g_a_max_10s_w1": 23,
+      "g_a_max_10s_w3": 12,
+      "g_a_max_10s_w4": 10,
+      "w3_load_more_requests": 2,
+      "g_b_menu_links": 4,
+      "g_b_prefetch_per_menu_link_max": 2,
+      "g_b_prefetch_per_menu_link_mean": 1.75,
+      "g_b_prefetch_total": 7,
+      "g_b_card_prefetch_total": 0,
+      "rsc_count_all": 30,
+      "rsc_bytes_total": 369947,
+      "rsc_bytes_w1": 251151,
+      "g_f_hydration_errors": 0,
+      "step_errors": 1,
+      "w2_back3_at_ok": 1
+    },
+    "nav_lines": [
+      {
+        "arm": "anon",
+        "rail": "expanded",
+        "run": 1,
+        "walk": "w2",
+        "from": "/",
+        "to": "/@taeklim/posts",
+        "ms": 91
+      },
+      {
+        "arm": "anon",
+        "rail": "expanded",
+        "run": 1,
+        "walk": "w2",
+        "from": "/@taeklim/posts",
+        "to": "/@taeklim/projects",
+        "ms": 20
+      },
+      {
+        "arm": "anon",
+        "rail": "expanded",
+        "run": 1,
+        "walk": "w2",
+        "from": "/@taeklim/projects",
+        "to": "/@taeklim/projects/cnn-from-scratch",
+        "ms": 35
+      },
+      {
+        "arm": "anon",
+        "rail": "expanded",
+        "run": 1,
+        "walk": "w2",
+        "from": "/@taeklim/projects/cnn-from-scratch",
+        "to": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+        "ms": 74
+      },
+      {
+        "arm": "anon",
+        "rail": "expanded",
+        "run": 1,
+        "walk": "w2",
+        "from": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+        "to": "/",
+        "ms": 21
+      }
+    ],
+    "prefetch_per_menu_link": {
+      "/": 1,
+      "/@taeklim/projects": 2,
+      "/@taeklim/about": 2,
+      "/@taeklim/resume": 2
+    }
+  },
+  {
+    "arm": "auth",
+    "rail": "expanded",
+    "run": 1,
+    "metrics": {
+      "w1_s1_home_nav_ms": null,
+      "w1_s2_posts_nav_ms": 34,
+      "w1_s2_posts_rsc_nonprefetch": 1,
+      "w1_s3_projects_nav_ms": 22,
+      "w1_s3_projects_rsc_nonprefetch": 1,
+      "w1_s4_project_nav_ms": 190,
+      "w1_s4_project_rsc_nonprefetch": 1,
+      "w1_s5_post_nav_ms": 287,
+      "w1_s5_post_rsc_nonprefetch": 1,
+      "w1_s6_home_nav_ms": 23,
+      "w1_s6_home_rsc_nonprefetch": 1,
+      "w1_nav_ms_s2_s6": 556,
+      "w1_rsc_total": 26,
+      "w1_rsc_nonprefetch": 5,
+      "w2_back3_rsc": 0,
+      "w2_back3_rsc_nonprefetch": 0,
+      "g_a_max_10s": 37,
+      "g_a_max_10s_w1": 37,
+      "g_a_max_10s_w3": 21,
+      "g_a_max_10s_w4": 19,
+      "w3_load_more_requests": 2,
+      "g_b_menu_links": 7,
+      "g_b_prefetch_per_menu_link_max": 5,
+      "g_b_prefetch_per_menu_link_mean": 2.29,
+      "g_b_prefetch_total": 16,
+      "g_b_card_prefetch_total": 0,
+      "rsc_count_all": 58,
+      "rsc_bytes_total": 98841,
+      "rsc_bytes_w1": 36009,
+      "g_f_hydration_errors": 0,
+      "auth_signed_in": 1,
+      "step_errors": 1,
+      "w2_back3_at_ok": 1
+    },
+    "nav_lines": [
+      {
+        "arm": "auth",
+        "rail": "expanded",
+        "run": 1,
+        "walk": "w2",
+        "from": "/",
+        "to": "/@taeklim/posts",
+        "ms": 34
+      },
+      {
+        "arm": "auth",
+        "rail": "expanded",
+        "run": 1,
+        "walk": "w2",
+        "from": "/@taeklim/posts",
+        "to": "/@taeklim/projects",
+        "ms": 22
+      },
+      {
+        "arm": "auth",
+        "rail": "expanded",
+        "run": 1,
+        "walk": "w2",
+        "from": "/@taeklim/projects",
+        "to": "/@taeklim/projects/cnn-from-scratch",
+        "ms": 190
+      },
+      {
+        "arm": "auth",
+        "rail": "expanded",
+        "run": 1,
+        "walk": "w2",
+        "from": "/@taeklim/projects/cnn-from-scratch",
+        "to": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+        "ms": 287
+      },
+      {
+        "arm": "auth",
+        "rail": "expanded",
+        "run": 1,
+        "walk": "w2",
+        "from": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+        "to": "/",
+        "ms": 23
+      }
+    ],
+    "prefetch_per_menu_link": {
+      "/": 1,
+      "/@taeklim/projects": 2,
+      "/@taeklim/about": 2,
+      "/@taeklim/resume": 2,
+      "/write": 5,
+      "/@taeklim/saved": 2,
+      "/@taeklim/posts": 2
+    }
+  },
+  {
+    "arm": "anon",
+    "rail": "collapsed",
+    "run": 1,
+    "metrics": {
+      "w1_s1_home_nav_ms": null,
+      "w1_s2_posts_nav_ms": 73,
+      "w1_s2_posts_rsc_nonprefetch": 1,
+      "w1_s3_projects_nav_ms": 20,
+      "w1_s3_projects_rsc_nonprefetch": 1,
+      "w1_s4_project_nav_ms": 32,
+      "w1_s4_project_rsc_nonprefetch": 1,
+      "w1_s5_post_nav_ms": 63,
+      "w1_s5_post_rsc_nonprefetch": 1,
+      "w1_s6_home_nav_ms": 24,
+      "w1_s6_home_rsc_nonprefetch": 1,
+      "w1_nav_ms_s2_s6": 212,
+      "w1_rsc_total": 16,
+      "w1_rsc_nonprefetch": 5,
+      "w2_back3_rsc": 0,
+      "w2_back3_rsc_nonprefetch": 0,
+      "g_a_max_10s": 23,
+      "g_a_max_10s_w1": 23,
+      "g_a_max_10s_w3": 0,
+      "g_a_max_10s_w4": 0,
+      "w3_load_more_requests": 0,
+      "rsc_count_all": 16,
+      "rsc_bytes_total": 220593,
+      "rsc_bytes_w1": 220593,
+      "g_f_hydration_errors": 0,
+      "step_errors": 0,
+      "w2_back3_at_ok": 1
+    },
+    "nav_lines": [
+      {
+        "arm": "anon",
+        "rail": "collapsed",
+        "run": 1,
+        "walk": "w2",
+        "from": "/",
+        "to": "/@taeklim/posts",
+        "ms": 73
+      },
+      {
+        "arm": "anon",
+        "rail": "collapsed",
+        "run": 1,
+        "walk": "w2",
+        "from": "/@taeklim/posts",
+        "to": "/@taeklim/projects",
+        "ms": 20
+      },
+      {
+        "arm": "anon",
+        "rail": "collapsed",
+        "run": 1,
+        "walk": "w2",
+        "from": "/@taeklim/projects",
+        "to": "/@taeklim/projects/cnn-from-scratch",
+        "ms": 32
+      },
+      {
+        "arm": "anon",
+        "rail": "collapsed",
+        "run": 1,
+        "walk": "w2",
+        "from": "/@taeklim/projects/cnn-from-scratch",
+        "to": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+        "ms": 63
+      },
+      {
+        "arm": "anon",
+        "rail": "collapsed",
+        "run": 1,
+        "walk": "w2",
+        "from": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+        "to": "/",
+        "ms": 24
+      }
+    ],
+    "prefetch_per_menu_link": null
+  },
+  {
+    "arm": "auth",
+    "rail": "collapsed",
+    "run": 1,
+    "metrics": {
+      "w1_s1_home_nav_ms": null,
+      "w1_s2_posts_nav_ms": 36,
+      "w1_s2_posts_rsc_nonprefetch": 1,
+      "w1_s3_projects_nav_ms": 21,
+      "w1_s3_projects_rsc_nonprefetch": 1,
+      "w1_s4_project_nav_ms": 92,
+      "w1_s4_project_rsc_nonprefetch": 1,
+      "w1_s5_post_nav_ms": 260,
+      "w1_s5_post_rsc_nonprefetch": 1,
+      "w1_s6_home_nav_ms": 19,
+      "w1_s6_home_rsc_nonprefetch": 1,
+      "w1_nav_ms_s2_s6": 428,
+      "w1_rsc_total": 26,
+      "w1_rsc_nonprefetch": 5,
+      "w2_back3_rsc": 0,
+      "w2_back3_rsc_nonprefetch": 0,
+      "g_a_max_10s": 37,
+      "g_a_max_10s_w1": 37,
+      "g_a_max_10s_w3": 0,
+      "g_a_max_10s_w4": 0,
+      "w3_load_more_requests": 0,
+      "rsc_count_all": 26,
+      "rsc_bytes_total": 36046,
+      "rsc_bytes_w1": 36046,
+      "g_f_hydration_errors": 0,
+      "auth_signed_in": 1,
+      "step_errors": 0,
+      "w2_back3_at_ok": 1
+    },
+    "nav_lines": [
+      {
+        "arm": "auth",
+        "rail": "collapsed",
+        "run": 1,
+        "walk": "w2",
+        "from": "/",
+        "to": "/@taeklim/posts",
+        "ms": 36
+      },
+      {
+        "arm": "auth",
+        "rail": "collapsed",
+        "run": 1,
+        "walk": "w2",
+        "from": "/@taeklim/posts",
+        "to": "/@taeklim/projects",
+        "ms": 21
+      },
+      {
+        "arm": "auth",
+        "rail": "collapsed",
+        "run": 1,
+        "walk": "w2",
+        "from": "/@taeklim/projects",
+        "to": "/@taeklim/projects/cnn-from-scratch",
+        "ms": 92
+      },
+      {
+        "arm": "auth",
+        "rail": "collapsed",
+        "run": 1,
+        "walk": "w2",
+        "from": "/@taeklim/projects/cnn-from-scratch",
+        "to": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+        "ms": 260
+      },
+      {
+        "arm": "auth",
+        "rail": "collapsed",
+        "run": 1,
+        "walk": "w2",
+        "from": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+        "to": "/",
+        "ms": 19
+      }
+    ],
+    "prefetch_per_menu_link": null
+  }
+]

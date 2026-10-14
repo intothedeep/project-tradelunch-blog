@@ -48,6 +48,8 @@ Phase PJ M4 (P2) 열림 (#82)
 - kill (QW2): 정확성 판정 3개 중 하나라도 거짓 → 같은 되돌림.
 
 #### Tactic: 공유 rail을 route group layout에서 한 번 렌더 (U1a, U1b, U1c)
+- U1a, U1b = done (df11372, 왼쪽 rail은 `(shell)/layout.tsx` 한 곳). 운영 측정 = CC-U1a-2, CC-U1b-2.
+- U1c = (ii′) `[handle]/(rail)` route group layout. 오른쪽 rail 렌더 자리 2곳 = `(feed)/layout.tsx`, `[handle]/(rail)/layout.tsx` (#94, `cc.design.md` §15).
 - kill: 빌드 실패, 또는 smoke 15개 중 하나라도 status나 `location` 변화 → `git revert` + 재배포 + purge.
 
 #### Tactic: client router cache 재사용 (U2)
@@ -78,7 +80,7 @@ Phase PJ M4 (P2) 열림 (#82)
 | --- | --- | --- | --- |
 | S-CC | 전략 A, B, C 중 무엇 | B (owner "B", #85 Update) | CC-U4 이후 |
 | Q1 | 프로젝트 글 상세에서 RecentVisited 숨김(#79)을 잎 신호로 지킬까 | 지킨다, `RailContextPublisher` ("take yours") | CC-U1b |
-| Q2 | `/@u/saved`에 rail을 보일까 | 숨긴다 ("take yours"). `/@u/me`도 같은 규칙 (pm 판단, 아래 §4) | CC-U1b |
+| Q2 | `/@u/saved`에 rail을 보일까 | ~~숨긴다 ("take yours"). `/@u/me`도 같은 규칙 (pm 판단, 아래 §4)~~ <!-- SUPERSEDED 2026-10-14 by #95 --> 보인다: saved, me 모두 왼쪽 rail 있음 (오너 2026-10-14, #95, dc9aaa0) | CC-U1b |
 | Q3 | 기준선 전에 계측 코드 2개(`[nav]`, `ssr_fetch`)를 배포해도 되나 | 된다 ("take yours") | CC-U0a |
 | Q4 | `proxy.ts` 요청 로그에 `durationMs`를 넣을까 | 안 넣는다, MISS TTFB + `ssr_fetch` `ms` ("take yours") | 없음 |
 | Q5 | `[slug]`, `[project]` sample을 무엇으로 | env 상수 `CC_SAMPLE_SLUG`, `CC_SAMPLE_PROJECT` ("take yours") | CC-U4 |
@@ -103,6 +105,6 @@ Phase PJ M4 (P2) 열림 (#82)
 | D8 `app/me/saved/page.tsx:10` `currentUser()` | `components/me/OwnerOnly.server.tsx:17` `currentUser()`. `[handle]/me`, `[handle]/saved`가 쓴다 | CC-U3이 Suspense 잎으로 옮긴다. 404 상태 유지 문제는 CC-U4 |
 | §4.2 `@/app/[handle]` import 16파일 19곳 | 15파일 18곳 | CC-U1a AC = 0곳 (개수 아님) |
 | D23 `resume/page.tsx:117` | 같은 줄 + 죽은 사본 `app/ResumePage.tsx:117` (import 0) | CC-U3은 살아 있는 파일만. 죽은 사본은 보고 |
-| §4.4 rail 없는 route 목록 | `/@u/me`가 새로 생겼다 (#89). U1b 뒤 `[handle]` 전체가 `(shell)` 안이다 | `railVisibility`가 `/@u/me`도 숨긴다 (오늘 `/me`에 rail 없음, Q2와 같은 이유) |
+| §4.4 rail 없는 route 목록 | `/@u/me`가 새로 생겼다 (#89). U1b 뒤 `[handle]` 전체가 `(shell)` 안이다 | ~~`railVisibility`가 `/@u/me`도 숨긴다 (오늘 `/me`에 rail 없음, Q2와 같은 이유)~~ <!-- SUPERSEDED 2026-10-14 by #95 --> `/@u/me`, `/@u/saved` 모두 왼쪽 rail 보임 (#95, dc9aaa0) |
 | G-e2 `/@taeklim/nope` "기록만, 200 예상" | PJ-1-35가 없는 slug를 HTTP 404로 고친다 | 기준선이 404면 G-e2는 가드(404)로 쓴다. CC-U4 AC |
 | §5.4 W1–W4 HAR = 오너 손 조작 | 오너 답 Q9: main session 스크립트 | CC-U0a가 측정 스크립트를 만든다 |

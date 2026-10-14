@@ -1,0 +1,44 @@
+== anon expanded run1
+_rsc requests: all=30 w1=16 w1_nonprefetch=5 back3=0
+max requests per 10 s: all=23 w1=23 w3=12 w4=10
+prefetch per menu link: /=1 /@taeklim/projects=2 /@taeklim/about=2 /@taeklim/resume=2
+hydration errors: 0
+text/x-component bytes: total=369947 w1=251151
+[nav] w2 / /@taeklim/posts 91 ms
+[nav] w2 /@taeklim/posts /@taeklim/projects 20 ms
+[nav] w2 /@taeklim/projects /@taeklim/projects/cnn-from-scratch 35 ms
+[nav] w2 /@taeklim/projects/cnn-from-scratch /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first 74 ms
+[nav] w2 /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first / 21 ms
+== auth expanded run1
+_rsc requests: all=58 w1=26 w1_nonprefetch=5 back3=0
+max requests per 10 s: all=37 w1=37 w3=21 w4=19
+prefetch per menu link: /=1 /@taeklim/projects=2 /@taeklim/about=2 /@taeklim/resume=2 /write=5 /@taeklim/saved=2 /@taeklim/posts=2
+hydration errors: 0
+text/x-component bytes: total=98841 w1=36009
+[nav] w2 / /@taeklim/posts 34 ms
+[nav] w2 /@taeklim/posts /@taeklim/projects 22 ms
+[nav] w2 /@taeklim/projects /@taeklim/projects/cnn-from-scratch 190 ms
+[nav] w2 /@taeklim/projects/cnn-from-scratch /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first 287 ms
+[nav] w2 /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first / 23 ms
+== anon collapsed run1
+_rsc requests: all=16 w1=16 w1_nonprefetch=5 back3=0
+max requests per 10 s: all=23 w1=23 w3=0 w4=0
+prefetch per menu link: n/a
+hydration errors: 0
+text/x-component bytes: total=220593 w1=220593
+[nav] w2 / /@taeklim/posts 73 ms
+[nav] w2 /@taeklim/posts /@taeklim/projects 20 ms
+[nav] w2 /@taeklim/projects /@taeklim/projects/cnn-from-scratch 32 ms
+[nav] w2 /@taeklim/projects/cnn-from-scratch /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first 63 ms
+[nav] w2 /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first / 24 ms
+== auth collapsed run1
+_rsc requests: all=26 w1=26 w1_nonprefetch=5 back3=0
+max requests per 10 s: all=37 w1=37 w3=0 w4=0
+prefetch per menu link: n/a
+hydration errors: 0
+text/x-component bytes: total=36046 w1=36046
+[nav] w2 / /@taeklim/posts 36 ms
+[nav] w2 /@taeklim/posts /@taeklim/projects 21 ms
+[nav] w2 /@taeklim/projects /@taeklim/projects/cnn-from-scratch 92 ms
+[nav] w2 /@taeklim/projects/cnn-from-scratch /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first 260 ms
+[nav] w2 /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first / 19 ms
