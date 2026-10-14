@@ -4,6 +4,7 @@ import { getFeed } from '@/apis/getPosts.fetch.server';
 import { RecentPostsListClient } from '@/app/blog/components/RecentPostsList.client';
 import { CDN_ASSETS } from '@/env.schema';
 import { serializeFacet } from '@/utils/filter-state';
+import { logServerError } from '@/utils/serverLog.util';
 
 // ============================================================================
 // RecentPostsList Component
@@ -30,9 +31,11 @@ export const RecentPostsList: React.FC<RecentPostsListProps> = async ({
     try {
         feed = await getFeed(undefined, 10, username, { categories, tags });
     } catch (err) {
-        console.error(
-            '[RecentPostsList] feed fetch failed:',
-            err instanceof Error ? err.message : err
+        logServerError(
+            '[RecentPostsList] feed fetch failed',
+            err,
+            { username },
+            'WARNING'
         );
         return (
             <div className="text-center py-8 text-muted-foreground">

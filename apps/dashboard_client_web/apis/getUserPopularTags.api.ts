@@ -6,6 +6,7 @@
 // Vestigial Cache-Control/Expires request headers removed — they were no-ops
 // on the request side (only response headers affect caching).
 
+import { logServerError } from '@/utils/serverLog.util';
 import { TPopularTag } from '@repo/types';
 import { serverRequest } from '@/apis/http.server';
 
@@ -25,7 +26,9 @@ export async function getUserPopularTags(
         });
         return envelope.data;
     } catch (error) {
-        console.error('Failed to fetch user popular tags:', error);
+        logServerError('Failed to fetch user popular tags', error, {
+            username,
+        });
         throw new Error(`Failed to fetch user popular tags: ${username}`);
     }
 }

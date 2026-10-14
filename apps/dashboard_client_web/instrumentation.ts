@@ -6,18 +6,29 @@
 // reliable server-side ingest point. Best-effort only: must NEVER throw.
 // Node.js runtime only; edge runtime is out of scope (errors are RSC/SSR/action).
 
+import type { Instrumentation } from 'next';
+
 import { originKeyHeaders, serverRequest } from '@/apis/http.server';
+import { logServerError } from '@/utils/serverLog.util';
 
-type NextInstrumentationRequest = {
-    path: string;
-    method: string;
-    headers: Record<string, string | string[] | undefined>;
-};
-
-export async function onRequestError(
-    error: Error & { digest?: string },
-    request: NextInstrumentationRequest
-): Promise<void> {
+// Signature from next/dist/server/instrumentation/types.d.ts
+// (InstrumentationOnRequestError): `error` is `unknown`, so the digest is read
+// defensively. It is the same digest Next prints in its `⨯` line.
+export const onRequestError: Instrumentation.onRequestError = async (
+    err,
+    request,
+    context
+) => {
+    const error = err as Error & { digest?: string };
+    // One timestamped JSON line, written before the best-effort POST below.
+    logServerError('request error', err, {
+        digest: error?.digest,
+        path: request.path,
+        method: request.method,
+        routerKind: context.routerKind,
+        routePath: context.routePath,
+        routeType: context.routeType,
+    });
     try {
         const payload = {
             digest: error.digest ?? null,
@@ -39,4 +50,4 @@ export async function onRequestError(
     } catch {
         // Swallow everything — a logging path must never mask the original error.
     }
-}
+};

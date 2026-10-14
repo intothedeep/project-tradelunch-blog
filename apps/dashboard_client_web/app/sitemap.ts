@@ -1,3 +1,4 @@
+import { logServerError } from '@/utils/serverLog.util';
 import type { MetadataRoute } from 'next';
 import { getBlogPostsByUsername } from '@/apis/getPosts.api';
 import { SITE_URL } from '@/env.schema';
@@ -73,7 +74,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
                 priority: 0.8,
             }));
     } catch (error) {
-        console.error('Failed to fetch posts for sitemap:', error);
+        logServerError(
+            'Failed to fetch posts for sitemap',
+            error,
+            {},
+            'WARNING'
+        );
     }
 
     return [...staticPages, ...postPages];

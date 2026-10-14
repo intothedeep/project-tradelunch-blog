@@ -6,6 +6,7 @@
 // A 404 (unknown user) resolves to null so the rail degrades gracefully; other
 // failures throw for the caller's try/catch.
 
+import { logServerError } from '@/utils/serverLog.util';
 import { ApiError } from '@/utils/apiError.util';
 import { TUserProfile } from '@repo/types';
 import { serverRequest } from '@/apis/http.server';
@@ -28,7 +29,7 @@ export async function getUserProfile(
         if (error instanceof ApiError && error.status === 404) {
             return null;
         }
-        console.error('Failed to fetch user profile:', error);
+        logServerError('Failed to fetch user profile', error, { username });
         throw new Error(`Failed to fetch user profile: ${username}`);
     }
 }
