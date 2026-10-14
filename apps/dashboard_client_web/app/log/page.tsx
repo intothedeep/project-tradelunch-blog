@@ -2,9 +2,7 @@
 // Purpose: SSR entry for the GLOBAL log feed (/log) — the default Log surface.
 //   Y-M2: tabs "전체 | 팔로잉" added — Following tab visible only to signed-in
 //   viewers. LogComposer lets any signed-in user post. SSR seeds the All tab.
-// Constraints: Server Component. force-dynamic (feed is always fresh).
-
-export const dynamic = 'force-dynamic';
+// Constraints: Server Component. Fetch runs behind loading.tsx (always fresh).
 
 import { getLogGlobalStream } from '@/apis/get-log-global.api';
 import { LogFeedTabs } from '@/components/log/LogFeedTabs.client';

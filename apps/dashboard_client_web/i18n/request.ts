@@ -44,6 +44,10 @@ const messages: Record<AppLocale, LocaleMessages> = {
     },
 };
 
+// cacheComponents (cc.design D1): this callback reads `locale` only, never
+// `requestLocale`. next-intl 4.13 makes `requestLocale` a lazy getter that
+// reads request headers, so touching it would make every route dynamic. Keep
+// it that way.
 export default getRequestConfig(async ({ locale }) => {
     // The incoming `locale` is a `string`. We check if it's one of our `AppLocale`s.
     // If not, we fallback to 'en'.
