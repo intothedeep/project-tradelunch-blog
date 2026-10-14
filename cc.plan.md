@@ -96,7 +96,7 @@ Phase PJ M4 (P2) 열림 (#82)
 | 순서 | QW1, QW2를 U1 앞에 둘까 (#83과 다름) | 기본값 수용 (#87 Update) | CC-QW1…U1b 선행 칸 |
 | Q14 (#93) | `/@u/me`에도 공유 오른쪽 rail(HomeRightRail)을 넣나 | 넣지 않는다 (owner "ok go with your recommendations") | CC-U1c |
 | Q15 (#93) | `/@u/posts`의 프로필 카드와 인기 태그를 옮기나, 빼나 | 인기 태그는 뺀다. 프로필 카드는 `/@u/posts`에서만 공유 rail 위에 남긴다 (owner, 같은 답) | CC-U1c |
-| G-CC | 판정선 숫자와 날짜 | 판정선 = 기준선 뒤 (#88). 날짜 = 없음 | 없음 (DRAFT 유지) |
+| G-CC | 판정선 숫자와 날짜 | 판정선 = 기준선 뒤 (#88). 날짜 = 없음. measure = W1 로그인 expanded s2–s6 `[nav]` 합 `w1_nav_ms_s2_s6`, run 3개 중앙값 (p50 아님, #88 Update 2, `cc.design.md` §17.2) | 없음 (DRAFT 유지) |
 
 ## 4. 설계와 코드가 다른 곳 (2026-10-14 grep, 행 AC는 코드 기준)
 
