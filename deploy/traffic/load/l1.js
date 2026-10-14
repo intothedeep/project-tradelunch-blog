@@ -22,7 +22,7 @@ export const options = {
 
 export function web() {
     if (overCap(CAP)) return
-    get('web', `${WEB}/blog/@taeklim/rust-config`, SET)
+    get('web', `${WEB}/@taeklim/rust-config`, SET)
 }
 
 export function api() {

@@ -6,7 +6,7 @@
 # invisible to anonymous visitors until the TTL expires — unless you run this.
 #
 #   ./_scripts/cloudflare/cf-purge.sh                       # purge everything (the usual case)
-#   ./_scripts/cloudflare/cf-purge.sh https://my.prettylog.com/ https://my.prettylog.com/blog
+#   ./_scripts/cloudflare/cf-purge.sh https://my.prettylog.com/ https://my.prettylog.com/@taeklim/posts
 #   ./_scripts/cloudflare/cf-purge.sh --dry-run             # show what would be sent
 #
 # Credentials, from the environment or a .env file beside this script:

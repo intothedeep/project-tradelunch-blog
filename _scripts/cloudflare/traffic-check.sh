@@ -27,7 +27,7 @@ hit_status() {
 }
 
 echo "== web ($W)"
-for p in / /blog /robots.txt /sitemap.xml; do warm "$W$p"; check "GET $p (HIT in 4)" 'HIT' "$(hit_status "$W$p")"; done
+for p in / /robots.txt /sitemap.xml; do warm "$W$p"; check "GET $p (HIT in 4)" 'HIT' "$(hit_status "$W$p")"; done
 check '__session cookie' 'BYPASS|DYNAMIC' "$(status -H 'Cookie: __session=x' "$W/")"
 check '/me (protected)' 'BYPASS|DYNAMIC' "$(status "$W/me")"
 check 'rsc header, no _rsc=' 'BYPASS|DYNAMIC' "$(status -H 'rsc: 1' "$W/")"

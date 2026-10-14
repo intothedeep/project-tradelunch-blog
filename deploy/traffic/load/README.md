@@ -7,7 +7,7 @@ workflow: `.github/workflows/load-test.yml`. GitHub runner에서만 돈다. Mac�
 
 | 세트 | 답하는 질문 | 대상 | 속도 × 시간 | 총 요청 |
 | --- | --- | --- | --- | --- |
-| L1 (`l1.js`) | 엣지(edge)가 burst를 흡수하는가 | `my.prettylog.com/blog/@taeklim/rust-config`, `blog-api.prettylog.com/v1/api/posts?limit=1` (둘 다 HIT) | 각 8 rps × 40 s | 320 + 320 = 640 |
+| L1 (`l1.js`) | 엣지(edge)가 burst를 흡수하는가 | `my.prettylog.com/@taeklim/rust-config`, `blog-api.prettylog.com/v1/api/posts?limit=1` (둘 다 HIT) | 각 8 rps × 40 s | 320 + 320 = 640 |
 | L2 (`l2.js`) | 오리진(origin)은 MISS를 몇 rps까지 버티는가 | `my.prettylog.com/?lt=<run>-<n>`, `blog-api.prettylog.com/v1/api/posts?limit=1&lt=<run>-<n>` (매번 MISS) | web 0.5 → 1 → 2 → 4 rps (단계당 60 s), 이어서 api 1 → 2 → 4 → 8 rps (단계당 30 s) | 450 + 450 = 900 |
 
 - L2는 web을 먼저, api를 그 뒤에 돌린다. 두 오리진에 동시에 부하를 주지 않는다.

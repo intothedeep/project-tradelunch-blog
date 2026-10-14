@@ -399,7 +399,7 @@ Cloudflare → prettylog.com → Security → WAF → Rate limiting rules → Cr
 
 **c. Check (Claude)**
 
-- Normal browsing still works (open `/`, `/blog`, a post, sign in).
+- Normal browsing still works (open `/`, a post, sign in).
 - A capped burst trips it once (set L3-cf, after the load-test workflow exists: `traffic.design.md` §10).
 
 ## Purge after a new post

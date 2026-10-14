@@ -49,7 +49,7 @@ jobs:
               if: env.SET == 'L1'
               run: |
                   for url in \
-                      'https://my.prettylog.com/blog/@taeklim/rust-config' \
+                      'https://my.prettylog.com/@taeklim/rust-config' \
                       'https://blog-api.prettylog.com/v1/api/posts?limit=1'; do
                       curl -s -o /dev/null "$url"
                       status=$(curl -s -o /dev/null -D - "$url" | tr -d '\r' | awk -F': ' 'tolower($1)=="cf-cache-status"{print $2}')
