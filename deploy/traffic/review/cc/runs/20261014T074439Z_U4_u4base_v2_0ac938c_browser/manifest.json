@@ -1,0 +1,1548 @@
+{
+  "code_version": "v2",
+  "code_sha": "2d5f4acc0be4",
+  "clerk_session_sha": "a71ceb70441c",
+  "run_id": "20261014T074439Z_U4_u4base_v2_0ac938c_browser",
+  "unit": "U4",
+  "web_sha": "0ac938c6f8f821d809b39e23d07229dd51ce8845",
+  "harness_sha": "787daed",
+  "git_dirty": false,
+  "params": {
+    "base": "https://my.prettylog.com",
+    "runs": 3,
+    "arms": [
+      "anon",
+      "auth"
+    ],
+    "rails": [
+      "expanded",
+      "collapsed"
+    ],
+    "user": "taeklim",
+    "tag": "u4base_v2",
+    "unit": "U4",
+    "webSha": "0ac938c6f8f821d809b39e23d07229dd51ce8845",
+    "project": "cnn-from-scratch",
+    "slug": "cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+    "warmup": true,
+    "runWarmup": true,
+    "settleMs": 1500,
+    "walkGapMs": 11000
+  },
+  "env": {
+    "node": "v24.3.0",
+    "chromium": "156.0.8078.4",
+    "platform": "linux 6.17.0-1022-azure",
+    "started": "20261014T074439Z"
+  },
+  "aborted": null,
+  "warnings": [
+    "G-g not measured: pass --private-path (owner private post URL path)"
+  ],
+  "metrics": {
+    "anon.expanded": {
+      "w1_s1_home_nav_ms": {
+        "values": [
+          null,
+          null,
+          null
+        ],
+        "median": null,
+        "min": null,
+        "max": null,
+        "range": null
+      },
+      "w1_s2_posts_nav_ms": {
+        "values": [
+          92,
+          69,
+          62
+        ],
+        "median": 69,
+        "min": 62,
+        "max": 92,
+        "range": 30
+      },
+      "w1_s2_posts_rsc_nonprefetch": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      },
+      "w1_s3_projects_nav_ms": {
+        "values": [
+          19,
+          19,
+          10
+        ],
+        "median": 19,
+        "min": 10,
+        "max": 19,
+        "range": 9
+      },
+      "w1_s3_projects_rsc_nonprefetch": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      },
+      "w1_s4_project_nav_ms": {
+        "values": [
+          34,
+          35,
+          34
+        ],
+        "median": 34,
+        "min": 34,
+        "max": 35,
+        "range": 1
+      },
+      "w1_s4_project_rsc_nonprefetch": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      },
+      "w1_s5_post_nav_ms": {
+        "values": [
+          68,
+          74,
+          82
+        ],
+        "median": 74,
+        "min": 68,
+        "max": 82,
+        "range": 14
+      },
+      "w1_s5_post_rsc_nonprefetch": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      },
+      "w1_s6_home_nav_ms": {
+        "values": [
+          22,
+          21,
+          22
+        ],
+        "median": 22,
+        "min": 21,
+        "max": 22,
+        "range": 1
+      },
+      "w1_s6_home_rsc_nonprefetch": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "w1_nav_ms_s2_s6": {
+        "values": [
+          235,
+          218,
+          210
+        ],
+        "median": 218,
+        "min": 210,
+        "max": 235,
+        "range": 25
+      },
+      "w1_rsc_total": {
+        "values": [
+          15,
+          15,
+          15
+        ],
+        "median": 15,
+        "min": 15,
+        "max": 15,
+        "range": 0
+      },
+      "w1_rsc_nonprefetch": {
+        "values": [
+          4,
+          4,
+          4
+        ],
+        "median": 4,
+        "min": 4,
+        "max": 4,
+        "range": 0
+      },
+      "w2_back3_rsc": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "w2_back3_rsc_nonprefetch": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "g_a_max_10s": {
+        "values": [
+          22,
+          22,
+          22
+        ],
+        "median": 22,
+        "min": 22,
+        "max": 22,
+        "range": 0
+      },
+      "g_a_max_10s_w1": {
+        "values": [
+          22,
+          22,
+          22
+        ],
+        "median": 22,
+        "min": 22,
+        "max": 22,
+        "range": 0
+      },
+      "g_a_max_10s_w3": {
+        "values": [
+          12,
+          12,
+          12
+        ],
+        "median": 12,
+        "min": 12,
+        "max": 12,
+        "range": 0
+      },
+      "g_a_max_10s_w4": {
+        "values": [
+          10,
+          10,
+          10
+        ],
+        "median": 10,
+        "min": 10,
+        "max": 10,
+        "range": 0
+      },
+      "w3_load_more_requests": {
+        "values": [
+          2,
+          2,
+          2
+        ],
+        "median": 2,
+        "min": 2,
+        "max": 2,
+        "range": 0
+      },
+      "g_b_menu_links": {
+        "values": [
+          4,
+          4,
+          4
+        ],
+        "median": 4,
+        "min": 4,
+        "max": 4,
+        "range": 0
+      },
+      "g_b_prefetch_per_menu_link_max": {
+        "values": [
+          2,
+          2,
+          2
+        ],
+        "median": 2,
+        "min": 2,
+        "max": 2,
+        "range": 0
+      },
+      "g_b_prefetch_per_menu_link_mean": {
+        "values": [
+          1.75,
+          1.75,
+          1.75
+        ],
+        "median": 1.75,
+        "min": 1.75,
+        "max": 1.75,
+        "range": 0
+      },
+      "g_b_prefetch_total": {
+        "values": [
+          7,
+          7,
+          7
+        ],
+        "median": 7,
+        "min": 7,
+        "max": 7,
+        "range": 0
+      },
+      "g_b_card_prefetch_total": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "rsc_count_all": {
+        "values": [
+          29,
+          29,
+          29
+        ],
+        "median": 29,
+        "min": 29,
+        "max": 29,
+        "range": 0
+      },
+      "rsc_bytes_null_count": {
+        "values": [
+          4,
+          2,
+          2
+        ],
+        "median": 2,
+        "min": 2,
+        "max": 4,
+        "range": 2
+      },
+      "rsc_bytes_w1_null_count": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      },
+      "rsc_bytes_fallback_count": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "rsc_bytes_total": {
+        "values": [
+          null,
+          null,
+          null
+        ],
+        "median": null,
+        "min": null,
+        "max": null,
+        "range": null
+      },
+      "rsc_bytes_w1": {
+        "values": [
+          null,
+          null,
+          null
+        ],
+        "median": null,
+        "min": null,
+        "max": null,
+        "range": null
+      },
+      "w1_miss_count": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "g_f_hydration_errors": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "step_errors": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      },
+      "w2_back3_at_ok": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      }
+    },
+    "auth.expanded": {
+      "w1_s1_home_nav_ms": {
+        "values": [
+          null,
+          null,
+          null
+        ],
+        "median": null,
+        "min": null,
+        "max": null,
+        "range": null
+      },
+      "w1_s2_posts_nav_ms": {
+        "values": [
+          20,
+          20,
+          20
+        ],
+        "median": 20,
+        "min": 20,
+        "max": 20,
+        "range": 0
+      },
+      "w1_s2_posts_rsc_nonprefetch": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      },
+      "w1_s3_projects_nav_ms": {
+        "values": [
+          21,
+          21,
+          22
+        ],
+        "median": 21,
+        "min": 21,
+        "max": 22,
+        "range": 1
+      },
+      "w1_s3_projects_rsc_nonprefetch": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      },
+      "w1_s4_project_nav_ms": {
+        "values": [
+          105,
+          125,
+          98
+        ],
+        "median": 105,
+        "min": 98,
+        "max": 125,
+        "range": 27
+      },
+      "w1_s4_project_rsc_nonprefetch": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      },
+      "w1_s5_post_nav_ms": {
+        "values": [
+          128,
+          142,
+          167
+        ],
+        "median": 142,
+        "min": 128,
+        "max": 167,
+        "range": 39
+      },
+      "w1_s5_post_rsc_nonprefetch": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      },
+      "w1_s6_home_nav_ms": {
+        "values": [
+          21,
+          21,
+          22
+        ],
+        "median": 21,
+        "min": 21,
+        "max": 22,
+        "range": 1
+      },
+      "w1_s6_home_rsc_nonprefetch": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "w1_nav_ms_s2_s6": {
+        "values": [
+          295,
+          329,
+          329
+        ],
+        "median": 329,
+        "min": 295,
+        "max": 329,
+        "range": 34
+      },
+      "w1_rsc_total": {
+        "values": [
+          22,
+          22,
+          22
+        ],
+        "median": 22,
+        "min": 22,
+        "max": 22,
+        "range": 0
+      },
+      "w1_rsc_nonprefetch": {
+        "values": [
+          4,
+          4,
+          4
+        ],
+        "median": 4,
+        "min": 4,
+        "max": 4,
+        "range": 0
+      },
+      "w2_back3_rsc": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "w2_back3_rsc_nonprefetch": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "g_a_max_10s": {
+        "values": [
+          35,
+          35,
+          35
+        ],
+        "median": 35,
+        "min": 35,
+        "max": 35,
+        "range": 0
+      },
+      "g_a_max_10s_w1": {
+        "values": [
+          35,
+          35,
+          35
+        ],
+        "median": 35,
+        "min": 35,
+        "max": 35,
+        "range": 0
+      },
+      "g_a_max_10s_w3": {
+        "values": [
+          18,
+          18,
+          18
+        ],
+        "median": 18,
+        "min": 18,
+        "max": 18,
+        "range": 0
+      },
+      "g_a_max_10s_w4": {
+        "values": [
+          16,
+          16,
+          16
+        ],
+        "median": 16,
+        "min": 16,
+        "max": 16,
+        "range": 0
+      },
+      "w3_load_more_requests": {
+        "values": [
+          2,
+          2,
+          2
+        ],
+        "median": 2,
+        "min": 2,
+        "max": 2,
+        "range": 0
+      },
+      "g_b_menu_links": {
+        "values": [
+          7,
+          7,
+          7
+        ],
+        "median": 7,
+        "min": 7,
+        "max": 7,
+        "range": 0
+      },
+      "g_b_prefetch_per_menu_link_max": {
+        "values": [
+          2,
+          2,
+          2
+        ],
+        "median": 2,
+        "min": 2,
+        "max": 2,
+        "range": 0
+      },
+      "g_b_prefetch_per_menu_link_mean": {
+        "values": [
+          1.86,
+          1.86,
+          1.86
+        ],
+        "median": 1.86,
+        "min": 1.86,
+        "max": 1.86,
+        "range": 0
+      },
+      "g_b_prefetch_total": {
+        "values": [
+          13,
+          13,
+          13
+        ],
+        "median": 13,
+        "min": 13,
+        "max": 13,
+        "range": 0
+      },
+      "g_b_card_prefetch_total": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "rsc_count_all": {
+        "values": [
+          48,
+          48,
+          48
+        ],
+        "median": 48,
+        "min": 48,
+        "max": 48,
+        "range": 0
+      },
+      "rsc_bytes_null_count": {
+        "values": [
+          38,
+          39,
+          37
+        ],
+        "median": 38,
+        "min": 37,
+        "max": 39,
+        "range": 2
+      },
+      "rsc_bytes_w1_null_count": {
+        "values": [
+          16,
+          17,
+          18
+        ],
+        "median": 17,
+        "min": 16,
+        "max": 18,
+        "range": 2
+      },
+      "rsc_bytes_fallback_count": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "rsc_bytes_total": {
+        "values": [
+          null,
+          null,
+          null
+        ],
+        "median": null,
+        "min": null,
+        "max": null,
+        "range": null
+      },
+      "rsc_bytes_w1": {
+        "values": [
+          null,
+          null,
+          null
+        ],
+        "median": null,
+        "min": null,
+        "max": null,
+        "range": null
+      },
+      "w1_miss_count": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "g_f_hydration_errors": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "auth_signed_in": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      },
+      "step_errors": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      },
+      "w2_back3_at_ok": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      }
+    },
+    "anon.collapsed": {
+      "w1_s1_home_nav_ms": {
+        "values": [
+          null,
+          null,
+          null
+        ],
+        "median": null,
+        "min": null,
+        "max": null,
+        "range": null
+      },
+      "w1_s2_posts_nav_ms": {
+        "values": [
+          68,
+          95,
+          77
+        ],
+        "median": 77,
+        "min": 68,
+        "max": 95,
+        "range": 27
+      },
+      "w1_s2_posts_rsc_nonprefetch": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      },
+      "w1_s3_projects_nav_ms": {
+        "values": [
+          19,
+          18,
+          18
+        ],
+        "median": 18,
+        "min": 18,
+        "max": 19,
+        "range": 1
+      },
+      "w1_s3_projects_rsc_nonprefetch": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      },
+      "w1_s4_project_nav_ms": {
+        "values": [
+          31,
+          34,
+          36
+        ],
+        "median": 34,
+        "min": 31,
+        "max": 36,
+        "range": 5
+      },
+      "w1_s4_project_rsc_nonprefetch": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      },
+      "w1_s5_post_nav_ms": {
+        "values": [
+          78,
+          66,
+          64
+        ],
+        "median": 66,
+        "min": 64,
+        "max": 78,
+        "range": 14
+      },
+      "w1_s5_post_rsc_nonprefetch": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      },
+      "w1_s6_home_nav_ms": {
+        "values": [
+          22,
+          22,
+          23
+        ],
+        "median": 22,
+        "min": 22,
+        "max": 23,
+        "range": 1
+      },
+      "w1_s6_home_rsc_nonprefetch": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "w1_nav_ms_s2_s6": {
+        "values": [
+          218,
+          235,
+          218
+        ],
+        "median": 218,
+        "min": 218,
+        "max": 235,
+        "range": 17
+      },
+      "w1_rsc_total": {
+        "values": [
+          15,
+          15,
+          15
+        ],
+        "median": 15,
+        "min": 15,
+        "max": 15,
+        "range": 0
+      },
+      "w1_rsc_nonprefetch": {
+        "values": [
+          4,
+          4,
+          4
+        ],
+        "median": 4,
+        "min": 4,
+        "max": 4,
+        "range": 0
+      },
+      "w2_back3_rsc": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "w2_back3_rsc_nonprefetch": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "g_a_max_10s": {
+        "values": [
+          22,
+          22,
+          22
+        ],
+        "median": 22,
+        "min": 22,
+        "max": 22,
+        "range": 0
+      },
+      "g_a_max_10s_w1": {
+        "values": [
+          22,
+          22,
+          22
+        ],
+        "median": 22,
+        "min": 22,
+        "max": 22,
+        "range": 0
+      },
+      "g_a_max_10s_w3": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "g_a_max_10s_w4": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "w3_load_more_requests": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "rsc_count_all": {
+        "values": [
+          15,
+          15,
+          15
+        ],
+        "median": 15,
+        "min": 15,
+        "max": 15,
+        "range": 0
+      },
+      "rsc_bytes_null_count": {
+        "values": [
+          1,
+          1,
+          2
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 2,
+        "range": 1
+      },
+      "rsc_bytes_w1_null_count": {
+        "values": [
+          1,
+          1,
+          2
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 2,
+        "range": 1
+      },
+      "rsc_bytes_fallback_count": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "rsc_bytes_total": {
+        "values": [
+          null,
+          null,
+          null
+        ],
+        "median": null,
+        "min": null,
+        "max": null,
+        "range": null
+      },
+      "rsc_bytes_w1": {
+        "values": [
+          null,
+          null,
+          null
+        ],
+        "median": null,
+        "min": null,
+        "max": null,
+        "range": null
+      },
+      "w1_miss_count": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "g_f_hydration_errors": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "step_errors": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "w2_back3_at_ok": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      }
+    },
+    "auth.collapsed": {
+      "w1_s1_home_nav_ms": {
+        "values": [
+          null,
+          null,
+          null
+        ],
+        "median": null,
+        "min": null,
+        "max": null,
+        "range": null
+      },
+      "w1_s2_posts_nav_ms": {
+        "values": [
+          20,
+          19,
+          21
+        ],
+        "median": 20,
+        "min": 19,
+        "max": 21,
+        "range": 2
+      },
+      "w1_s2_posts_rsc_nonprefetch": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      },
+      "w1_s3_projects_nav_ms": {
+        "values": [
+          21,
+          44,
+          22
+        ],
+        "median": 22,
+        "min": 21,
+        "max": 44,
+        "range": 23
+      },
+      "w1_s3_projects_rsc_nonprefetch": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      },
+      "w1_s4_project_nav_ms": {
+        "values": [
+          101,
+          103,
+          98
+        ],
+        "median": 101,
+        "min": 98,
+        "max": 103,
+        "range": 5
+      },
+      "w1_s4_project_rsc_nonprefetch": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      },
+      "w1_s5_post_nav_ms": {
+        "values": [
+          134,
+          170,
+          143
+        ],
+        "median": 143,
+        "min": 134,
+        "max": 170,
+        "range": 36
+      },
+      "w1_s5_post_rsc_nonprefetch": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      },
+      "w1_s6_home_nav_ms": {
+        "values": [
+          23,
+          22,
+          23
+        ],
+        "median": 23,
+        "min": 22,
+        "max": 23,
+        "range": 1
+      },
+      "w1_s6_home_rsc_nonprefetch": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "w1_nav_ms_s2_s6": {
+        "values": [
+          299,
+          358,
+          307
+        ],
+        "median": 307,
+        "min": 299,
+        "max": 358,
+        "range": 59
+      },
+      "w1_rsc_total": {
+        "values": [
+          22,
+          22,
+          22
+        ],
+        "median": 22,
+        "min": 22,
+        "max": 22,
+        "range": 0
+      },
+      "w1_rsc_nonprefetch": {
+        "values": [
+          4,
+          4,
+          4
+        ],
+        "median": 4,
+        "min": 4,
+        "max": 4,
+        "range": 0
+      },
+      "w2_back3_rsc": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "w2_back3_rsc_nonprefetch": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "g_a_max_10s": {
+        "values": [
+          35,
+          35,
+          35
+        ],
+        "median": 35,
+        "min": 35,
+        "max": 35,
+        "range": 0
+      },
+      "g_a_max_10s_w1": {
+        "values": [
+          35,
+          35,
+          35
+        ],
+        "median": 35,
+        "min": 35,
+        "max": 35,
+        "range": 0
+      },
+      "g_a_max_10s_w3": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "g_a_max_10s_w4": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "w3_load_more_requests": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "rsc_count_all": {
+        "values": [
+          22,
+          22,
+          22
+        ],
+        "median": 22,
+        "min": 22,
+        "max": 22,
+        "range": 0
+      },
+      "rsc_bytes_null_count": {
+        "values": [
+          14,
+          17,
+          18
+        ],
+        "median": 17,
+        "min": 14,
+        "max": 18,
+        "range": 4
+      },
+      "rsc_bytes_w1_null_count": {
+        "values": [
+          14,
+          17,
+          18
+        ],
+        "median": 17,
+        "min": 14,
+        "max": 18,
+        "range": 4
+      },
+      "rsc_bytes_fallback_count": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "rsc_bytes_total": {
+        "values": [
+          null,
+          null,
+          null
+        ],
+        "median": null,
+        "min": null,
+        "max": null,
+        "range": null
+      },
+      "rsc_bytes_w1": {
+        "values": [
+          null,
+          null,
+          null
+        ],
+        "median": null,
+        "min": null,
+        "max": null,
+        "range": null
+      },
+      "w1_miss_count": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "g_f_hydration_errors": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "auth_signed_in": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      },
+      "step_errors": {
+        "values": [
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "range": 0
+      },
+      "w2_back3_at_ok": {
+        "values": [
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1,
+        "range": 0
+      }
+    }
+  }
+}
