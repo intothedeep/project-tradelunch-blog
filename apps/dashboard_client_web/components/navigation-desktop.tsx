@@ -1,11 +1,14 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useSetAtom } from 'jotai';
 import { NavMenu } from '@/components/nav-menu.client';
 import { MenuDrawer } from '@/components/MenuDrawer.client';
 import { TopBar } from '@/components/topbar/TopBar.client';
 import { isMenuDrawerOpenAtom } from '@/store/menu.atom';
+import { cn } from '@/lib/utils';
+import { TONE_BG, sectionTone } from '@/utils/section-tone';
 
 // Desktop Navigation: the single global top bar, rendered on every route.
 export const DesktopNavigation = () => {
@@ -15,11 +18,18 @@ export const DesktopNavigation = () => {
 // Mobile Navigation: top bar + floating button that opens the shared MenuDrawer.
 export const MobileNavigation = () => {
     const openMenu = useSetAtom(isMenuDrawerOpenAtom);
+    // Same section tone as the desktop top bar (owner, 2026-10-14).
+    const tone = sectionTone(usePathname());
 
     return (
         <>
             {/* Mobile Header Bar — logo left, theme + auth right. */}
-            <nav className="flex h-14 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-4 md:hidden">
+            <nav
+                className={cn(
+                    'flex h-14 items-center justify-between border-b-2 border-primary backdrop-blur px-4 md:hidden',
+                    tone ? TONE_BG[tone] : 'bg-background/95'
+                )}
+            >
                 <Link
                     href="/"
                     className="flex items-center gap-2"
