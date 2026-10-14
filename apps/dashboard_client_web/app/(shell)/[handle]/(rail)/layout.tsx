@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
-import { notFound } from 'next/navigation';
-import { getUserProfile } from '@/apis/getUserProfile.api';
+import { UserGate } from '@/components/shell/UserGate.server';
 import { ContentFrame } from '@/components/shell/ContentFrame.server';
 import { RightRail } from '@/components/rail/RightRail.client';
 import { HomeRightRail } from '@/components/rail/HomeRightRail.server';
@@ -22,14 +21,19 @@ type Props = {
 export default async function RailGroupLayout({ children, params }: Props) {
     const { handle } = await params;
     const username = stripUsernameAt(decodeURIComponent(handle));
-    // Unknown user -> real 404. Done in the layout because the posts
-    // loading.tsx would flush a 200 shell before the page could call
-    // notFound(). A 5xx throws (not null), so only a true 404 reaches here.
-    if (!(await getUserProfile(username))) notFound();
-
     return (
         <ContentFrame
-            main={children}
+            main={
+                <>
+                    {/* Unknown user -> 404 view. A layout cannot await uncached
+                        data above every Suspense boundary under cacheComponents,
+                        so the gate is a leaf: the status stays 200 (noindex). */}
+                    <Suspense fallback={null}>
+                        <UserGate username={username} />
+                    </Suspense>
+                    {children}
+                </>
+            }
             rightRail={
                 <RightRail>
                     <PostsProfileSlot
