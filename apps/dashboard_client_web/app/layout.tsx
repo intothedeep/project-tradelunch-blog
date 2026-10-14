@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { ClerkProvider } from '@clerk/nextjs';
 
 import { ThemeProvider } from '@/components/theme-provider';
+import { JotaiProvider } from '@/components/providers/JotaiProvider.client';
 import { ReactQueryProvider } from '@/components/providers/ReactQueryProvider.client';
 
 import { NextIntlClientProvider } from 'next-intl';
@@ -137,27 +138,29 @@ export default async function RootLayout({
                             enableSystem
                             disableTransitionOnChange
                         >
-                            <ReactQueryProvider>
-                                <CustomNavigation />
-                                {/* <header className="sticky top-0 z-50 border-b-2 border-foreground bg-background">
+                            <JotaiProvider>
+                                <ReactQueryProvider>
+                                    <CustomNavigation />
+                                    {/* <header className="sticky top-0 z-50 border-b-2 border-foreground bg-background">
                                     <div className="mx-auto max-w-[95vw] px-2"></div>
                                 </header> */}
 
-                                {/* <header className={clsx('flex')}>
+                                    {/* <header className={clsx('flex')}>
                                     <NavigationMenuDemo />
                                 </header> */}
 
-                                <div className="flex-1">{children}</div>
+                                    <div className="flex-1">{children}</div>
 
-                                {/* Global scroll-to-top affordance: appears on
+                                    {/* Global scroll-to-top affordance: appears on
                                     every route once scrolled past the threshold
                                     (self-hides on short pages). */}
-                                <ScrollToTopButton />
+                                    <ScrollToTopButton />
 
-                                {/* <footer>Main footer</footer> */}
-                                {/* <ClientTrailCursorCanvas /> */}
-                                {/* <ClientTrailCursorDom /> */}
-                            </ReactQueryProvider>
+                                    {/* <footer>Main footer</footer> */}
+                                    {/* <ClientTrailCursorCanvas /> */}
+                                    {/* <ClientTrailCursorDom /> */}
+                                </ReactQueryProvider>
+                            </JotaiProvider>
                         </ThemeProvider>
                     </NextIntlClientProvider>
                 </body>
