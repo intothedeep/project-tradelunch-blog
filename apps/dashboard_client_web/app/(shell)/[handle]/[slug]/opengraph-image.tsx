@@ -14,6 +14,7 @@
 //   A title changing up to 24h late in a social preview is harmless.
 
 import { ImageResponse } from 'next/og';
+import { unstable_rethrow } from 'next/navigation';
 import { getPostBySlug } from '@/apis/getPost.api';
 import { OG_SIZE, OG_CONTENT_TYPE, renderOgCard } from '@/lib/og';
 
@@ -46,7 +47,8 @@ export default async function Image({ params }: Props): Promise<ImageResponse> {
             renderOgCard({ title, subtitle, badge: 'prettylog' }),
             OG_SIZE
         );
-    } catch {
+    } catch (error) {
+        unstable_rethrow(error);
         // Degrade to a generic branded card on fetch failure.
         return new ImageResponse(
             renderOgCard({ title: 'prettylog', badge: 'prettylog' }),

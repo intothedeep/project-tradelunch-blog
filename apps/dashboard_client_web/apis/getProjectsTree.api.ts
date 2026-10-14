@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { cache } from 'react';
+import { unstable_rethrow } from 'next/navigation';
 import { getCategoriesByUsername } from '@/apis/getCategories.api';
 import { sliceProjectsSubtree } from '@/utils/projects-tree';
 
@@ -18,7 +19,10 @@ export const getProjectsTree = cache(
 // (#79). A failed tree read means "not a project post", never a broken page.
 export const isProjectPostSlug = async (username: string, slug: string) => {
     const { projectOfSlug } = await getProjectsTree(username, null).catch(
-        () => ({ projectOfSlug: {} as Record<string, string> })
+        (error) => {
+            unstable_rethrow(error);
+            return { projectOfSlug: {} as Record<string, string> };
+        }
     );
     return Boolean(projectOfSlug[decodeURIComponent(slug)]);
 };

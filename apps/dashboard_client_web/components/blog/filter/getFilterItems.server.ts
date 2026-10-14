@@ -6,6 +6,7 @@
 // Side effects: two isolated network reads (each failure-contained).
 
 import { getCategoriesByUsername } from '@/apis/getCategories.api';
+import { unstable_rethrow } from 'next/navigation';
 import { getUserPopularTags } from '@/apis/getUserPopularTags.api';
 import { ETreeNodeType, type TTreeNode } from '@repo/types';
 
@@ -32,7 +33,8 @@ export const getCategoryFilterItems = async (
             label: node.title,
             value: node.title,
         }));
-    } catch {
+    } catch (error) {
+        unstable_rethrow(error);
         return [];
     }
 };
@@ -47,7 +49,8 @@ export const getTagFilterItems = async (
             value: tag,
             count,
         }));
-    } catch {
+    } catch (error) {
+        unstable_rethrow(error);
         return [];
     }
 };

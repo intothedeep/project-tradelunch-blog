@@ -135,7 +135,7 @@ gh workflow run cc-build.yml
 - Signed-in client navigation is checked too (decision #103). Signed-in prefetch skips the check (decision #106).
 - An unknown top-level path such as `/nope` is a real 404 (attempt 1 returned 500).
 
-**`unstable_rethrow` rule.** In every server fetcher `catch`, call `unstable_rethrow(error)` from `next/navigation` first.
+**`unstable_rethrow` rule.** In every server `catch` (fetchers, leaves, pages, metadata), call `unstable_rethrow(error)` from `next/navigation` first.
 
 - Why: on a new param path, Next prerenders the static shell at request time (runtime prerender).
   Uncached fetches hang until the shell is done, then Next rejects them. A `catch` that logs this signal writes a false ERROR.

@@ -9,6 +9,7 @@
 // Side effects: one isolated network read.
 
 import { getUserProfile } from '@/apis/getUserProfile.api';
+import { unstable_rethrow } from 'next/navigation';
 import type { TUserProfile } from '@repo/types';
 import { MobileAuthorChip } from '@/components/rail/mobile/MobileAuthorChip.server';
 
@@ -17,7 +18,8 @@ const resolveProfile = async (
 ): Promise<TUserProfile | null> => {
     try {
         return await getUserProfile(username);
-    } catch {
+    } catch (error) {
+        unstable_rethrow(error);
         return null;
     }
 };

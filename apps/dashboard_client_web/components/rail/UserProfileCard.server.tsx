@@ -7,6 +7,7 @@
 // Side effects: one network read (isolated to this boundary).
 
 import Image from 'next/image';
+import { unstable_rethrow } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import type { TUserProfile } from '@repo/types';
 import { getUserProfile } from '@/apis/getUserProfile.api';
@@ -17,7 +18,8 @@ export const UserProfileCard = async ({ username }: { username: string }) => {
     let profile: TUserProfile | null;
     try {
         profile = await getUserProfile(username);
-    } catch {
+    } catch (error) {
+        unstable_rethrow(error);
         return null;
     }
     if (!profile) return null;

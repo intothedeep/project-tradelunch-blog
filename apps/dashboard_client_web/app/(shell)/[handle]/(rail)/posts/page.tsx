@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { User } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
+import { unstable_rethrow } from 'next/navigation';
 
 import BlogMainPage from '@/components/blog/BlogMainPage';
 import { CategorySidebarWrapper } from '@/components/blog/CategorySidebarWrapper.server';
@@ -43,7 +44,8 @@ export async function generateMetadata({
             displayName = profile.displayName ?? undefined;
             postCount = profile.postCount ?? undefined;
         }
-    } catch {
+    } catch (error) {
+        unstable_rethrow(error);
         // Non-critical — fall back to raw author slug.
     }
 

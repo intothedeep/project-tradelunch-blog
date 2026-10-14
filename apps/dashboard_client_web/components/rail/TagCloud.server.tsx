@@ -9,6 +9,7 @@
 // Side effects: one network read (isolated to this boundary).
 
 import { getTranslations } from 'next-intl/server';
+import { unstable_rethrow } from 'next/navigation';
 import { getPopularTags } from '@/apis/getPopularTags.api';
 import { getUserPopularTags } from '@/apis/getUserPopularTags.api';
 import { FilterChip } from '@/components/blog/filter/FilterChip.client';
@@ -31,7 +32,8 @@ export const TagCloud = async ({ username, mode = 'nav' }: Props = {}) => {
         tags = username
             ? await getUserPopularTags(username, 30)
             : await getPopularTags(30);
-    } catch {
+    } catch (error) {
+        unstable_rethrow(error);
         return <p className={FALLBACK_LINE}>{t('rail.tagsUnavailable')}</p>;
     }
 

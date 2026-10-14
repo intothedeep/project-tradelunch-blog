@@ -1,4 +1,5 @@
 import { auth } from '@clerk/nextjs/server';
+import { unstable_rethrow } from 'next/navigation';
 
 import { getPostBySlug } from '@/apis/getPost.api';
 import { JsonLd } from '@/components/seo/JsonLd.server';
@@ -17,7 +18,8 @@ export async function PostJsonLd({ slug, author }: Props) {
     try {
         const { getToken } = await auth();
         token = await getToken();
-    } catch {
+    } catch (error) {
+        unstable_rethrow(error);
         token = null;
     }
 
@@ -45,7 +47,8 @@ export async function PostJsonLd({ slug, author }: Props) {
                 { name: post.title as string, url: canonicalPath },
             ]),
         ];
-    } catch {
+    } catch (error) {
+        unstable_rethrow(error);
         // JSON-LD is non-critical; degrade silently.
     }
 

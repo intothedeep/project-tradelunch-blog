@@ -8,6 +8,7 @@
 //   island can show the post-owner delete affordance.
 
 import { getCommentsFirstPage } from '@/apis/getCommentsFirstPage.api';
+import { unstable_rethrow } from 'next/navigation';
 import { CommentsSection } from '@/components/blog/comments/CommentsSection.client';
 import type { TCommentListResponse } from '@repo/types';
 
@@ -21,7 +22,8 @@ export const Comments = async ({
     let initialPage: TCommentListResponse | undefined;
     try {
         initialPage = await getCommentsFirstPage(postId);
-    } catch {
+    } catch (error) {
+        unstable_rethrow(error);
         // The island refetches client-side; a server fetch failure must not
         // break the post page. Render the section with no seed.
         initialPage = undefined;

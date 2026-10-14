@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
+import { unstable_rethrow } from 'next/navigation';
 import clsx from 'clsx';
 import { getPostBySlug } from '@/apis/getPost.api';
 import PostContent from '@/components/blog/PostContent.server';
@@ -58,7 +59,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
                 description,
             },
         };
-    } catch {
+    } catch (error) {
+        unstable_rethrow(error);
         return { title: 'Post' };
     }
 }
@@ -69,7 +71,10 @@ export default async function PostDetailPage({ params }: Props) {
     // Same anonymous tree read as the layout (cache() dedupes it); see the
     // layout for why a failed read means "not a project post".
     const { projectOfSlug } = await getProjectsTree(ownerUsername, null).catch(
-        () => ({ projectOfSlug: {} as Record<string, string> })
+        (error) => {
+            unstable_rethrow(error);
+            return { projectOfSlug: {} as Record<string, string> };
+        }
     );
     const isProjectPost = Boolean(projectOfSlug[decodeURIComponent(slug)]);
 
