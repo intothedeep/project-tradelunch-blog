@@ -80,8 +80,9 @@ jobs:
           for p in / /@taeklim/posts /@taeklim/about /tags/rust; do check 200 "$p"; done
           # A2 rows (diagnosis-architect.md section 7.4)
           chunk=$(ls apps/dashboard_client_web/.next/static/chunks/*.js | head -1 | xargs basename)
-          for p in /favicon/favicon.ico /favicon/site.webmanifest /robots.txt /sitemap.xml "/_next/static/chunks/$chunk" \
-            /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first/opengraph-image; do check 200 "$p"; done
+          for p in /favicon/favicon.ico /favicon/site.webmanifest /robots.txt /sitemap.xml "/_next/static/chunks/$chunk"; do check 200 "$p"; done
+          # Unhashed OG path: 404 on pre-U4 prod too (01.status.md 2026-10-14, A2 note) -> same as before.
+          check 404 /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first/opengraph-image
           for p in /og-image.png /ads.txt /next.svg; do check 200 "$p" nocookie; done
           for p in /wp-login.php /.env /@taeklim/x.png; do check 404 "$p"; done
           # legacy path: 308 to /@taeklim/x.png, then 404 after following
