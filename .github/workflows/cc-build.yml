@@ -22,6 +22,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
+      # The web app resolves @repo/types from its dist (no turbo ^build here).
+      - run: pnpm --filter @repo/types build
+
       - name: Turn the flag on (runner copy only)
         if: ${{ inputs.cache_components }}
         run: |
