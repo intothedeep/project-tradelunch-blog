@@ -1,7 +1,9 @@
 # 작성자 URL 재편 + Projects 화면 설계 (DRAFT, system-architect, 2026-10-13)
 
-> 상태: 설계 초안 rev2. 코드 없음. 전략 선택은 오너가 한다.
+> ~~상태: 설계 초안 rev2. 코드 없음. 전략 선택은 오너가 한다.~~ <!-- SUPERSEDED 2026-10-14 -->
+> 상태: 설계 rev3 (2026-10-14). P1, P2는 배포됐다. rev3는 새 결정을 내리지 않는다.
 > rev1 → rev2: 오너가 URL 체계를 velog 방식으로 바꿨다(2026-10-13, dispatch 경유). §1, §5, §8, §9를 새로 썼다.
+> rev2 → rev3: 결정 #80, #81, #89, #113(Update 포함), #115를 반영했다. §0, §1, §2.1, §5, §7.2, §9, §10, §11에 표시했다 (PJ-1-31).
 > 위치 근거: 저장소 선례 `gcp.design.md`, `traffic.design.md`와 같은 루트 `*.design.md`다.
 > `00.plan.md` 절과 `00.tasks.md` 행은 product-manager(pm)가 쓴다. 이 문서는 고치지 않는다.
 
@@ -20,30 +22,45 @@
 - 카드 항목: 썸네일(thumbnail), 프로젝트 이름, overview 글 제목, 글 수. overview는 priority 최소, 동률이면 seq 최소인 글이다.
 - 프로젝트 글 목록은 priority ASC, seq ASC 순이다. slug마다 최신 revision만 쓴다.
 - 오른쪽 aside는 projects tree다(B). 프로젝트 글 상세는 TOC 위, tree 아래다(F).
-- 모바일은 접이식 메뉴다(E). `/blog`(All posts)는 그대로다(C).
+- 모바일은 접이식 메뉴다(E). ~~`/blog`(All posts)는 그대로다(C).~~ <!-- SUPERSEDED 2026-10-14 --> 옛 URL `/blog`는 308 → `/`다 (#81).
 - 사용자 아래로 더 옮긴다: `/@u/about`, `/@u/resume`, `/@u/saved`, `/@u/logs`, `/@u/logs/<logId>`.
 - 단계: P1 = projects 화면 + `/@u/<slug>` + `/@u/posts` + 308 redirect + 예약 slug 검사.
 - P2 = about, resume, saved, logs 이동. 나중 = 앱 전체 `cacheComponents`.
+
+rev3 정정 (2026-10-14, 위 요구 요약은 원문 그대로 둔다):
+
+- about, resume, saved는 P1으로 당겼다. logs만 P2에 남았다 (#80).
+- 메뉴는 Home만 빼고 모두 `/@<user>/…`다 (#80).
+- `/` = 모든 작성자의 글(all posts)이다 (#81).
+- `/@u/posts` = 그 작성자의 글만이다 (#81).
+- 내 초안은 `/@u/me`, 저장 글은 `/@u/saved`다. 둘 다 본인만 연다 (#89).
+- 로그인 안 한 사람과 다른 사람은 404를 받는다 (#89).
+- 로그 화면은 `/@u/logs`, `/@u/logs/<logId>`만 남는다 (#113).
+- 옛 `/log`, `/log/@u…`는 없앴다. 308 없이 404다 (#113 Update, Update 2).
+- `/@u/logs/<logId>`도 proxy 존재 검사를 받는다 (#115).
 
 ## 1. URL 지도 (route map)
 
 ### 1.1 velog 대응표
 
+rev3: "오늘" 칸은 rev2(2026-10-13) 당시의 옛 URL이다. 옛 URL의 지금 처리는 "단계" 칸에 적었다.
+
 | velog | 우리 (P1 뒤) | 오늘 | 단계 |
 | --- | --- | --- | --- |
-| `/` | `/` | `(feed)/page.tsx` | 불변 |
-| `/@u/posts` | `/@u/posts` | `/blog/@u` | P1 이동 |
-| `/@u/<slug>` | `/@u/<slug>` | `/blog/@u/<slug>` | P1 이동 |
+| `/` | `/` | `(feed)/page.tsx` | ~~불변~~ 경로는 그대로. 내용 = all posts (#81) |
+| `/@u/posts` | `/@u/posts` | 옛 URL `/blog/@u` | P1 이동. 옛 URL 308 |
+| `/@u/<slug>` | `/@u/<slug>` | 옛 URL `/blog/@u/<slug>` | P1 이동. 옛 URL 308 |
 | `/@u/series` | `/@u/projects` | 없음 | P1 새로 |
 | `/@u/series/<name>` | `/@u/projects/<project>` | 없음 | P1 새로 |
-| `/@u/about` | `/@u/about` | 전역 `/about` (owner 전용 내용) | P2. 이름은 P1에서 예약 |
-| 없음 | `/@u/resume` | 전역 `/resume` (owner 전용 내용) | P2 |
-| 없음 (velog는 `/saved`) | `/@u/saved` | `/me/saved` (로그인한 본인 목록) | P2 |
-| 없음 | `/@u/logs`, `/@u/logs/<logId>` | `/log/@u`, `/log/@u/<logId>` | P2 |
+| `/@u/about` | `/@u/about` | 전역 `/about` (owner 전용 내용) | ~~P2. 이름은 P1에서 예약~~ P1 (#80). `/about` 308 |
+| 없음 | `/@u/resume` | 전역 `/resume` (owner 전용 내용) | ~~P2~~ P1 (#80). `/resume` 308 |
+| 없음 (velog는 `/saved`) | `/@u/saved` | `/me/saved` (로그인한 본인 목록) | ~~P2~~ P1 (#80). 본인만, 그 밖 404. `/me/saved` 없앰, 404 (#89) |
+| 없음 | `/@u/me` (내 초안) | `/me` | 본인만, 그 밖 404. `/me` 없앰, 404 (#89) |
+| 없음 | `/@u/logs`, `/@u/logs/<logId>` | `/log/@u`, `/log/@u/<logId>` | P2. 옛 URL 없앰, 404, 308 없음 (#113 Update). logId 존재 검사 (#115) |
 | `/tags/<tag>` | `/tags/<tag>` | `(feed)/tags/[tag]` | 불변 |
 | `/@u` | `/@u` → 308 `/@u/posts` | 없음 | P1 |
-| 없음 | `/blog` (All posts), `/log` (전체 로그) | `blog/page.tsx`, `log/page.tsx` | 불변 |
-| 없음 | `/me` (내 초안) | `me/page.tsx` | 불변 |
+| 없음 | ~~`/blog` (All posts), `/log` (전체 로그)~~ 없음 | `blog/page.tsx`, `log/page.tsx` | ~~불변~~ 옛 URL `/blog` 308 → `/` (#81). `/log` 404 (#113 Update 2) |
+| 없음 | ~~`/me` (내 초안)~~ `/@u/me` (위 행) | `me/page.tsx` | ~~불변~~ 없앰 (#89) |
 
 ### 1.2 흐름
 
@@ -57,8 +74,13 @@
 왼쪽 메뉴 "My blog" ─► /@<u>/posts ── 글 클릭 ──► /@<u>/<slug>    글 상세 (모든 글이 이 URL 하나)
 
 옛 URL ─ 308 ─► /blog/@<u>          → /@<u>/posts   (query 유지)
-               /blog/@<u>/<slug>   → /@<u>/<slug>
+               /blog/@<u>/<slug>   → /@<u>/<slug>  (옛 URL 308)
                /@<u>               → /@<u>/posts
+               /blog               → /             (옛 URL 308, #81)
+               /about, /resume     → /@<owner>/about, /@<owner>/resume   (#80)
+
+옛 URL ─ 404 (308 없음) ─ /me, /me/saved                  (#89)
+                          /log, /log/@<u>, /log/@<u>/<id> (#113 Update, Update 2)
 ```
 
 ### 1.3 App Router 폴더
@@ -77,13 +99,19 @@ app/
     │   ├── layout.tsx                  BlogShell + ProjectsRail
     │   ├── page.tsx                    카드 목록
     │   └── [project]/page.tsx          글 목록
-    ├── about/ resume/ saved/           P2 (§5.3)
+    ├── about/ resume/ saved/           ~~P2~~ P1 (#80, §5.3)
+    ├── me/                             P1 (#89, §5.3)
     ├── logs/  logs/[logId]/            P2 (§5.3)
     └── [slug]/
         ├── layout.tsx                  BlogShell + 글 종류로 고른 rail (§4.2)
         ├── page.tsx                    글 상세
         └── opengraph-image.tsx         blog/[username]/[slug]/에서 이동
 ```
+
+rev3 (2026-10-14): 위 tree는 rev2 당시 그림이다. 다시 그리지 않는다.
+
+- 최상위 `blog/`, `log/`, `me/`, `about/`, `resume/` 폴더는 이제 없다 (#80, #81, #89, #113).
+- 지금 코드에는 route group `(shell)`, `(rail)`이 있다. 예: `app/(shell)/[handle]/(rail)/posts/`.
 
 결정과 이유:
 
@@ -100,7 +128,9 @@ app/
 
 ### 2.1 목록과 위치
 
-- 상수: `RESERVED_HANDLE_SEGMENTS = ['posts', 'projects', 'about', 'resume', 'saved', 'logs']`.
+- ~~상수: `RESERVED_HANDLE_SEGMENTS = ['posts', 'projects', 'about', 'resume', 'saved', 'logs']`.~~ <!-- SUPERSEDED 2026-10-14 -->
+- 상수: 위 6개 + `'me'`, 모두 7개다 (#89).
+- `me` 충돌 확인은 main session이 했다. slug `me` 글 0, 제목 `me` 카테고리 0 (#89).
 - P2 폴더(about, resume, saved, logs)의 이름도 P1에서 함께 예약한다. 그래야 P2 전에 그 slug의 글이 생기지 않는다.
 - TS 원본: `packages/types/src/routes.ts`(`@repo/types`). 웹과 Express가 import한다.
 - Python 사본: `apps/blog_agent/configs/routes.py`. 주석에 TS 원본 경로를 적는다. storage 모듈의 TS/Py 사본과 같은 방식이다.
@@ -130,6 +160,7 @@ ORDER BY u.username, p.slug, p.created_at DESC;
 ```
 
 - 0행이면 통과다. 1행 이상이면 오너가 slug를 정한다. 행을 지우지 않는다.
+- rev3: 위 쿼리는 rev2의 6개만 본다. `me` 확인은 #89 기록을 본다 (§2.1).
 
 ## 3. 데이터 계약 (data contract)
 
@@ -361,37 +392,51 @@ projects/[project]/page.tsx (server)            글 목록
 
 | 옛 URL | 새 URL | 방법 |
 | --- | --- | --- |
-| `/blog/@u` (+ query) | `/@u/posts` (+ query) | `next.config.ts` `redirects()`, `permanent: true` (308) |
-| `/blog/@u/<slug>` | `/@u/<slug>` | 같음 |
-| `/blog/@u/<slug>/opengraph-image` | `/@u/<slug>/opengraph-image` | 같음 |
+| `/blog/@u` (+ query) | `/@u/posts` (+ query) | ~~`next.config.ts` `redirects()`, `permanent: true`~~ `proxy.ts` + `utils/legacyRedirect.ts` (#113) (308) |
+| `/blog/@u/<slug>` | `/@u/<slug>` | 같음 (308) |
+| `/blog/@u/<slug>/opengraph-image` | `/@u/<slug>/opengraph-image` | 같음 (308) |
 | `/@u` | `/@u/posts` | `[handle]/page.tsx` `permanentRedirect` |
+| `/blog` | `/` | `utils/legacyRedirect.ts` (308, #81) |
+| `/about`, `/resume` | `/@<owner>/about`, `/@<owner>/resume` | `utils/legacyRedirect.ts` (308, #80). owner = `HOME_FEED_AUTHOR` |
+
+- rev3: 옛 URL 308은 모두 `proxy.ts`의 `utils/legacyRedirect.ts`에 있다. 엣지 캐시 가능하다 (#113).
+- rev3: 다음 옛 URL은 308이 없다. 404다: `/me`, `/me/saved` (#89), `/log`, `/log/@u…` (#113 Update, Update 2).
 
 - `next.config` redirect는 middleware(Clerk)보다 먼저 돈다. 그래서 응답에 쿠키가 없고 Cloudflare가 저장할 수 있다.
-- source 예: `/blog/:handle(@[^/]+)`, `/blog/:handle(@[^/]+)/:slug`. `%40` 형태가 맞는지는 developer가 dev 서버에서 확인한다.
-- `%40`이 안 맞거나 `@` 없는 옛 형태(`/blog/taek`)가 있으면 대안을 쓴다. `app/blog/[username]/` 페이지를 `permanentRedirect` 한 줄 stub로 남긴다.
-- `/blog` (All posts)는 redirect하지 않는다.
-- 배포 뒤 Cloudflare에 옛 HTML이 24시간 남는다. `cf-purge.sh`로 `/blog/@*`를 지운다.
+- ~~source 예: `/blog/:handle(@[^/]+)`, `/blog/:handle(@[^/]+)/:slug`. `%40` 형태가 맞는지는 developer가 dev 서버에서 확인한다.~~ <!-- SUPERSEDED 2026-10-14: 옛 URL 308은 proxy.ts legacyRedirect (#113) -->
+- ~~`%40`이 안 맞거나 `@` 없는 옛 형태(`/blog/taek`)가 있으면 대안을 쓴다. `app/blog/[username]/` 페이지를 `permanentRedirect` 한 줄 stub로 남긴다.~~ <!-- SUPERSEDED 2026-10-14: 옛 URL 308은 proxy.ts legacyRedirect (#113) -->
+- rev3: `legacyRedirect.ts`의 `BLOG_PATH`가 옛 URL `/blog/@u`, `/blog/%40u`, `/blog/u`를 모두 308로 받는다. stub 대안은 쓰지 않았다.
+- ~~`/blog` (All posts)는 redirect하지 않는다.~~ <!-- SUPERSEDED 2026-10-14 --> 옛 URL `/blog`는 308 → `/`다 (#81).
+- 배포 뒤 Cloudflare에 옛 HTML이 24시간 남는다. `cf-purge.sh`로 옛 URL `/blog/@*`를 지운다.
 
 ### 5.2 앱 안의 링크
 
-- `/blog/@` 문자열이 23개 파일, 37곳에 있다(웹 22파일 + `blog_agent/agents/uploading_agent.py`).
+- 옛 URL `/blog/@` 문자열이 23개 파일, 37곳에 있다(웹 22파일 + `blog_agent/agents/uploading_agent.py`).
 - 한 곳으로 모은다: `utils/routes.ts` `postsPath(u)`, `postPath(u, slug)`, `projectsPath(u)`, `projectPath(u, project)`.
 - 순서: redirect를 먼저 배포한다. 그러면 옛 링크도 모두 동작한다. 링크 교체는 그 뒤에 파일별로 한다.
 - #70 파일(`components/rail/*`, `RecentPostCard`, `PostContentCard`)의 링크는 #70 커밋 뒤에 바꾼다. 그 사이 redirect가 받는다.
 - 글 본문 안의 옛 링크는 고치지 않는다. redirect가 받는다.
 - `sitemap.ts`: 글 URL을 `/@u/<slug>`로 바꾼다. 옛 URL이 sitemap에 남으면 안 된다.
-- `/@owner/posts`의 canonical은 오늘처럼 `/`다(`HOME_FEED_AUTHOR`).
+- ~~`/@owner/posts`의 canonical은 오늘처럼 `/`다(`HOME_FEED_AUTHOR`).~~ <!-- SUPERSEDED 2026-10-14 -->
+- `/@u/posts`의 canonical은 자기 자신이다. `/`는 all posts다 (#81).
 - 메뉴(`hooks/useNavLinks.hook.ts`): "My blog" → `/@u/posts`. 새 "Projects" → `/@${HOME_FEED_AUTHOR}/projects`, 로그인 불필요.
+- rev3 메뉴: Home만 `/`다. Projects는 Home 바로 다음이다 (#80).
+- Projects, About, Resume = `/@<HOME_FEED_AUTHOR>/…`. Saved, My blog = `/@<viewer>/…` (#80).
+- `HOME_FEED_AUTHOR`는 이 세 메뉴의 소유자 handle로만 남는다 (#81).
 
 ### 5.3 P2: about, resume, saved, logs를 사용자 아래로
 
-| 새 URL | 오늘 | 내용의 주인 | 옛 URL 처리 |
-| --- | --- | --- | --- |
-| `/@u/about` | `/about` | owner 한 명 (코드에 박힌 내용, `app/MainPage.tsx`) | `/about` → 308 `/@<owner>/about` |
-| `/@u/resume` | `/resume` | owner 한 명 (코드에 박힌 내용) | `/resume` → 308 `/@<owner>/resume` |
-| `/@u/saved` | `/me/saved` | 보는 사람 본인 (viewer별) | `/me/saved` → 307 `/@<viewer>/saved` |
-| `/@u/logs` | `/log/@u` | 작성자 u | 308 |
-| `/@u/logs/<logId>` | `/log/@u/<logId>` | 작성자 u | 308 |
+rev3: about, resume, saved는 P1으로 당겼다 (#80). logs만 P2다 (#113). `/@u/me`는 #89가 더했다.
+
+| 새 URL | 오늘 | 내용의 주인 | 옛 URL 처리 | 단계 |
+| --- | --- | --- | --- | --- |
+| `/@u/about` | `/about` | owner 한 명 (코드에 박힌 내용, `app/MainPage.tsx`) | `/about` → 308 `/@<owner>/about` | P1 (#80) |
+| `/@u/resume` | `/resume` | owner 한 명 (코드에 박힌 내용) | `/resume` → 308 `/@<owner>/resume` | P1 (#80) |
+| `/@u/saved` | `/me/saved` | 보는 사람 본인 (viewer별) | ~~`/me/saved` → 307 `/@<viewer>/saved`~~ 옛 route 없앰, 404 (#89) | P1 (#80) |
+| `/@u/me` | `/me` | 보는 사람 본인 | 옛 route 없앰, 404 (#89) | P1 (#89) |
+| `/@u/logs` | `/log/@u` | 작성자 u | ~~308~~ 옛 URL 404, 308 없음 (#113 Update) | P2 (#113) |
+| `/@u/logs/<logId>` | `/log/@u/<logId>` | 작성자 u | ~~308~~ 옛 URL 404, 308 없음 (#113 Update) | P2 (#113). 존재 검사 (#115) |
+| 없음 | `/log` (전체 로그 피드) | 모든 작성자 | 없앰, 404 (#113 Update 2) | P2 (#113) |
 
 #### about, resume: 두 안
 
@@ -402,10 +447,19 @@ projects/[project]/page.tsx (server)            글 목록
 
 - 최소 안에서 `/about`, `/resume`은 308로 보낸다. URL을 하나로 둔다. 둘 다 두면 canonical만 남고 메뉴가 둘로 갈린다.
 - 308 대상은 빌드 때 정해진다. `HOME_FEED_AUTHOR`는 `NEXT_PUBLIC_` env라서 `next.config.ts`가 읽을 수 있다. 빈 값이면 redirect를 만들지 않고 옛 페이지를 둔다.
+- rev3: 이 308은 `next.config.ts`가 아니라 `utils/legacyRedirect.ts`에 있다 (#113). owner가 빈 값이면 통과시킨다.
 - 메뉴 About, Resume href = `/@${HOME_FEED_AUTHOR}/about`, `/resume`.
 - 전체 안은 카테고리 title `about`을 쓴다. 예약 slug `about`과 겹치지 않는다(카테고리 title은 URL 칸이 아니다).
 
 #### saved: 본인만 본다
+
+rev3 (#89): 아래 흐름 그림과 몇 줄은 낡았다. 지금 동작은 이렇다.
+
+- `/@u/me`, `/@u/saved`는 로그인한 본인만 연다. 그 밖은 HTTP 404다.
+- sign-in redirect는 없다. 서버 `OwnerOnly`가 판정한다 (`00.tasks.md` PJ-1-32).
+- 옛 `/me`, `/me/saved` route는 없앴다. 둘 다 404다.
+- `/@*/me`도 `/@*/saved`처럼 Cloudflare HTML 캐시 bypass여야 한다 (#89, PJ-1-33 대기).
+- robots disallow에 `/@*/me`를 더했다 (PJ-1-32 AC3).
 
 ```
 요청 /@u/saved
@@ -419,11 +473,13 @@ projects/[project]/page.tsx (server)            글 목록
 ```
 
 - 데이터는 보는 사람 본인의 것이다. 그래서 본래 dynamic이다. auth 읽기는 잎(client gate)에만 둔다.
-- 다른 사용자는 404 화면을 본다. HTTP 상태는 200일 수 있다. `robots: noindex`를 붙여서 색인되지 않게 한다.
-- 정확한 404 상태가 필요하면 대안: 서버 page 맨 위에서 `auth()`로 비교하고 `notFound()`. 그러면 route가 dynamic이다. 본래 dynamic이라 손해는 작다. Q14.
+- ~~다른 사용자는 404 화면을 본다. HTTP 상태는 200일 수 있다. `robots: noindex`를 붙여서 색인되지 않게 한다.~~ <!-- SUPERSEDED 2026-10-14: #89 HTTP 404 -->
+- ~~정확한 404 상태가 필요하면 대안: 서버 page 맨 위에서 `auth()`로 비교하고 `notFound()`. 그러면 route가 dynamic이다. 본래 dynamic이라 손해는 작다. Q14.~~ <!-- SUPERSEDED 2026-10-14: #89 HTTP 404 -->
+- rev3: 다른 사용자와 익명은 HTTP 404를 받는다 (#89).
 - Cloudflare: `/@*/saved`는 언제나 BYPASS여야 한다. 로그인 쿠키 기준 BYPASS가 이미 있어도 path 규칙을 하나 더 둔다.
 - `robots.ts`에 `/@*/saved` disallow를 더한다.
-- `/me/saved`는 viewer마다 대상이 달라서 `next.config` redirect로 못 한다. 페이지 stub에서 `redirect()`(307)로 보낸다.
+- ~~`/me/saved`는 viewer마다 대상이 달라서 `next.config` redirect로 못 한다. 페이지 stub에서 `redirect()`(307)로 보낸다.~~ <!-- SUPERSEDED 2026-10-14: #89 옛 route 없앰, 404 -->
+- rev3: 옛 `/me/saved`는 404다. stub과 307은 없다 (#89).
 - 메뉴 Saved href = `/@${viewer}/saved`. 사용자 이름이 없으면 오늘 "My blog"처럼 숨긴다.
 
 #### logs
@@ -432,14 +488,23 @@ projects/[project]/page.tsx (server)            글 목록
 - `[logId]`는 BIGINT 문자열이다. 그대로 넘긴다. `Number()` 금지.
 - `[logId]/page.tsx`의 canonical redirect(작성자 이름이 다르면 옮김, 36–40행)는 새 URL을 만든다.
 - 링크 만드는 곳(`toUsernameSegment`, `components/log/*`)은 `utils/routes.ts`의 `logsPath`, `logPath`로 모은다.
-- `/log` (전체 로그 피드)는 그대로 둔다. `/blog`와 같은 이유다.
+- ~~`/log` (전체 로그 피드)는 그대로 둔다. `/blog`와 같은 이유다.~~ <!-- SUPERSEDED 2026-10-14: 옛 URL /blog 308 (#81), /log 404 (#113 Update 2) -->
+- rev3: `/log`, `/log/…`는 proxy 404다. 로그 화면은 `/@u/logs`만 남는다 (#113 Update 2).
+- rev3: 옛 `/log/@u…`에는 308이 없다. 404다 (#113 Update).
+- rev3: 308은 `next.config.ts`가 아니라 `proxy.ts`의 `utils/legacyRedirect.ts`에 둔다 (#113).
+- rev3: `/@u/logs/<logId>`는 proxy 존재 검사를 받는다. gate 종류는 `log`다 (#115).
+- 사용자와 logId가 있는지 Express에 묻는다. 없으면 404로 rewrite한다 (#115).
+- 숫자가 아닌 logId는 Express 호출 없이 404다. 그 밖 오류는 통과(fail-open)다 (#115).
 
 #### 왜 P2인가
+
+rev3: #80이 about, resume, saved를 P1으로 당겼다. 아래 이유는 rev2 기록으로 남긴다. 지금 P2는 logs뿐이다 (#113).
 
 - P1은 오너가 정한 묶음이다(projects + posts + 상세 + redirect + 예약).
 - about, resume, saved, logs는 projects 화면과 데이터가 섞이지 않는다. 같은 `[handle]` 골격과 redirect 방식만 다시 쓴다.
 - saved는 인증과 Cloudflare BYPASS 규칙이 새로 필요하다. P1에 넣으면 P1 gate의 검사 범위가 커진다.
 - 예약 이름 6개는 P1에서 막는다. 그래서 P2를 미뤄도 slug 충돌이 생기지 않는다.
+- rev3: 예약 이름은 `me`를 더해 7개다 (#89).
 
 ## 6. 모바일 (< lg)
 
@@ -460,7 +525,7 @@ projects/[project]/page.tsx (server)            글 목록
 | 새 `Link` | 전부 `prefetch={false}` (#70과 같음) |
 | tree 이동 | `router.push`. prefetch 없음 |
 | 308 응답 | 쿠키 없음. Cloudflare가 저장한다 |
-| Cloudflare 규칙 | `/@*` 경로가 Phase TC HTML 캐시 규칙과 표본에 들어가야 한다. 오늘 규칙이 `/blog/*`를 이름으로 잡으면 고친다(§11 Q6) |
+| Cloudflare 규칙 | `/@*` 경로가 Phase TC HTML 캐시 규칙과 표본에 들어가야 한다. 오늘 규칙이 옛 URL `/blog/*`를 이름으로 잡으면 고친다(§11 Q6) |
 
 ### 7.2 velog 글이 말하는 규칙
 
@@ -477,9 +542,11 @@ projects/[project]/page.tsx (server)            글 목록
 | `components/shell/BlogShell.server.tsx` 44행 | `cookies()` `railCollapsed` | shell을 쓰는 모든 route |
 | `components/rail/LeftRailContainer.server.tsx` 15행 | `cookies()` | 같음 |
 | `app/about/layout.tsx` 21행 | `cookies()` | `/about` |
-| `app/blog/[username]/[slug]/page.tsx` 42, 94행 | `auth()` (metadata, JSON-LD) | 상세 |
+| `app/blog/[username]/[slug]/page.tsx` 42, 94행 (옛 URL 폴더, rev2 당시) | `auth()` (metadata, JSON-LD) | 상세 |
 | `components/blog/PostContentCard.server.tsx` 30행 | `auth()` | 상세. 이미 Suspense 안 |
-| `app/blog/[username]/page.tsx` 1행 | `force-dynamic` | `cacheComponents`와 함께 쓸 수 없다 |
+| `app/blog/[username]/page.tsx` 1행 (옛 URL 폴더, rev2 당시) | `force-dynamic` | `cacheComponents`와 함께 쓸 수 없다 |
+
+- rev3: 이 표는 rev2(2026-10-13) 당시 상태다. 옛 URL 폴더 `app/blog/`는 이제 없다. 상세는 `app/(shell)/[handle]/[slug]/`다.
 | `next.config.ts` | `cacheComponents`, `staleTimes` 없음 | 기본값 |
 
 결론: 오늘 모든 route가 dynamic이다. P1의 새 route도 shell 때문에 dynamic이다.
@@ -544,7 +611,7 @@ projects/[project]/page.tsx (server)            글 목록
 | U3 | 예약 slug 검사: Express 생성과 수정 | MVP1 | S | U1 |
 | U4 | 예약 slug 검사: blog_agent repository + `publish_oneshot` + Py 사본 | MVP1 | S | U1 |
 | U5 | `app/[handle]` 골격: handle 검사, `/@u` 308, `posts/`로 이동, `[slug]/`로 이동(OG 포함) | MVP1 | M | 없음 |
-| U6 | `next.config.ts` redirect 3줄 + `%40`, 무`@` 확인. 필요하면 stub 대안 | MVP1 | S | U5 |
+| U6 | ~~`next.config.ts` redirect 3줄 + `%40`, 무`@` 확인. 필요하면 stub 대안~~ 옛 URL 308: `proxy.ts` + `utils/legacyRedirect.ts` (#113) | MVP1 | S | U5 |
 | U7 | `utils/routes.ts` + 메뉴(My blog, Projects) + i18n `nav.projects` (en, ko) | MVP1 | S | U5. 아이콘 1줄은 #70 뒤 |
 | U8 | mock fixture + `getProjects`, `getProjectPosts` + env 전환 | MVP1 | S | U1 |
 | U9 | `utils/projects-tree.ts` + `getProjectsTree` + `ProjectsTree*` + `ProjectsRail` | MVP1 | M | U1 |
@@ -558,12 +625,14 @@ projects/[project]/page.tsx (server)            글 목록
 
 나중 phase (P1 밖):
 
-| # | P2 단위 (§5.3) | 크기 |
-| --- | --- | --- |
-| P2-1 | `/@u/about`, `/@u/resume` 최소 안: 이동 + owner만 렌더 + 308 + 메뉴 | S |
-| P2-2 | `/@u/saved`: matcher, `SavedOwnerGate`, `/me/saved` 307 stub, robots, Cloudflare BYPASS | M |
-| P2-3 | `/@u/logs`, `/@u/logs/<logId>`: 이동 + 308 + 링크 builder | M |
-| P2-4 | about, resume 전체 안 (사용자별) | M. 오너가 고를 때만 |
+rev3: P2-1, P2-2는 P1으로 당겼다 (#80). P2-2는 #89가 바꿨다. P2에는 P2-3만 남았다 (#113).
+
+| # | P2 단위 (§5.3) | 크기 | 단계 (rev3) |
+| --- | --- | --- | --- |
+| P2-1 | `/@u/about`, `/@u/resume` 최소 안: 이동 + owner만 렌더 + 308 + 메뉴 | S | P1 (#80) |
+| P2-2 | `/@u/saved`: ~~matcher, `SavedOwnerGate`, `/me/saved` 307 stub,~~ `OwnerOnly` 404, `/@u/me` 추가, 옛 `/me` 없앰 (#89), robots, Cloudflare BYPASS | M | P1 (#80, #89) |
+| P2-3 | `/@u/logs`, `/@u/logs/<logId>`: 이동 + ~~308~~ 옛 URL 404 (#113 Update) + `/log` 없앰 (#113 Update 2) + 링크 builder + logId 존재 검사 (#115) | M | P2 (#113) |
+| P2-4 | about, resume 전체 안 (사용자별) | M. 오너가 고를 때만 | 나중 |
 
 | phase | 내용 |
 | --- | --- |
@@ -581,7 +650,7 @@ projects/[project]/page.tsx (server)            글 목록
 | Cloudflare에 옛 HTML 24시간 | 옛 URL이 redirect 대신 옛 페이지를 낸다 | 배포 뒤 purge |
 | Google 색인 | 순위가 잠시 흔들린다 | 308 + sitemap 새 URL + canonical 새 URL |
 | `[handle]`이 모든 최상위 오타를 받는다 | 404 처리 경로가 하나 는다 | `@` 검사 → `notFound()` |
-| slug 전역 조회 | `/@a/<b의 slug>`가 b의 글을 연다. 오늘 `/blog`도 같다 | 후속 행. canonical은 글 작성자 기준으로 만든다 |
+| slug 전역 조회 | `/@a/<b의 slug>`가 b의 글을 연다. 옛 URL `/blog`도 같았다 | 후속 행. canonical은 글 작성자 기준으로 만든다 |
 | tree path는 `LPAD(…, 6)` | priority가 음수거나 7자리면 tree 순서와 목록 순서가 다르다 | 목록은 숫자 정렬. 기록만 한다 |
 | 프로젝트 이름 = 카테고리 title | title을 바꾸면 URL이 깨진다 | slug 열은 스키마 변경이라 넣지 않는다. Q2 |
 | `nexjts.md` 규칙 파일 없음 | 클라이언트 폴더 규칙(`mocks/`)을 확인하지 못했다 | 루트 `CLAUDE.md`가 없는 파일을 인용한다. 오너에게 보고 |
@@ -595,13 +664,13 @@ projects/[project]/page.tsx (server)            글 목록
 | Q3 | `projects` 카테고리가 루트인가, 루트의 자식인가 | SQL이 title로 찾는다. 둘 다 동작한다 |
 | Q4 | 프로젝트 아래 하위 카테고리 글을 셀까 | 센다. tree의 postCount와 같다 |
 | Q5 | 보이는 글 0개 프로젝트의 카드 | 보인다. overview는 빈 자리 |
-| Q6 | Cloudflare 캐시 규칙이 `/blog/*`를 이름으로 잡는가 | Phase TC 담당이 확인. 잡으면 `/@*` 추가 |
+| Q6 | Cloudflare 캐시 규칙이 옛 URL `/blog/*`를 이름으로 잡는가 | Phase TC 담당이 확인. 잡으면 `/@*` 추가 |
 | Q7 | 페이지 나누기 기준 | 프로젝트당 글 50개를 넘으면 다시 설계 |
-| Q8 | 예약 목록에 `series`, `tags`도 넣을까 | 지금은 6개. 정적 폴더를 만들 때 넣는다 |
+| Q8 | 예약 목록에 `series`, `tags`도 넣을까 | ~~지금은 6개.~~ 지금은 7개 (`me` 추가, #89). 정적 폴더를 만들 때 넣는다 |
 | Q9 | `HOME_FEED_AUTHOR`가 빈 값이면 "Projects" 메뉴 | 숨긴다 |
 | Q10 | 다른 사용자로 로그인해도 "Projects"가 owner 프로젝트로 가는가 | 그렇다. 공개 메뉴, 단일 작성자 모드 |
 | Q11 | 비공개 글 metadata를 작성자에게 일반값으로 보여도 되는가 | 된다. `cacheComponents` 준비 때문 |
 | Q12 | about, resume는 최소 안(owner만)인가 전체 안(사용자별)인가 | 최소 안. 전체 안은 P2-4 |
-| Q13 | `@` 없는 옛 URL(`/blog/taek`, `/log/taek`)도 받을까 | 받는다. U6 stub 대안 |
-| Q14 | 다른 사람의 `/@u/saved`는 HTTP 404 상태여야 하는가 | 아니다. 404 화면 + noindex. 상태가 꼭 필요하면 서버 비교안 |
-| Q15 | `/about`, `/resume`을 308로 보낼까, 두 URL을 둘까 | 308. URL 하나 |
+| Q13 | `@` 없는 옛 URL(`/blog/taek`, `/log/taek`)도 받을까 | ~~받는다. U6 stub 대안~~ 옛 URL `/blog/taek`는 `legacyRedirect.ts`가 308로 받는다. `/log/…`는 404다 (#113 Update 2) |
+| Q14 | 다른 사람의 `/@u/saved`는 HTTP 404 상태여야 하는가 | ~~아니다. 404 화면 + noindex. 상태가 꼭 필요하면 서버 비교안~~ 닫힘: HTTP 404다 (#89) |
+| Q15 | `/about`, `/resume`을 308로 보낼까, 두 URL을 둘까 | 308. URL 하나. 닫힘 (#80) |
