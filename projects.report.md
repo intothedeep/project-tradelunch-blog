@@ -554,7 +554,7 @@ gate 검토 Cycle 2/2의 판정은 PASS다. M1, M2, M3 exit가 모두 닫혔다 
 
 ### 요약
 
-운영 주소 23개를 한 번 쟀다. 12개는 200, 9개는 404, 2개는 308이었다. `/@taeklim/about`, `/@taeklim/resume`, `/@taeklim/logs`는 200이다. `/log`, `/log/@taeklim`은 404다. 옛 `/about`, `/resume`은 308이다. sitemap에는 `/@taeklim/(about|resume)` 줄이 2개 있고, 옛 `/(about|resume)` 줄은 원본에 없다. `traffic-check` 결과와 모바일 메뉴 확인은 저장된 기록이 없다.
+운영 주소 23개를 한 번 쟀다. 12개는 200, 9개는 404, 2개는 308이었다. `/@taeklim/about`, `/@taeklim/resume`, `/@taeklim/logs`는 200이다. `/log`, `/log/@taeklim`은 404다. 옛 `/about`, `/resume`은 308이다. sitemap에는 `/@taeklim/(about|resume)` 줄이 2개 있고, 옛 `/(about|resume)` 줄은 원본에 없다. `traffic-check`는 0 FAIL이었다 (13개 항목 PASS). 모바일 메뉴 확인은 저장된 기록이 없다.
 
 | 단계 | 상태 | 한 줄 결과 |
 | --- | --- | --- |
@@ -564,7 +564,7 @@ gate 검토 Cycle 2/2의 판정은 PASS다. M1, M2, M3 exit가 모두 닫혔다 
 | 4. 모바일 메뉴 = 데스크톱 rail | 기록 없음 | 측정 파일 없음 |
 | 5. sitemap | ran | `/@taeklim/(about\|resume)` 2개 |
 | 6. 같은 배포의 500, favicon 고침 | ran | `/api/x`, `/tags`, `/favicon/x` 404. `/favicon.ico`, `/icon.png` 200 |
-| 7. traffic-check | 기록 없음 | 이 배포 뒤 결과 파일 없음 |
+| 7. traffic-check | ran | 0 FAIL, exit=0 (web `8eac7d8`) |
 
 ### 주소 흐름 (ASCII 그림 1장)
 
@@ -671,10 +671,11 @@ sitemap: /@taeklim/about, /@taeklim/resume
 
 - What: 점검 스크립트 결과를 본다.
 - Why: PJ-2-05 AC, PJ-2-06 AC3.
-- Input data: 없음.
-- Output data: 없음.
-- Result: 기록 없음. 이 배포 뒤 `_scripts/cloudflare/traffic-check.sh` 결과 파일이 없다. 미실행인지 실행했으나 미저장인지 원본으로 가릴 수 없다. `01.status.md`는 "오류 로그 새 줄 0"만 적었다.
-- Status: 기록 없음.
+- Input data: `_scripts/cloudflare/traffic-check.sh` 1회 (web `8eac7d8`, 2026-10-14T19:32Z). 원본 `deploy/projects/p2-traffic-check-2026-10-14.txt`.
+- Output data: 항목 PASS 줄 13개, 마지막 줄 `== 0 FAIL`, `exit=0`.
+- Result: web 9개 PASS (/, /robots.txt, /sitemap.xml HIT. __session 쿠키, /me, rsc 헤더 DYNAMIC. HTML set-cookie 0), api 4개 PASS. 0 FAIL.
+- 좋은 점: FAIL 없음. 나쁜 점: 없음.
+- Status: ran.
 
 ### 상태 코드 합계 (원본 23줄)
 
@@ -692,9 +693,8 @@ sitemap: /@taeklim/about, /@taeklim/resume
 - 단계 3: `/@u/logs/<logId>` 상태.
 - 단계 4: 모바일 메뉴 확인 전부.
 - 단계 5: sitemap 전체 줄 수, `/@taeklim/logs` 줄.
-- 단계 7: `traffic-check.sh` 결과 (0 FAIL 또는 FAIL 목록, 미실행 사유).
 - GitHub standalone 점검의 P2 배포 결과. `01.status.md`의 standalone 결과(run 38551425110)는 `cc-u4` 가지의 배포 전 점검이고 P2 `1c035f2`의 값이 아니다.
 
 ### 판정
 
-판정하지 않는다. 원본에 값이 있는 항목(주소 23개, sitemap 2줄)은 기대와 같다. 단계 4와 7은 기록이 없어 PJ-2-06 AC3이 닫히지 않았다. P2 gate는 reviewer가 한다.
+판정하지 않는다. 원본에 값이 있는 항목(주소 23개, sitemap 2줄, traffic-check)은 기대와 같다. 단계 4(모바일 메뉴)는 기록이 없다. PJ-2-06 AC3(traffic-check 한 줄)은 단계 7로 채워졌다. P2 gate는 reviewer가 한다.

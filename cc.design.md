@@ -435,6 +435,7 @@ U0a 계측 ─► U0b 기준선 ─► QW1 빠른 수정 ─► QW2 rail 폭 hot
 - 계약 변경이 필요하면(예: 새 tag 이름, 새 route) 그 단위는 MVP1로 돌아간다.
 
 ### 7.2 캐시 지도 (cache map, MVP1 계약)
+> **대체됨 (#111, 2026-10-14):** U5를 뺐다. `'use cache'` 열과 아래 token 줄은 무효다. 앱 코드의 `'use cache'`는 0건이다. 나머지 열(static shell, Suspense 잎)은 운영 U4의 모양 그대로다.
 
 | route | static shell에 드는 것 | `'use cache'` (U5, tag, life) | 요청마다 (Suspense 잎) |
 | --- | --- | --- | --- |
@@ -492,6 +493,7 @@ U0a 계측 ─► U0b 기준선 ─► QW1 빠른 수정 ─► QW2 rail 폭 hot
 - 어림(검증 전): 메뉴 6개 × segment 2–4 = 첫 화면 12–24 요청. 50 / 10 s 아래지만 W3 스크롤과 겹치면 가깝다. 그래서 G-a 선을 30으로 둔다.
 
 ### 8.3 무효화 순서
+> **대체됨 (#109, 2026-10-14):** U6를 뺐다. `/api/revalidate` 끝점(endpoint)은 main에 없다. 수정 반영은 엣지 1일 지연을 받아들인다. 급하면 오너가 Cloudflare purge를 손으로 한다. 아래 순서와 계약은 기록으로만 남긴다. 옛 handler는 branch `cc-u5`에만 있다.
 
 ```
 글 발행/수정 ──► Express/blog_agent DB 쓰기
@@ -1100,6 +1102,7 @@ Q4. U5와의 분리:
 1. **오너 질문.** 로그인 상태의 RSC 이동으로 모르는 page에 가면 잎이 not-found 화면을 낸다. RSC 응답 status는 200이다. 응답은 `DYNAMIC`이라 엣지에 저장되지 않는다. crawler는 이 길을 타지 않는다. 문서 load는 404다. 오너가 고른다: (a) 받아들인다 (기본안), (b) 로그인 RSC 이동도 검사한다. (b)는 글 이동(s5)마다 Express 호출 1회가 는다. G-CC에 직접 걸린다.
    - #103 (2026-10-14): 오너가 (b)를 골랐다. 로그인 RSC 이동도 검사한다. branch `cc-u4`에서 `shouldCheck` 건너뛰기를 지웠다. 비용: gate 경로 이동마다 Express 호출 1회.
 2. 점이 든 경로(`/@u/x.png`)는 proxy matcher 밖이다. 잎 gate가 soft 404를 낸다. 9번 결과가 200이면 다음 단위에서 matcher 또는 layout의 동기 검사로 막는다. slug에 점이 없는지 먼저 확인한다.
+   - 정정 (2026-10-14): A2가 이 예외를 닫았다. 점 경로는 이제 proxy가 404를 정한다 (18.9 `isDottedPath`).
 3. fail-open: API 시간 초과나 5xx면 proxy가 통과시킨다. 그 요청이 모르는 page면 soft 404가 엣지에 1일 남을 수 있다. 드물다. 잘못된 404보다 낫다.
 4. 글 slug 조회는 handle을 보지 않는다 (`posts.detail.ts` 140행, `username` 질의 없음). 오늘 동작과 같다. 이 단위에서 바꾸지 않는다.
 
@@ -1117,6 +1120,81 @@ Q4. U5와의 분리:
 | `decisions.plan.md` | 새 행 먼저: U4 404 gate = P안. Rejected = S (오너 #89), L (빌드 API 도달 미증명, U5 범위 침범), Q2 안 (익명 soft 404). Supersedes = D9 "sample로 푼다", CC-U3의 D8 이월 |
 | `00.tasks.md` CC-U4 | 범위에 proxy gate 추가. AC7에 18.5 2, 3, 6, 7번 추가. 새 AC: 18.5 8번 고의 파손, 10번 기록만. 18.6 1번을 오너에게 알린 줄이 `01.status.md`에 있다 |
 | `00.tasks.md` CC-U5 | 변경 없음. 18.3 L안 다시 여는 조건만 메모 |
+
+### 18.9 코드에 있는 404 가드 (A2, 경로 모양(route shape), 2026-10-14 보충)
+
+- 무엇을 알려고 쓰나: 운영 proxy가 어떤 순서로 404를 정하는지 적는다.
+- 출처: 코드 (`apps/dashboard_client_web/` 아래), 결정 #103, #106, #108, #113, #114.
+- 이 절이 앞 절의 세 문장을 대체한다. 18.1 그림의 "로그인: 문서만 검사", 18.4 5번의 `shouldCheck`, 18.6 2번이다.
+
+```
+proxy(req)                                        proxy.ts
+ ├─ GET/HEAD: legacyRedirectPath → 308 (Clerk 전, 엣지 저장 가능)
+ ├─ GET/HEAD: isDottedPath ?
+ │     ├─ SERVED_FILES에 있음 → NextResponse.next() (Clerk 없음, cookie 없음)
+ │     └─ 없음                → rewrite NOT_FOUND_PATH = 404
+ └─ clerk(req)
+       ├─ 요청 로그 한 줄
+       ├─ GET/HEAD: isUnknownPath(pathname, isOwnerHandle) → rewrite 404
+       ├─ gateNotFound: classifyGatePath → checkExists → missing면 rewrite 404
+       └─ isProtectedRoute → auth.protect()
+```
+
+| 가드 | 코드 파일 | 하는 일 |
+| --- | --- | --- |
+| `isUnknownPath` | `utils/notFoundGate.ts` | 순수 함수. 첫 segment가 `@`가 아니면 `hasRoute`가 거짓일 때 404다. `@handle` + 두 단계 + `about` 또는 `resume` + 오너 아님도 404다. decode 실패와 `/`는 통과한다 |
+| `TOP_LEVEL_ROUTE_SHAPES` | `utils/knownTopLevelSegments.ts` | segment마다 깊이 범위와 둘째 segment 목록. 표 아래 참조 |
+| `isDottedPath` | `utils/notFoundGate.ts` | 마지막 segment에 점이 있으면 참 (`/\.[^/]*$/`). 판정은 `proxy()`가 Clerk 전에 한다 |
+| `PUBLIC_PATHS` | `utils/publicPaths.generated.ts` (생성: `scripts/gen-public-paths.mjs`) | `public/` 아래 파일 경로 목록. 손으로 고치지 않는다 |
+| `SERVED_FILES` | `proxy.ts` | `PUBLIC_PATHS` + `/robots.txt`, `/sitemap.xml`, `/favicon.ico`, `/icon.png`. 뒤 두 개는 `app/` metadata route라 `public/`에 없다. 그래서 손으로 넣었다 |
+| `KNOWN_TOP_LEVEL_SEGMENTS` | `utils/knownTopLevelSegments.ts` (검사: `_scripts/cc/check-known-top-level.mjs`) | `app/` 아래 정적(static) 첫 segment 목록. import가 없어 plain node가 읽는다 |
+| 로그인 RSC 검사 (#103) | `proxy.ts` `gateNotFound` | gate 경로의 GET, HEAD는 `rsc` 헤더와 관계없이 검사한다. `isRsc`는 로그 줄에만 쓴다 |
+| 로그인 prefetch 건너뜀 (#106) | `proxy.ts` `gateNotFound` | `signedIn`이고 `next-router-prefetch` 헤더가 있으면 검사하지 않는다. 클릭 이동은 검사한다. 익명 prefetch도 검사한다 (엣지 저장 가능) |
+| token 없음 | `proxy.ts` `gateNotFound` | 로그인인데 token이 없으면 `unknown`이다. 통과시킨다 (fail-open) |
+
+`TOP_LEVEL_ROUTE_SHAPES` 값 (깊이는 전체 경로 segment 수):
+
+| segment | 깊이 | 둘째 segment |
+| --- | --- | --- |
+| `admin` | 2 | `posts`만 |
+| `api` | 2 | `log-error`만 |
+| `onboarding` | 1 | 없음 |
+| `sign-in`, `sign-up` | 1 이상 (Clerk catch-all) | 제한 없음 |
+| `tags` | 2 | 제한 없음 |
+| `write` | 1–2 | 제한 없음 |
+
+- 이 표가 운영 500 세 개를 404로 고쳤다 (#113 Update 3, `1c035f2`).
+- `/api/x`: 둘째 segment가 `log-error`가 아니다.
+- `/tags`: 깊이 1이 최소 2보다 작다.
+- `/favicon/x`: 점이 없고 표에 없다. `isUnknownPath`가 404를 낸다.
+- 이유: 표 밖 경로는 `(shell)/[handle]`로 떨어진다. cacheComponents 아래 ISR `notFound()`가 500을 낸다 (#102).
+
+`/log` 제거 (#113 Update 2):
+
+- `log`는 `KNOWN_TOP_LEVEL_SEGMENTS`에 없다. 그래서 `/log`, `/log/…`는 모두 proxy 404다.
+- `legacyRedirect.ts`에 `/log` 308이 없다. 옛 `/log/@u…`도 404다.
+- 로그 화면은 `/@u/logs`만 남는다. `logs`는 `RESERVED_HANDLE_SEGMENTS`(`packages/types/src/routes.ts`)와 `USER_SEGMENTS`에 있다. 그래서 user gate가 검사한다.
+
+검사가 도는 곳:
+
+| 검사 | 언제 | 실패하면 |
+| --- | --- | --- |
+| `node scripts/gen-public-paths.mjs` (쓰기) | `build:dev`, `build:prod` 앞 (`package.json`) | 없음. 빌드마다 목록을 새로 쓴다 |
+| `gen-public-paths.mjs --check` | `.github/workflows/cc-standalone-check.yml` | exit 1. 목록이 낡았다 |
+| `check-known-top-level.mjs` | 같은 workflow | exit 1. 목록과 `app/` 폴더가 다르다 |
+
+- `check-known-top-level.mjs`는 route group `(…)` 안을 본다. `[`, `_`, `@`로 시작하는 폴더는 건너뛴다. 아래에 `page` 또는 `route` 파일이 있는 폴더만 센다.
+- 주의: workflow 트리거는 branch `cc-u4` push와 `workflow_dispatch`뿐이다. `knownTopLevelSegments.ts` 주석의 "every CI run"은 main에서는 맞지 않다. 새 첫 segment route를 더하면 손으로 workflow를 돌린다.
+
+`unstable_rethrow` 규칙 (#108 (2) `181e6ed`, #113 Update 3 R2 `8eac7d8`):
+
+- 모든 서버 `catch`의 첫 문장은 `unstable_rethrow(error)`다 (`next/navigation`).
+- 대상: fetcher(`apis/*.api.ts`), 잎 component, page, metadata, OG, JSON-LD. 2026-10-14에 코드 파일 17개가 쓴다.
+- 이유: 새 param 경로에서 Next가 요청 때 static shell을 prerender한다(runtime prerender).
+- shell이 끝나면 Next가 uncached fetch를 reject한다. 이것은 Next 내부 신호다.
+- 그 신호를 `catch`가 기록하면 거짓 ERROR가 된다. 배포 뒤 8줄이었다 (`deploy/traffic/review/cc/u4o-prerender-errors.md`).
+- `notFound()`와 redirect 신호도 같은 함수가 다시 던진다. 그래서 `catch`가 그 신호를 삼키지 않는다.
+- 버린 안: ERROR를 WARNING으로 낮춘다 (진짜 내부 오류도 삼킨다, #108).
 
 ## 19. 흔들림 아래 U4 측정 (U4 measurement under drift, rev2.3, 2026-10-14)
 

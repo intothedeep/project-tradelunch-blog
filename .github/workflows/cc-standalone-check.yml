@@ -6,8 +6,13 @@ name: CC standalone check
 # so only this standalone run represents prod. No deploy, no VM, no local run.
 on:
   workflow_dispatch:
+  # main too (final review, CC-D1): the path table and the top-level/public-path
+  # checks must run on every web change that can reach prod.
   push:
-    branches: [cc-u4]
+    branches: [main]
+    paths:
+      - 'apps/dashboard_client_web/**'
+      - '.github/workflows/cc-standalone-check.yml'
 jobs:
   check:
     runs-on: ubuntu-latest

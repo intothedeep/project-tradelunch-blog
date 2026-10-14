@@ -1,0 +1,18 @@
+# traffic-check.sh, web 8eac7d8, 2026-10-14T19:32Z
+== web (https://my.prettylog.com)
+PASS  GET / (HIT in 4)                   HIT
+PASS  GET /robots.txt (HIT in 4)         HIT
+PASS  GET /sitemap.xml (HIT in 4)        HIT
+PASS  __session cookie                   DYNAMIC
+PASS  /me (protected)                    DYNAMIC
+PASS  rsc header, no _rsc=               DYNAMIC
+PASS  ?_rsc= content-type                text/x-component
+PASS  HTML browser cache-control         private, no-cache, no-store, max-age=0, must-revalidate
+PASS  HTML set-cookie count              0
+== api (https://blog-api.prettylog.com)
+PASS  GET posts?limit=1 (HIT in 4)       HIT
+PASS  Authorization header               DYNAMIC
+PASS  /ping (no Cache-Control)           BYPASS
+PASS  CORS my. origin echoed             https://my.prettylog.com
+== 0 FAIL
+exit=0

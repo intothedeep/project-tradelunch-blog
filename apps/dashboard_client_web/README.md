@@ -88,7 +88,6 @@ Design and metrics: [`cc.design.md`](../../cc.design.md) §5 and §14. Stage rep
 | `_scripts/perf/cc-measure.mjs` | your Mac, HTTP only | TTFB and bytes for walks W1 to W4, anonymous and signed in |
 | `_scripts/perf/ssr-fetch-count.mjs` | your Mac, after a `cc-measure` run | Next-server `ssr_fetch` lines per MISS render (QW1 metric) |
 | `.github/workflows/cc-browser-measure.yml` | GitHub runner, headless chromium | `_rsc` count on Back, 10 s request peak, prefetch per link, hydration errors, `[nav]` time |
-| `.github/workflows/cc-build.yml` | GitHub runner | build with `cacheComponents` ON, to list what must change. No deploy |
 
 ```sh
 # HTTP measurement. --unit and --web-sha are required.
@@ -101,9 +100,6 @@ node _scripts/perf/ssr-fetch-count.mjs deploy/traffic/review/cc/runs/<run folder
 # Browser measurement (never on the Mac). Needs repo secret CLERK_SECRET_KEY_PROD.
 gh workflow run cc-browser-measure.yml -f tag=after1 -f unit=U3 -f web_sha=<deployed sha>
 gh run download <run id>      # fetch the artifact
-
-# cacheComponents preview build (runner only)
-gh workflow run cc-build.yml
 ```
 
 - Output folder: `deploy/traffic/review/cc/runs/<time>_<unit>_<tag>_<websha7>/`.
@@ -146,7 +142,7 @@ gh workflow run cc-build.yml
 - Cloudflare rate limit is 70 requests per 10 s (decision #106). Guard G-a: at most 60 in 10 s.
 - Purge is manual. A fix can show an old value for up to 1 day (decision #109).
   If it is urgent, purge the Cloudflare cache by hand.
-- `cc-build.yml` builds with the flag ON inside the runner, to list what must change. It never changes the repo.
+- `cc-build.yml` is retired (2026-10-14, CC-D2). It moved to `.github/x_retired-workflows/cc-build.yml` because `cacheComponents` is now on in `next.config.ts`.
 
 ## How to run from scratch for local dev
 
