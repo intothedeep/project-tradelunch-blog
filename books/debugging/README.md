@@ -1,7 +1,8 @@
 # Debugging casebook
 
-Thirteen real cases from 2026-10-13, each with symptom, cause, fix and evidence.
-Result: 11 fixed, 1 open (chapter 3, the missing thumbnail on the CDN), 1 needed no fix (chapter 13).
+Fourteen real cases from 2026-10-13, each with symptom, cause, fix and evidence.
+Result: 11 fixed, 2 open (chapter 3, the missing thumbnail on the CDN; chapter 14, root cause of the re-publish image bug), 1 needed no fix (chapter 13).
+Chapter 14 holds two cases (14.1 fixed in `753c2c9`; 14.2 fixed by hand for one post) plus a toolkit.
 
 ## What this book is
 
@@ -10,7 +11,7 @@ Purpose: teach the method behind the fixes, using cases from this repo.
 | Part | File |
 | --- | --- |
 | General method | [`00-method.md`](./00-method.md) |
-| Thirteen cases | `01-...md` to `13-...md` |
+| Fourteen cases | `01-...md` to `14-...md` |
 
 Sources are the repo runbooks and code named in each chapter.
 No secret value appears in the book. Key names appear, key values never.
@@ -32,6 +33,7 @@ No secret value appears in the book. Key names appear, key values never.
 | 11 | [`11-wif-auth-token-refresh.md`](./11-wif-auth-token-refresh.md) | setup-gcloud: "problem refreshing your current auth tokens" | STS and IAM Credentials APIs were off | `gcloud services enable ...` | fixed |
 | 12 | [`12-pnpm-exec-next-not-found.md`](./12-pnpm-exec-next-not-found.md) | `ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL` | `next` is not installed at the repo root | `pnpm --filter ... exec` | fixed |
 | 13 | [`13-stale-error-log-etimedout.md`](./13-stale-error-log-etimedout.md) | pm2 error log shows `ETIMEDOUT` after a release | The lines are old (last write 20:57:17 UTC, before the release). Cause of the old timeouts unknown | none needed | no fix needed |
+| 14 | [`14-blog-agent-publish.md`](./14-blog-agent-publish.md) | 14.1 publish fails `[Errno 51]` to an IPv6 address. 14.2 top image broken after a re-publish | 14.1 direct DB host is IPv6-only, no IPv6 route. 14.2 OG webp written into the post folder, then picked as thumbnail | 14.1 pooled `POSTGRES_URL` first + asyncpg cache off (`753c2c9`). 14.2 hand edit; code fix proposed | 14.1 fixed, 14.2 open |
 
 ## How to read a chapter
 
