@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
-import { FolderKanban } from 'lucide-react';
+import { Rocket } from 'lucide-react';
 import { getProjects } from '@/apis/getProjects.api';
 import { ProjectCardGrid } from '@/components/projects/ProjectCardGrid.server';
 import { ProjectsMobileMenu } from '@/components/projects/ProjectsMobileMenu.server';
@@ -32,7 +32,7 @@ export default async function ProjectsPage({ params }: Props) {
             <ProjectsMobileMenu username={username} />
             <header className="border border-primary bg-tone-projects p-4">
                 <h1 className="flex items-center gap-2 font-mono text-xl font-bold text-primary">
-                    <FolderKanban className="h-5 w-5 shrink-0" />{' '}
+                    <Rocket className="h-5 w-5 shrink-0" />{' '}
                     {t('title').toUpperCase()}
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">
