@@ -459,7 +459,7 @@ U0a 계측 ─► U0b 기준선 ─► QW1 빠른 수정 ─► QW2 rail 폭 hot
 | 8 | `/@taeklim/nope` | 기록 (G-e2) |
 | 9–12 | `/blog`, `/blog/@taeklim`, `/about`, `/resume` | 308 + `location` |
 | 13 | `/@taeklim` | 308 → `/@taeklim/posts` |
-| 14 | `/me/saved` (익명) | 로그인으로 redirect |
+| 14 | `/me/saved` (익명) | 404 (#89, 지금 주소 `/@u/saved`) |
 | 15 | `/sitemap.xml` | 200, 글 URL 수 동일 |
 
 ## 8. Cloudflare 엣지 HTML 캐시, #70 prefetch 정책과의 관계
