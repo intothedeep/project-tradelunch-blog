@@ -967,3 +967,152 @@ W2 뒤로 ×3          : stale 무시 → 오늘도 0건, U2 뒤에도 0건 (못
 | `deploy/traffic/review/cc/criteria.md` | U3, U4 행 + §3 2, 3번 (이 dispatch에서 architect가 고쳤다. U3 비교 run 전 정정으로 표시) |
 | `00.tasks.md` CC-U3, CC-U4 | 주 지표 칸, AC의 지표 이름. CC-U3 선행에 "U2 브라우저 3회" 추가 |
 | `cc.plan.md` | G-CC 초안 measure를 "s2–s6 합"으로 |
+
+## 18. U4 real-404 under cacheComponents (2026-10-14)
+
+- 결정: system-architect + pm (오너 위임). U4 다음 커밋 전에 고정한다(write-first).
+- 오너 제약: 모르는 사용자, 프로젝트, 글 page는 진짜 HTTP 404다. 200 soft 404는 안 된다 (오너 2026-10-14, `560f941`, #89).
+- 막힘: `cc-u4`(`1f88209`)는 빌드 실패다. `(rail)` layout이 Suspense 밖에서 uncached `getUserProfile`을 기다린다.
+- `cc-u4-soft404`(`e95b975`)는 빌드 통과다. 그러나 gate가 Suspense 잎이라 200 + noindex다. 오너 제약에 어긋난다.
+- 이 절이 D9의 "sample로 푼다"와 CC-U3의 D8 이월을 대체한다. 이 절은 git 객체를 읽지 않았다. 두 branch 내용은 dispatch 설명을 따른다.
+
+### 18.1 결론
+
+**P안: 존재 검사(existence gate)를 `proxy.ts`로 옮긴다. gate 잎은 남긴다. U4에 `'use cache'`를 더하지 않는다.**
+
+```
+요청 ─► proxy.ts (clerkMiddleware 안, 렌더 전)
+         │ classifyGatePath(pathname) → user | project | post | ownerOnly | 없음
+         │ 익명: 문서와 _rsc 모두 검사        로그인: 문서만 검사 (RSC 이동은 건너뜀)
+         ├─ API 404 ─► rewrite /__nf/__/__/__ (맞는 route 없음) ─► Next 기본 404 + root not-found.tsx
+         └─ 200 / 오류 / 시간 초과 ─► 그대로 통과 ─► static shell ─► Suspense 잎 gate (예비 방어)
+```
+
+- 문서 근거: `02-guides/streaming.md` 670행. proxy는 렌더 전에 돈다. 그래서 status code를 정할 수 있다.
+- 로그인 RSC 이동은 검사하지 않는다. 그래서 G-CC(로그인 s2–s6 `[nav]` 합)에 비용이 들지 않는다.
+
+### 18.2 질문별 답 (근거)
+
+Q1. 캐시된 존재 검사를 layout(Suspense 위)에 둘 수 있나:
+
+| 항목 | 답 | 근거 |
+| --- | --- | --- |
+| 캐시된 읽기는 Suspense 위에 둘 수 있다 | 예. uncached만 빌드 오류다 | `01-getting-started/08-caching.md` 292행. `03-file-conventions/dynamic-routes.md` 198–231행: `await params` 뒤 `'use cache'` `getPost`를 Suspense 없이 쓴다 |
+| 존재 검사 뒤 `notFound()`는 진짜 404 | 예. 첫 byte 전이다 | `02-guides/streaming.md` 608–645행 "The HTTP contract" |
+| `notFound()`를 `'use cache'` 안에서 던져도 되나 | 쓰지 않는다. 캐시 함수는 boolean만 돌려준다. `notFound()`는 layout이 던진다 | 문서에 정의가 없다 (`01-directives/use-cache.md`에 throw 규칙 없음) |
+| sample 밖 param | 첫 요청 때 검증하고 렌더한다. 성공한 렌더만 디스크에 저장한다 | `dynamic-routes.md` 153, 260행 |
+| 404도 저장되나 | 저장되지 않는다고 본다(추정). 404는 "성공"이 아니다 | 같은 곳. 확인: §9 `.next` 크기 행 |
+| `dynamicParams` | 쓸 수 없다. 모르는 param은 언제나 요청 때 렌더한다 | `route-segment-config/dynamicParams.md` 22행 |
+| fallback shell이 200을 먼저 보내나 | 보내지 않는다고 본다(추정). `[handle]` layout 위에 Suspense 조상이 없다. 그래서 shell이 비고 렌더가 막힌다(blocking) | root, `(shell)`, `[handle]` layout에 `Suspense` 0건 (grep). `07-adapters/09-output-types.md` 142행 `parentFallbackMode: null` = blocking |
+| 사용자, 프로젝트 존재 | 가능하다. 둘 다 token 없는 공개 읽기다 (`getUserProfile.api.ts`, `getProjectPosts.api.ts`) | 위 행들 |
+
+- 그래도 U4에서는 쓰지 않는다. 이유는 Q4와 18.3의 L안 행이다.
+
+Q2. `[slug]`: 익명 캐시 검사 + 잎 token 검사:
+
+- 개인정보는 새지 않는다. 캐시 값은 익명 API 결과 하나다. Express는 비공개와 없음을 둘 다 404로 준다 (`posts.detail.ts` 141, 153–157행).
+- **그러나 오너 제약을 못 지킨다.** "공개 아님"이면 잎으로 간다. 익명의 모르는 slug도 잎으로 간다. 잎의 `notFound()`는 200 + noindex다. 엣지가 그 200을 1일 저장한다.
+- 원인: layout 결과는 static shell에 든다. shell은 모든 viewer가 함께 쓴다. 그래서 viewer에 따라 다른 status는 layout에서 만들 수 없다.
+- viewer를 렌더 전에 아는 곳은 proxy 하나다. `clerkMiddleware`의 `auth()`가 그 자리에 있다.
+- 결론: 비공개 글의 viewer 분기는 proxy에서만 된다. Q2 안은 버린다.
+
+Q3. proxy 비용 (요청 하나당):
+
+| 요청 | 오늘 (`cc-u4` 이전, layout gate) | P안 | 순 증가 |
+| --- | --- | --- | --- |
+| 익명, 엣지 HIT (대부분) | 오리진 안 감 | 오리진 안 감 | 0 |
+| 익명, 엣지 MISS, 글 | layout이 글 1회 기다림 | proxy 1회 + 잎 1회. 둘 다 `blog-api.` 엣지 HIT (`setPostReadCache` s-maxage 1일) | fetch +1, 대개 엣지 HIT |
+| 익명, MISS, 사용자 page | layout이 profile 1회 기다림 | proxy profile 1회 + 잎 1회. profile은 엣지 캐시 없음 | Express +1 |
+| 로그인 문서 load, 글 | layout 1회 | proxy 1회 (token, `DYNAMIC`) + 잎 1회 | Express +1 |
+| 로그인 RSC 이동 (G-CC) | layout 1회 기다림 | 검사 없음. 잎만 | 0. 오히려 shell이 먼저 온다 |
+| 404 응답 | 해당 없음 | 엣지가 저장하지 않는다 | `deploy/traffic/README.md` 116행 "404 REVALIDATED" |
+
+- 기다림은 늘지 않는다. 오늘도 layout이 같은 왕복 하나를 기다린다. 늘어나는 것은 fetch 수다. 그 수는 gate 로그 줄이 잰다(18.4 3번).
+- React `cache()`는 proxy와 렌더 사이에서 공유되지 않는다. 그래서 중복 제거가 없다.
+
+Q4. U5와의 분리:
+
+- P안은 `'use cache'`를 더하지 않는다. U5의 세 읽기(tags, tree, projects)는 손대지 않는다.
+- U5 비교 기준은 "직전 단위 뒤 3회"다(§5.3). 그래서 U4의 gate 비용은 U5 기준에 이미 들어 있다. U5 판정은 깨끗하다.
+- U4 범위는 바뀐다(proxy gate 추가). pm이 D-행으로 적는다. 지표와 판정선은 그대로다(§17.2).
+
+### 18.3 세 안과 판정
+
+| 안 | 내용 | 오너 제약 | U4 빌드 | U5 분리 | 판정 |
+| --- | --- | --- | --- | --- | --- |
+| S (soft) | `cc-u4-soft404` 그대로 | 어긋남 (200 + noindex, 엣지 1일) | 통과 | 깨끗 | 버림 (오너 금지) |
+| L (layout 캐시 + proxy) | 사용자, 프로젝트 = layout의 `'use cache'` boolean. 글, me, saved = proxy | 지킴 | 빌드가 운영 `blog-api.`를 불러야 한다. runner 도달과 `ORIGIN_KEY`가 증명되지 않았다 (u4-preview.md 11행의 fetch는 prerender 끝에 취소된 것이다) | 범위 변경: Q8 앞당김, D28 (`no-store` 안의 `'use cache'`), 새 `cacheTag` 이름 → CC-U5 AC1, CC-U6 허용 목록 변경 | 목록의 대안. U5로 미룬다 |
+| **P (proxy만)** | 네 gate 모두 proxy. 잎 gate는 예비 방어로 남김 | 지킴 (예외 18.6) | 데이터 없이 통과 (§9 "U4는 데이터 없이 통과") | `'use cache'` 0개 추가 | **채택** |
+
+- L안을 다시 여는 조건: gate 로그의 `ms` p50이 사용자 page MISS TTFB의 20 % 이상이면 U5에서 사용자, 프로젝트 존재를 캐시로 옮긴다. 그때 D-행, `cacheLife('minutes')`, tag `exists:user:<u>`, `exists:project:<u>:<p>`를 정한다.
+
+### 18.4 developer 파일 계획 (`cc-u4` 위, 모두 `apps/dashboard_client_web/` 아래)
+
+커밋 1: 잎 gate (빌드 녹색으로)
+
+| # | 파일 | 변경 |
+| --- | --- | --- |
+| 1 | `app/(shell)/[handle]/(rail)/layout.tsx` | `cc-u4-soft404` `e95b975`의 `UserGate` 잎을 가져온다. layout은 `await params`만 하고 데이터를 기다리지 않는다 |
+| 2 | `app/(shell)/[handle]/(rail)/projects/[project]/layout.tsx` | 같은 커밋의 `ProjectGate` 잎 |
+| 3 | `app/(shell)/[handle]/[slug]/layout.tsx` | 같은 커밋의 `PostGate` 잎. `preloadCommentsFirstPage(post.id)`는 `PostGate` 안, `getPostBySlug` 뒤로 옮긴다. `preloadProjectsTree(username)`는 layout에 남긴다 (await 없음) |
+| 4 | 잎 3개 주석 | "proxy가 404를 정한다. 이 잎은 proxy를 지난 요청(로그인 RSC 이동, fail-open)의 예비 방어다" |
+
+- 커밋 1은 main session이 `e95b975`를 cherry-pick하는 것으로 대신할 수 있다. 충돌만 developer가 푼다.
+
+커밋 2: proxy gate
+
+| # | 파일 | 변경 |
+| --- | --- | --- |
+| 5 | `utils/notFoundGate.ts` (새, 순수) | `classifyGatePath(pathname)` → `{kind:'user', username}` (`/@u/posts`, `/@u/projects`) · `{kind:'project', username, project}` (`/@u/projects/<p>`) · `{kind:'post', username, slug}` (`/@u/<seg>`, `seg`가 `RESERVED_HANDLE_SEGMENTS` 밖) · `{kind:'ownerOnly', username}` (`/@u/me`, `/@u/saved`) · `null` (그 밖: `/@u`, about, resume, logs, 세 단계 이상 경로). decode 뒤 비교. `shouldCheck({ signedIn, isRsc })` = `!signedIn \|\| !isRsc` |
+| 6 | `apis/existence.proxy.ts` (새) | `checkExists(gate, token)` → `'found' \| 'missing' \| 'unknown'`. 경로: user = `/v1/api/posts/users/:u/profile`, project = `getProjectPosts.api.ts`와 같은 경로, post = `/v1/api/posts/slug/:slug` (token 있으면 `Authorization`). `x-origin-key` 헤더, `AbortSignal.timeout(1500)`. 404만 `missing`. 그 밖 status, 오류, 시간 초과 = `unknown` (fail-open). `server-only`와 React `cache()`를 import하지 않는다. `originKeyHeaders()` import가 proxy 빌드에서 깨지면 env 읽기 두 줄을 이 파일에 둔다 |
+| 7 | `apis/existence.proxy.ts` | ownerOnly: 익명 = 네트워크 없이 `missing`. 로그인 문서 = `GET /v1/api/users/me` (token). `data.username`이 handle과 다르면 `missing`. 필드 이름은 `users.ts` 46행으로 확인 |
+| 8 | `proxy.ts` | `clerkMiddleware` 콜백 안, 요청 로그 줄 뒤, `isProtectedRoute` 앞. GET, HEAD만. `const { userId, getToken } = await auth()`. `isRsc = req.headers.get('rsc') === '1'`. `classifyGatePath` → `shouldCheck` → `checkExists`. `missing`이면 `return NextResponse.rewrite(new URL(NOT_FOUND_PATH, req.url))`. 상수 `NOT_FOUND_PATH = '/__nf/__/__/__'` (4단계). 어느 route와도 맞지 않는 경로라 Next 기본 404가 root `not-found.tsx`를 낸다. `[handle]` layout과 flag 동작(18.2 Q1 추정 행)에 기대지 않는다. 먼저 `find app -name '[[]...*' -o -name '[[][[]...*'` → 0건 (catch-all 없음)을 확인한다. branch에 이미 있는 `/__not-found` rewrite는 이 한 길로 합친다 |
+| 9 | `proxy.ts` | gate를 검사한 요청마다 JSON 한 줄: `{severity:'INFO', message:'gate', kind, result, ms, signedIn, rsc}`. `LOG_REQUESTS` 스위치를 따른다 |
+| 10 | `components/me/OwnerOnly.server.tsx` | 코드 불변. 주석만: "진짜 404는 proxy가 낸다. 여기는 로그인 RSC 이동의 예비 방어" |
+
+- 바꾸지 않는 것: `packages/*`, Express, `env.schema.ts`, `next.config.ts`의 flag 줄, 측정 스크립트.
+- `[slug]` sample(`CC_SAMPLE_SLUG`)은 `HOME_FEED_AUTHOR`의 공개 글이어야 한다. 잎 gate라 빌드는 데이터를 부르지 않는다. 그래도 운영 smoke와 같은 값을 쓴다.
+
+### 18.5 검증 (테스트 러너 없음, 고의 파손)
+
+| # | 언제 | 확인 | 기대 |
+| --- | --- | --- | --- |
+| 1 | 빌드 | GH Actions 빌드 잡 (flag on) | 통과. `rg -n "'use cache'" A/app A/apis A/components` → CC-U4 AC5의 OG, sitemap 함수만. 18.4 1–3번 layout 세 파일에 `rg -n "auth\(\|cookies\(\|headers\(\|currentUser\("` → 0 |
+| 1b | 빌드 로그 | `/[handle]/[slug]`에 fetch 취소 경고 (u4-preview.md 11행과 같은 모양) | 0건. 있으면 `preloadProjectsTree`를 `PostGate` 안으로 옮긴다 |
+| 5a | 배포 + purge 직후, **2번보다 먼저** | `/nope`, `/@nope/x` | 404. 이 결과가 18.2 Q1 추정(flag 아래 layout `notFound()` = 404)을 판정한다. 2–4번 실패 원인을 가린다 |
+| 2 | 배포 + purge 뒤, 익명 | `/@nope/posts`, `/@nope/projects`, `/@taeklim/projects/cc-nope`, `/@taeklim/cc-nope-slug` | 404. 본문에 root `not-found.tsx` 표지 문구. 두 번째 호출의 `cf-cache-status`가 HIT 아님 |
+| 3 | 같음, 익명 RSC | 같은 4개 + 헤더 `RSC: 1` + `?_rsc=cc` | 404 |
+| 4 | 같음, 익명 | `/@taeklim/me`, `/@taeklim/saved` | 404 (CC-U4 AC7) |
+| 5 | 같음 | `/nope`, `/@nope/x` (G-e), smoke §7.3 15개 | 404, 나머지 status와 `location` 불변 |
+| 6 | 로그인 (오너 세션 스크립트) | 오너 비공개 글 slug 문서, `/@taeklim/me`, `/@taeklim/saved` | 200, 비공개 글 제목이 본문에 있다 |
+| 7 | 로그인 | `/@taeklim/cc-nope-slug` 문서 | 404 |
+| 8 | 고의 파손 (배포 없는 local dev 또는 다음 배포 전) | `shouldCheck`가 늘 false | 2번 URL이 200 + `noindex`로 바뀐다. proxy가 404를 만든다는 증거. 되돌린다 |
+| 9 | 기록만 | `/@taeklim/x.png` (matcher가 점 있는 경로를 건너뜀) | status 기록. 200이면 18.6 2번 |
+| 9b | 브라우저, 익명 | 글 화면에서 모르는 slug 링크로 client 이동 (주소창 입력 아님) | not-found 화면이 보인다. 빈 화면이나 멈춤이 아니다 |
+| 10 | 기록만, 1일 | Cloud Logging `message="gate"` | kind별 수, `ms` p50, `result` 비율. U4 브라우저 run 중 `signedIn:true, rsc:true` gate 줄 = 0 |
+
+- 비용 손잡이 (지금 만들지 않음): 익명 prefetch 요청(`Next-Router-Prefetch`, segment prefetch 헤더)도 gate를 지난다. prefetch shell에는 글 데이터가 없다. 10번의 수나 `ms`가 크면 prefetch를 검사에서 뺀다.
+
+- 8번 local dev는 "Allowed locally" 밖일 수 있다. 실행 여부는 main session이 정한다.
+
+### 18.6 남는 예외 (오너에게 보일 것)
+
+1. **오너 질문.** 로그인 상태의 RSC 이동으로 모르는 page에 가면 잎이 not-found 화면을 낸다. RSC 응답 status는 200이다. 응답은 `DYNAMIC`이라 엣지에 저장되지 않는다. crawler는 이 길을 타지 않는다. 문서 load는 404다. 오너가 고른다: (a) 받아들인다 (기본안), (b) 로그인 RSC 이동도 검사한다. (b)는 글 이동(s5)마다 Express 호출 1회가 는다. G-CC에 직접 걸린다.
+2. 점이 든 경로(`/@u/x.png`)는 proxy matcher 밖이다. 잎 gate가 soft 404를 낸다. 9번 결과가 200이면 다음 단위에서 matcher 또는 layout의 동기 검사로 막는다. slug에 점이 없는지 먼저 확인한다.
+3. fail-open: API 시간 초과나 5xx면 proxy가 통과시킨다. 그 요청이 모르는 page면 soft 404가 엣지에 1일 남을 수 있다. 드물다. 잘못된 404보다 낫다.
+4. 글 slug 조회는 handle을 보지 않는다 (`posts.detail.ts` 140행, `username` 질의 없음). 오늘 동작과 같다. 이 단위에서 바꾸지 않는다.
+
+### 18.7 되돌림
+
+| 조건 (kill) | 방법 |
+| --- | --- |
+| 18.5 5a, 2–7, 9b번 중 하나라도 거짓, 또는 있는 page가 404 | U4 커밋 전부 `git revert` + 재배포 + purge (§3.1). 커밋 2만 되돌리면 soft 404가 남는다. 오너 금지라 단독 되돌림은 쓰지 않는다 |
+| gate `ms` p50이 18.3 L안 조건을 넘음 | 되돌리지 않는다. U5에서 L안으로 옮긴다 (D-행) |
+
+### 18.8 pm에게 (이 절은 고치지 않는다)
+
+| 파일 | 고칠 곳 |
+| --- | --- |
+| `decisions.plan.md` | 새 행 먼저: U4 404 gate = P안. Rejected = S (오너 #89), L (빌드 API 도달 미증명, U5 범위 침범), Q2 안 (익명 soft 404). Supersedes = D9 "sample로 푼다", CC-U3의 D8 이월 |
+| `00.tasks.md` CC-U4 | 범위에 proxy gate 추가. AC7에 18.5 2, 3, 6, 7번 추가. 새 AC: 18.5 8번 고의 파손, 10번 기록만. 18.6 1번을 오너에게 알린 줄이 `01.status.md`에 있다 |
+| `00.tasks.md` CC-U5 | 변경 없음. 18.3 L안 다시 여는 조건만 메모 |
