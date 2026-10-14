@@ -1,0 +1,77 @@
+# Phase CC browser measurement (cc.design.md section 5): the metrics an HTTP client cannot
+# see (back x3 _rsc count, 10 s request peak, prefetch per link, hydration errors, [nav] time).
+# Manual only: the main session starts it with
+#   gh workflow run cc-browser-measure.yml -f tag=baseline1
+# It runs headless chromium on a GitHub runner, never on the owner's Mac. The signed-in arm
+# needs the repo secret CLERK_SECRET_KEY_PROD (set it once, see _scripts/perf/cc-browser.mjs).
+# The run folder is uploaded as an artifact; fetch it with: gh run download <id>
+name: CC browser measure
+
+on:
+    workflow_dispatch:
+        inputs:
+            tag:
+                description: 'Run tag (baseline1, qw1, u1 ...)'
+                required: true
+                type: string
+            runs:
+                description: 'Runs per arm'
+                required: false
+                default: '3'
+                type: string
+            base_url:
+                description: 'Site to measure'
+                required: false
+                default: 'https://my.prettylog.com'
+                type: string
+            private_path:
+                description: 'G-g: path of the owner private post (optional)'
+                required: false
+                default: ''
+                type: string
+
+permissions:
+    contents: read
+
+# One run at a time: two runs together would add up against the Cloudflare 50 req / 10 s limit.
+concurrency:
+    group: cc-browser-measure
+    cancel-in-progress: false
+
+jobs:
+    measure:
+        runs-on: ubuntu-latest
+        timeout-minutes: 45 # about 12 min for 3 runs x 2 arms x 2 rail states; this is the ceiling
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+            # pnpm version comes from the root package.json "packageManager" field.
+            - uses: pnpm/action-setup@008330803749db0355799c700092d9a85fd074e9 # v6.0.9
+            - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+              with:
+                  node-version-file: .nvmrc
+                  cache: pnpm
+            - run: pnpm install --frozen-lockfile
+            - run: pnpm exec playwright install --with-deps chromium
+
+            - name: Measure
+              env:
+                  # Inputs go through env, never into the shell text (script injection).
+                  TAG: ${{ inputs.tag }}
+                  RUNS: ${{ inputs.runs }}
+                  BASE_URL: ${{ inputs.base_url }}
+                  PRIVATE_PATH: ${{ inputs.private_path }}
+                  # Masked by GitHub; the script never prints it.
+                  CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY_PROD }}
+              run: |
+                  extra=()
+                  [ -n "$PRIVATE_PATH" ] && extra+=(--private-path "$PRIVATE_PATH")
+                  node _scripts/perf/cc-browser.mjs --tag "$TAG" --runs "$RUNS" --base "$BASE_URL" \
+                      --out "$RUNNER_TEMP/cc-runs" "${extra[@]}"
+
+            # always(): an aborted run still has a manifest and the raw lines written so far.
+            - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              if: always()
+              with:
+                  name: cc-browser-${{ inputs.tag }}-${{ github.run_id }}
+                  path: ${{ runner.temp }}/cc-runs
+                  if-no-files-found: ignore

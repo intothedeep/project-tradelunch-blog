@@ -9,7 +9,7 @@
 // Secrets: CLERK_SECRET_KEY is read here and sent only to api.clerk.com. It is
 // never printed or written. The JWT and cookies stay in memory. Errors print the
 // HTTP status and Clerk error codes only.
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 const REFRESH_MS = 40_000;
 
@@ -38,12 +38,14 @@ function cookiePairs(res) {
     return jar;
 }
 
-export async function openClerkSession({ envFile, username, origin }) {
-    const env = readEnvFile(envFile);
-    const secret = env.CLERK_SECRET_KEY;
-    const publishable = env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+// CI has no env file: the secret comes from process.env.CLERK_SECRET_KEY (a repo
+// secret) and the public key from `publishableKey` (scraped from the site HTML).
+export async function openClerkSession({ envFile, username, origin, publishableKey }) {
+    const env = envFile && existsSync(envFile) ? readEnvFile(envFile) : {};
+    const secret = process.env.CLERK_SECRET_KEY ?? env.CLERK_SECRET_KEY;
+    const publishable = publishableKey ?? env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
     if (!secret?.startsWith('sk_live_') || !publishable?.startsWith('pk_live_')) {
-        throw new Error(`need live Clerk keys in ${envFile}`);
+        throw new Error('need live Clerk keys (CLERK_SECRET_KEY env or env file, pk_live key)');
     }
     // pk_live_<base64(frontend-api-host + '$')>
     const fapi = `https://${Buffer.from(publishable.split('_')[2], 'base64')
@@ -115,5 +117,6 @@ export async function openClerkSession({ envFile, username, origin }) {
         return r.status;
     }
 
-    return { cookieHeader, close };
+    // A browser needs the FAPI `__client` cookie too, or clerk-js sees a signed-out client.
+    return { cookieHeader, close, fapiHost: new URL(fapi).hostname, clientCookie: jar.__client };
 }
