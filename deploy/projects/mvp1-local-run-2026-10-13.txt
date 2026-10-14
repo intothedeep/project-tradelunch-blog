@@ -1,0 +1,61 @@
+# PJ-1-14 MVP1 local run, 2026-10-13, owner-approved 1 run (Q-L, #79)
+# cmd: PROJECTS_DATA_SOURCE=mock NEXT_PUBLIC_API_BASE=https://blog-api.prettylog.com LOG_REQUESTS=false next dev --turbopack -p 3000 (LOCAL_PROD_API.md mode A)
+# note: first run showed empty projects tree: packages/types/dist was stale (Jul 7) and lacked PROJECTS_ROOT_CATEGORY_TITLE; fixed with pnpm --filter @repo/types build (CI builds it via turbo ^build)
+## status + redirect
+/ 200 
+/@taeklim 308 http://localhost:3000/@taeklim/posts
+/%40taeklim 308 http://localhost:3000/@taeklim/posts
+/no-at-xyz 404 
+/@taeklim/posts 200 
+/@taeklim/projects 200 
+/@taeklim/projects/cnn-from-scratch 200 
+/@taeklim/training-a-cnn-from-scratch-4-to-93-2-on-100-classes-under-a-5m-parameter-budget 200 
+/@taeklim/rust-config 200 
+/@taeklim/about 200 
+/@someone/about 404 
+/@taeklim/resume 200 
+/@taeklim/saved 307 http://localhost:3000/sign-in?redirect_url=http%3A%2F%2Flocalhost%3A3000%2F%40taeklim%2Fsaved
+/blog 308 http://localhost:3000/
+/blog/@taeklim 308 http://localhost:3000/@taeklim/posts
+/blog/@taeklim/training-a-cnn-from-scratch-4-to-93-2-on-100-classes-under-a-5m-parameter-budget 308 http://localhost:3000/@taeklim/training-a-cnn-from-scratch-4-to-93-2-on-100-classes-under-a-5m-parameter-budget
+/about 308 http://localhost:3000/@taeklim/about
+/resume 308 http://localhost:3000/@taeklim/resume
+## project list order (post hrefs)
+href="/@taeklim/training-a-cnn-from-scratch-4-to-93-2-on-100-classes-under-a-5m-parameter-budget"
+href="/@taeklim/cnn-from-scratch-1-7-a-2-3m-parameter-cnn-reaches-96-5-on-eurosat"
+href="/@taeklim/cnn-from-scratch-2-7-the-round-1-recipe-drops-from-97-6-to-84-7-on-100-classes"
+href="/@taeklim/cnn-from-scratch-3-7-nine-regularizers-none-beat-the-noise"
+href="/@taeklim/cnn-from-scratch-4-7-epochs-resolution-width-and-sam"
+href="/@taeklim/cnn-from-scratch-5-7-resnet-beat-vgg-by-4-5-points-on-6-400-training-images"
+href="/@taeklim/cnn-from-scratch-6-7-ensembles-distillation-and-a-94-9-that-became-93-2"
+href="/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first"
+## cards
+[MOCK] empty-project
+[MOCK] Overview: CNN from scratch
+## rails: page | projects-tree-title present | Recently viewed rendered
+/@taeklim/projects | 1 | 0
+/@taeklim/projects/cnn-from-scratch | 1 | 0
+/@taeklim/training-a-cnn-from-scratch-4-to-93-2-on-100-classes-under-a-5m-parameter-budget | 1 | 0
+/@taeklim/rust-config | 1 | 1
+## canonical
+/@taeklim/posts <link rel="canonical" href="http://localhost:3001/@taeklim/posts"
+/ <link rel="canonical" href="http://localhost:3001"
+/@taeklim/training-a-cnn-from-scratch-4-to-93-2-on-100-classes-under-a-5m-parameter-budget <link rel="canonical" href="http://localhost:3001/@taeklim/training-a-cnn-from-scratch-4-to-93-2-on-100-classes-under-a-5m-parameter-budget"
+## menu (anonymous)
+>Home< >Projects< >Explore< >About< >Resume< 
+## PJ-1-04 AC2
+setValueForKeyFakeAssocArray:27: command not found: _encode
+setValueForKeyFakeAssocArray:27: command not found: _encode
+setValueForKeyFakeAssocArray:27: command not found: _encode
+setValueForKeyFakeAssocArray:27: command not found: _encode
+setValueForKeyFakeAssocArray:27: command not found: _encode
+setValueForKeyFakeAssocArray:27: command not found: _encode
+setValueForKeyFakeAssocArray:27: command not found: _encode
+setValueForKeyFakeAssocArray:27: command not found: _encode
+setValueForKeyFakeAssocArray:27: command not found: _encode
+setValueForKeyFakeAssocArray:27: command not found: _encode
+valueForKeyFakeAssocArray:28: command not found: _decode
+valueForKeyFakeAssocArray:28: command not found: _decode
+    raise ValueError(f"slug is reserved: {slug}")
+ValueError: slug is reserved: Posts
+exit-check-done
