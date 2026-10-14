@@ -17,6 +17,7 @@ import {
     parseResponse,
     type TQuery,
 } from '@/apis/http.core';
+import { withSsrFetchLog } from '@/utils/ssrFetchLog.util';
 
 // Isomorphic fetchers (getCategories, getComments, get-log-*) run in Server
 // Components too. Those SSR calls must carry the origin key like serverRequest
@@ -51,11 +52,18 @@ export async function clientRequest<T>({
     signal,
     fallbackError,
 }: TClientRequest): Promise<T> {
-    const res = await fetch(`${API_BASE}${path}${buildQuery(query)}`, {
-        method,
-        headers: { ...buildHeaders(token, body), ...ssrOriginKeyHeaders() },
-        body: encodeBody(body),
-        signal: composeSignal(signal),
-    });
+    const res = await withSsrFetchLog(
+        { path, method, hasToken: Boolean(token) },
+        () =>
+            fetch(`${API_BASE}${path}${buildQuery(query)}`, {
+                method,
+                headers: {
+                    ...buildHeaders(token, body),
+                    ...ssrOriginKeyHeaders(),
+                },
+                body: encodeBody(body),
+                signal: composeSignal(signal),
+            })
+    );
     return parseResponse<T>(res, fallbackError);
 }

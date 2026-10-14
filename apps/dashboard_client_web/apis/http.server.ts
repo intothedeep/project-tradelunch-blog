@@ -22,6 +22,7 @@ import {
     encodeBody,
     parseResponse,
 } from '@/apis/http.core';
+import { withSsrFetchLog } from '@/utils/ssrFetchLog.util';
 
 // Shared secret that proves the call comes from this Next runtime. Sent on EVERY
 // serverRequest: Express exempts it from the per-IP rate limit (all SSR calls
@@ -61,24 +62,28 @@ export async function serverRequest<T>({
     fallbackError,
     revalidate,
 }: TServerRequest): Promise<T> {
-    const res = await fetch(`${API_BASE}${path}`, {
-        method,
-        headers: {
-            ...buildHeaders(token, body),
-            ...originKeyHeaders(),
-            ...headers,
-        },
-        body: encodeBody(body),
-        // Default: bypass Next's fetch cache — Cloudflare is the single edge
-        // cache. This prevents stale SSR output from being served to viewers
-        // after a publish or status change. A `no-store` fetch also forces its
-        // route dynamic, which is why an opted-in caller must set BOTH this and
-        // its own route-segment `revalidate`.
-        ...(revalidate === undefined
-            ? { cache: 'no-store' as const }
-            : { next: { revalidate } }),
-        signal: composeSignal(signal),
-    });
+    const res = await withSsrFetchLog(
+        { path, method, hasToken: Boolean(token) },
+        () =>
+            fetch(`${API_BASE}${path}`, {
+                method,
+                headers: {
+                    ...buildHeaders(token, body),
+                    ...originKeyHeaders(),
+                    ...headers,
+                },
+                body: encodeBody(body),
+                // Default: bypass Next's fetch cache — Cloudflare is the single edge
+                // cache. This prevents stale SSR output from being served to viewers
+                // after a publish or status change. A `no-store` fetch also forces its
+                // route dynamic, which is why an opted-in caller must set BOTH this and
+                // its own route-segment `revalidate`.
+                ...(revalidate === undefined
+                    ? { cache: 'no-store' as const }
+                    : { next: { revalidate } }),
+                signal: composeSignal(signal),
+            })
+    );
 
     return parseResponse<T>(res, fallbackError);
 }
