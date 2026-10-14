@@ -12,6 +12,7 @@ import { getLocale, getMessages } from 'next-intl/server';
 
 import '@/styles/globals.css';
 import CustomNavigation from '@/components/navigation-desktop';
+import { ProjectsBadgeSlot } from '@/components/rail/ProjectsCountBadge.server';
 import { ScrollToTopButton } from '@/app/ScrollToTop';
 import { SITE_URL } from '@/env.schema';
 import { JsonLd } from '@/components/seo/JsonLd.server';
@@ -152,7 +153,11 @@ export default async function RootLayout({
                         >
                             <JotaiProvider>
                                 <ReactQueryProvider>
-                                    <CustomNavigation />
+                                    <CustomNavigation
+                                        navBadges={{
+                                            projects: <ProjectsBadgeSlot />,
+                                        }}
+                                    />
                                     {/* <header className="sticky top-0 z-50 border-b-2 border-foreground bg-background">
                                     <div className="mx-auto max-w-[95vw] px-2"></div>
                                 </header> */}

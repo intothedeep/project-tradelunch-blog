@@ -8,10 +8,12 @@
 import { Suspense } from 'react';
 import { LeftRail } from '@/components/rail/LeftRail.client';
 import { TagCloud } from '@/components/rail/TagCloud.server';
+import { ProjectsBadgeSlot } from '@/components/rail/ProjectsCountBadge.server';
 import { TagCloudSkeleton } from '@/components/rail/TagCloud.skeleton';
 
 export const LeftRailContainer = () => (
     <LeftRail
+        navBadges={{ projects: <ProjectsBadgeSlot /> }}
         tagCloud={
             <Suspense fallback={<TagCloudSkeleton />}>
                 <TagCloud />

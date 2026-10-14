@@ -50,10 +50,13 @@ export function isActivePath(pathname: string, href: string): boolean {
     return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+// Server-rendered badge slots keyed by nav iconKey (e.g. the Projects count).
+export type NavBadges = Partial<Record<string, React.ReactNode>>;
+
 const ITEM_BASE =
     'flex items-center gap-3 rounded-none px-3 py-2 text-sm transition-colors in-data-[rail=collapsed]:justify-center';
 
-export const PrimaryNav = () => {
+export const PrimaryNav = ({ navBadges }: { navBadges?: NavBadges }) => {
     const pathname = usePathname();
     const links = usePrimaryNavLinks();
     const t = useTranslations('blog');
@@ -101,6 +104,7 @@ export const PrimaryNav = () => {
                                 title={label}
                                 className={cn(
                                     ITEM_BASE,
+                                    'relative',
                                     active
                                         ? tone
                                             ? cn(
@@ -117,6 +121,13 @@ export const PrimaryNav = () => {
                                 <span className="truncate in-data-[rail=collapsed]:hidden">
                                     {label}
                                 </span>
+                                {link.iconKey && navBadges?.[link.iconKey] ? (
+                                    // Expanded: number at the row end. Collapsed: a dot
+                                    // on the icon corner (number text zeroed, box shrunk).
+                                    <span className="ml-auto in-data-[rail=collapsed]:absolute in-data-[rail=collapsed]:top-1.5 in-data-[rail=collapsed]:right-1.5 in-data-[rail=collapsed]:*:size-2 in-data-[rail=collapsed]:*:min-w-0 in-data-[rail=collapsed]:*:p-0 in-data-[rail=collapsed]:*:text-[0px]">
+                                        {navBadges[link.iconKey]}
+                                    </span>
+                                ) : null}
                             </Link>
                         </li>
                     );

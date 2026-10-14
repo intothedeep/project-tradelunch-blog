@@ -19,12 +19,21 @@ import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { isLeftRailCollapsedAtom } from '@/store/layout.atom';
 import { hideRecentAtom } from '@/store/rail-context.atom';
 import { railVisibility } from '@/utils/rail-visibility';
-import { PrimaryNav } from '@/components/rail/PrimaryNav.client';
+import {
+    PrimaryNav,
+    type NavBadges,
+} from '@/components/rail/PrimaryNav.client';
 import { RailSection } from '@/components/rail/RailSection.client';
 import { RecentVisited } from '@/components/rail/RecentVisited.client';
 import { SavedTags } from '@/components/rail/SavedTags.client';
 
-export const LeftRail = ({ tagCloud }: { tagCloud?: React.ReactNode }) => {
+export const LeftRail = ({
+    tagCloud,
+    navBadges,
+}: {
+    tagCloud?: React.ReactNode;
+    navBadges?: NavBadges;
+}) => {
     const [isCollapsed, setIsCollapsed] = useAtom(isLeftRailCollapsedAtom);
     // Recently viewed is hidden on the projects screens by path and on project
     // posts by the leaf signal (#79).
@@ -52,7 +61,7 @@ export const LeftRail = ({ tagCloud }: { tagCloud?: React.ReactNode }) => {
                 />
             </button>
 
-            <PrimaryNav />
+            <PrimaryNav navBadges={navBadges} />
             {/* Closing rule under the menu, matching the toggle row above. */}
             <div
                 aria-hidden

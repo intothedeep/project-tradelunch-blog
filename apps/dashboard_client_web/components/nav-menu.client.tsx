@@ -16,11 +16,15 @@ import { useThemeToggle } from '@/hooks/useThemeToggle.hook';
 import { useTranslations } from 'next-intl';
 import { mePath, savedPath } from '@/utils/routes';
 import { usePrimaryNavLinks } from '@/hooks/useNavLinks.hook';
-import { ICON_BY_KEY } from '@/components/rail/PrimaryNav.client';
+import {
+    ICON_BY_KEY,
+    type NavBadges,
+} from '@/components/rail/PrimaryNav.client';
 
 type NavMenuProps = {
     showNavLinks?: boolean;
     align?: 'start' | 'end';
+    navBadges?: NavBadges;
 };
 
 // Shared icon-button style so the trigger matches existing header controls.
@@ -62,7 +66,11 @@ function ThemeMenuItem() {
 }
 
 // Unified header dropdown: theme toggle + auth actions, plus nav links on mobile.
-export function NavMenu({ showNavLinks = false, align = 'end' }: NavMenuProps) {
+export function NavMenu({
+    showNavLinks = false,
+    align = 'end',
+    navBadges,
+}: NavMenuProps) {
     const { isLoaded, isSignedIn, user } = useUser();
     const { openUserProfile, signOut } = useClerk();
     const t = useTranslations('write');
@@ -134,6 +142,12 @@ export function NavMenu({ showNavLinks = false, align = 'end' }: NavMenuProps) {
                                         <Link href={link.href}>
                                             {Icon ? <Icon /> : null}
                                             <span>{label}</span>
+                                            {link.iconKey &&
+                                            navBadges?.[link.iconKey] ? (
+                                                <span className="ml-auto">
+                                                    {navBadges[link.iconKey]}
+                                                </span>
+                                            ) : null}
                                         </Link>
                                     </DropdownMenuItem>
                                 );

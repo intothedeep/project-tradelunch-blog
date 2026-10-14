@@ -17,7 +17,11 @@ import { useTranslations } from 'next-intl';
 import { ChevronLeft } from 'lucide-react';
 import { isMenuDrawerOpenAtom, pageMenuAtom } from '@/store/menu.atom';
 import { usePrimaryNavLinks } from '@/hooks/useNavLinks.hook';
-import { ICON_BY_KEY, isActivePath } from '@/components/rail/PrimaryNav.client';
+import {
+    ICON_BY_KEY,
+    isActivePath,
+    type NavBadges,
+} from '@/components/rail/PrimaryNav.client';
 import { cn } from '@/lib/utils';
 import { TONE_BG, toneOfNavKey } from '@/utils/section-tone';
 
@@ -28,7 +32,7 @@ const FOCUSABLE_SELECTOR =
 // page-contributed menu. 'root' collapses to the site nav when no page menu.
 type DrawerView = 'root' | 'site' | 'page';
 
-export function MenuDrawer() {
+export function MenuDrawer({ navBadges }: { navBadges?: NavBadges }) {
     const [isOpen, setIsOpen] = useAtom(isMenuDrawerOpenAtom);
     const pageMenu = useAtomValue(pageMenuAtom);
     const links = usePrimaryNavLinks();
@@ -214,6 +218,7 @@ export function MenuDrawer() {
                 {showSite && (
                     <SiteMenuBody
                         links={links}
+                        navBadges={navBadges}
                         t={t}
                         isOpen={isOpen}
                         onNavigate={() => setIsOpen(false)}
@@ -258,11 +263,13 @@ type NavLink = ReturnType<typeof usePrimaryNavLinks>[number];
 // The site's primary nav links + contact info block.
 function SiteMenuBody({
     links,
+    navBadges,
     t,
     isOpen,
     onNavigate,
 }: {
     links: NavLink[];
+    navBadges?: NavBadges;
     t: ReturnType<typeof useTranslations>;
     isOpen: boolean;
     onNavigate: () => void;
@@ -331,6 +338,11 @@ function SiteMenuBody({
                                     <Icon className="h-5 w-5 shrink-0" />
                                 ) : null}
                                 {label}
+                                {link.iconKey && navBadges?.[link.iconKey] ? (
+                                    <span className="ml-auto">
+                                        {navBadges[link.iconKey]}
+                                    </span>
+                                ) : null}
                             </Link>
                         </li>
                     );

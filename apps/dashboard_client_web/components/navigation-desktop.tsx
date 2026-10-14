@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSetAtom } from 'jotai';
 import { NavMenu } from '@/components/nav-menu.client';
+import type { NavBadges } from '@/components/rail/PrimaryNav.client';
 import { MenuDrawer } from '@/components/MenuDrawer.client';
 import { TopBar } from '@/components/topbar/TopBar.client';
 import { isMenuDrawerOpenAtom } from '@/store/menu.atom';
@@ -16,7 +17,7 @@ export const DesktopNavigation = () => {
 };
 
 // Mobile Navigation: top bar + floating button that opens the shared MenuDrawer.
-export const MobileNavigation = () => {
+export const MobileNavigation = ({ navBadges }: { navBadges?: NavBadges }) => {
     const openMenu = useSetAtom(isMenuDrawerOpenAtom);
     // Same section tone as the desktop top bar (owner, 2026-10-14).
     const tone = sectionTone(usePathname());
@@ -41,7 +42,10 @@ export const MobileNavigation = () => {
                         Taek Lim
                     </span>
                 </Link>
-                <NavMenu showNavLinks />
+                <NavMenu
+                    showNavLinks
+                    navBadges={navBadges}
+                />
             </nav>
 
             {/* Menu Button - Bottom Left */}
@@ -86,12 +90,12 @@ export const MobileNavigation = () => {
 };
 
 // Combined Navigation Component
-export const Navigation = () => {
+export const Navigation = ({ navBadges }: { navBadges?: NavBadges }) => {
     return (
         <>
             <DesktopNavigation />
-            <MobileNavigation />
-            <MenuDrawer />
+            <MobileNavigation navBadges={navBadges} />
+            <MenuDrawer navBadges={navBadges} />
         </>
     );
 };
