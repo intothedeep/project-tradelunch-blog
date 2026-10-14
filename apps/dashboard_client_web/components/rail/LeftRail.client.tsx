@@ -3,47 +3,38 @@
 // Purpose: the left-rail body (client) — owns the collapse toggle and decides
 // what renders at each width. EXPANDED: PrimaryNav + a "Popular tags" RailSection
 // wrapping the server-rendered TagCloud passed as a child. COLLAPSED (w-14 icon
-// rail): icon-only PrimaryNav, no tag section.
+// rail): icon-only PrimaryNav, no tag section. Both states share ONE markup;
+// CSS off `<html data-rail>` hides what collapsed does not show.
 //
-// Hydration correctness: the server (BlogShell/LeftRailContainer) already knows
-// the collapsed value from the `railCollapsed` cookie. We seed the Jotai atom
-// with `initialCollapsed` via useHydrateAtoms so SSR and the first client paint
-// agree on the rail CONTENT — no flash/mismatch.
+// Hydration correctness: every first-paint difference between collapsed and
+// expanded is CSS off `<html data-rail>` (set before paint by the root-layout
+// script), so the React tree is identical for both states and nothing moves when
+// the atom syncs after mount. The atom only drives behavior (toggle, aria-expanded).
 // Side effects: toggling the atom persists the cookie (client-only, in the atom).
 
-import { useHydrateAtoms } from 'jotai/utils';
 import { useAtom } from 'jotai';
 import { useTranslations } from 'next-intl';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { isLeftRailCollapsedAtom } from '@/store/layout.atom';
-import { cn } from '@/lib/utils';
 import { PrimaryNav } from '@/components/rail/PrimaryNav.client';
 import { RailSection } from '@/components/rail/RailSection.client';
 import { RecentVisited } from '@/components/rail/RecentVisited.client';
 import { SavedTags } from '@/components/rail/SavedTags.client';
 
 export const LeftRail = ({
-    initialCollapsed = false,
     tagCloud,
     showRecentVisited = true,
 }: {
-    initialCollapsed?: boolean;
     tagCloud?: React.ReactNode;
     // false on the projects screens (#79); every other page keeps the widget.
     showRecentVisited?: boolean;
 }) => {
-    useHydrateAtoms([[isLeftRailCollapsedAtom, initialCollapsed]]);
     const [isCollapsed, setIsCollapsed] = useAtom(isLeftRailCollapsedAtom);
     const t = useTranslations('blog');
 
     return (
         <div className="flex h-full flex-col gap-2 p-2">
-            <div
-                className={cn(
-                    'flex',
-                    isCollapsed ? 'justify-center' : 'justify-end'
-                )}
-            >
+            <div className="flex justify-end in-data-[rail=collapsed]:justify-center">
                 <button
                     type="button"
                     onClick={() => setIsCollapsed(!isCollapsed)}
@@ -53,30 +44,27 @@ export const LeftRail = ({
                     }
                     className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
                 >
-                    {isCollapsed ? (
-                        <PanelLeftOpen className="h-5 w-5" />
-                    ) : (
-                        <PanelLeftClose className="h-5 w-5" />
-                    )}
+                    <PanelLeftClose className="h-5 w-5 in-data-[rail=collapsed]:hidden" />
+                    <PanelLeftOpen className="hidden h-5 w-5 in-data-[rail=collapsed]:block" />
                 </button>
             </div>
 
-            <PrimaryNav collapsed={isCollapsed} />
+            <PrimaryNav />
 
-            {!isCollapsed && tagCloud ? (
-                <RailSection title={t('rail.popularTagsGlobal')}>
-                    {tagCloud}
-                </RailSection>
+            {tagCloud ? (
+                <div className="contents in-data-[rail=collapsed]:hidden">
+                    <RailSection title={t('rail.popularTagsGlobal')}>
+                        {tagCloud}
+                    </RailSection>
+                </div>
             ) : null}
 
             {/* localStorage-backed widgets (H5.4) — expanded rail only; shared
                 identically across `/` and `/@[handle]/posts`. */}
-            {!isCollapsed ? (
-                <>
-                    {showRecentVisited ? <RecentVisited /> : null}
-                    <SavedTags />
-                </>
-            ) : null}
+            <div className="contents in-data-[rail=collapsed]:hidden">
+                {showRecentVisited ? <RecentVisited /> : null}
+                <SavedTags />
+            </div>
         </div>
     );
 };

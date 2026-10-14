@@ -4,8 +4,9 @@
 // Write / Saved / My blog). Links come from usePrimaryNavLinks (which gates auth
 // — Write/Saved/My blog hidden while signed out — and hides "My blog" when there
 // is no resolved username). Active route is derived
-// from usePathname and exposed via aria-current="page". When `collapsed`, only
-// icons render (label moves to title/aria-label).
+// from usePathname and exposed via aria-current="page". Collapsed vs expanded is pure CSS
+// off `<html data-rail>` (label hidden, icon centered), so the markup is identical
+// for both states and the first paint is already final (no atom involved).
 // Side effects: none beyond reading the current pathname + Clerk user.
 
 import Link from 'next/link';
@@ -49,9 +50,9 @@ function isActivePath(pathname: string, href: string): boolean {
 }
 
 const ITEM_BASE =
-    'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors';
+    'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors in-data-[rail=collapsed]:justify-center';
 
-export const PrimaryNav = ({ collapsed = false }: { collapsed?: boolean }) => {
+export const PrimaryNav = () => {
     const pathname = usePathname();
     const links = usePrimaryNavLinks();
     const t = useTranslations('blog');
@@ -73,18 +74,15 @@ export const PrimaryNav = ({ collapsed = false }: { collapsed?: boolean }) => {
                                     title={label}
                                     className={cn(
                                         ITEM_BASE,
-                                        'cursor-not-allowed text-muted-foreground/50',
-                                        collapsed && 'justify-center'
+                                        'cursor-not-allowed text-muted-foreground/50'
                                     )}
                                 >
                                     {Icon ? (
                                         <Icon className="h-5 w-5 shrink-0" />
                                     ) : null}
-                                    {!collapsed ? (
-                                        <span className="truncate">
-                                            {label}
-                                        </span>
-                                    ) : null}
+                                    <span className="truncate in-data-[rail=collapsed]:hidden">
+                                        {label}
+                                    </span>
                                 </span>
                             </li>
                         );
@@ -97,22 +95,21 @@ export const PrimaryNav = ({ collapsed = false }: { collapsed?: boolean }) => {
                             <Link
                                 href={link.href}
                                 aria-current={active ? 'page' : undefined}
-                                aria-label={collapsed ? label : undefined}
-                                title={collapsed ? label : undefined}
+                                aria-label={label}
+                                title={label}
                                 className={cn(
                                     ITEM_BASE,
                                     active
                                         ? 'bg-accent font-medium text-accent-foreground'
-                                        : 'text-foreground hover:bg-accent/50',
-                                    collapsed && 'justify-center'
+                                        : 'text-foreground hover:bg-accent/50'
                                 )}
                             >
                                 {Icon ? (
                                     <Icon className="h-5 w-5 shrink-0" />
                                 ) : null}
-                                {!collapsed ? (
-                                    <span className="truncate">{label}</span>
-                                ) : null}
+                                <span className="truncate in-data-[rail=collapsed]:hidden">
+                                    {label}
+                                </span>
                             </Link>
                         </li>
                     );

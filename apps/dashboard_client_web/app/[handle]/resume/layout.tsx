@@ -4,8 +4,8 @@ import { LeftRailContainer } from '@/components/rail/LeftRailContainer.server';
 // Same shell as About: the global left rail, no BlogShell (its max-w-3xl cap
 // would squeeze the A4 resume and ResumeTOC). Main is full-width and min-w-0 so
 // the page's own `container` shrinks beside the rail instead of overflowing.
-// No `railCollapsed` cookie read: `[handle]` layouts stay free of request APIs
-// (cacheComponents, design §7.3), so the rail seeds expanded.
+// No `railCollapsed` cookie read: the rail width comes from `<html data-rail>` via
+// CSS (LeftRailAside), so the layout stays free of request APIs.
 export default function ResumeLayout({
     children,
 }: {

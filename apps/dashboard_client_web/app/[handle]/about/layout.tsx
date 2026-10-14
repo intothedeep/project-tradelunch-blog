@@ -6,8 +6,8 @@ import { LeftRailContainer } from '@/components/rail/LeftRailContainer.server';
 // max-w-3xl, but the portfolio (TerminalProfile) is a wide, multi-column layout
 // that brings its own `container`, so main here is full-width. The top bar comes
 // from the root layout (CustomNavigation); the right rail is intentionally omitted.
-// No `railCollapsed` cookie read here: under `[handle]` layouts stay free of
-// request APIs (cacheComponents, design §7.3), so the rail seeds expanded.
+// No `railCollapsed` cookie read here: the rail width comes from `<html data-rail>`
+// via CSS (LeftRailAside), so the layout stays free of request APIs.
 export default function AboutLayout({
     children,
 }: {

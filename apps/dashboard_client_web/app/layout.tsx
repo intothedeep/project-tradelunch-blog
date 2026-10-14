@@ -16,6 +16,7 @@ import { ScrollToTopButton } from '@/app/ScrollToTop';
 import { SITE_URL } from '@/env.schema';
 import { JsonLd } from '@/components/seo/JsonLd.server';
 import { buildWebSiteLd, buildPersonLd } from '@/lib/jsonld';
+import { RAIL_INIT_SCRIPT } from '@/components/shell/railInitScript';
 
 const ibmPlexMono = IBM_Plex_Mono({
     weight: ['400', '500', '700'],
@@ -117,6 +118,17 @@ export default async function RootLayout({
                     ibmPlexMono.variable
                 )}
             >
+                {/* Blocking, pre-paint: mirrors the railCollapsed cookie onto
+                    <html data-rail> so CSS sets the rail width. The server never
+                    reads the cookie (edge-cached HTML). Rendered by this server
+                    component only, so React 19 does not warn about a client-side
+                    script tag; <html> has suppressHydrationWarning for the
+                    attribute. */}
+                <head>
+                    <script
+                        dangerouslySetInnerHTML={{ __html: RAIL_INIT_SCRIPT }}
+                    />
+                </head>
                 <body
                     className={clsx(
                         // geist.className,

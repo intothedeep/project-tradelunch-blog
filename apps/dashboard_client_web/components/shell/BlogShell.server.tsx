@@ -1,10 +1,8 @@
-import { cookies } from 'next/headers';
 import { LeftRailAside } from '@/components/shell/LeftRailAside.client';
 
 // Purpose: the multi-user blog layout shell. A SERVER component that arranges
-// four named slots into a responsive column layout and reads the
-// `railCollapsed` cookie so the left rail renders at the correct width on the
-// first paint (no flash).
+// four named slots into a responsive column layout. It reads no request data:
+// the rail width comes from `<html data-rail>` via CSS (LeftRailAside).
 //
 // Responsive behaviour:
 //   - <md  : main only (left rail reachable via mobile drawer wired in P3/P4).
@@ -15,7 +13,7 @@ import { LeftRailAside } from '@/components/shell/LeftRailAside.client';
 // refactor can swap the slot wiring without touching this signature.
 //
 // Invariants: `main` always renders. Optional slots render nothing when absent.
-// Side effects: reads request cookies (next/headers).
+// Side effects: none.
 
 export type BlogShellProps = {
     topbar?: React.ReactNode;
@@ -33,7 +31,7 @@ export type BlogShellProps = {
     mobileTopContext?: React.ReactNode;
 };
 
-export const BlogShell = async ({
+export const BlogShell = ({
     topbar,
     leftRail,
     main,
@@ -41,9 +39,6 @@ export const BlogShell = async ({
     userContextSheet,
     mobileTopContext,
 }: BlogShellProps) => {
-    const cookieStore = await cookies();
-    const isLeftRailCollapsed = cookieStore.get('railCollapsed')?.value === '1';
-
     return (
         <div className="flex min-h-screen flex-col bg-background font-mono">
             {topbar ? (
@@ -53,11 +48,7 @@ export const BlogShell = async ({
             ) : null}
 
             <div className="flex w-full flex-1">
-                {leftRail ? (
-                    <LeftRailAside initialCollapsed={isLeftRailCollapsed}>
-                        {leftRail}
-                    </LeftRailAside>
-                ) : null}
+                {leftRail ? <LeftRailAside>{leftRail}</LeftRailAside> : null}
 
                 <main className="flex min-w-0 flex-1 justify-center">
                     {/* Single source of the content-column padding for BOTH `/`
