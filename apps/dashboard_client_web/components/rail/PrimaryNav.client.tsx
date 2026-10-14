@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePrimaryNavLinks } from '@/hooks/useNavLinks.hook';
+import { TONE_BG, toneOfNavKey } from '@/utils/section-tone';
 
 const ICON_BY_KEY: Record<string, LucideIcon> = {
     home: Home,
@@ -89,6 +90,7 @@ export const PrimaryNav = () => {
                     }
 
                     const active = isActivePath(pathname, link.href);
+                    const tone = toneOfNavKey(link.iconKey);
 
                     return (
                         <li key={link.href}>
@@ -100,7 +102,12 @@ export const PrimaryNav = () => {
                                 className={cn(
                                     ITEM_BASE,
                                     active
-                                        ? 'bg-accent font-medium text-accent-foreground'
+                                        ? tone
+                                            ? cn(
+                                                  TONE_BG[tone],
+                                                  'font-medium text-foreground'
+                                              )
+                                            : 'bg-accent font-medium text-accent-foreground'
                                         : 'text-foreground hover:bg-accent/50'
                                 )}
                             >

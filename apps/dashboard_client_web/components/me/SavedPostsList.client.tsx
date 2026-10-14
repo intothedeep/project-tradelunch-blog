@@ -47,7 +47,7 @@ export function SavedPostsList() {
             className="mx-auto flex w-full max-w-3xl flex-col gap-4 font-mono"
         >
             {/* Title box and content box match the projects screens. */}
-            <header className="border border-primary bg-card p-4">
+            <header className="border border-primary bg-tone-saved p-4">
                 <h1
                     id="saved-heading"
                     className="flex items-center gap-2 text-xl font-bold text-primary"

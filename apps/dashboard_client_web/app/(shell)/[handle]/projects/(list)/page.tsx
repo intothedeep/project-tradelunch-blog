@@ -30,7 +30,7 @@ export default async function ProjectsPage({ params }: Props) {
     return (
         <section className="flex flex-col gap-4">
             <ProjectsMobileMenu username={username} />
-            <header className="border border-primary bg-card p-4">
+            <header className="border border-primary bg-tone-projects p-4">
                 <h1 className="flex items-center gap-2 font-mono text-xl font-bold text-primary">
                     <FolderKanban className="h-5 w-5 shrink-0" />{' '}
                     {t('title').toUpperCase()}

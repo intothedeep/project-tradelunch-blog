@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Hash } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
 import { getPostsByTag } from '@/apis/getPostsByTag.api';
@@ -27,13 +28,17 @@ export default async function TagFeedPage({
     );
 
     return (
-        <section className="mx-auto w-full max-w-3xl p-4">
-            <h1 className="mb-4 text-xl font-bold text-foreground">
-                #{decodedTag}
-            </h1>
+        <section className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4">
+            {/* Title box like the other pages; Hash stands in for a menu icon. */}
+            <header className="border border-primary bg-tone-home p-4">
+                <h1 className="flex items-center gap-2 font-mono text-xl font-bold text-primary">
+                    <Hash className="h-5 w-5 shrink-0" />
+                    {decodedTag}
+                </h1>
+            </header>
 
             {posts.length === 0 ? (
-                <div className="rounded-md border border-border bg-card p-8 text-center">
+                <div className="rounded-none border border-primary bg-card p-8 text-center">
                     <p className="text-sm text-muted-foreground">
                         {t('tags.emptyTitle', { tag: decodedTag })}
                     </p>
