@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { User } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 
@@ -73,7 +74,15 @@ export default async function BlogPage({ params, searchParams }: PageProps) {
     const t = await getTranslations('blog.filters');
 
     return (
-        <>
+        <div className="flex flex-col gap-4">
+            {/* Title box like the other pages: menu icon + posts tone. */}
+            <header className="border border-primary bg-tone-posts p-4">
+                <h1 className="flex items-center gap-2 font-mono text-xl font-bold text-primary">
+                    <User className="h-5 w-5 shrink-0" />@{author.toUpperCase()}{' '}
+                    POSTS
+                </h1>
+            </header>
+
             <AppliedFilters username={author} />
 
             {/* Mobile (<lg): the right rail (with its category tree) is hidden, so
@@ -99,10 +108,12 @@ export default async function BlogPage({ params, searchParams }: PageProps) {
                 </Suspense>
             </div>
 
-            <BlogMainPage
-                username={author}
-                filters={filters}
-            />
-        </>
+            <div className="border border-primary bg-card p-4">
+                <BlogMainPage
+                    username={author}
+                    filters={filters}
+                />
+            </div>
+        </div>
     );
 }
