@@ -37,7 +37,7 @@ export const getPostBySlug = cache(
             return envelope.data;
         } catch (error) {
             // A missing slug is a 404, not a crash: relative image refs in post
-            // bodies (`![](x.png)`) resolve to /blog/@user/x.png and land here.
+            // bodies (`![](x.png)`) resolve to legacy /blog/(at)user/x.png and land here.
             if (error instanceof ApiError && error.status === 404) notFound();
             logServerError('Failed to fetch a post', error, { slug });
             throw new Error(`Failed to fetch a post: ${slug}`);

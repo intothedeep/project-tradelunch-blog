@@ -1,5 +1,11 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
-import type { NextRequest } from 'next/server';
+import {
+    NextResponse,
+    type NextFetchEvent,
+    type NextRequest,
+} from 'next/server';
+import { DEFAULT_BLOG_AUTHOR } from '@/env.schema';
+import { legacyRedirectPath } from '@/utils/legacyRedirect';
 
 // Routes that require an authenticated user.
 const isProtectedRoute = createRouteMatcher([
@@ -59,7 +65,7 @@ function toRequestLogLine(req: NextRequest) {
     };
 }
 
-export default clerkMiddleware(async (auth, req) => {
+const clerk = clerkMiddleware(async (auth, req) => {
     // On in every environment like blog-api's pino; LOG_REQUESTS=false silences a noisy local session.
     // Runtime-only switch: it does not change build output, so it stays out of turbo.json.
     // eslint-disable-next-line turbo/no-undeclared-env-vars
@@ -74,6 +80,26 @@ export default clerkMiddleware(async (auth, req) => {
         await auth.protect();
     }
 });
+
+// Legacy URLs 308 BEFORE Clerk, so the response carries no Set-Cookie or Clerk
+// headers and Cloudflare may store it. The s-maxage matches the HTML edge TTL
+// (deploy/traffic/README.md "web cache"). Query string kept; not request-logged.
+export default function proxy(req: NextRequest, event: NextFetchEvent) {
+    if (req.method === 'GET' || req.method === 'HEAD') {
+        const to = legacyRedirectPath(
+            req.nextUrl.pathname,
+            DEFAULT_BLOG_AUTHOR
+        );
+        if (to) {
+            const url = req.nextUrl.clone();
+            url.pathname = to;
+            const res = NextResponse.redirect(url, 308);
+            res.headers.set('Cache-Control', 'public, s-maxage=86400');
+            return res;
+        }
+    }
+    return clerk(req, event);
+}
 
 export const config = {
     matcher: [

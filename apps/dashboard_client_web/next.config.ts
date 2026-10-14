@@ -1,5 +1,4 @@
-import { API_BASE, CDN_ASSETS, DEFAULT_BLOG_AUTHOR } from '@/env.schema';
-import { aboutPath, resumePath } from './utils/routes';
+import { API_BASE, CDN_ASSETS } from '@/env.schema';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
 import { fileURLToPath } from 'node:url';
@@ -57,76 +56,9 @@ const nextConfig: NextConfig = {
     // Dev only: the local-with-prod-Clerk host (LOCAL_PROD_API.md, mode C).
     // Without it the dev server blocks HMR from that origin.
     allowedDevOrigins: ['local.prettylog.com'],
-    // Author URLs moved from /blog/@u/... to /@u/... (Phase PJ). 308, query kept.
-    // These run before the Clerk middleware, so the response carries no cookie
-    // and Cloudflare can store it. The bare `/blog` goes to `/` (#81); exact match, so it never catches `/blog/@u`.
-    // The `%40u` and no-`@` forms follow, `@` rules first (app/blog stubs are gone).
-    async redirects() {
-        return [
-            { source: '/blog', destination: '/', permanent: true },
-            {
-                source: '/blog/:handle(@[^/]+)',
-                destination: '/:handle/posts',
-                permanent: true,
-            },
-            {
-                source: '/blog/:handle(@[^/]+)/:slug',
-                destination: '/:handle/:slug',
-                permanent: true,
-            },
-            {
-                source: '/blog/:handle(@[^/]+)/:slug/opengraph-image',
-                destination: '/:handle/:slug/opengraph-image',
-                permanent: true,
-            },
-            {
-                source: '/blog/%40:user',
-                destination: '/@:user/posts',
-                permanent: true,
-            },
-            {
-                source: '/blog/%40:user/:slug',
-                destination: '/@:user/:slug',
-                permanent: true,
-            },
-            {
-                source: '/blog/%40:user/:slug/opengraph-image',
-                destination: '/@:user/:slug/opengraph-image',
-                permanent: true,
-            },
-            {
-                source: '/blog/:user([^@%/][^/]*)',
-                destination: '/@:user/posts',
-                permanent: true,
-            },
-            {
-                source: '/blog/:user([^@%/][^/]*)/:slug',
-                destination: '/@:user/:slug',
-                permanent: true,
-            },
-            {
-                source: '/blog/:user([^@%/][^/]*)/:slug/opengraph-image',
-                destination: '/@:user/:slug/opengraph-image',
-                permanent: true,
-            },
-            // About and Resume are owner pages under the owner handle (PJ-2-01).
-            // No owner configured: no redirect, nothing to point at.
-            ...(DEFAULT_BLOG_AUTHOR
-                ? [
-                      {
-                          source: '/about',
-                          destination: aboutPath(DEFAULT_BLOG_AUTHOR),
-                          permanent: true,
-                      },
-                      {
-                          source: '/resume',
-                          destination: resumePath(DEFAULT_BLOG_AUTHOR),
-                          permanent: true,
-                      },
-                  ]
-                : []),
-        ];
-    },
+    // Legacy author-URL and owner-page redirects live in proxy.ts
+    // (utils/legacyRedirect.ts): `headers()` does not apply to `redirects()`
+    // responses, so only the proxy can make them edge-cacheable.
     images: {
         // Bypass Vercel's image optimizer (2026-09-22, quota outage). Every
         // <Image> was being routed through /_next/image, which re-encodes to
