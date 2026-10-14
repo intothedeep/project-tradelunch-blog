@@ -21,3 +21,9 @@ export function railVisibility(pathname: string): RailVisibility {
         inHandle && HIDE_RECENT_SEGMENTS.some((segment) => segment === section);
     return { showRecent: !hideRecent };
 }
+
+// True on the author feed `/@u/posts` only (not on post detail or other
+// sections). Decoded first so `/%40u/posts` matches too.
+export function isPostsPath(pathname: string): boolean {
+    return /^\/@[^/]+\/posts\/?$/.test(decodeURIComponent(pathname));
+}
