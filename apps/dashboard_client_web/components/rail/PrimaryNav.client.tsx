@@ -51,7 +51,7 @@ function isActivePath(pathname: string, href: string): boolean {
 }
 
 const ITEM_BASE =
-    'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors in-data-[rail=collapsed]:justify-center';
+    'flex items-center gap-3 rounded-none px-3 py-2 text-sm transition-colors in-data-[rail=collapsed]:justify-center';
 
 export const PrimaryNav = () => {
     const pathname = usePathname();
