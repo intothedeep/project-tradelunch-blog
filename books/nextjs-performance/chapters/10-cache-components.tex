@@ -1,14 +1,16 @@
 % chapters/10-cache-components.tex -- cacheComponents 세 단계: U4, U5, U6. 오너 요청으로 따로 설명한다.
 % ONLY sources: cc.design.md §2, §7.2, §8.3, §18, §19; decisions.plan.md #97, #102-#109;
-%   deploy/traffic/review/cc/{u4-verdict,u4-aba-verdict,u4o-prerender-errors,criteria,00.runs}.md; 00.tasks.md CC-U5, CC-U6.
-% Numbers are copied. U5 has no speed number yet: it is written as "기록 없음".
+%   deploy/traffic/review/cc/{u4-verdict,u4-aba-verdict,u4o-prerender-errors,u5-ab,criteria,00.runs}.md; 00.tasks.md CC-U5, CC-U6;
+%   decisions.plan.md #110, #111 (2026-10-14 final state: U5 dropped, Phase CC closed, G-CC missed).
+% Numbers are copied. U5 A-B numbers come from u5-ab.md.
 \chapter{cacheComponents 세 단계: U4, U5, U6}\label{ch:cc3}
 
-% src: decisions.plan.md #106, #107, #109; u4o-prerender-errors.md
+% src: decisions.plan.md #106, #109, #110, #111; u4o-prerender-errors.md; u5-ab.md
 \paragraph{결과.}
-U4는 운영에 있다. 속도 판정 없이 오너 결정으로 두었고 G-a 가드는 통과했다.
-U5는 branch \code{cc-u5}에 만들었지만 배포도 측정도 아직이다. 속도 숫자는 기록 없음이다.
-U6은 오너가 뺐다. 1일 지연을 받아들이고 급하면 Cloudflare purge를 손으로 한다.
+U4만 운영에 있다. 속도 판정 없이 오너 결정으로 두었고 G-a 가드는 통과했다.
+U5는 측정했고 뺐다. MISS TTFB가 302에서 316 ms로 14 ms 느렸고 \code{Connection closed.} 오류가 43번 났다(\decision{110}, \decision{111}).
+U6도 뺐다. 1일 지연을 받아들이고 급하면 Cloudflare purge를 손으로 한다.
+Phase CC는 닫혔고 G-CC는 미달이다(\decision{111}).
 
 \begin{table}[H]
   \caption{세 단계의 현재 상태.}
@@ -20,19 +22,19 @@ U6은 오너가 뺐다. 1일 지연을 받아들이고 급하면 Cloudflare purg
     \midrule
     U4 & \code{cacheComponents} 켜기, proxy의 진짜 404 gate & 운영 \code{181e6ed}. 속도 판정 없음 (\decision{106}) \\
     \midrule
-    U5 & token 없는 읽기 3개에 \code{'use cache'} & branch \code{cc-u5}. 배포 전, 측정 전 \\
+    U5 & token 없는 읽기 3개에 \code{'use cache'} & 뺌 (\decision{111}). 302 $\to$ 316\,ms, 참고선 50\,ms 미달 \\
     \midrule
     U6 & revalidate route, purge 순서, \code{updateTag} & 뺌 (\decision{109}) \\
     \bottomrule
   \end{tabularx}
-  % src: decisions.plan.md #106, #107, #109; u4o-prerender-errors.md
+  % src: decisions.plan.md #106, #109, #111; u4o-prerender-errors.md; u5-ab.md
 \end{table}
 
 \begin{inbrief}
   \item[Why] 로그인 이동과 서버 렌더가 매번 오리진까지 가는 구조를 줄이려고 한다.
   \item[When] 요청이 Next까지 올 때다. Cloudflare 엣지가 답하는 요청은 해당하지 않는다.
   \item[Where] Next의 shell, Suspense 구멍, \code{'use cache'} 읽기다.
-  \item[How] U4가 static shell을 만들고, U5가 공개 읽기를 캐시하고, U6이 무효화를 맡을 예정이었다.
+  \item[How] U4가 static shell을 만들고, U5가 공개 읽기를 캐시하고, U6이 무효화를 맡을 예정이었다. 운영에는 U4만 남았다.
 \end{inbrief}
 
 \section{요청 경로 한눈에}\label{sec:cc3-path}
@@ -50,7 +52,7 @@ U6은 오너가 뺐다. 1일 지연을 받아들이고 급하면 Cloudflare purg
     \node[vmbox, minimum width=2.4cm] (px) at (7.4,0) {Next \texttt{proxy.ts}\\존재 검사 gate\\(U4)};
     \node[flownew, minimum width=2.6cm] (sh) at (11.4,1.5) {static shell\\prefetch됨 (U4)};
     \node[flownew, minimum width=2.6cm] (ho) at (11.4,0) {Suspense 구멍\\token 읽기, 요청마다 (U4)};
-    \node[flownew, minimum width=2.6cm] (uc) at (11.4,-1.5) {\texttt{'use cache'}\\tags, tree, projects (U5)};
+    \node[flownew, minimum width=2.6cm] (uc) at (11.4,-1.5) {\texttt{'use cache'}\\tags, tree, projects (U5, 뺌)};
     \node[dbbox, minimum width=2.4cm] (ex) at (15.4,0) {Express / DB\\(\texttt{blog-api.})};
     \draw[flowarrow] (br) -- (cf);
     \draw[flowarrow] (cf) -- node[lbl, above] {MISS} (px);
@@ -121,8 +123,9 @@ static shell을 prefetch하고 cache하면 이 왕복이 줄 것으로 기대했
 % src: u4-verdict.md §2.3, §3; u4-aba-verdict.md §0
 
 \paragraph{왜 중요한가.}
-이 단위가 G-CC의 판정 단위였다. U5와 U6은 flag가 켜져 있어야 돈다(\decision{102}).
-% src: decisions.plan.md #100, #102 Consequences (2)
+이 단위가 G-CC의 판정 단위였다. 주 지표 판정이 없어 G-CC는 미달로 닫혔다(\decision{105}, \decision{111}).
+U5와 U6은 flag가 켜져 있어야 돈다(\decision{102}).
+% src: decisions.plan.md #100, #102 Consequences (2), #105, #111
 
 \paragraph{지금 상태.}
 \begin{table}[H]
@@ -196,13 +199,14 @@ static shell을 prefetch하고 cache하면 이 왕복이 줄 것으로 기대했
   \item Next가 \code{cacheTag}로 묶은 안쪽 캐시를 먼저 본다. 있으면 \code{blog-api.}를 부르지 않는다.
   \item 없으면 지금처럼 읽고 그 결과를 \code{cacheLife('hours')} 동안 둔다.
 \end{enumerate}
-측정도 같은 시간대에서 비교한다(\decision{107}). C1(U4 \code{f76c1d9}), T(U5), C2(U4)를 한 시간 묶음으로 돌고 블록마다 3 run이다.
+처음에는 같은 시간대에서 C1, T, C2 세 블록으로 비교하려 했다(\decision{107}).
+오너가 세 단계는 필요 없다고 해서 두 블록(C, T)으로 바꿨다(\decision{110}).
 \begin{align*}
-  &d=|m(C1)-m(C2)|\le 0.10\,\tilde c && \text{유효 조건}\\
-  &\tilde c-m(T)\ge \max(2d,\ 0.10\,\tilde c,\ 50\,\text{ms}) && \text{통과 조건}
+  &\max(0.10\times 302,\ 50) = 50 && \text{참고선 (ms), C 중앙값 302}
 \end{align*}
+C2가 없어 흔들림을 가르지 못한다. 그래서 결과는 참고이고 유지 여부는 오너가 정한다(\decision{110}).
 가드에는 VM 메모리(G-i, 80 \%\,미만)가 특히 든다. 안쪽 캐시가 메모리에 있기 때문이다.
-% src: cc.design.md §2 (in-memory LRU), 00.tasks.md CC-U5 (G-i); decisions.plan.md #107 (2)
+% src: cc.design.md §2 (in-memory LRU), 00.tasks.md CC-U5 (G-i); decisions.plan.md #107 (2), #110
 
 \paragraph{언제 효과가 있나, 없나.}
 \begin{itemize}[nosep]
@@ -217,10 +221,34 @@ static shell을 prefetch하고 cache하면 이 왕복이 줄 것으로 기대했
 익명 MISS 렌더가 이 읽기에 기대는 시간을 줄이는 것이 목표다. 감사 밖의 CC 계획 항목이다(닫는 감사 항목 없음).
 % src: 00.tasks.md CC-U5 "닫는 감사 항목: 없음"
 
-\paragraph{지금 상태.}
-branch \code{cc-u5}에 만들었다. 배포도 측정도 아직이다. 속도 숫자는 기록 없음이다.
-U4에 \code{unstable_rethrow}를 먼저 넣은 것은 A-B-A의 C와 T가 U5 하나만 다르게 하려는 것이다(\decision{108}).
-% src: decisions.plan.md #107, #108 (2), #109 (branch cc-u5)
+\paragraph{결과: 뺐다.}
+\begin{table}[H]
+  \caption{U5 A-B 측정. MISS TTFB p50, 익명 (ms). C는 U4 \texttt{181e6ed}, T는 U5 \texttt{b30d03a}.}
+  \label{tab:cc3-u5-ab}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{1.2cm} L{3.6cm} Y@{}}
+    \toprule
+    블록 & run별 p50 (ms) & 중앙값 (ms) \\
+    \midrule
+    C & 472 / 302 / 263 & 302 \\
+    \midrule
+    T & 283 / 343 / 316 & 316 \\
+    \bottomrule
+  \end{tabularx}
+  % src: u5-ab.md table
+\end{table}
+T가 C보다 14 ms 느렸다. 참고선 50 ms에 못 미친다.
+T를 올린 동안 \code{blog-web} 오류 로그가 855줄에서 1134줄로 늘었다.
+\code{Error: Connection closed.}가 43번이고 digest는 \code{978306872}다.
+route는 \code{/[handle]/projects}와 \code{/[handle]/projects/[project]}(render)이고 응답 status는 200이었다.
+원인은 확인하지 못했다. 후보는 \code{'use cache'} 안의 값 직렬화, \code{cache()} 안의 \code{'use cache'}, tree 경로의 \code{clientRequest}다.
+18:39:18 UTC에 U4 \code{181e6ed}로 되돌리고 purge했다. 되돌린 뒤 smoke에서 새 줄은 0이었다.
+% src: u5-ab.md "오류", table
+오너가 U5를 빼기로 했다. 이유는 속도 이득의 근거가 없고, 익명 대부분이 엣지 HIT라는 것이다(\decision{111}).
+branch \code{cc-u5}는 보관하고 main에는 없다. CC-U5는 닫았다.
+Phase CC는 U4만 운영에 두고 닫혔고 G-CC는 미달이다. 다음은 P2이고 그 뒤 Alpha Arena 방식이다(\decision{108}, \decision{111}).
+U4에 \code{unstable_rethrow}를 먼저 넣은 것은 C와 T가 U5 하나만 다르게 하려는 것이었다(\decision{108}).
+% src: decisions.plan.md #108 (2), #111 (Why, Rejected, Consequences); u5-ab.md
 
 \section{U6: 무효화는 뺐다}\label{sec:cc3-u6}
 
@@ -280,3 +308,119 @@ M-CC3 exit에서 U6의 정확성 판정 항목이 빠졌다. U6 행은 오너 �
 
 \paragraph{지금 상태.}
 뺌(\decision{109}). 판정은 없다.
+
+\section{캐시 층 지도: 누가 어디서 무엇을 기억하나}\label{sec:cc3-map}
+
+\paragraph{결과.}
+React \code{cache()}와 React Query는 같지 않다. 서로를 대신하지 못한다.
+\code{cache()}는 서버에서 렌더 하나 동안만 기억한다. React Query는 브라우저에서 탭이 열려 있는 동안 기억한다.
+요청 사이에 서버가 값을 나누는 캐시는 \code{'use cache'}였고 U5와 함께 뺐다(\decision{111}).
+% src: decisions.plan.md #111; 사용자 요청 2026-10-14 (캐시 층 지도)
+
+\begin{inbrief}
+  \item[Why] 캐시가 여럿이라 어느 층이 무엇을 막는지 헷갈린다. 층마다 자리와 수명을 한 표에 놓는다.
+  \item[When] 같은 데이터를 두 번 받는 것을 발견했을 때다. 어느 층이 맡을 일인지 먼저 정한다.
+  \item[Where] 브라우저, Cloudflare 엣지, Next 서버, Express 네 칸이다.
+  \item[How] 층 표, 비교 표, 요청 경로 그림, 글 상세 페이지를 여는 예 순서로 읽는다.
+\end{inbrief}
+
+\paragraph{무엇을 알려고 쓰나.}
+이 사이트의 캐시 층이 지금 무엇이고, 같은 데이터 중복을 어느 층이 막는가.
+
+\begin{table}[H]
+  \caption{이 사이트의 캐시 층 (2026/10/14 기준).}
+  \label{tab:cc3-layers}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{3.2cm} L{2.2cm} L{2.6cm} L{1.4cm} Y@{}}
+    \toprule
+    층 & 어디서 도나 & 얼마나 기억하나 & 쓰나 & 비고 \\
+    \midrule
+    Cloudflare 엣지 캐시 & 엣지 & 1일, 익명 HTML & 쓴다 & 수정은 손 purge (\decision{109}) \\
+    \midrule
+    Next \code{'use cache'} (U5) & Next 서버 & \code{cacheLife('hours')} & 안 쓴다 & 뺌 (\decision{111}) \\
+    \midrule
+    Next client router cache & 브라우저 (Next) & 30초 & 쓴다 & \code{staleTimes.dynamic = 30}, U2, \code{next.config.ts} \\
+    \midrule
+    React \code{cache()} & Next 서버 & 요청 하나 (렌더 하나) & 쓴다 & 같은 렌더 안 중복만 막는다. QW1 \\
+    \midrule
+    TanStack React Query & 브라우저 & 탭마다, \code{staleTime} 동안 & 쓴다 & 기본 \code{staleTime} 60초 (\code{ReactQueryProvider.client.tsx}) \\
+    \bottomrule
+  \end{tabularx}
+  % src: decisions.plan.md #109, #111; cc.report.md U2 (staleTimes dynamic 30); next.config.ts line 59; components/providers/ReactQueryProvider.client.tsx line 18; 이 장 \Cref{fig:cc3-path} (엣지 1일)
+\end{table}
+
+\begin{table}[H]
+  \caption{React \texttt{cache()}와 React Query 비교.}
+  \label{tab:cc3-cache-vs-rq}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{2.6cm} Y Y@{}}
+    \toprule
+    칸 & React \code{cache()} & React Query \\
+    \midrule
+    어디서 도나 & Next 서버, server component & 브라우저, \code{"use client"} \\
+    \midrule
+    얼마나 기억하나 & 서버 렌더 한 번 & 탭이 열려 있는 동안 (\code{staleTime} 안) \\
+    \midrule
+    무엇을 막나 & 한 렌더 안의 같은 fetch 중복 & 화면을 옮길 때 다시 받는 일 \\
+    \midrule
+    이 repo에서 어디에 & \code{apis/} 파일 9개 (\code{import \{ cache}) & 파일 33개: \code{hooks} 31, \code{components} 2, \code{app} 0 \\
+    \midrule
+    왜 넣었나 & QW1: 서버 fetch 19 $\to$ 13, 이후 12 (\code{cc.report.md}) & 루트 \code{CLAUDE.md}: 클라이언트 fetch는 TanStack Query hook으로 한다 \\
+    \bottomrule
+  \end{tabularx}
+  % src: grep 2026-10-14 apps/dashboard_client_web/apis (import { cache: 9 files); grep useQuery|useInfiniteQuery|useMutation in hooks 31, components 2, app 0 = 33; cc.report.md QW1 19->13, U2 12; root CLAUDE.md "Client fetching goes through TanStack Query hooks"
+\end{table}
+두 개수는 2026/10/14에 \code{grep}으로 센 값이다. 저장된 run 산출물이 아니다.
+
+\begin{figure}[H]
+  \centering
+  \resizebox{\linewidth}{!}{%
+  \begin{tikzpicture}[font=\scriptsize]
+    \node[flowbox, minimum width=3.4cm] (br) at (0,0) {브라우저\\React Query (탭마다)\\router cache 30\,s};
+    \node[cfbox, minimum width=3.2cm] (cf) at (5.0,0) {Cloudflare 엣지\\익명 HTML 1일\\손 purge};
+    \node[vmbox, minimum width=3.6cm] (nx) at (10.0,0) {Next 서버\\React \texttt{cache()} (요청 하나)\\\texttt{'use cache'} 없음};
+    \node[dbbox, minimum width=2.6cm] (ex) at (14.8,0) {Express / DB\\(\texttt{blog-api.})};
+    \draw[flowarrow] (br) -- (cf);
+    \draw[flowarrow] (cf) -- node[lbl, above] {MISS} (nx);
+    \draw[flowarrow] (nx) -- (ex);
+  \end{tikzpicture}}
+  \caption{요청 경로와 캐시 층. 왼쪽 두 층은 요청 앞에서, \texttt{cache()}는 렌더 안에서 중복을 막는다.}
+  \label{fig:cc3-layers}
+  % src: 이 장 \Cref{fig:cc3-path}; decisions.plan.md #111; 사용자 요청 2026-10-14
+\end{figure}
+
+\paragraph{어떻게.}
+글 상세 페이지를 여는 예다.
+\begin{enumerate}[nosep]
+  \item 독자가 글 상세를 연다. 엣지가 MISS면 요청이 Next 서버까지 온다.
+  \item 서버가 렌더한다. layout, \code{generateMetadata}, rail이 \code{getUserProfile}을 여러 번 부른다.
+  \item \code{cache()}가 같은 인자의 호출을 하나로 묶는다. Express 호출은 1번이다. 글 상세 MISS 렌더의 서버 fetch는 모두 4개다(U2 이후 기록, \code{cc.report.md}).
+  \item 렌더가 끝나면 \code{cache()}는 비워진다. 다음 요청은 다시 읽는다. 요청 사이에 서버가 값을 나누는 층은 지금 없다.
+  \item 로그인한 독자의 브라우저에서 client component가 \code{useMe}를 부른다. React Query가 값을 받아 키 \code{['users', 'me']}에 둔다.
+  \item 독자가 다른 화면에 갔다가 돌아온다. 같은 키의 값이 \code{staleTime} 안이면 React Query는 다시 받지 않는다.
+  \item 같은 링크를 30초 안에 다시 누르면 router cache(\code{staleTimes.dynamic = 30})가 앞의 RSC 결과를 다시 쓴다.
+\end{enumerate}
+% src: apis/getUserProfile.api.ts 주석 (layout, generateMetadata, rails read several times per request; dedupe by value); hooks/useMe.query.client.ts (queryKey users,me); cc.report.md U2 (서버 fetch 12 = home 3, posts 5, post 4; staleTimes dynamic 30); 사용자 요청 2026-10-14
+
+\paragraph{읽는 법.}
+\begin{table}[H]
+  \caption{같은 데이터를 두 번 받을 때 맡을 층.}
+  \label{tab:cc3-read}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{5.0cm} Y@{}}
+    \toprule
+    경우 & 맡는 층 \\
+    \midrule
+    한 서버 렌더 안에서 같은 읽기가 여러 번 나온다 & React \code{cache()} \\
+    \midrule
+    브라우저에서 화면을 옮기면 같은 데이터를 다시 받는다 & React Query, 이동 결과는 router cache \\
+    \midrule
+    익명 독자의 같은 페이지가 반복된다 & Cloudflare 엣지 캐시 \\
+    \midrule
+    서로 다른 요청이 서버에서 같은 읽기를 나눠 쓴다 & 맡는 층이 없다. \code{'use cache'}가 맡을 뻔했고 뺐다 \\
+    \bottomrule
+  \end{tabularx}
+  % src: decisions.plan.md #111; 위 두 표
+\end{table}
+둘은 서로를 대신하지 않는다. 자리(서버, 브라우저)와 수명(렌더 하나, 탭)이 다르기 때문이다.
+요청 사이에 서버가 나누는 캐시는 \code{'use cache'}뿐이었고 U5와 함께 뺐다.

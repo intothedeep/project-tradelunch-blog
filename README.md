@@ -117,7 +117,7 @@ pnpm --filter dashboard_client_web exec next dev --turbopack -p 443 -H 0.0.0.0 -
 - [`log.plan.md`](./log.plan.md) — Log phases (Y, Y-TD, Y M2)
 - [`decisions.plan.md`](./decisions.plan.md) — resolved architecture decisions
 - [`gcp.design.md`](./gcp.design.md) — Vercel → GCP hosting design (draft)
-- [`cc.design.md`](./cc.design.md) / [`cc.report.md`](./cc.report.md) — Phase CC (cache and cost): route groups, perf measurement. `cacheComponents` is OFF in production. See the [web README](./apps/dashboard_client_web/README.md#app-layout-route-groups).
+- [`cc.design.md`](./cc.design.md) / [`cc.report.md`](./cc.report.md) — Phase CC (cache and cost, closed 2026-10-14): route groups, perf measurement. `cacheComponents` is ON in production (U4, `181e6ed`). Unknown pages get a real 404 from the proxy gate (`proxy.ts`, `utils/notFoundGate.ts`, `apis/existence.proxy.ts`). Server fetcher `catch` blocks call `unstable_rethrow` first (runtime prerender). Cloudflare limit is 70 / 10 s. Purge is manual, staleness up to 1 day. See the [web README](./apps/dashboard_client_web/README.md#cachecomponents-is-on-in-production-u4).
 - [`.claude/`](./.claude/) — agent harness: engineering principles and rules
 
 ---

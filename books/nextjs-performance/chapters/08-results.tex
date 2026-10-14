@@ -1,6 +1,7 @@
 % chapters/08-results.tex -- Phase CC에서 이 사이트에 실제로 잰 결과. 단위마다 여섯 칸.
 % ONLY sources: cc.report.md, deploy/traffic/review/cc/{criteria,00.runs,u1-verdict,u4-verdict,u4-preview}.md,
-%   deploy/traffic/review/cc/u4-recover/diagnosis-{architect,data}.md, cc.design.md, decisions.plan.md #82-#103, perf.audit.md.
+%   deploy/traffic/review/cc/u4-recover/diagnosis-{architect,data}.md, cc.design.md, decisions.plan.md #82-#111, perf.audit.md,
+%   deploy/traffic/review/cc/{u4-aba-verdict,u4o-prerender-errors,u5-ab}.md (final state 2026-10-14).
 % Numbers are copied, never derived. A missing number is written "기록 없음".
 \chapter{Phase CC 결과}\label{ch:results}
 
@@ -10,7 +11,8 @@
 사전 등록(pre-registration) 판정이 난 단위는 다섯이다.
 통과는 QW1, U2, U7이다. 실패는 U3와 U4다.
 QW2는 판정이 미완이고 U1은 판정 불가다.
-U5와 U6은 U4에 막혀 있었다. U5는 \decision{106}으로 진행하며 결과가 아직 없다. U6은 \decision{109}로 뺐다.
+U5와 U6은 U4에 막혀 있었다. U5는 \decision{106}으로 진행해 측정했고 참고선 50 ms에 못 미쳐 뺐다(302 $\to$ 316 ms, \decision{111}). U6은 \decision{109}로 뺐다.
+운영에는 U4 \code{181e6ed}만 남았다. Phase CC는 닫혔고 G-CC는 미달이다(주 지표 판정 없음, \decision{111}).
 
 \begin{table}[H]
   \caption{Phase CC 단위별 판정. 배포 sha와 한 줄 결과.}
@@ -36,12 +38,16 @@ U5와 U6은 U4에 막혀 있었다. U5는 \decision{106}으로 진행하며 결�
     \midrule
     U4 A-B-A & \texttt{7977436} & 판정 없음 (무효) & 가드 G-a, G-b 통과 \\
     \midrule
-    U5, U6 & 없음 & 막힘 & U4가 먼저다 \\
+    U4 운영 & \texttt{181e6ed} & 판정 없이 유지 (\decision{106}) & G-a 로그인 50 / 53 / 50 (한도 60) \\
+    \midrule
+    U5 & \texttt{b30d03a} & 참고선 미달, 뺌 & MISS TTFB 302 $\to$ 316\,ms \\
+    \midrule
+    U6 & 없음 & 뺌 (\decision{109}) & 1일 지연, 손 purge \\
     \midrule
     U7 & \texttt{964c9f8} & 통과 & \texttt{my.} load-more 요청 12 $\to$ 0 \\
     \bottomrule
   \end{tabularx}
-  % src: cc.report.md MVP1 summary table, MVP2 summary, MVP3
+  % src: cc.report.md MVP1 summary table, MVP2 summary, MVP3; u4o-prerender-errors.md "U4 가드 run"; u5-ab.md; decisions.plan.md #106, #109, #111
 \end{table}
 % src: cc.report.md MVP2 intro: 배포 sha 535b931, 7b4a138, 7b1d1c9는 dispatch 기록이다 (00.runs.md §1 note)
 
@@ -808,17 +814,20 @@ W4가 메뉴 링크를 hover하지 않아서 hover 전용 build의 G-b는 구성
 
 \paragraph{지금 상태.}
 recovery 2/2 approach는 K2(검증된 산출물 없음)로 멈췄다. 다음은 K4였고 오너가 \decision{106}으로 풀었다.
-CC-U4는 열린 채이고 무효로 기록한다. U5와 U6은 막힌 채다.
+CC-U4는 무효로 기록했다. 이때 U5와 U6은 막힌 채였다.
 T build는 branch \code{cc-u4-t}에 있고 main에 없다.
 오늘 안에 통과하지 못해 G-CC는 미달로 닫혔다(\decision{103}, \decision{105}).
+그 뒤 오너가 \decision{106}으로 U4를 판정 없이 운영에 두었다(다음 절).
 % src: decisions.plan.md #105, #103 (2)
 
 \subsection{결정 \#106: 속도 판정 없이 운영에 둔다}\label{sec:re-u4-o}
 
 \paragraph{결과.}
 오너가 U4를 속도 판정 없이 운영에 두기로 했다(K4 해제). 배포는 \code{f76c1d9}이다(\decision{106}, \decision{108}).
-배포 뒤 route 표 15개는 200이 7개, 404가 8개였다. G-a 측정 결과는 \textbf{측정 중}이다(run이 진행 중이라 값 없음).
-% src: decisions.plan.md #106, #108 (1); u4o-prerender-errors.md "배포와 확인"
+배포 뒤 route 표 15개는 200이 7개, 404가 8개였다.
+G-a 가드 run은 통과다. 로그인 10초 최대 요청이 50 / 53 / 50이고 한도는 60 이하다. 익명은 36 / 36 / 36이고 hydration 오류는 0이다.
+링크당 prefetch 최댓값은 로그인 6 / 6 / 5, 익명 6이다(기록만). 주 지표는 판정하지 않는다(\decision{106}, 흔들림).
+% src: decisions.plan.md #106, #108 (1); u4o-prerender-errors.md "배포와 확인", "U4 가드 run"; 00.runs.md row 29
 
 \paragraph{무엇이 바뀌었나.}
 \begin{table}[H]
@@ -859,34 +868,60 @@ U5와 U6도 지금 진행한다.
 \end{itemize}
 % src: u4o-prerender-errors.md "배포와 확인"
 
-\section{U5와 U6: 막힘과 뺌}\label{sec:re-u56}
+\section{U5와 U6: 둘 다 뺐다}\label{sec:re-u56}
 
 \paragraph{결과.}
-둘 다 flag를 켜야 도는데 U4가 정지해 막혔다(\decision{102}). 오너가 \decision{106}으로 U5를 진행하기로 했고, \decision{109}가 U6을 뺐다. U5 판정 결과는 기록 없음이다. 자세한 설명은 \Cref{ch:cc3}에 있다.
+둘 다 flag를 켜야 도는데 U4가 정지해 막혔다(\decision{102}). 오너가 \decision{106}으로 U5를 진행하기로 했다.
+U5는 MISS TTFB가 302에서 316 ms로 14 ms 느렸고 참고선 50 ms에 못 미쳤다(\decision{110}).
+U5 build에서 \code{Connection closed.} 오류가 43번 났다. 오너가 U5를 뺐다(\decision{111}).
+\decision{109}가 U6을 뺐다. Phase CC는 U4만 운영에 두고 닫혔고 G-CC는 미달이다.
+자세한 설명은 \Cref{ch:cc3}에 있다.
+% src: decisions.plan.md #109, #110, #111; u5-ab.md
 \begin{table}[H]
-  \caption{U5, U6의 사전 등록 판정. 시작 전이다.}
+  \caption{U5, U6의 사전 등록 판정과 결과.}
   \label{tab:re-u56}
   \centering\small
   \begin{tabularx}{\linewidth}{@{}L{1.2cm} Y L{3.6cm}@{}}
     \toprule
     단위 & 내용 & 판정 \\
     \midrule
-    U5 & \code{'use cache'} 3개 (TagCloud, tree, projects) & MISS TTFB. 판정선 $\max(70\times 2,\ 50)=140$\,ms \\
+    U5 & \code{'use cache'} 3개 (TagCloud, tree, projects) & MISS TTFB. 302 $\to$ 316\,ms, 참고선 50\,ms 미달. 뺌 (\decision{111}) \\
     \midrule
     U6 & \code{/api/revalidate}와 purge & 뺌 (\decision{109}). 판정 없음 \\
     \bottomrule
   \end{tabularx}
-  % src: criteria.md §1 U5, U6 rows; cc.design.md §7
+  % src: criteria.md §1 U5, U6 rows; cc.design.md §7; u5-ab.md; decisions.plan.md #109, #111
 \end{table}
 
-\paragraph{U5의 측정 방법(결정 \#107).}
-U5도 흔들림을 피하려고 A-B-A 규칙을 쓴다(사전 등록, run 전).
-지표는 \code{criteria.md} U5 행 그대로다(MISS TTFB p50). 비교만 바뀐다.
-U0b 기준(263 ms)은 시간대가 달라서 쓰지 않는다.
-C1(U4 \code{f76c1d9}), T(U5 build), C2(U4)를 한 시간 묶음으로 돌리고 블록마다 3 run이다.
-유효 조건은 $d\le 0.10\,\tilde c$다. 통과는 $\tilde c-m(T)\ge\max(2d,\ 0.10\,\tilde c,\ 50\,\text{ms})$이고 $m(T)<\min(m(C1),m(C2))$다.
-그 밖은 미달이고 U5 지시문을 되돌린다. 측정 결과는 기록 없음이다.
-% src: decisions.plan.md #107 (2)
+\paragraph{U5의 측정 방법(결정 \#110).}
+처음에는 A-B-A 세 블록으로 재려 했다(\decision{107}). 오너가 세 단계는 필요 없다고 해서 A-B 두 블록으로 바꿨다(\decision{110}).
+지표는 \code{criteria.md} U5 행 그대로다(MISS TTFB, 익명, \code{cc-measure.mjs --only miss}, 블록당 3 run).
+run마다 \code{/}, \code{/@taeklim/projects}, \code{/@taeklim/<S>} 원값 9개의 p50을 잡고, run 3개의 중앙값을 블록 값으로 쓴다.
+C는 운영 U4 \code{181e6ed}이고 T는 U5 \code{b30d03a}다.
+참고선은 $\max(0.10\times 302,\ 50)=50$\,ms다. C2가 없어 흔들림을 가르지 못해 결과는 참고다.
+% src: decisions.plan.md #110; u5-ab.md header and 참고선
+
+\begin{table}[H]
+  \caption{U5 A-B 결과. MISS TTFB p50 (ms).}
+  \label{tab:re-u5-ab}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{1.2cm} L{3.6cm} L{2.4cm} Y@{}}
+    \toprule
+    블록 & run별 p50 (ms) & 중앙값 (ms) & 시각 (UTC) \\
+    \midrule
+    C (U4) & 472 / 302 / 263 & 302 & 18:36--18:37 \\
+    \midrule
+    T (U5) & 283 / 343 / 316 & 316 & 18:37--18:38 \\
+    \bottomrule
+  \end{tabularx}
+  % src: u5-ab.md table
+\end{table}
+T가 C보다 14 ms 느리다. 참고선 50 ms에 못 미친다.
+T 동안 \code{blog-web} 오류 로그가 855줄에서 1134줄로 늘었다. \code{Error: Connection closed.}가 43번(digest \code{978306872})이다.
+route는 \code{/[handle]/projects}와 \code{/[handle]/projects/[project]}이고 응답 status는 200이다. 원인은 미확인이다.
+18:39:18 UTC에 U4 \code{181e6ed}로 되돌렸고, 되돌린 뒤 smoke의 새 줄은 0이었다.
+\decision{111}은 원인을 고친 뒤 다시 재는 안을 버렸다. 속도 이득의 근거가 없고 익명 대부분이 엣지 HIT이기 때문이다.
+% src: u5-ab.md "오류"; decisions.plan.md #111 Rejected
 
 \section{U7: load-more를 blog-api로}\label{sec:re-u7}
 

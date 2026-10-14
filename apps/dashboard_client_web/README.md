@@ -108,19 +108,45 @@ gh workflow run cc-build.yml
 
 - Output folder: `deploy/traffic/review/cc/runs/<time>_<unit>_<tag>_<websha7>/`.
   It holds `raw.jsonl`, `manifest.json`, `summary.csv` and copies of the scripts.
-- Pace: requests at least 1 s apart, so the Cloudflare limit (50 requests per 10 s, decision #68) stays far away.
+- Pace: requests at least 1 s apart, so the Cloudflare limit (70 requests per 10 s since decision #106, was 50 in decision #68) stays far away.
 - `cc-measure.mjs` has no browser. Its bytes are full-tree RSC bytes. Never compare them with browser bytes.
 - Harness v2 (2026-10-14): the browser script records bytes in the order `body()`, `request.sizes()`, `content-length`.
   It leaves a byte sum empty when a size is unknown. It adds a W1 warmup per run.
   Runs from before v2 use another byte definition. Ledger: [`_scripts/perf/CHANGELOG.md`](../../_scripts/perf/CHANGELOG.md).
 - Verdicts and run ledger: `deploy/traffic/review/cc/`.
 
-## cacheComponents is OFF in production
+## cacheComponents is ON in production (U4)
 
-- `next.config.ts` does not set `cacheComponents`. The production build is unchanged.
-- U4 (turn it on) was tried twice and reverted. The signed-in main metric went from 329 to 434 ms.
-  Guard G-a (requests per 10 s) also failed. Verdict: [`deploy/traffic/review/cc/u4-verdict.md`](../../deploy/traffic/review/cc/u4-verdict.md).
-- `cc-build.yml` turns the flag on inside the runner only, as a preview. It never changes the repo.
+- `next.config.ts` sets `cacheComponents: true`. Production runs U4 `181e6ed`. Phase CC closed 2026-10-14 (decision #111).
+- U4 was tried twice and reverted (signed-in main metric 329 to 434 ms, guard G-a failed).
+  The A-B-A run was invalid (no verdict). The owner kept U4 in production without a speed verdict (decision #106).
+  Verdicts: [`u4-verdict.md`](../../deploy/traffic/review/cc/u4-verdict.md), [`u4-aba-verdict.md`](../../deploy/traffic/review/cc/u4-aba-verdict.md).
+- U5 (`'use cache'` on public reads) was measured and dropped: MISS TTFB 302 to 316 ms, and `Connection closed.` render errors on the projects routes (decision #111).
+  U6 (revalidate route) was dropped (decision #109).
+
+**Real 404 gate (proxy).** With `cacheComponents`, a layout cannot answer 404 after it streams, so the proxy answers it.
+
+| File | Role |
+| --- | --- |
+| `proxy.ts` | runs the gate before render. A missing page is rewritten to a path with no route, so Next answers a real HTTP 404 |
+| `utils/notFoundGate.ts` | pure path classifier: user, project, post, owner-only (`/@u/me`, `/@u/saved`) |
+| `apis/existence.proxy.ts` | existence probe to the API. Only a 404 means missing. Any other status, error or timeout passes (fail-open) |
+
+- Signed-in client navigation is checked too (decision #103). Signed-in prefetch skips the check (decision #106).
+- An unknown top-level path such as `/nope` is a real 404 (attempt 1 returned 500).
+
+**`unstable_rethrow` rule.** In every server fetcher `catch`, call `unstable_rethrow(error)` from `next/navigation` first.
+
+- Why: on a new param path, Next prerenders the static shell at request time (runtime prerender).
+  Uncached fetches hang until the shell is done, then Next rejects them. A `catch` that logs this signal writes a false ERROR.
+- Without the rule: 8 false ERROR lines after deploy (`u4o-prerender-errors.md`). With it: 0 new lines.
+
+**Cache and edge.**
+
+- Cloudflare rate limit is 70 requests per 10 s (decision #106). Guard G-a: at most 60 in 10 s.
+- Purge is manual. A fix can show an old value for up to 1 day (decision #109).
+  If it is urgent, purge the Cloudflare cache by hand.
+- `cc-build.yml` builds with the flag ON inside the runner, to list what must change. It never changes the repo.
 
 ## How to run from scratch for local dev
 
