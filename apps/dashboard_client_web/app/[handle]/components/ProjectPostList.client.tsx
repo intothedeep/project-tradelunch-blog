@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { TProjectPost } from '@repo/types';
 import { ProjectThumbnail } from '@/app/[handle]/components/ProjectThumbnail.server';
+import { HoverPrefetchLink } from '@/components/ui/HoverPrefetchLink.client';
 import { cn } from '@/lib/utils';
 import { formatPostDate } from '@/utils/formatPostDate';
 import { postPath } from '@/utils/routes';
@@ -57,17 +57,15 @@ export const ProjectPostList = ({ username, posts }: Props) => {
                         className="flex flex-col gap-3"
                     >
                         <h2 className="text-xl font-bold sm:text-2xl">
-                            <Link
+                            <HoverPrefetchLink
                                 href={postPath(username, post.slug)}
-                                prefetch={false}
                                 className="hover:underline"
                             >
                                 {order}. {post.title}
-                            </Link>
+                            </HoverPrefetchLink>
                         </h2>
-                        <Link
+                        <HoverPrefetchLink
                             href={postPath(username, post.slug)}
-                            prefetch={false}
                             aria-label={post.title}
                             className="flex flex-col gap-4 border border-border p-4 transition-colors hover:bg-secondary sm:flex-row"
                         >
@@ -84,7 +82,7 @@ export const ProjectPostList = ({ username, posts }: Props) => {
                                     {formatPostDate(post.created_at)}
                                 </span>
                             </span>
-                        </Link>
+                        </HoverPrefetchLink>
                     </li>
                 ))}
             </ol>

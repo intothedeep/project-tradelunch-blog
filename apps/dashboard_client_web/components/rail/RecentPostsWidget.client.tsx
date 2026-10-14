@@ -14,14 +14,19 @@ import { Heart, MessageSquare } from 'lucide-react';
 import { useRecents } from '@/hooks/useRecents.hook';
 import { postPath } from '@/utils/routes';
 import { RailSection } from '@/components/rail/RailSection.client';
+import { RailSectionSkeleton } from '@/components/rail/RailSkeleton';
 
 export const RecentPostsWidget = ({
     popularTagsFallback,
 }: {
     popularTagsFallback?: React.ReactNode;
 }) => {
-    const { recents } = useRecents();
+    const { recents, isLoaded } = useRecents();
     const t = useTranslations('blog');
+
+    // Title and body both depend on the stored value: skeleton until it is read,
+    // so the popular-tags fallback does not flash for viewers who have recents.
+    if (!isLoaded) return <RailSectionSkeleton />;
 
     if (!recents.length) {
         return (

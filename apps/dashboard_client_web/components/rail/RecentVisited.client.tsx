@@ -10,15 +10,18 @@ import { HoverPrefetchLink } from '@/components/ui/HoverPrefetchLink.client';
 import { useTranslations } from 'next-intl';
 import { useRecents } from '@/hooks/useRecents.hook';
 import { RailSection } from '@/components/rail/RailSection.client';
+import { RailRowsSkeleton } from '@/components/rail/RailSkeleton';
 import { postPath } from '@/utils/routes';
 
 export const RecentVisited = () => {
-    const { recents } = useRecents();
+    const { recents, isLoaded } = useRecents();
     const t = useTranslations('blog');
 
     return (
         <RailSection title={t('rail.recentlyViewed')}>
-            {recents.length ? (
+            {!isLoaded ? (
+                <RailRowsSkeleton />
+            ) : recents.length ? (
                 <ul className="flex flex-col gap-1">
                     {recents.slice(0, 8).map((post) => {
                         const href =

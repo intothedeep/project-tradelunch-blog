@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 
+import { FeedListSkeleton } from '@/components/blog/FeedListSkeleton';
 import { RecentPostsList } from '@/components/blog/RecentPostsList.server';
 
 // ============================================================================
@@ -21,7 +22,7 @@ export const BlogMainPage: React.FC<Props> = async ({
 }) => {
     return (
         <section className="relative w-full">
-            <Suspense fallback={<div>Recent Posts Loading...</div>}>
+            <Suspense fallback={<FeedListSkeleton />}>
                 <RecentPostsList
                     username={username}
                     filters={filters}

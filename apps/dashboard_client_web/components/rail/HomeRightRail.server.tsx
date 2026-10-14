@@ -8,6 +8,7 @@ import { Suspense } from 'react';
 import { ProjectsTreeWrapper } from '@/app/[handle]/components/ProjectsTreeWrapper.server';
 import { CategorySidebarWrapper } from '@/components/blog/CategorySidebarWrapper.server';
 import { CategoryErrorBoundary } from '@/components/blog/CategoryErrorboundary.client';
+import { RailCardSkeleton } from '@/components/rail/RailSkeleton';
 import { RecentPostsWidget } from '@/components/rail/RecentPostsWidget.client';
 import { TagCloud } from '@/components/rail/TagCloud.server';
 import { HOME_FEED_AUTHOR } from '@/utils/blog-author';
@@ -17,7 +18,7 @@ export const HomeRightRail = () => {
     return (
         <div className="flex flex-col gap-4">
             <CategoryErrorBoundary>
-                <Suspense fallback={null}>
+                <Suspense fallback={<RailCardSkeleton />}>
                     <ProjectsTreeWrapper
                         username={HOME_FEED_AUTHOR}
                         hideWhenEmpty
@@ -25,7 +26,7 @@ export const HomeRightRail = () => {
                 </Suspense>
             </CategoryErrorBoundary>
             <CategoryErrorBoundary>
-                <Suspense fallback={null}>
+                <Suspense fallback={<RailCardSkeleton rows={4} />}>
                     <CategorySidebarWrapper
                         username={HOME_FEED_AUTHOR}
                         mode="filter"

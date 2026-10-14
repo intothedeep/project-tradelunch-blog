@@ -5,7 +5,7 @@
 // reducer (cap 20, STRING-id move-to-front de-dupe).
 // SSR-safety: state starts EMPTY so the server paint and first client paint
 // agree (no hydration mismatch); the stored value is read in useEffect after
-// mount. Side effects: localStorage read/write (client only).
+// mount (`isLoaded` flips then). Side effects: localStorage read/write (client only).
 
 import { useCallback, useEffect, useState } from 'react';
 import type { TRecentPost } from '@/apis/blog.types';
@@ -27,10 +27,14 @@ const readStored = (): TRecentPost[] => {
 
 export const useRecents = () => {
     const [recents, setRecents] = useState<TRecentPost[]>([]);
+    // false until the stored value was read, so widgets can show a skeleton
+    // instead of the empty state (server and first client paint both false).
+    const [isLoaded, setIsLoaded] = useState(false);
 
     // Hydrate from storage after mount (never during render/SSR).
     useEffect(() => {
         setRecents(readStored());
+        setIsLoaded(true);
     }, []);
 
     const recordRecent = useCallback((post: TRecentPost) => {
@@ -45,7 +49,7 @@ export const useRecents = () => {
         });
     }, []);
 
-    return { recents, recordRecent };
+    return { recents, isLoaded, recordRecent };
 };
 
 export default useRecents;

@@ -40,9 +40,12 @@ const persist = (next: string[]): void => {
 
 export const useSavedTags = () => {
     const [savedTags, setSavedTags] = useState<string[]>([]);
+    // false until the stored value was read (skeleton gate; same on SSR).
+    const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
         setSavedTags(readStored());
+        setIsLoaded(true);
     }, []);
 
     const saveTag = useCallback((tag: string) => {
@@ -66,7 +69,7 @@ export const useSavedTags = () => {
         [savedTags]
     );
 
-    return { savedTags, saveTag, unsaveTag, isSaved };
+    return { savedTags, isLoaded, saveTag, unsaveTag, isSaved };
 };
 
 export default useSavedTags;

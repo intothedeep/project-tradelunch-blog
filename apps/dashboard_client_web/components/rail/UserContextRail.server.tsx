@@ -9,6 +9,10 @@
 import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { UserProfileCard } from '@/components/rail/UserProfileCard.server';
+import {
+    ProfileCardSkeleton,
+    RailCardSkeleton,
+} from '@/components/rail/RailSkeleton';
 import { TagCloud } from '@/components/rail/TagCloud.server';
 import { TagCloudSkeleton } from '@/components/rail/TagCloud.skeleton';
 import { RailSection } from '@/components/rail/RailSection.client';
@@ -21,7 +25,9 @@ export const UserContextRail = async ({ username }: { username: string }) => {
 
     return (
         <div className="flex flex-col gap-4">
-            <UserProfileCard username={username} />
+            <Suspense fallback={<ProfileCardSkeleton />}>
+                <UserProfileCard username={username} />
+            </Suspense>
 
             {/* Post-detail TOC (empty/null on the author feed); sits between the
                 profile card and the category section. */}
@@ -32,7 +38,7 @@ export const UserContextRail = async ({ username }: { username: string }) => {
                 RailSection disclosure, so it reads like the TOC instead of an
                 accordion that hides the tree behind a collapse header. */}
             <CategoryErrorBoundary>
-                <Suspense fallback={null}>
+                <Suspense fallback={<RailCardSkeleton />}>
                     <CategorySidebarWrapper
                         username={username}
                         mode="filter"

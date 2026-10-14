@@ -1,7 +1,7 @@
-import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import type { TProjectCard } from '@repo/types';
 import { Card, CardContent } from '@/components/ui/card';
+import { HoverPrefetchLink } from '@/components/ui/HoverPrefetchLink.client';
 import { ProjectThumbnail } from '@/app/[handle]/components/ProjectThumbnail.server';
 import { projectPath } from '@/utils/routes';
 
@@ -17,9 +17,8 @@ export const ProjectCardGrid = async ({ username, projects }: Props) => {
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {projects.map((card) => (
                 <li key={card.project_id}>
-                    <Link
+                    <HoverPrefetchLink
                         href={projectPath(username, card.project)}
-                        prefetch={false}
                         className="block h-full"
                     >
                         <Card className="h-full overflow-hidden rounded-none border-primary bg-card transition-colors hover:bg-secondary">
@@ -44,7 +43,7 @@ export const ProjectCardGrid = async ({ username, projects }: Props) => {
                                 </p>
                             </CardContent>
                         </Card>
-                    </Link>
+                    </HoverPrefetchLink>
                 </li>
             ))}
         </ul>

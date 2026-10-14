@@ -11,16 +11,19 @@ import { useTranslations } from 'next-intl';
 import { X } from 'lucide-react';
 import { useSavedTags } from '@/hooks/useSavedTags.hook';
 import { RailSection } from '@/components/rail/RailSection.client';
+import { TagCloudSkeleton } from '@/components/rail/TagCloud.skeleton';
 import { badgeVariants } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 export const SavedTags = () => {
-    const { savedTags, unsaveTag } = useSavedTags();
+    const { savedTags, isLoaded, unsaveTag } = useSavedTags();
     const t = useTranslations('blog');
 
     return (
         <RailSection title={t('rail.savedTags')}>
-            {savedTags.length ? (
+            {!isLoaded ? (
+                <TagCloudSkeleton />
+            ) : savedTags.length ? (
                 <ul className="flex flex-wrap gap-2">
                     {savedTags.map((tag) => (
                         <li

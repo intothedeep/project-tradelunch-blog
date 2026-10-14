@@ -2,7 +2,7 @@ import { TPost } from '@/apis/blog.types';
 import { MoveBack } from '@/components/blog/MoveBack';
 import { formatPostDate } from '@/utils/formatPostDate';
 import Image from 'next/image';
-import Link from 'next/link';
+import { HoverPrefetchLink } from '@/components/ui/HoverPrefetchLink.client';
 import React from 'react';
 import { postsPath } from '@/utils/routes';
 
@@ -44,13 +44,13 @@ export const PostContentHeader: React.FC<Props> = ({
                         // Author byline acts like an action: raised above the
                         // card's overlay link (z-10) and given a clear hover
                         // affordance so it reads as clickable → /@<username>/posts.
-                        <Link
+                        <HoverPrefetchLink
                             href={postsPath(username)}
                             aria-label={`View ${bylineLabel}'s blog`}
                             className="relative z-10 font-semibold text-foreground underline-offset-2 transition-colors hover:text-primary hover:underline"
                         >
                             <span>{bylineLabel.toLocaleUpperCase()}</span>
-                        </Link>
+                        </HoverPrefetchLink>
                     ) : (
                         <span>{bylineLabel.toLocaleUpperCase()}</span>
                     )}

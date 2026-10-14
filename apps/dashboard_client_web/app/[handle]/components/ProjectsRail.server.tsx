@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { RightRailToc } from '@/components/rail/RightRailToc.client';
 import { CategoryErrorBoundary } from '@/components/blog/CategoryErrorboundary.client';
+import { RailCardSkeleton } from '@/components/rail/RailSkeleton';
 import { ProjectsTreeWrapper } from '@/app/[handle]/components/ProjectsTreeWrapper.server';
 
 // Right rail of the projects screens: the post TOC (empty, so nothing, on list
@@ -11,7 +12,7 @@ export const ProjectsRail = ({ username }: { username: string }) => {
         <div className="flex flex-col gap-4">
             <RightRailToc />
             <CategoryErrorBoundary>
-                <Suspense fallback={null}>
+                <Suspense fallback={<RailCardSkeleton />}>
                     <ProjectsTreeWrapper username={username} />
                 </Suspense>
             </CategoryErrorBoundary>
