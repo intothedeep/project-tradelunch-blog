@@ -1,0 +1,1106 @@
+[
+  {
+    "insertId": "k0ftrtf9rny1r",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:28:59.850Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:00.295131486Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:28:59.932524462Z"
+  },
+  {
+    "insertId": "k0ftrtf9rny1s",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:28:59.889Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:00.295131486Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:28:59.932525178Z"
+  },
+  {
+    "insertId": "k0ftrtf9rny1t",
+    "jsonPayload": {
+      "err": {
+        "message": "Dynamic server usage: Route /[handle] couldn't be rendered statically because it used revalidate: 0 fetch https://blog-api.prettylog.com/v1/api/tags?limit=30 /[handle]. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:28:59.930Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:00.295131486Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:28:59.932525844Z"
+  },
+  {
+    "insertId": "k0ftrtf9rny1x",
+    "jsonPayload": {
+      "err": {
+        "message": "Invalid revalidate configuration provided: 0 < 1",
+        "name": "Error"
+      },
+      "message": "request error",
+      "method": "GET",
+      "path": "/nope",
+      "routePath": "/(shell)/[handle]/page",
+      "routeType": "render",
+      "routerKind": "App Router",
+      "time": "2026-10-14T08:28:59.977Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:00.295131486Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:00.132937409Z"
+  },
+  {
+    "insertId": "1j9j9phf9ncwk2",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:00.632Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:00.870848040Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:00.732944139Z"
+  },
+  {
+    "insertId": "1j9j9phf9ncwk3",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:00.693Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:00.870848040Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:00.732944654Z"
+  },
+  {
+    "insertId": "dlqrdqfmxwoz1",
+    "jsonPayload": {
+      "err": {
+        "message": "Dynamic server usage: Route /[handle] couldn't be rendered statically because it used revalidate: 0 fetch https://blog-api.prettylog.com/v1/api/tags?limit=30 /[handle]. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:00.752Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:01.253360453Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:00.932851647Z"
+  },
+  {
+    "insertId": "146wnxfp7udj9",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/tags/[tag]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:05.875Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:06.288192643Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:05.933023604Z"
+  },
+  {
+    "insertId": "146wnxfp7udja",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/tags/[tag]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch posts by tag",
+      "tag": "rust",
+      "time": "2026-10-14T08:29:05.875Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:06.288192643Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:05.933024300Z"
+  },
+  {
+    "insertId": "146wnxfp7udjb",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/tags/[tag]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:05.909Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:06.288192643Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:05.933024806Z"
+  },
+  {
+    "insertId": "146wnxfp7udjc",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/tags/[tag]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch posts by tag",
+      "tag": "rust",
+      "time": "2026-10-14T08:29:05.909Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:06.288192643Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:05.933025278Z"
+  },
+  {
+    "insertId": "1raaon6fmjs4bg",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]/projects/[project]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:12.621Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:13.053861089Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:12.732631381Z"
+  },
+  {
+    "insertId": "1raaon6fmjs4bh",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]/projects/[project]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch user profile",
+      "time": "2026-10-14T08:29:12.622Z",
+      "username": "taeklim"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:13.053861089Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:12.732633757Z"
+  },
+  {
+    "insertId": "1raaon6fmjs4bi",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]/projects/[project]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:12.658Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:13.053861089Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:12.732635311Z"
+  },
+  {
+    "insertId": "1raaon6fmjs4bj",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]/projects/[project]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch user profile",
+      "time": "2026-10-14T08:29:12.658Z",
+      "username": "taeklim"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:13.053861089Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:12.732635900Z"
+  },
+  {
+    "insertId": "152jm7yfbw7gqs",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]/[slug]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:15.483Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:15.854628207Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:15.532928029Z"
+  },
+  {
+    "insertId": "152jm7yfbw7gqt",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]/[slug]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch a post",
+      "slug": "cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+      "time": "2026-10-14T08:29:15.484Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:15.854628207Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:15.532931301Z"
+  },
+  {
+    "insertId": "152jm7yfbw7gqu",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]/[slug]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:15.515Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:15.854628207Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:15.532931852Z"
+  },
+  {
+    "insertId": "152jm7yfbw7gqv",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]/[slug]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch a post",
+      "slug": "cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+      "time": "2026-10-14T08:29:15.515Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:15.854628207Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:15.532932868Z"
+  },
+  {
+    "insertId": "1d4wmvzfdg1rcy",
+    "jsonPayload": {
+      "err": {
+        "message": "Invalid revalidate configuration provided: 0 < 1",
+        "name": "Error"
+      },
+      "message": "request error",
+      "method": "GET",
+      "path": "/nope?cb=12753",
+      "routePath": "/(shell)/[handle]/page",
+      "routeType": "render",
+      "routerKind": "App Router",
+      "time": "2026-10-14T08:29:39.333Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:39.654817682Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:39.532453129Z"
+  },
+  {
+    "insertId": "1d4wmvzfdg1rcz",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:39.361Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:39.654817682Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:39.532454796Z"
+  },
+  {
+    "insertId": "1d4wmvzfdg1rd0",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:39.422Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:39.654817682Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:39.532455100Z"
+  },
+  {
+    "insertId": "1d4wmvzfdg1rd1",
+    "jsonPayload": {
+      "err": {
+        "message": "Dynamic server usage: Route /[handle] couldn't be rendered statically because it used revalidate: 0 fetch https://blog-api.prettylog.com/v1/api/tags?limit=30 /[handle]. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:39.482Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:39.654817682Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:39.532456519Z"
+  },
+  {
+    "insertId": "13ent8mfh87b30",
+    "jsonPayload": {
+      "err": {
+        "message": "Invalid revalidate configuration provided: 0 < 1",
+        "name": "Error"
+      },
+      "message": "request error",
+      "method": "GET",
+      "path": "/nope?cb=12753",
+      "routePath": "/(shell)/[handle]/page",
+      "routeType": "render",
+      "routerKind": "App Router",
+      "time": "2026-10-14T08:29:40.756Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:41.257312174Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:40.932582899Z"
+  },
+  {
+    "insertId": "13ent8mfh87b31",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:40.785Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:41.257312174Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:40.932583272Z"
+  },
+  {
+    "insertId": "13ent8mfh87b32",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:40.819Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:41.257312174Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:40.932584061Z"
+  },
+  {
+    "insertId": "13ent8mfh87b33",
+    "jsonPayload": {
+      "err": {
+        "message": "Dynamic server usage: Route /[handle] couldn't be rendered statically because it used revalidate: 0 fetch https://blog-api.prettylog.com/v1/api/tags?limit=30 /[handle]. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:40.868Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:41.257312174Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:40.932584453Z"
+  },
+  {
+    "insertId": "yfds5wfa7gziw",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:42.233Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:42.655093052Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:42.332314510Z"
+  },
+  {
+    "insertId": "yfds5wfa7gzix",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:42.265Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:42.655093052Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:42.332316820Z"
+  },
+  {
+    "insertId": "yfds5wfa7gziy",
+    "jsonPayload": {
+      "err": {
+        "message": "Dynamic server usage: Route /[handle] couldn't be rendered statically because it used revalidate: 0 fetch https://blog-api.prettylog.com/v1/api/tags?limit=30 /[handle]. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:42.303Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:42.655093052Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:42.332317199Z"
+  },
+  {
+    "insertId": "yfds5wfa7gzj3",
+    "jsonPayload": {
+      "err": {
+        "message": "Invalid revalidate configuration provided: 0 < 1",
+        "name": "Error"
+      },
+      "message": "request error",
+      "method": "GET",
+      "path": "/zzz-unknown?cb=12753",
+      "routePath": "/(shell)/[handle]/page",
+      "routeType": "render",
+      "routerKind": "App Router",
+      "time": "2026-10-14T08:29:42.351Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:42.655093052Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:42.533061784Z"
+  },
+  {
+    "insertId": "tp1kewf8unm98",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]/[slug]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:43.728Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:44.053962368Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:43.932571319Z"
+  },
+  {
+    "insertId": "tp1kewf8unm99",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]/[slug]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch a post",
+      "slug": "bar",
+      "time": "2026-10-14T08:29:43.728Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:44.053962368Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:43.932573823Z"
+  },
+  {
+    "insertId": "tp1kewf8unm9a",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]/[slug]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:43.777Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:44.053962368Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:43.932574503Z"
+  },
+  {
+    "insertId": "tp1kewf8unm9b",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]/[slug]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch a post",
+      "slug": "bar",
+      "time": "2026-10-14T08:29:43.778Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:44.053962368Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:43.932575120Z"
+  },
+  {
+    "insertId": "tp1kewf8unm9c",
+    "jsonPayload": {
+      "err": {
+        "message": "Dynamic server usage: Route /[handle]/[slug] couldn't be rendered statically because it used revalidate: 0 fetch https://blog-api.prettylog.com/v1/api/tags?limit=30 /[handle]/[slug]. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:43.881Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:44.053962368Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:43.932576030Z"
+  },
+  {
+    "insertId": "ibztlwfbdm5rv",
+    "jsonPayload": {
+      "err": {
+        "message": "Invalid revalidate configuration provided: 0 < 1",
+        "name": "Error"
+      },
+      "message": "request error",
+      "method": "GET",
+      "path": "/foo/bar?cb=12753",
+      "routePath": "/(shell)/[handle]/[slug]/page",
+      "routeType": "render",
+      "routerKind": "App Router",
+      "time": "2026-10-14T08:29:44.067Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:44.447793087Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:44.133136152Z"
+  },
+  {
+    "insertId": "zk8qowfhfewd6",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:45.441Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:45.852843264Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:45.533262159Z"
+  },
+  {
+    "insertId": "zk8qowfhfewd7",
+    "jsonPayload": {
+      "err": {
+        "message": "During prerendering, fetch() rejects when the prerender is complete. Typically these errors are handled by React but if you move fetch() to a different context by using `setTimeout`, `after`, or similar functions you may observe this error and you should handle it in that context. This occurred at route \"/[handle]\".",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:45.479Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:45.852843264Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:45.533265971Z"
+  },
+  {
+    "insertId": "zk8qowfhfewd8",
+    "jsonPayload": {
+      "err": {
+        "message": "Dynamic server usage: Route /[handle] couldn't be rendered statically because it used revalidate: 0 fetch https://blog-api.prettylog.com/v1/api/tags?limit=30 /[handle]. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+        "name": "Error"
+      },
+      "message": "Failed to fetch popular tags",
+      "time": "2026-10-14T08:29:45.519Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:45.852843264Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:45.533266991Z"
+  },
+  {
+    "insertId": "zk8qowfhfewdh",
+    "jsonPayload": {
+      "err": {
+        "message": "Invalid revalidate configuration provided: 0 < 1",
+        "name": "Error"
+      },
+      "message": "request error",
+      "method": "GET",
+      "path": "/nope2?cb=12753",
+      "routePath": "/(shell)/[handle]/page",
+      "routeType": "render",
+      "routerKind": "App Router",
+      "time": "2026-10-14T08:29:45.576Z"
+    },
+    "labels": {
+      "compute.googleapis.com/resource_name": "instance-servers"
+    },
+    "logName": "projects/mywebsite-511502/logs/blog-web",
+    "receiveTimestamp": "2026-10-14T08:29:45.852843264Z",
+    "resource": {
+      "labels": {
+        "instance_id": "4408936025752086061",
+        "project_id": "mywebsite-511502",
+        "zone": "us-central1-a"
+      },
+      "type": "gce_instance"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-10-14T08:29:45.732514303Z"
+  }
+]
