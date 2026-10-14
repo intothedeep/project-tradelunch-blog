@@ -76,8 +76,8 @@ jobs:
             [ "$ok" = PASS ] || fail=1
             echo "| \`$p\` | $want | $a | $b | $ok |" | tee -a table.md
           }
-          for p in /nope /foo/bar /xmlrpc.php /settings /@nobody/about /@nobody/resume /@taeklim/about-me /@nobodyxyz/logs /log/@taeklim /log/@taeklim/1; do check 404 "$p"; done
-          for p in / /@taeklim/posts /@taeklim/about /@taeklim/logs /log /tags/rust; do check 200 "$p"; done
+          for p in /nope /foo/bar /xmlrpc.php /settings /@nobody/about /@nobody/resume /@taeklim/about-me /@nobodyxyz/logs /log /log/@taeklim /log/@taeklim/1; do check 404 "$p"; done
+          for p in / /@taeklim/posts /@taeklim/about /@taeklim/logs /tags/rust; do check 200 "$p"; done
           # A2 rows (diagnosis-architect.md section 7.4)
           chunk=$(ls apps/dashboard_client_web/.next/static/chunks/*.js | head -1 | xargs basename)
           for p in /favicon/favicon.ico /favicon/site.webmanifest /robots.txt /sitemap.xml "/_next/static/chunks/$chunk"; do check 200 "$p"; done

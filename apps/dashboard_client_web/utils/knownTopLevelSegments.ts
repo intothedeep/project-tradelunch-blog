@@ -6,7 +6,6 @@
 export const KNOWN_TOP_LEVEL_SEGMENTS = [
     'admin',
     'api',
-    'log',
     'onboarding',
     'sign-in',
     'sign-up',

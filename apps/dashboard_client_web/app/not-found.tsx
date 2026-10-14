@@ -11,7 +11,6 @@ export const metadata = {
 const SUGGESTIONS = [
     { cmd: 'cd ~', href: '/', note: 'home' },
     { cmd: 'ls /', href: '/', note: 'posts' },
-    { cmd: 'ls /log', href: '/log', note: 'short notes' },
 ] as const;
 
 export default function NotFound() {

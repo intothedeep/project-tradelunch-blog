@@ -47,7 +47,7 @@ export const MobileNavigation = () => {
             {/* Menu Button - Bottom Left */}
             <button
                 onClick={() => openMenu(true)}
-                className="md:hidden fixed bottom-6 left-6 z-40 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-110 flex items-center justify-center border-2 border-primary"
+                className="md:hidden fixed bottom-6 left-6 z-40 w-14 h-14 bg-primary text-primary-foreground rounded-none shadow-lg hover:shadow-xl transition-all hover:scale-110 flex items-center justify-center border-2 border-primary"
                 aria-label="Open menu"
             >
                 <svg

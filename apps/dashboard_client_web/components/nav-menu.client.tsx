@@ -15,11 +15,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useThemeToggle } from '@/hooks/useThemeToggle.hook';
 import { useTranslations } from 'next-intl';
 import { mePath, savedPath } from '@/utils/routes';
-
-type NavLink = { title: string; href: string };
+import { usePrimaryNavLinks } from '@/hooks/useNavLinks.hook';
+import { ICON_BY_KEY } from '@/components/rail/PrimaryNav.client';
 
 type NavMenuProps = {
-    links?: NavLink[];
     showNavLinks?: boolean;
     align?: 'start' | 'end';
 };
@@ -63,14 +62,12 @@ function ThemeMenuItem() {
 }
 
 // Unified header dropdown: theme toggle + auth actions, plus nav links on mobile.
-export function NavMenu({
-    links = [],
-    showNavLinks = false,
-    align = 'end',
-}: NavMenuProps) {
+export function NavMenu({ showNavLinks = false, align = 'end' }: NavMenuProps) {
     const { isLoaded, isSignedIn, user } = useUser();
     const { openUserProfile, signOut } = useClerk();
     const t = useTranslations('write');
+    const tb = useTranslations('blog');
+    const navLinks = usePrimaryNavLinks();
 
     if (!isLoaded)
         return (
@@ -114,16 +111,33 @@ export function NavMenu({
                 {showNavLinks && (
                     <>
                         <DropdownMenuGroup>
-                            {links.map((link) => (
-                                <DropdownMenuItem
-                                    key={link.title}
-                                    asChild
-                                >
-                                    <Link href={link.href}>
-                                        {link.title.toUpperCase()}
-                                    </Link>
-                                </DropdownMenuItem>
-                            ))}
+                            {navLinks.map((link) => {
+                                const Icon = link.iconKey
+                                    ? ICON_BY_KEY[link.iconKey]
+                                    : undefined;
+                                const label = link.labelKey
+                                    ? tb(link.labelKey)
+                                    : link.title;
+                                return link.disabled ? (
+                                    <DropdownMenuItem
+                                        key={link.href}
+                                        disabled
+                                    >
+                                        {Icon ? <Icon /> : null}
+                                        <span>{label}</span>
+                                    </DropdownMenuItem>
+                                ) : (
+                                    <DropdownMenuItem
+                                        key={link.href}
+                                        asChild
+                                    >
+                                        <Link href={link.href}>
+                                            {Icon ? <Icon /> : null}
+                                            <span>{label}</span>
+                                        </Link>
+                                    </DropdownMenuItem>
+                                );
+                            })}
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />
                     </>
@@ -136,9 +150,12 @@ export function NavMenu({
                 {isSignedIn ? (
                     <>
                         <DropdownMenuGroup>
-                            <DropdownMenuItem asChild>
-                                <Link href="/write">{t('nav.write')}</Link>
-                            </DropdownMenuItem>
+                            {/* Mobile lists Write / Saved in the nav group above. */}
+                            {!showNavLinks && (
+                                <DropdownMenuItem asChild>
+                                    <Link href="/write">{t('nav.write')}</Link>
+                                </DropdownMenuItem>
+                            )}
                             {user?.username && (
                                 <>
                                     <DropdownMenuItem asChild>
@@ -146,11 +163,15 @@ export function NavMenu({
                                             {t('nav.myDrafts')}
                                         </Link>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem asChild>
-                                        <Link href={savedPath(user.username)}>
-                                            {t('nav.saved')}
-                                        </Link>
-                                    </DropdownMenuItem>
+                                    {!showNavLinks && (
+                                        <DropdownMenuItem asChild>
+                                            <Link
+                                                href={savedPath(user.username)}
+                                            >
+                                                {t('nav.saved')}
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    )}
                                 </>
                             )}
                         </DropdownMenuGroup>

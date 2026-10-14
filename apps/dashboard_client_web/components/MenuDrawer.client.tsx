@@ -11,11 +11,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAtom, useAtomValue } from 'jotai';
 import { useTranslations } from 'next-intl';
 import { ChevronLeft } from 'lucide-react';
 import { isMenuDrawerOpenAtom, pageMenuAtom } from '@/store/menu.atom';
 import { usePrimaryNavLinks } from '@/hooks/useNavLinks.hook';
+import { ICON_BY_KEY, isActivePath } from '@/components/rail/PrimaryNav.client';
+import { cn } from '@/lib/utils';
+import { TONE_BG, toneOfNavKey } from '@/utils/section-tone';
 
 const FOCUSABLE_SELECTOR =
     'a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])';
@@ -135,7 +139,7 @@ export function MenuDrawer() {
             >
                 {/* Swipe Handle */}
                 <div className="flex justify-center pt-3 pb-2">
-                    <div className="w-12 h-1 bg-primary/50 rounded-full" />
+                    <div className="w-12 h-1 bg-primary/50 rounded-none" />
                 </div>
 
                 {/* Header */}
@@ -263,11 +267,15 @@ function SiteMenuBody({
     isOpen: boolean;
     onNavigate: () => void;
 }) {
+    const pathname = usePathname();
     return (
         <nav className="p-6 max-h-[70vh] overflow-y-auto">
             <ul className="space-y-2">
                 {links.map((link, index) => {
                     const label = link.labelKey ? t(link.labelKey) : link.title;
+                    const Icon = link.iconKey
+                        ? ICON_BY_KEY[link.iconKey]
+                        : undefined;
                     // Longhand only: React warns when the `animation` shorthand
                     // and `animationDelay` change together on a rerender.
                     const itemStyle: React.CSSProperties = isOpen
@@ -285,26 +293,44 @@ function SiteMenuBody({
                             <li key={link.href}>
                                 <span
                                     aria-disabled="true"
-                                    className="block px-4 py-4 font-mono text-lg border-2 border-primary/20 text-muted-foreground cursor-not-allowed"
+                                    className="flex items-center gap-3 rounded-none px-4 py-4 text-base border-2 border-primary/20 text-muted-foreground/50 cursor-not-allowed"
                                     style={itemStyle}
                                 >
-                                    <span className="text-primary">&gt;</span>{' '}
-                                    {label.toUpperCase()}
+                                    {Icon ? (
+                                        <Icon className="h-5 w-5 shrink-0" />
+                                    ) : null}
+                                    {label}
                                 </span>
                             </li>
                         );
                     }
+
+                    const active = isActivePath(pathname, link.href);
+                    const tone = toneOfNavKey(link.iconKey);
 
                     return (
                         <li key={link.href}>
                             <Link
                                 href={link.href}
                                 onClick={onNavigate}
-                                className="block px-4 py-4 font-mono text-lg border-2 border-primary/30 hover:border-primary hover:bg-secondary transition-all"
+                                aria-current={active ? 'page' : undefined}
+                                className={cn(
+                                    'flex items-center gap-3 rounded-none px-4 py-4 text-base border-2 border-primary/30 transition-all',
+                                    active
+                                        ? tone
+                                            ? cn(
+                                                  TONE_BG[tone],
+                                                  'font-medium text-foreground'
+                                              )
+                                            : 'bg-accent font-medium text-accent-foreground'
+                                        : 'text-foreground hover:border-primary hover:bg-accent/50'
+                                )}
                                 style={itemStyle}
                             >
-                                <span className="text-primary">&gt;</span>{' '}
-                                {label.toUpperCase()}
+                                {Icon ? (
+                                    <Icon className="h-5 w-5 shrink-0" />
+                                ) : null}
+                                {label}
                             </Link>
                         </li>
                     );

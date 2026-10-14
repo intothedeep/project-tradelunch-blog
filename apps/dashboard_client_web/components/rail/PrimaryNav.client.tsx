@@ -29,7 +29,7 @@ import { cn } from '@/lib/utils';
 import { usePrimaryNavLinks } from '@/hooks/useNavLinks.hook';
 import { TONE_BG, toneOfNavKey } from '@/utils/section-tone';
 
-const ICON_BY_KEY: Record<string, LucideIcon> = {
+export const ICON_BY_KEY: Record<string, LucideIcon> = {
     home: Home,
     allPosts: Newspaper,
     log: MessageSquare,
@@ -45,7 +45,7 @@ const ICON_BY_KEY: Record<string, LucideIcon> = {
 // Pure: a link is active when it is the exact path; for non-root links the
 // active state also covers nested sub-paths (e.g. /@u/saved/...). The index
 // route '/' matches EXACT-only — otherwise it would light up on every page.
-function isActivePath(pathname: string, href: string): boolean {
+export function isActivePath(pathname: string, href: string): boolean {
     if (href === '/') return pathname === href;
     return pathname === href || pathname.startsWith(`${href}/`);
 }
