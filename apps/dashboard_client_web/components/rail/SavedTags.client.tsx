@@ -29,6 +29,8 @@ export const SavedTags = () => {
                         >
                             <Link
                                 href={`/tags/${encodeURIComponent(tag)}`}
+                                // Saved tags render on every page; no prefetch (decision #70).
+                                prefetch={false}
                                 className={cn(
                                     badgeVariants({ variant: 'outline' }),
                                     'rounded-r-none text-xs hover:bg-accent/50'

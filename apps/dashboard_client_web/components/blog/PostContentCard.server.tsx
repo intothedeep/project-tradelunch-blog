@@ -103,6 +103,8 @@ export const PostContentCard = async ({
                             <Link
                                 key={idx}
                                 href={`/tags/${encodeURIComponent(tag)}`}
+                                // ~10 tag chips per post prefetched on load (decision #70).
+                                prefetch={false}
                                 className={cn(
                                     badgeVariants({ variant: 'outline' }),
                                     'text-xs hover:bg-secondary hover:text-muted-foreground transition-colors'

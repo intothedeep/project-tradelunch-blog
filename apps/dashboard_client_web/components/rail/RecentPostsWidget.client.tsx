@@ -8,7 +8,7 @@
 // right column is NEVER empty.
 // Side effects: none beyond reading useRecents (localStorage).
 
-import Link from 'next/link';
+import { HoverPrefetchLink } from '@/components/ui/HoverPrefetchLink.client';
 import { useTranslations } from 'next-intl';
 import { Heart, MessageSquare } from 'lucide-react';
 import { useRecents } from '@/hooks/useRecents.hook';
@@ -61,12 +61,14 @@ export const RecentPostsWidget = ({
                     return (
                         <li key={post.id}>
                             {href ? (
-                                <Link
+                                // Hover-only prefetch: up to 20 recents would be prefetched on
+                                // viewport entry on /blog (decision #70).
+                                <HoverPrefetchLink
                                     href={href}
                                     className="block rounded-md px-2 py-1.5 transition-colors hover:bg-accent/50"
                                 >
                                     {body}
-                                </Link>
+                                </HoverPrefetchLink>
                             ) : (
                                 <span className="block px-2 py-1.5">
                                     {body}

@@ -6,7 +6,7 @@
 // empty state. Rendered only in the EXPANDED rail (LeftRail gates visibility).
 // Side effects: none beyond reading useRecents (localStorage).
 
-import Link from 'next/link';
+import { HoverPrefetchLink } from '@/components/ui/HoverPrefetchLink.client';
 import { useTranslations } from 'next-intl';
 import { useRecents } from '@/hooks/useRecents.hook';
 import { RailSection } from '@/components/rail/RailSection.client';
@@ -27,13 +27,15 @@ export const RecentVisited = () => {
                         return (
                             <li key={post.id}>
                                 {href ? (
-                                    <Link
+                                    // Hover-only prefetch: up to 8 recents on every page would add 8
+                                    // prefetches per navigation (decision #70).
+                                    <HoverPrefetchLink
                                         href={href}
                                         title={post.title}
                                         className="block truncate rounded px-1 py-1 text-sm text-foreground transition-colors hover:bg-accent/50"
                                     >
                                         {post.title}
-                                    </Link>
+                                    </HoverPrefetchLink>
                                 ) : (
                                     <span
                                         title={post.title}
