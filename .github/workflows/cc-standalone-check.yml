@@ -33,7 +33,9 @@ jobs:
       - run: pnpm --filter @repo/types build
 
       - name: Allowlist matches app/ top-level routes
-        run: node _scripts/cc/check-known-top-level.mjs
+        run: |
+          node _scripts/cc/check-known-top-level.mjs
+          node apps/dashboard_client_web/scripts/gen-public-paths.mjs --check
 
       - name: Build web (standalone, same as gcp.yml)
         run: |
@@ -59,16 +61,34 @@ jobs:
             echo '| path | expect | 1st (ISR gen) | 2nd (cached) | result |'
             echo '| --- | --- | --- | --- | --- |'
           } | tee table.md
+          hit() { curl -s -o /dev/null -D hdr.txt -w '%{http_code}/%{size_download}B' --max-time 30 "$@"; }
+          # check WANT PATH [nocookie]: both hits must return WANT; nocookie = no Set-Cookie.
           check() {
-            want="$1"; p="$2"
-            a=$(curl -s -o /dev/null -w '%{http_code}/%{size_download}B' --max-time 30 "http://localhost:3000$p")
-            b=$(curl -s -o /dev/null -w '%{http_code}/%{size_download}B' --max-time 30 "http://localhost:3000$p")
+            want="$1"; p="$2"; flag="${3:-}"
+            a=$(hit "http://localhost:3000$p"); ca=$(grep -ci '^set-cookie' hdr.txt || true)
+            b=$(hit "http://localhost:3000$p"); cb=$(grep -ci '^set-cookie' hdr.txt || true)
             ok=PASS
-            [ "${a%%/*}" = "$want" ] && [ "${b%%/*}" = "$want" ] || { ok=FAIL; fail=1; }
+            [ "${a%%/*}" = "$want" ] && [ "${b%%/*}" = "$want" ] || ok=FAIL
+            if [ "$flag" = nocookie ]; then
+              [ "$ca$cb" = 00 ] || ok='FAIL(set-cookie)'
+              want="$want, no cookie"
+            fi
+            [ "$ok" = PASS ] || fail=1
             echo "| \`$p\` | $want | $a | $b | $ok |" | tee -a table.md
           }
           for p in /nope /foo/bar /xmlrpc.php /settings /@nobody/about /@nobody/resume /@taeklim/about-me; do check 404 "$p"; done
           for p in / /@taeklim/posts /@taeklim/about /tags/rust; do check 200 "$p"; done
+          # A2 rows (diagnosis-architect.md section 7.4)
+          chunk=$(ls apps/dashboard_client_web/.next/static/chunks/*.js | head -1 | xargs basename)
+          for p in /favicon/favicon.ico /favicon/site.webmanifest /robots.txt /sitemap.xml "/_next/static/chunks/$chunk" \
+            /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first/opengraph-image; do check 200 "$p"; done
+          for p in /og-image.png /ads.txt /next.svg; do check 200 "$p" nocookie; done
+          for p in /wp-login.php /.env /@taeklim/x.png; do check 404 "$p"; done
+          # legacy path: 308 to /@taeklim/x.png, then 404 after following
+          l1=$(hit "http://localhost:3000/blog/@taeklim/x.png"); loc=$(grep -i '^location:' hdr.txt | tr -d '\r' | sed 's/^[^:]*: *//')
+          l2=$(hit -L "http://localhost:3000/blog/@taeklim/x.png")
+          ok=PASS; { [ "${l1%%/*}" = 308 ] && [ "${l2%%/*}" = 404 ]; } || { ok=FAIL; fail=1; }
+          echo "| \`/blog/@taeklim/x.png\` | 308 then followed 404 | $l1 ($loc), $l2 | | $ok |" | tee -a table.md
           n=$(grep -c 'Invalid revalidate configuration' server.log || true)
           echo "| server.log 'Invalid revalidate configuration' | 0 | $n | | $([ "$n" = 0 ] && echo PASS || echo FAIL) |" | tee -a table.md
           [ "$n" = 0 ] || fail=1

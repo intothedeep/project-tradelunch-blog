@@ -69,6 +69,11 @@ export function isUnknownPath(
     return OWNER_CONTENT_SEGMENTS.includes(second) && !isOwner(rawHandle);
 }
 
+// True when the last segment holds a dot (scanner probes, files). The proxy
+// answers these itself: a real file passes, anything else is a 404 (A2).
+export const isDottedPath = (pathname: string): boolean =>
+    /\.[^/]*$/.test(pathname);
+
 // Signed-in RSC navigation is not checked: the Suspense leaf gates it (200
 // not-found view). Documents, and anonymous RSC, are checked here.
 export function shouldCheck({

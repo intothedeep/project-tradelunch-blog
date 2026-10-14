@@ -13,11 +13,20 @@ import { checkExists } from '@/apis/existence.proxy';
 import { legacyRedirectPath } from '@/utils/legacyRedirect';
 import {
     classifyGatePath,
+    isDottedPath,
     isUnknownPath,
     NOT_FOUND_PATH,
     shouldCheck,
 } from '@/utils/notFoundGate';
 import { isOwnerHandle } from '@/utils/owner-handle';
+import { PUBLIC_PATHS } from '@/utils/publicPaths.generated';
+
+// Dotted paths that are real files: public/ (generated) and the two metadata routes.
+const SERVED_FILES = new Set<string>([
+    ...PUBLIC_PATHS,
+    '/robots.txt',
+    '/sitemap.xml',
+]);
 
 // Routes that require an authenticated user.
 const isProtectedRoute = createRouteMatcher([
@@ -158,17 +167,24 @@ export default function proxy(req: NextRequest, event: NextFetchEvent) {
             res.headers.set('Cache-Control', 'public, s-maxage=86400');
             return res;
         }
+        // Dotted path: a real file passes untouched (no Clerk, no cookies); any
+        // other one is a 404 decided here, before it can reach [handle] (A2).
+        if (isDottedPath(req.nextUrl.pathname))
+            return SERVED_FILES.has(req.nextUrl.pathname)
+                ? NextResponse.next()
+                : rewriteToNotFound(req);
     }
     return clerk(req, event);
 }
 
 export const config = {
     matcher: [
-        // Page routes (skip _next, api, static files). Kept at this reach even
+        // Page routes (skip _next, api, trpc, favicon/). Dotted paths now reach the
+        // proxy, which passes real files and 404s the rest (A2). Kept at this reach even
         // though locale detection is gone: narrowing it to protected routes
         // breaks the root ClerkProvider and any public RSC calling `auth()`,
         // which throw when the middleware has not run (CF2-0b, rejected).
-        '/((?!_next|api|.*\\..*).*)',
+        '/((?!_next|api|trpc|favicon/).*)',
         // Clerk's recommended matcher: always run on API/trpc routes.
         '/(api|trpc)(.*)',
     ],
