@@ -5,7 +5,7 @@ Database Connection Management
 Provides async session factory and engine configuration for PostgreSQL.
 Uses the asyncpg driver with SQLAlchemy 2.x async support.
 
-Connection target: Supabase via resolved Postgres URL (direct preferred).
+Connection target: Supabase via resolved Postgres URL (pooled preferred).
 SSL mirrors the TS server's `rejectUnauthorized: false` — a context with
 hostname/cert verification disabled (no CA bundle, no RDS logic).
 
@@ -19,6 +19,7 @@ import ssl
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
+from uuid import uuid4
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -55,12 +56,20 @@ def get_engine() -> AsyncEngine:
     """Get or create the async database engine.
 
     Returns:
-        Configured AsyncEngine bound to the resolved Postgres URL (direct
-        preferred) with non-verifying SSL.
+        Configured AsyncEngine bound to the resolved Postgres URL (pooled
+        preferred) with non-verifying SSL and statement caching off.
     """
     global _engine
     if _engine is None:
-        connect_args: dict[str, Any] = {"ssl": get_ssl_context()}
+        # Transaction pooler (6543) may route each statement to a different
+        # backend, so named prepared statements collide or vanish: disable
+        # asyncpg caching and give every statement a unique name.
+        connect_args: dict[str, Any] = {
+            "ssl": get_ssl_context(),
+            "statement_cache_size": 0,
+            "prepared_statement_cache_size": 0,
+            "prepared_statement_name_func": lambda: f"__asyncpg_{uuid4()}__",
+        }
         _engine = create_async_engine(
             get_database_url(),
             echo=os.getenv("DB_ECHO", "false").lower() == "true",
