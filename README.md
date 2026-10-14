@@ -16,9 +16,24 @@ This repo is blog-only.
 
 ---
 
-## A full-stack blog on free tiers: $0–3.65 / month
+## A full-stack blog on free tiers: ≈ $3.65 / month
 
 Next.js 16 SSR + Express API + Postgres + image CDN + auth, on one 1 GB free VM.
+
+### Free tier specs (checked 2026-10-14)
+
+| Service | Free tier | What this blog uses it for |
+| --- | --- | --- |
+| **GCP** Compute Engine | 1 × e2-micro / month (us-west1, us-central1, us-east1) · 30 GB standard disk · 1 GB egress / month · no external IPv4, no snapshots | VM: Next.js + Express (PM2) |
+| **GCP** Cloud Logging | 50 GiB ingest / project / month · 30-day default retention | request + SSR fetch logs |
+| **Cloudflare** Free | CDN + cache (HTML needs a Cache Rule) · no bandwidth cap · 10 Cache Rules · 1 rate-limit rule (per IP, 10 s) · Tunnel $0 · unmetered DDoS · Universal SSL | edge cache, rate limit 70 / 10 s, Tunnel to the VM |
+| **Cloudflare** Workers | 100,000 requests / day · 10 ms CPU / request | `blog-assets.` image proxy |
+| **OCI** Always Free | Object Storage 20 GB (Always-Free account; 10+10+10 GB on paid) · 50,000 API requests / month · 10 TB egress / month | post images |
+| **Supabase** Free | 500 MB DB · 5 GB egress (+5 GB cached) · 1 GB files · 50,000 MAU · pauses after 7 days idle · 2 projects · pooler 200 / direct 60 connections | Postgres |
+| **Clerk** Hobby | 50,000 monthly retained users / app · 7-day sessions · no MFA / SSO | sign-in |
+| **GitHub Actions** | public repo free · private 2,000 min / month · 500 MB artifacts · 90-day retention | build, route check, browser measure |
+
+Details and sources: [`research/free-tiers-2026-10.md`](./research/free-tiers-2026-10.md).
 
 ```mermaid
 flowchart LR
@@ -35,7 +50,7 @@ flowchart LR
 | Piece | Free tier used | Cost |
 | --- | --- | --- |
 | Compute | GCP e2-micro (1 VM, us-central1, 30 GB disk, 1 GB egress / month) | $0 |
-| External IPv4 on the VM | billed hourly; free-tier coverage unclear | $0–3.65 |
+| External IPv4 on the VM | not in the free tier: $0.005 / hour | ≈ $3.65 |
 | Edge, cache, DDoS, TLS, Tunnel | Cloudflare Free | $0 |
 | Database | Supabase free plan (pooled `POSTGRES_URL`) | $0 |
 | Images | OCI Object Storage Always Free + Cloudflare Worker | $0 |
@@ -55,7 +70,7 @@ flowchart LR
 | rate limit 70 req / 10 s per IP | one client cannot drain the VM |
 | `release.sh` keeps 3 releases | rollback in seconds |
 
-Sources: [`gcp.design.md`](./gcp.design.md) §3 (free-tier limits, IPv4 cost), [`deploy/gcp/README.md`](./deploy/gcp/README.md), [`deploy/traffic/README.md`](./deploy/traffic/README.md).
+Sources: [`gcp.design.md`](./gcp.design.md) §3 (design-time limits), [`deploy/gcp/README.md`](./deploy/gcp/README.md), [`deploy/traffic/README.md`](./deploy/traffic/README.md).
 
 ---
 
