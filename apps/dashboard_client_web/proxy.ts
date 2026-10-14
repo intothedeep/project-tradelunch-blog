@@ -16,7 +16,6 @@ import {
     isDottedPath,
     isUnknownPath,
     NOT_FOUND_PATH,
-    shouldCheck,
 } from '@/utils/notFoundGate';
 import { isOwnerHandle } from '@/utils/owner-handle';
 import { PUBLIC_PATHS } from '@/utils/publicPaths.generated';
@@ -101,8 +100,9 @@ async function gateNotFound(auth: ClerkMiddlewareAuth, req: NextRequest) {
     if (!gate) return null;
     const { userId, getToken } = await auth();
     const signedIn = Boolean(userId);
+    // Signed-in RSC navigations are checked like anonymous ones (decision #103,
+    // #98 option b): the Suspense leaf can only answer 200 plus a not-found view.
     const isRsc = req.headers.get('rsc') === '1';
-    if (!shouldCheck({ signedIn, isRsc })) return null;
 
     const started = Date.now();
     const token = signedIn ? await getToken() : null;
