@@ -1,7 +1,13 @@
 // Pure: which pastel section tone a route / nav item belongs to (owner trial,
 // 2026-10-14). Tokens `--tone-*` live in styles/globals.css. Class names are
 // literal strings so Tailwind can see them.
-export type SectionTone = 'home' | 'projects' | 'saved' | 'about' | 'posts';
+export type SectionTone =
+    | 'home'
+    | 'projects'
+    | 'saved'
+    | 'about'
+    | 'posts'
+    | 'write';
 
 export const TONE_BG: Record<SectionTone, string> = {
     home: 'bg-tone-home',
@@ -9,6 +15,7 @@ export const TONE_BG: Record<SectionTone, string> = {
     saved: 'bg-tone-saved',
     about: 'bg-tone-about',
     posts: 'bg-tone-posts',
+    write: 'bg-tone-write',
 };
 
 const TONE_BY_HANDLE_SECTION: Record<string, SectionTone> = {
@@ -22,6 +29,7 @@ const TONE_BY_HANDLE_SECTION: Record<string, SectionTone> = {
 export function sectionTone(pathname: string): SectionTone | null {
     const [first, section] = pathname.split('/').filter(Boolean);
     if (first === undefined || first === 'tags') return 'home';
+    if (first === 'write') return 'write';
     if (!first.startsWith('@') || section === undefined) return null;
     return TONE_BY_HANDLE_SECTION[section] ?? null;
 }
@@ -35,6 +43,7 @@ const TONE_BY_NAV_KEY: Record<string, SectionTone> = {
     about: 'about',
     resume: 'about',
     myBlog: 'posts',
+    write: 'write',
 };
 
 export function toneOfNavKey(iconKey: string | undefined): SectionTone | null {

@@ -42,10 +42,11 @@ body {
     --sidebar-border: hsl(220 13% 91%);
     --sidebar-ring: hsl(217.2 91.2% 59.8%);
     --tone-home: oklch(0.95 0.035 150);
-    --tone-projects: oklch(0.95 0.03 80);
+    --tone-projects: oklch(0.95 0.04 25);
     --tone-saved: oklch(0.95 0.03 350);
     --tone-about: oklch(0.95 0.03 250);
     --tone-posts: oklch(0.95 0.03 300);
+    --tone-write: oklch(0.96 0.05 95);
 }
 
 .dark {
@@ -58,10 +59,11 @@ body {
     --sidebar-border: hsl(240 3.7% 15.9%);
     --sidebar-ring: hsl(217.2 91.2% 59.8%);
     --tone-home: oklch(0.25 0.045 150);
-    --tone-projects: oklch(0.25 0.04 80);
+    --tone-projects: oklch(0.25 0.05 25);
     --tone-saved: oklch(0.25 0.04 350);
     --tone-about: oklch(0.25 0.04 250);
     --tone-posts: oklch(0.25 0.04 300);
+    --tone-write: oklch(0.27 0.05 95);
 }
 
 @theme inline {
@@ -87,6 +89,7 @@ body {
     --color-tone-saved: var(--tone-saved);
     --color-tone-about: var(--tone-about);
     --color-tone-posts: var(--tone-posts);
+    --color-tone-write: var(--tone-write);
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
