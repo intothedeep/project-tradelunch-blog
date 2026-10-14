@@ -128,3 +128,110 @@ AC 밖, #113 Update 2 "모바일 메뉴 = 데스크톱 rail": 코드 `MenuDrawer
 ## 8. 다음 cycle
 
 - M-1 닫힘 뒤 gate 재실행 = cycle 2/2. 측정 = §4 "닫는 조건" + §3 표 재확인.
+
+---
+
+# P2 gate review (Phase PJ M4) · cycle 2/2 · 2026-10-14
+
+- reviewer 단독 (`.claude/CLAUDE.md` Workflow 4, `.claude/agents/reviewer.md`).
+- 대상: main `14e5bf5` (HEAD). 고침 커밋 `df0a482` = HEAD 조상 (`git merge-base` 확인). `df0a482`와 `14e5bf5`의 차이는 문서 3개뿐 (코드 0).
+- 운영 web = `df0a482` (dispatch, `01.status.md` 마지막 줄). 운영 sha를 읽는 헤더나 메타가 없어 sha 자체는 확인하지 못했다. 고침 동작은 아래 probe로 확인했다.
+- 입력: cycle 1 §4 "닫는 조건", `decisions.plan.md` #115, `01.status.md` 마지막 줄, `cc.design.md` §18.9 `log` 종류 줄, 코드 `utils/notFoundGate.ts`, `apis/existence.proxy.ts`, `.github/workflows/cc-standalone-check.yml`, `projects.report.md` P2 단계 4.
+- 방법: 정적 검사 2개(check-types, lint), 코드 diff 읽기, 운영 익명 GET 순차 curl 17회 (1.2 s 간격, UA `reviewer-p2-gate/1.0`, 2026-10-14T19:50:05–19:50:33Z). dispatch가 정한 경로 밖은 보지 않았다. 빌드, dev 서버, 브라우저 없음.
+
+## 판정: PASS
+
+```
+M-1 닫는 조건 4경로 x 2회 = 404 BYPASS ----+
+/@taeklim/logs/31 = 200 (본문 Back to log) -+--> M-1 닫힘. must-fix 0.
+회귀 8경로 기대값 일치 ---------------------+    열린 항목 5 + 새 1 (모두 gate 밖)
+정적 검사 2/2 exit 0 ----------------------+
+```
+
+| 묶음 | 결과 |
+| --- | --- |
+| 정적 검사 | PASS 2/2 |
+| M-1 닫는 조건 | PASS (아래 §C2) |
+| AC (PJ-2-01…06, PJ-1-28) | PASS, cycle 1 이월. 고침 diff가 AC 파일을 건드리지 않았다 (`notFoundGate.ts`, `existence.proxy.ts`, workflow, `cc.design.md`만). PJ-2-03 코드 AC는 HEAD에서 다시 grep (§C2) |
+| 회귀 sample 8경로 | PASS 8/8 |
+| GitHub Actions standalone check (main `14e5bf5`, run 38626850928) | PASS (새 4행 포함) |
+| MVP ladder L1–L4 | PASS |
+| Hierarchy H1–H2 | PASS (pm 후속 2: O-5, O-8) |
+| must-fix | 0 |
+
+## C1. 정적 검사
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm --filter dashboard_client_web check-types` | exit 0 |
+| `pnpm --filter dashboard_client_web lint` (`--max-warnings 0`) | exit 0 |
+
+## C2. M-1 닫는 조건 (운영, 각 경로 2회 순차)
+
+| 경로 | 1회 | 2회 | 기대 | 판정 |
+| --- | --- | --- | --- | --- |
+| `/@taeklim/logs/0` | 404 BYPASS | 404 BYPASS | 404, 2회째 BYPASS | PASS |
+| `/@taeklim/logs/abc` | 404 BYPASS | 404 BYPASS | 404, 2회째 BYPASS | PASS |
+| `/@taeklim/logs/99999999999999` | 404 BYPASS | 404 BYPASS | 404, 2회째 BYPASS | PASS |
+| `/@nobodyxyz/logs/31` | 404 BYPASS | 404 BYPASS | 404 (user 존재 포함) | PASS |
+| `/@taeklim/logs/31` | 200 HIT (age 82), 본문 `Back to log` 1 | 1회만 | 200 유지 | PASS |
+
+- `age` 헤더: 404 경로 4개 모두 없음. 엣지에 남은 soft 404가 없다 (O-1 닫힘).
+- 코드 (`df0a482`): `classifyGatePath`가 3세그먼트 `logs`를 `{ kind: 'log' }`로 분류한다. `checkLog`는 `isLogId` (`^[1-9]\d{0,18}$`) 실패면 네트워크 없이 `missing`, 맞으면 `GET /v1/api/log/thread/<id>?limit=1`을 묻고 `focus.authorUsername`을 handle과 비교한다. `null`은 삭제 tombstone이라 `found`. 그 밖은 fail-open. `cc.design.md` §18.9 표의 `log` 줄과 같다.
+- PJ-2-03 코드 AC를 HEAD `14e5bf5`에서 다시 grep: `logs/` 아래 `Number(|parseInt` 0, `/log/@` 1 (주석), `app/` 아래 `export const (dynamic|dynamicParams)` 0, `loading.tsx` 2개 (`logs/`, `logs/[logId]/`). cycle 1과 같다. 금지한 안을 쓰지 않았다.
+- 같은 4행이 `cc-standalone-check.yml`에 들어갔다. main `14e5bf5` run 38626850928 표: `/@taeklim/logs/0`, `/abc`, `/@nobodyxyz/logs/31` = 404 ×2 PASS, `/@taeklim/logs/31` = 200 ×2 PASS.
+
+## C3. 회귀 sample (운영, 1회)
+
+| 경로 | 상태 | cf | 기대 | 판정 |
+| --- | --- | --- | --- | --- |
+| `/` | 200 | MISS | 200 | 일치 |
+| `/@taeklim/posts` | 200 | MISS | 200 | 일치 |
+| `/@taeklim/projects` | 200 | MISS | 200 | 일치 |
+| `/@taeklim/about` | 200 | MISS | 200 | 일치 |
+| `/@taeklim/logs` | 200 | MISS | 200 | 일치 |
+| `/nope` | 404 | BYPASS | 404 | 일치 |
+| `/api/x` | 404 | DYNAMIC | 404 | 일치 |
+| `/favicon.ico` | 200 | MISS | 200 | 일치 |
+
+- 200 경로의 MISS는 배포 뒤 purge 직후의 첫 요청이라 기대와 같다 (`01.status.md` "재purge 1회").
+
+## C4. MVP ladder (`.claude/CLAUDE.md` "System build phasing")
+
+| 검사 | 결과 | 근거 |
+| --- | --- | --- |
+| L1 Schema is the single contract | PASS | 고침은 TS union 멤버 1개 추가 (`kind: 'log'`). DB 스키마, `@repo/types` 변경 없음. logId는 문자열 (`isLogId`는 정규식, `Number` 없음). |
+| L2 No pipeline before the flow is demonstrated | PASS | 새 파이프라인 없음. 기존 Express `log/thread` API 1회 호출. |
+| L3 Mock data isolated | PASS | mock 없음 (cycle 1과 같음). |
+| L4 Phase opens on closed exit | PASS | cycle 1과 같음 (#111). |
+| M4가 돌아가는 것으로 끝나나 | PASS | 운영에서 새 주소 200, 없는 log 404 BYPASS (§C2, §C3). |
+
+## C5. Hierarchy (`rules/core.md` Decision hierarchy, `rules/docs.md` §0.1, §8)
+
+| 검사 | 결과 | 근거 |
+| --- | --- | --- |
+| H1 mission block, task rows | PASS | cycle 1과 같음. 변경 없음. |
+| H1 counters | PASS | `00.plan.md` 260행, `00.tasks.md` 845행 M4 줄 아직 `cycle 0/2`. 실제 = 2/2 (dispatch). 분모 안이라 PASS. cycle 1과 같은 판정, 같은 후속 (O-5, 이제 두 단계 뒤짐). |
+| H2 decisions logged | PASS | #115: Why (M4 exit, #89), Rejected (soft 404 수용, `export const dynamic`), Decided by (main session, §18 P안 확장), Evidence 모두 있음. `log` 종류 선택이 코드보다 먼저 기록됐다. |
+| H2 행 무결성 | PASS (후속 O-8) | #115 행 끝에 #114의 Update(“최종 검토 §7 수 불일치 7 대 9 정리”, CC-QW1-2 등 11행)가 붙어 있다. `8f35d70`에서는 #114 줄(195행)에 있었다. `14e5bf5`가 #114 줄을 자르고 #115 줄에 붙였다. #115 자체의 칸은 온전하다. |
+
+## C6. 열린 항목
+
+| ID | cycle 1 항목 | 이번 상태 | 근거 | 담당 |
+| --- | --- | --- | --- | --- |
+| O-1 | probe가 남긴 soft 404 purge | 닫힘 | §C2 4경로 `age` 없음, BYPASS ×2. `01.status.md` "재purge 1회" | 없음 |
+| O-2 | `/@taeklim/saved` 오너 렌더 기록 | 열림 | `projects.report.md` 605행 "오너 렌더는 기록이 없다" 그대로 | owner |
+| O-3 | 모바일 메뉴 = rail 운영 확인 | 닫힘 | `projects.report.md` P2 단계 4 (625–632행): 오너 답 "checked", 아이콘, 섹션 색, 직각 모서리 확인 | 없음 |
+| O-4 | PJ-1-28 AC2 정규식 문구 | 열림 | `00.tasks.md` PJ-2-06 AC2 sitemap 줄 그대로 | product-manager |
+| O-5 | M4 줄 counter | 열림 | `00.plan.md` 260행, `00.tasks.md` 845행 `cycle 0/2`. 실제 2/2. 머리 "gate 대기" → PASS로 | product-manager |
+| O-6 | `app/robots.ts` 9행 낡은 주석 | 열림 | 주석 그대로 (`/blog, /about, /resume`) | developer (다음 손댈 때) |
+| O-7 | `app/_x_log/` 은퇴 폴더 | 열림 | `git ls-files` 2개 (`loading.tsx`, `page.tsx`) | owner |
+| O-8 (새) | `decisions.plan.md` #114 Update가 #115 행 끝에 붙음 | 열림 | §C5 H2 행 무결성. 수술 편집으로 #114 줄 끝으로 되돌린다 | product-manager |
+
+관찰 (판정에 영향 없음, probe 안 함): `checkLog`는 `author === gate.username` 정확 비교다. `classifyGatePath`는 handle을 소문자로 바꾸지 않는다 (`handle.slice(1)`). `utils/routes.ts` `logPath`에도 소문자 변환이 없다. 대문자 섞인 handle URL로 실제 log를 열면 404가 될 수 있다. 영향은 재지 않았다 (dispatch가 새 경로 probe를 금지). 다른 gate 종류는 handle 문자열을 비교하지 않는다. main session이 필요하면 따로 다룬다.
+
+## C7. 다음
+
+- M4 gate PASS. `.claude/CLAUDE.md` Workflow 4: PASS → 다음 단계.
+- pm: O-5 (M4 줄 `cycle 2/2`, 머리 "gate PASS", M4 exit 닫기), O-8 (#114/#115 줄 수술 편집), O-4.
+- owner: O-2, O-7.
