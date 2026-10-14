@@ -1,0 +1,25 @@
+# smoke 15 + G-g + C5 on deployed 0ac938c, 2026-10-14T08:11:36Z, 1 s apart
+/                                                200 
+/@taeklim/posts                                  200 
+/@taeklim/projects                               200 
+/@taeklim/projects/cnn-from-scratch              200 
+/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first 200 
+/nope                                            404 
+/@nope/x                                         404 
+/@taeklim/nope                                   404 
+/blog                                            308 https://my.prettylog.com/?cb=23220
+/blog/@taeklim                                   308 https://my.prettylog.com/@taeklim/posts?cb=23220
+/about                                           308 https://my.prettylog.com/@taeklim/about?cb=23220
+/resume                                          308 https://my.prettylog.com/@taeklim/resume?cb=23220
+/@taeklim                                        308 https://my.prettylog.com/@taeklim/posts
+/me/saved                                        404 
+/sitemap.xml                                     200 
+sitemap post URLs: 23
+# G-g anon private post
+/@taeklim/do-politicians-beat-the-market-building-an-event-study-harness-to-find-out 404 body_has_title=0
+# C5 anon HTML contains content
+post article text present: 0 comments-section: 3
+home feed post links: 14
+# C5 recheck (case-insensitive): post title/body phrases present in anon HTML ("Rules Written First" x13, "139 Run" x13); first grep was case-sensitive -> SSR content PASS
+# G-l D2: prefetch= count 13 at 19f5e31, 61d48bc, 3596e4c, c26c69d, 0ac938c, 787daed (unchanged); Promise.all 0 at all deploys; git diff 0ac938c..787daed apps/ = empty (working-tree greps apply to 0ac938c)
+# notes: /@taeklim/nope = 404 (G-e2, real 404 since 560f941); /me/saved = 404 (route removed by owner, PJ-1-32; design expected a sign-in redirect -> expectation outdated)
