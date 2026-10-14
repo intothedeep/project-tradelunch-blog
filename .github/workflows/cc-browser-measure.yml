@@ -44,6 +44,11 @@ on:
                 required: false
                 default: 'expanded,collapsed'
                 type: string
+            arms:
+                description: 'Arms (§19.3: to fit 60 min, drop arms, never runs)'
+                required: false
+                default: 'anon,auth'
+                type: string
 
 permissions:
     contents: read
@@ -78,6 +83,7 @@ jobs:
                   UNIT: ${{ inputs.unit }}
                   WEB_SHA: ${{ inputs.web_sha }}
                   RAILS: ${{ inputs.rails }}
+                  ARMS: ${{ inputs.arms }}
                   # Masked by GitHub; the script never prints it.
                   CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY_PROD }}
               run: |
@@ -85,7 +91,7 @@ jobs:
                   [ -n "$PRIVATE_PATH" ] && extra+=(--private-path "$PRIVATE_PATH")
                   [ -n "$UNIT" ] && extra+=(--unit "$UNIT")
                   [ -n "$WEB_SHA" ] && extra+=(--web-sha "$WEB_SHA")
-                  node _scripts/perf/cc-browser.mjs --tag "$TAG" --runs "$RUNS" --base "$BASE_URL" --rails "$RAILS" \
+                  node _scripts/perf/cc-browser.mjs --tag "$TAG" --runs "$RUNS" --base "$BASE_URL" --rails "$RAILS" --arms "$ARMS" \
                       --out "$RUNNER_TEMP/cc-runs" "${extra[@]}"
 
             # always(): an aborted run still has a manifest and the raw lines written so far.
