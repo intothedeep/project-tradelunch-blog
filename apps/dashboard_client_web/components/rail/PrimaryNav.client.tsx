@@ -9,7 +9,7 @@
 // for both states and the first paint is already final (no atom involved).
 // Side effects: none beyond reading the current pathname + Clerk user.
 
-import { HoverPrefetchLink } from '@/components/ui/HoverPrefetchLink.client';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -94,7 +94,7 @@ export const PrimaryNav = () => {
 
                     return (
                         <li key={link.href}>
-                            <HoverPrefetchLink
+                            <Link
                                 href={link.href}
                                 aria-current={active ? 'page' : undefined}
                                 aria-label={label}
@@ -117,7 +117,7 @@ export const PrimaryNav = () => {
                                 <span className="truncate in-data-[rail=collapsed]:hidden">
                                     {label}
                                 </span>
-                            </HoverPrefetchLink>
+                            </Link>
                         </li>
                     );
                 })}

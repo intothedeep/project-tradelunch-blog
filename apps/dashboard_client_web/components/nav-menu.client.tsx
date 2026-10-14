@@ -1,6 +1,6 @@
 'use client';
 
-import { HoverPrefetchLink } from '@/components/ui/HoverPrefetchLink.client';
+import Link from 'next/link';
 import { SignInButton, useClerk, useUser } from '@clerk/nextjs';
 import { CircleUserRound, Menu, Moon, Sun } from 'lucide-react';
 import {
@@ -119,9 +119,9 @@ export function NavMenu({
                                     key={link.title}
                                     asChild
                                 >
-                                    <HoverPrefetchLink href={link.href}>
+                                    <Link href={link.href}>
                                         {link.title.toUpperCase()}
-                                    </HoverPrefetchLink>
+                                    </Link>
                                 </DropdownMenuItem>
                             ))}
                         </DropdownMenuGroup>
@@ -137,25 +137,19 @@ export function NavMenu({
                     <>
                         <DropdownMenuGroup>
                             <DropdownMenuItem asChild>
-                                <HoverPrefetchLink href="/write">
-                                    {t('nav.write')}
-                                </HoverPrefetchLink>
+                                <Link href="/write">{t('nav.write')}</Link>
                             </DropdownMenuItem>
                             {user?.username && (
                                 <>
                                     <DropdownMenuItem asChild>
-                                        <HoverPrefetchLink
-                                            href={mePath(user.username)}
-                                        >
+                                        <Link href={mePath(user.username)}>
                                             {t('nav.myDrafts')}
-                                        </HoverPrefetchLink>
+                                        </Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem asChild>
-                                        <HoverPrefetchLink
-                                            href={savedPath(user.username)}
-                                        >
+                                        <Link href={savedPath(user.username)}>
                                             {t('nav.saved')}
-                                        </HoverPrefetchLink>
+                                        </Link>
                                     </DropdownMenuItem>
                                 </>
                             )}

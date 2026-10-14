@@ -8,7 +8,7 @@
 // /, /blog/*, /tags/*.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { HoverPrefetchLink } from '@/components/ui/HoverPrefetchLink.client';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { TONE_BG_FAINT, sectionTone } from '@/utils/section-tone';
@@ -70,7 +70,7 @@ export const TopBar = () => {
     return (
         <nav className={NAV_CLASS}>
             {/* Left - Logo */}
-            <HoverPrefetchLink
+            <Link
                 href="/"
                 className="flex items-center gap-3 group"
             >
@@ -80,7 +80,7 @@ export const TopBar = () => {
                 <span className="text-2xl font-mono text-primary terminal-glow">
                     Taek Lim
                 </span>
-            </HoverPrefetchLink>
+            </Link>
 
             {/* Right - search trigger, then theme + auth */}
             <div className="flex items-center gap-4">
