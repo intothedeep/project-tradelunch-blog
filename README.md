@@ -16,6 +16,49 @@ This repo is blog-only.
 
 ---
 
+## A full-stack blog on free tiers: $0–3.65 / month
+
+Next.js 16 SSR + Express API + Postgres + image CDN + auth, on one 1 GB free VM.
+
+```mermaid
+flowchart LR
+    U(["Visitor"]) --> CF["Cloudflare Free<br/>DNS · cache 1 day · rate limit · Tunnel<br/>$0"]
+    CF -- "cache HIT<br/>(VM never sees it)" --> U
+    CF -- "Tunnel (no open port)" --> VM["GCP e2-micro, us-central1<br/>Always Free · 1 GB RAM + 4 GB swap<br/>PM2: Next.js :3000 + Express :4000<br/>$0"]
+    VM --> DB[("Supabase Postgres<br/>free plan<br/>$0")]
+    U -- "images" --> W["blog-assets.prettylog.com<br/>Cloudflare Worker<br/>$0"]
+    W --> OCI[("OCI Object Storage<br/>Always Free<br/>$0")]
+    U -- "sign-in" --> CK["Clerk<br/>$0"]
+    GH["GitHub Actions<br/>build · checks · measure<br/>$0"] -- "tarball over IAP ssh" --> VM
+```
+
+| Piece | Free tier used | Cost |
+| --- | --- | --- |
+| Compute | GCP e2-micro (1 VM, us-central1, 30 GB disk, 1 GB egress / month) | $0 |
+| External IPv4 on the VM | billed hourly; free-tier coverage unclear | $0–3.65 |
+| Edge, cache, DDoS, TLS, Tunnel | Cloudflare Free | $0 |
+| Database | Supabase free plan (pooled `POSTGRES_URL`) | $0 |
+| Images | OCI Object Storage Always Free + Cloudflare Worker | $0 |
+| Auth | Clerk | $0 |
+| CI/CD | GitHub Actions | $0 |
+
+### How a 1 GB VM survives
+
+| Trick | Why |
+| --- | --- |
+| Cloudflare caches anonymous HTML 1 day | most requests never reach the VM; saves the 1 GB egress |
+| Cloudflare Tunnel, firewall denies all inbound | no open ports; ssh only via IAP |
+| Build on GitHub Actions, ship a tarball | `next build` never runs on the VM |
+| 4 GB swap + heap caps (`--max-old-space-size` 160 / 256 MB) | Next + Express fit in 1 GB RAM |
+| `images.unoptimized` + pre-resized webp | no image CPU on the VM |
+| proxy real-404 gates before render | scanners and bad URLs cost one cheap check, not a render |
+| rate limit 70 req / 10 s per IP | one client cannot drain the VM |
+| `release.sh` keeps 3 releases | rollback in seconds |
+
+Sources: [`gcp.design.md`](./gcp.design.md) §3 (free-tier limits, IPv4 cost), [`deploy/gcp/README.md`](./deploy/gcp/README.md), [`deploy/traffic/README.md`](./deploy/traffic/README.md).
+
+---
+
 ## What's inside
 
 pnpm + Turborepo monorepo, Node 24.
