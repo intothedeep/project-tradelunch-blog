@@ -95,6 +95,41 @@ jobs:
           cat table.md >> "$GITHUB_STEP_SUMMARY"
           exit $fail
 
+      # Anonymous browser pass on the same standalone server (U4 option b, G-a / G-b).
+      # The signed-in arm cannot run here: it needs a Clerk session for the prod instance.
+      # Limits: localhost has no Cloudflare, so g_a counts requests only; the anon prod
+      # baseline is 22-23 per 10 s in W1 (u4-verdict.md), the gate is 27.
+      - name: Install Playwright chromium
+        if: always()
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Anonymous browser pass (prefetch per menu link, max requests per 10 s)
+        if: always()
+        run: |
+          node _scripts/perf/cc-browser.mjs --tag u4b-anon --base http://localhost:3000 \
+            --arms anon --rails expanded --runs 2 --out "$RUNNER_TEMP/ccb" || true
+          node - <<'JS'
+          const fs = require('fs');
+          const root = process.env.RUNNER_TEMP + '/ccb';
+          const dir = root + '/' + fs.readdirSync(root)[0];
+          const rows = fs.readFileSync(dir + '/summary.csv', 'utf8').trim().split('\n').slice(1).map((l) => l.split(','));
+          const val = (k) => rows.filter((r) => r[2] === k).map((r) => r[7]).join(' ').replace(/"/g, '');
+          const maxOf = (k) => Math.max(...val(k).split(' ').map(Number));
+          const detail = JSON.parse(fs.readFileSync(dir + '/browser_summary.json', 'utf8'));
+          const out = ['| run | menu link | prefetch requests |', '| --- | --- | --- |'];
+          for (const d of detail) for (const [h, n] of Object.entries(d.prefetch_per_menu_link ?? {})) out.push(`| ${d.run} | \`${h}\` | ${n} |`);
+          const perLink = maxOf('g_b_prefetch_per_menu_link_max');
+          const ga = maxOf('g_a_max_10s_w1');
+          out.push('', '| metric | values per run | gate | result |', '| --- | --- | --- | --- |');
+          out.push(`| prefetch per menu link, max | ${val('g_b_prefetch_per_menu_link_max')} | <= 2 | ${perLink <= 2 ? 'PASS' : 'FAIL'} |`);
+          out.push(`| g_a_max_10s_w1 | ${val('g_a_max_10s_w1')} | <= 27 | ${ga <= 27 ? 'PASS' : 'FAIL'} |`);
+          out.push(`| g_a_max_10s, w1+w3+w4 (info) | ${val('g_a_max_10s')} | none | |`);
+          out.push(`| w1_rsc_total (info) | ${val('w1_rsc_total')} | none | |`);
+          console.log(out.join('\n'));
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, '\n### Anonymous browser pass\n\n' + out.join('\n') + '\n');
+          process.exit(perLink <= 2 && ga <= 27 ? 0 : 1);
+          JS
+
       - name: Server log tail
         if: always()
         run: tail -n 60 server.log || true

@@ -10,7 +10,7 @@
 // Side effects (escape key, body scroll lock, focus trap) are isolated here.
 
 import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
+import { HoverPrefetchLink } from '@/components/ui/HoverPrefetchLink.client';
 import { useAtom, useAtomValue } from 'jotai';
 import { useTranslations } from 'next-intl';
 import { ChevronLeft } from 'lucide-react';
@@ -297,7 +297,7 @@ function SiteMenuBody({
 
                     return (
                         <li key={link.href}>
-                            <Link
+                            <HoverPrefetchLink
                                 href={link.href}
                                 onClick={onNavigate}
                                 className="block px-4 py-4 font-mono text-lg border-2 border-primary/30 hover:border-primary hover:bg-secondary transition-all"
@@ -305,7 +305,7 @@ function SiteMenuBody({
                             >
                                 <span className="text-primary">&gt;</span>{' '}
                                 {label.toUpperCase()}
-                            </Link>
+                            </HoverPrefetchLink>
                         </li>
                     );
                 })}
