@@ -7,7 +7,13 @@
 // Side effects: none.
 
 export const RightRail = ({ children }: { children: React.ReactNode }) => {
-    return <div className="flex h-full flex-col gap-4 p-3">{children}</div>;
+    // pt-4 = the main column's p-4, so the rail's first box and the body start
+    // on the same line (owner, 2026-10-14).
+    return (
+        <div className="flex h-full flex-col gap-4 px-3 pb-3 pt-4">
+            {children}
+        </div>
+    );
 };
 
 export default RightRail;
