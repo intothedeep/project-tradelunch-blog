@@ -1,6 +1,6 @@
 'use client';
 
-// Purpose: a single recent-post card on /blog/@<username>.
+// Purpose: a single recent-post card on /@<username>/posts.
 // Invariants: the whole card is ONE navigation target (overlay stretched-link);
 //   interactive actions (Like live, Share live, Save live) are siblings at z-10
 //   so they never nest inside the anchor (valid HTML, no nested-interactive
@@ -27,6 +27,8 @@ import { SaveButton } from '@/app/blog/components/post-card-actions/SaveButton.c
 import { LikeButton } from '@/app/blog/components/post-card-actions/LikeButton.client';
 import { PostActions } from '@/app/blog/components/post-card-actions/PostActions.client';
 import { StatusBadge } from '@/components/blog/StatusBadge';
+import { postPath, postsPath } from '@/utils/routes';
+import { serializeFacet } from '@/utils/filter-state';
 
 interface RecentPostCardProps {
     post: TPost;
@@ -47,9 +49,7 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
 
     // Omit the overlay link when either segment is missing → no "@undefined".
     const href =
-        post.username && post.slug
-            ? `/blog/@${post.username}/${post.slug}`
-            : null;
+        post.username && post.slug ? postPath(post.username, post.slug) : null;
 
     // Full category breadcrumb root→leaf; fall back to the single leaf title
     // when the path is absent (uncategorized or a soft-deleted ancestor).
@@ -105,7 +105,7 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
 
                 {/* Category breadcrumb — full root→leaf path. Each segment links
                     to the author's feed filtered to that category title
-                    (?category_title=<title>), so any ancestor is browseable too.
+                    (?categories=<title>), so any ancestor is browseable too.
                     Raised to z-10 above the card's overlay post link (siblings,
                     never nested). Plain text when there is no addressable author. */}
                 {categoryPath.length > 0 && (
@@ -114,7 +114,7 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
                             const chip = post.username ? (
                                 <Link
                                     key={`seg-${i}`}
-                                    href={`/blog/@${post.username}?category_title=${encodeURIComponent(seg)}`}
+                                    href={`${postsPath(post.username)}?categories=${serializeFacet([seg])}`}
                                     aria-label={`View posts in ${seg}`}
                                     className={cn(
                                         badgeVariants({ variant: 'outline' }),

@@ -4,6 +4,7 @@ import { Command } from 'lucide-react';
 import { SidebarHeader } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import { ModeToggle } from '@/components/mode-toggle';
+import { postsPath } from '@/utils/routes';
 
 type Props = {
     username: string;
@@ -27,7 +28,7 @@ export const BlogSidebarheader = ({ username, displayName }: Props) => {
                     </div>
 
                     <span className="truncate font-semibold text-2xl">
-                        <Link href={`/blog/@${username}`}>{name}</Link>
+                        <Link href={postsPath(username)}>{name}</Link>
                     </span>
                 </div>
 

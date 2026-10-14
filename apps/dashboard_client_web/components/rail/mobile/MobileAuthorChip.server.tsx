@@ -1,6 +1,6 @@
 // Purpose: compact author identity chip for the mobile context header. SERVER
 // component: renders avatar (fallback = first letter of displayName/username),
-// display name and `@username`, linking to the author root (`/blog/@<username>`).
+// display name and `@username`, linking to the author root (`/@<username>/posts`).
 // A null profile (unknown user / fetch failure upstream) degrades to rendering
 // nothing — never breaks the shell. The avatar + initial fallback pattern mirrors
 // UserProfileCard (copied, not imported — different layout: inline pill vs. card).
@@ -11,6 +11,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import type { TUserProfile } from '@repo/types';
+import { postsPath } from '@/utils/routes';
 
 export const MobileAuthorChip = ({
     profile,
@@ -24,7 +25,7 @@ export const MobileAuthorChip = ({
 
     return (
         <Link
-            href={`/blog/@${profile.username}`}
+            href={postsPath(profile.username)}
             className="inline-flex min-w-0 items-center gap-2 rounded-full border border-border px-2 py-1 transition-colors hover:bg-accent/50"
         >
             {profile.avatarUrl ? (

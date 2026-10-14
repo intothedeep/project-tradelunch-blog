@@ -31,6 +31,7 @@ import { useEditorHandlers } from '@/hooks/useEditorHandlers.hook';
 
 import { cn } from '@/lib/utils';
 import type { TPostInput, TPostStatus } from '@repo/types';
+import { postPath } from '@/utils/routes';
 
 // Status values the editor can represent. Legacy/out-of-set values (e.g.
 // 'follower') must be coerced on seed so the controlled <select> always has a
@@ -213,7 +214,7 @@ export function MarkdownEditor({ postId }: { postId: string | null }) {
                 >
                     {status === 'public' && user?.username && liveSlug && (
                         <Link
-                            href={`/blog/@${user.username}/${liveSlug}`}
+                            href={postPath(user.username, liveSlug)}
                             target="_blank"
                             className="mt-3 inline-block text-xs uppercase tracking-wider text-primary underline-offset-4 hover:underline"
                         >

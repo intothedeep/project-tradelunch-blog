@@ -6,6 +6,7 @@ import { useMe } from '@/hooks/useMe.query.client';
 import { useClaimUsername } from '@/hooks/useClaimUsername.query.client';
 import { UsernameClaimError } from '@/apis/postUsername.api';
 import { cn } from '@/lib/utils';
+import { postsPath } from '@/utils/routes';
 
 // Resolve an inline error message from a claim failure. Prefers the server's
 // message; falls back to a localized default keyed off the HTTP status.
@@ -29,7 +30,7 @@ export default function OnboardingPage() {
     // Already onboarded → straight to their blog.
     useEffect(() => {
         if (me?.username) {
-            router.replace(`/blog/@${me.username}`);
+            router.replace(postsPath(me.username));
         }
     }, [me?.username, router]);
 
@@ -45,7 +46,7 @@ export default function OnboardingPage() {
 
         try {
             const result = await claim.mutateAsync(trimmed);
-            router.replace(`/blog/@${result.username}`);
+            router.replace(postsPath(result.username));
         } catch (err) {
             setError(toInlineError(err));
         }

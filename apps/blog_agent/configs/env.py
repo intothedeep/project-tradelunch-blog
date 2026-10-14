@@ -30,7 +30,7 @@ DEFAULT_BLOG_AUTHOR = os.getenv("DEFAULT_BLOG_AUTHOR", "taeklim")
 # ==================== Domain Configuration ====================
 SITE_DOMAIN = os.getenv("SITE_DOMAIN", "http://localhost:3000")
 API_SITE_DOMAIN = os.getenv("API_SITE_DOMAIN", "https://my-api.prettylog.com")
-BLOG_BASE_URL = os.getenv("BLOG_BASE_URL", "https://my.prettylog")
+BLOG_BASE_URL = os.getenv("BLOG_BASE_URL", "https://my.prettylog.com")
 
 
 # ==================== Logging ====================

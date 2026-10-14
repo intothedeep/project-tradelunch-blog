@@ -483,7 +483,7 @@ class UploadingAgent(BaseAgent):
             author = data.get("author", config.DEFAULT_BLOG_AUTHOR)
             # Slugify author name for URL (lowercase, replace spaces with hyphen)
             username = author.lower().replace(" ", "-") if author else config.DEFAULT_BLOG_AUTHOR
-        published_url = f"{config.BLOG_BASE_URL}/blog/@{username}/{slug}"
+        published_url = f"{config.BLOG_BASE_URL}/@{username}/{slug}"
 
         self._log(f"Article saved with ID: {article_id}")
 
@@ -910,7 +910,7 @@ class UploadingAgent(BaseAgent):
                 images.append(file_info)
 
         # Build published URL
-        published_url = f"{config.BLOG_BASE_URL}/blog/@{username}/{metadata.slug}"
+        published_url = f"{config.BLOG_BASE_URL}/@{username}/{metadata.slug}"
 
         # Build payload
         payload = UploadPayload(

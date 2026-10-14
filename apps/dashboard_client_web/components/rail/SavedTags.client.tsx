@@ -2,7 +2,7 @@
 
 // Purpose: left-rail "Saved tags" section (H5.4) — chips for the viewer's saved
 // tags from useSavedTags; each links to the GLOBAL /tags/<tag> route and carries
-// an unsave (×) affordance. Identical on `/` and `/blog/[username]`. Graceful
+// an unsave (×) affordance. Identical on `/` and `/@[handle]/posts`. Graceful
 // empty state. Rendered only in the EXPANDED rail (LeftRail gates visibility).
 // Side effects: unsaveTag writes localStorage (via useSavedTags).
 

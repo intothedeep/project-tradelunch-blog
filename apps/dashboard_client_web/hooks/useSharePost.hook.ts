@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SITE_URL } from '@/env.schema';
+import { postPath } from '@/utils/routes';
 
 const COPIED_RESET_MS = 1500;
 
@@ -26,7 +27,7 @@ type ShareApi = {
 
 const buildPostUrl = (username: string, slug: string): string => {
     const base = SITE_URL.replace(/\/+$/, '');
-    return `${base}/blog/@${username}/${slug}`;
+    return `${base}${postPath(username, slug)}`;
 };
 
 const isAbortError = (error: unknown): boolean =>

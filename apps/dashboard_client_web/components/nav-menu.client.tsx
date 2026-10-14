@@ -14,6 +14,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useThemeToggle } from '@/hooks/useThemeToggle.hook';
 import { useTranslations } from 'next-intl';
+import { savedPath } from '@/utils/routes';
 
 type NavLink = { title: string; href: string };
 
@@ -142,7 +143,15 @@ export function NavMenu({
                                 <Link href="/me">{t('nav.myDrafts')}</Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
-                                <Link href="/me/saved">{t('nav.saved')}</Link>
+                                <Link
+                                    href={
+                                        user?.username
+                                            ? savedPath(user.username)
+                                            : '/me/saved'
+                                    }
+                                >
+                                    {t('nav.saved')}
+                                </Link>
                             </DropdownMenuItem>
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />

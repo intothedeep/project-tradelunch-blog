@@ -2,7 +2,7 @@
 
 // Purpose: left-rail "Recently viewed" section (H5.4) — a compact list of the
 // viewer's recently-viewed posts from useRecents, each linking to its post.
-// Identical on `/` and `/blog/[username]` (the LeftRail is shared). Graceful
+// Identical on `/` and `/@[handle]/posts` (the LeftRail is shared). Graceful
 // empty state. Rendered only in the EXPANDED rail (LeftRail gates visibility).
 // Side effects: none beyond reading useRecents (localStorage).
 
@@ -10,6 +10,7 @@ import { HoverPrefetchLink } from '@/components/ui/HoverPrefetchLink.client';
 import { useTranslations } from 'next-intl';
 import { useRecents } from '@/hooks/useRecents.hook';
 import { RailSection } from '@/components/rail/RailSection.client';
+import { postPath } from '@/utils/routes';
 
 export const RecentVisited = () => {
     const { recents } = useRecents();
@@ -22,7 +23,7 @@ export const RecentVisited = () => {
                     {recents.slice(0, 8).map((post) => {
                         const href =
                             post.username && post.slug
-                                ? `/blog/@${post.username}/${post.slug}`
+                                ? postPath(post.username, post.slug)
                                 : null;
                         return (
                             <li key={post.id}>

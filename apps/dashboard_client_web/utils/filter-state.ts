@@ -10,6 +10,8 @@
 //              mirroring the Express `??` handler — plural wins when present);
 //              the output NEVER emits `category_title`.
 
+import { postsPath } from '@/utils/routes';
+
 export const FILTER_MAX = 20;
 
 export type TFilterState = {
@@ -85,7 +87,7 @@ export function buildFeedHref(username: string, next: TFilterState): string {
     if (categories) params.push(`categories=${categories}`);
     if (tags) params.push(`tags=${tags}`);
     const query = params.length > 0 ? `?${params.join('&')}` : '';
-    return `/blog/@${username}${query}`;
+    return `${postsPath(username)}${query}`;
 }
 
 export function buildToggleHref(

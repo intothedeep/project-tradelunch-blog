@@ -16,6 +16,7 @@ import {
     SidebarMenuBadge,
 } from '@/components/ui/sidebar';
 import { TreeNode } from '@/utils/tree.utils';
+import { postPath, postsPath } from '@/utils/routes';
 
 type CategoryTreeProps = {
     node: TreeNode;
@@ -31,7 +32,13 @@ export function CategoryTree({ node, username }: CategoryTreeProps) {
     if (!hasChildren) {
         return (
             <SidebarMenuItem>
-                <Link href={`/blog/@${username}/${node.slug}`}>
+                <Link
+                    href={
+                        node.slug
+                            ? postPath(username, node.slug)
+                            : postsPath(username)
+                    }
+                >
                     <SidebarMenuButton
                         isActive={node.slug === currentSlug}
                         className="data-[active=true]:bg-transparent"

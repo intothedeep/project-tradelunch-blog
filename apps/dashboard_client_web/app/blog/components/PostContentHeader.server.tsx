@@ -4,6 +4,7 @@ import { formatPostDate } from '@/utils/formatPostDate';
 import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
+import { postsPath } from '@/utils/routes';
 
 type Props = {
     post: TPost;
@@ -42,9 +43,9 @@ export const PostContentHeader: React.FC<Props> = ({
                     {username ? (
                         // Author byline acts like an action: raised above the
                         // card's overlay link (z-10) and given a clear hover
-                        // affordance so it reads as clickable → /blog/@<username>.
+                        // affordance so it reads as clickable → /@<username>/posts.
                         <Link
-                            href={`/blog/@${username}`}
+                            href={postsPath(username)}
                             aria-label={`View ${bylineLabel}'s blog`}
                             className="relative z-10 font-semibold text-foreground underline-offset-2 transition-colors hover:text-primary hover:underline"
                         >

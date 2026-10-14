@@ -2,6 +2,7 @@ import { logServerError } from '@/utils/serverLog.util';
 import type { MetadataRoute } from 'next';
 import { getBlogPostsByUsername } from '@/apis/getPosts.api';
 import { SITE_URL } from '@/env.schema';
+import { postPath } from '@/utils/routes';
 
 // sitemap.xml generator (Next.js 16 MetadataRoute.Sitemap).
 // Scope: BLOG CONTENT ONLY — the content statics (/, /about, /resume)
@@ -9,7 +10,7 @@ import { SITE_URL } from '@/env.schema';
 // (finance_web) that owns its own sitemap; nothing finance is enumerated here.
 // (Those DB-backed finance detail URLs were also a large Supabase-egress source,
 // so keeping them out of the blog sitemap protects the free-tier egress budget.)
-// Also excluded (unchanged): /dashboard*, /blog/@[username] author feeds
+// Also excluded (unchanged): /dashboard*, /@[username]/posts author feeds
 // (owner canonicalized to `/`), /(feed)/tags/[tag], all auth/protected routes.
 // ISR: without `revalidate` this is a build-time static handler, so posts
 // published after deploy never appear; a periodic re-fetch discovers them
@@ -49,7 +50,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         },
     ];
 
-    // Dynamic published posts: /blog/@[username]/[slug]
+    // Dynamic published posts: /@[username]/[slug]
     let postPages: MetadataRoute.Sitemap = [];
     try {
         const response = await getBlogPostsByUsername(
@@ -59,14 +60,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             undefined,
             SITEMAP_CACHE_SECONDS
         );
-        postPages = response.posts
-            .filter((post) => post.username && post.slug)
-            .map((post) => ({
-                url: `${SITE_URL}/blog/@${post.username}/${post.slug}`,
-                lastModified: post.updated_at ? new Date(post.updated_at) : now,
-                changeFrequency: 'weekly' as const,
-                priority: 0.8,
-            }));
+        postPages = response.posts.flatMap((post) =>
+            post.username && post.slug
+                ? [
+                      {
+                          url: `${SITE_URL}${postPath(post.username, post.slug)}`,
+                          lastModified: post.updated_at
+                              ? new Date(post.updated_at)
+                              : now,
+                          changeFrequency: 'weekly' as const,
+                          priority: 0.8,
+                      },
+                  ]
+                : []
+        );
     } catch (error) {
         logServerError(
             'Failed to fetch posts for sitemap',

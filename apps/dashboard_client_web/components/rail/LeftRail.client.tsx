@@ -70,7 +70,7 @@ export const LeftRail = ({
             ) : null}
 
             {/* localStorage-backed widgets (H5.4) — expanded rail only; shared
-                identically across `/` and `/blog/[username]`. */}
+                identically across `/` and `/@[handle]/posts`. */}
             {!isCollapsed ? (
                 <>
                     {showRecentVisited ? <RecentVisited /> : null}

@@ -1,7 +1,7 @@
 'use client';
 
 // Purpose: <lg reachability for the per-user context (H5.5 Q1). A collapsible
-// disclosure shown at the top of /blog/@username on narrow viewports (the
+// disclosure shown at the top of /@username/posts on narrow viewports (the
 // BlogShell already gates this slot with `lg:hidden`). A button toggles a panel
 // containing the SAME per-user content — passed in as `children` (a server-
 // rendered <UserContextRail/>) because a server component cannot be imported
