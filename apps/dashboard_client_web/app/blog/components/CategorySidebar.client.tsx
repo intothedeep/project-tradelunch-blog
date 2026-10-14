@@ -9,7 +9,12 @@ import {
 import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { ETreeNodeType, TTreeNode, TTreeNodeWithChildren } from '@repo/types';
-import { buildToggleHref, parseFilterState } from '@/utils/filter-state';
+import {
+    buildToggleHref,
+    parseFilterState,
+    serializeFacet,
+} from '@/utils/filter-state';
+import { postPath, postsPath } from '@/utils/routes';
 
 // // ============================================================================
 // // CategorySidebar Component
@@ -19,18 +24,25 @@ interface CategorySidebarProps {
     categories: TTreeNode[];
     // 'filter' (desktop author rail, Phase 2-filter): clicking a category toggles
     // the per-author `categories` facet instead of single-category navigation.
-    // Default 'nav' keeps the legacy `?category_title=` behavior.
+    // Default 'nav' navigates to `/@u/posts?categories=` in one click.
     mode?: 'nav' | 'filter';
     // `bare` drops the Card chrome (header/title) and renders only the tree, for
     // nesting inside a labelled container — e.g. the mobile category accordion,
     // where the Collapsible trigger already provides the heading.
     bare?: boolean;
+    // Filter mode only: send the category click to `<filterBasePath>?categories=`
+    // instead of the per-author /@u/posts feed. Used on `/`, whose all-authors feed
+    // has no category filter.
+    filterBasePath?: string;
+    className?: string;
 }
 
 export const CategorySidebar: React.FC<CategorySidebarProps> = ({
     categories,
     mode = 'nav',
     bare = false,
+    filterBasePath,
+    className,
 }) => {
     const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
@@ -46,11 +58,17 @@ export const CategorySidebar: React.FC<CategorySidebarProps> = ({
         setSelectedNode(id);
         // Handle navigation for posts
         if (node.type === ETreeNodeType.POST && node.slug) {
-            router.push(`/blog/@${node.username ?? username}/${node.slug}`);
+            router.push(postPath(node.username ?? username, node.slug));
             return;
         }
         // Category: filter the blog feed by this category title.
         if (node.type === ETreeNodeType.CATEGORY && node.title && username) {
+            if (mode === 'filter' && filterBasePath) {
+                router.push(
+                    `${filterBasePath}?categories=${serializeFacet([node.title])}`
+                );
+                return;
+            }
             if (mode === 'filter') {
                 const current = parseFilterState({
                     categories: searchParams.get('categories') ?? undefined,
@@ -64,7 +82,7 @@ export const CategorySidebar: React.FC<CategorySidebarProps> = ({
                 return;
             }
             router.push(
-                `/blog/@${username}?category_title=${encodeURIComponent(node.title)}`
+                `${postsPath(username)}?categories=${serializeFacet([node.title])}`
             );
         }
     };
@@ -109,7 +127,8 @@ export const CategorySidebar: React.FC<CategorySidebarProps> = ({
         <Card
             className={cn(
                 // 'max-w-2xl',
-                'bg-card border-primary'
+                'bg-card border-primary',
+                className
             )}
         >
             <CardHeader className="p-3 sm:p-4 border-b border-primary/30 space-y-2">

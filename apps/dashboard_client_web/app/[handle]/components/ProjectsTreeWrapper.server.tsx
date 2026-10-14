@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { getProjectsTree } from '@/apis/getProjectsTree.api';
 import { ProjectsTree } from '@/app/[handle]/components/ProjectsTree.client';
 
-type Props = { username: string; bare?: boolean };
+type Props = { username: string; bare?: boolean; hideWhenEmpty?: boolean };
 
 // The only place on the projects screens that reads auth(), so the owner sees
 // own private posts in the tree. Mounted inside Suspense by its callers, which
@@ -10,6 +10,7 @@ type Props = { username: string; bare?: boolean };
 export const ProjectsTreeWrapper = async ({
     username,
     bare = false,
+    hideWhenEmpty = false,
 }: Props) => {
     let token: string | null = null;
     try {
@@ -20,6 +21,8 @@ export const ProjectsTreeWrapper = async ({
     }
 
     const { nodes } = await getProjectsTree(username, token);
+
+    if (hideWhenEmpty && nodes.length === 0) return null;
 
     return (
         <ProjectsTree

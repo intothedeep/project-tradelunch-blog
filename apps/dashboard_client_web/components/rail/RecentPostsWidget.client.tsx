@@ -12,6 +12,7 @@ import { HoverPrefetchLink } from '@/components/ui/HoverPrefetchLink.client';
 import { useTranslations } from 'next-intl';
 import { Heart, MessageSquare } from 'lucide-react';
 import { useRecents } from '@/hooks/useRecents.hook';
+import { postPath } from '@/utils/routes';
 import { RailSection } from '@/components/rail/RailSection.client';
 
 export const RecentPostsWidget = ({
@@ -36,7 +37,7 @@ export const RecentPostsWidget = ({
                 {recents.map((post) => {
                     const href =
                         post.username && post.slug
-                            ? `/blog/@${post.username}/${post.slug}`
+                            ? postPath(post.username, post.slug)
                             : null;
 
                     const body = (
@@ -62,7 +63,7 @@ export const RecentPostsWidget = ({
                         <li key={post.id}>
                             {href ? (
                                 // Hover-only prefetch: up to 20 recents would be prefetched on
-                                // viewport entry on /blog (decision #70).
+                                // viewport entry on / (decision #70).
                                 <HoverPrefetchLink
                                     href={href}
                                     className="block rounded-md px-2 py-1.5 transition-colors hover:bg-accent/50"

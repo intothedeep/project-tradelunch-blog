@@ -11,12 +11,16 @@ type Props = {
     mode?: 'nav' | 'filter';
     // `bare` drops the Card chrome — used by the mobile category accordion.
     bare?: boolean;
+    filterBasePath?: string;
+    className?: string;
 };
 
 export const CategorySidebarWrapper = async ({
     username,
     mode = 'nav',
     bare = false,
+    filterBasePath,
+    className,
 }: Props) => {
     // Resolve the viewer's token so the owner sees their own private posts in
     // the sidebar tree. auth() makes this component render dynamically, which
@@ -38,6 +42,8 @@ export const CategorySidebarWrapper = async ({
             categories={data.categories ?? []}
             mode={mode}
             bare={bare}
+            filterBasePath={filterBasePath}
+            className={className}
         />
     );
 };

@@ -22,7 +22,7 @@ export const ProjectCardGrid = async ({ username, projects }: Props) => {
                         prefetch={false}
                         className="block h-full"
                     >
-                        <Card className="h-full overflow-hidden border-primary bg-card transition-colors hover:bg-secondary">
+                        <Card className="h-full overflow-hidden rounded-none border-primary bg-card transition-colors hover:bg-secondary">
                             <ProjectThumbnail
                                 storedUri={card.overview?.stored_uri ?? null}
                                 alt={card.overview?.title ?? card.project}

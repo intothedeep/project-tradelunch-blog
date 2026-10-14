@@ -91,6 +91,8 @@
         "postCount": "{count, plural, =0 {글 없음} other {글 #개}}",
         "overview": "개요",
         "empty": "아직 프로젝트가 없습니다.",
-        "treeTitle": "프로젝트"
+        "treeTitle": "프로젝트",
+        "sortAscending": "오름차순",
+        "sortDescending": "내림차순"
     }
 }

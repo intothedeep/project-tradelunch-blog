@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
 import { getProjectPosts } from '@/apis/getProjectPosts.api';
-import { ProjectPostList } from '@/app/[handle]/components/ProjectPostList.server';
+import { ProjectPostList } from '@/app/[handle]/components/ProjectPostList.client';
 import { ProjectsMobileMenu } from '@/app/[handle]/components/ProjectsMobileMenu.server';
 import { stripUsernameAt } from '@/utils/blog-author';
 import { projectPath } from '@/utils/routes';
@@ -23,7 +22,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ProjectPage({ params }: Props) {
     const { handle, project } = await params;
     const username = stripUsernameAt(decodeURIComponent(handle));
-    const t = await getTranslations('blog.projects');
     const { project: ref, posts } = await getProjectPosts(
         username,
         decodeURIComponent(project)
@@ -32,12 +30,7 @@ export default async function ProjectPage({ params }: Props) {
     return (
         <section className="flex flex-col gap-4">
             <ProjectsMobileMenu username={username} />
-            <header>
-                <h1 className="text-xl font-bold">{ref.project}</h1>
-                <p className="text-sm text-muted-foreground">
-                    {t('postCount', { count: posts.length })}
-                </p>
-            </header>
+            <h1 className="text-3xl font-bold">{ref.project}</h1>
             <ProjectPostList
                 username={username}
                 posts={posts}

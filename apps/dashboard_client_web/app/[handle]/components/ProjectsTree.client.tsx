@@ -45,7 +45,7 @@ export const ProjectsTree = ({ username, nodes, bare = false }: Props) => {
     if (bare) return <div className="px-1 pt-2 pb-1">{treeView}</div>;
 
     return (
-        <Card className="border-primary bg-card">
+        <Card className="rounded-none border-primary bg-card">
             <CardHeader className="border-b border-primary/30 p-3 sm:p-4">
                 <CardTitle className="font-mono text-sm text-primary sm:text-base">
                     {t('treeTitle')}

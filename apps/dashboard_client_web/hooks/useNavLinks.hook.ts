@@ -49,10 +49,10 @@ export const buildPrimaryNavLinks = (
                   },
               ]
             : []),
-        // All posts (/blog, the all-authors feed) is hidden from the nav by the
+        // All posts (/, the all-authors feed) is hidden from the nav by the
         // owner (2026-10-13): Home already lists the posts. The route still
         // works; restore the entry here to show it again:
-        // { title: 'All posts', href: '/blog', labelKey: 'nav.allPosts', iconKey: 'allPosts' },
+        // { title: 'All posts', href: '/', labelKey: 'nav.allPosts', iconKey: 'allPosts' },
         // Log (/log, Phase Y) is hidden from the nav by the owner (2026-10-13).
         // The route still works; restore the entry here to show it again:
         // { title: 'Log', href: '/log', labelKey: 'nav.log', iconKey: 'log' }
