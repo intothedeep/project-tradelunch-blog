@@ -44,9 +44,10 @@ jobs:
         env:
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY_PROD }}
         run: |
+          # HOSTNAME=localhost as in prod (deploy/gcp/web-self-proxy.md): 127.0.0.1 makes Next proxy to itself.
           cd apps/dashboard_client_web/.next/standalone
-          PORT=3000 HOSTNAME=127.0.0.1 nohup node apps/dashboard_client_web/server.js > "$GITHUB_WORKSPACE/server.log" 2>&1 &
-          curl -s -o /dev/null --retry 30 --retry-delay 2 --retry-connrefused http://127.0.0.1:3000/robots.txt
+          PORT=3000 HOSTNAME=localhost nohup node apps/dashboard_client_web/server.js > "$GITHUB_WORKSPACE/server.log" 2>&1 &
+          curl -s -o /dev/null --retry 30 --retry-delay 2 --retry-connrefused http://localhost:3000/robots.txt
 
       - name: Path table (each path twice)
         run: |
@@ -57,8 +58,8 @@ jobs:
           } | tee table.md
           check() {
             want="$1"; p="$2"
-            a=$(curl -s -o /dev/null -w '%{http_code}/%{size_download}B' --max-time 60 "http://127.0.0.1:3000$p")
-            b=$(curl -s -o /dev/null -w '%{http_code}/%{size_download}B' --max-time 60 "http://127.0.0.1:3000$p")
+            a=$(curl -s -o /dev/null -w '%{http_code}/%{size_download}B' --max-time 30 "http://localhost:3000$p")
+            b=$(curl -s -o /dev/null -w '%{http_code}/%{size_download}B' --max-time 30 "http://localhost:3000$p")
             ok=PASS
             [ "${a%%/*}" = "$want" ] && [ "${b%%/*}" = "$want" ] || { ok=FAIL; fail=1; }
             echo "| \`$p\` | $want | $a | $b | $ok |" | tee -a table.md
