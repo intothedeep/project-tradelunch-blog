@@ -50,13 +50,15 @@ export default async function TagFeedPage({
                     </Link>
                 </div>
             ) : (
-                <TagPostsList
-                    tag={decodedTag}
-                    initialPosts={posts}
-                    initialCursor={nextCursor}
-                    initialHasMore={hasMore}
-                    cdnURL={CDN_ASSETS}
-                />
+                <div className="border border-primary bg-card p-4">
+                    <TagPostsList
+                        tag={decodedTag}
+                        initialPosts={posts}
+                        initialCursor={nextCursor}
+                        initialHasMore={hasMore}
+                        cdnURL={CDN_ASSETS}
+                    />
+                </div>
             )}
         </section>
     );
