@@ -2,11 +2,12 @@
 
 import React, { useEffect, useRef, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
+import { useAuth } from '@clerk/nextjs';
 import { cn } from '@/lib/utils';
 
 import { type TPost } from '@/apis/blog.types';
 import { RecentPostCard } from '@/components/blog/RecentPostCard.client';
-import { serializeFacet } from '@/utils/filter-state';
+import { getFeedPageClient } from '@/apis/getFeedPage.client.api';
 
 type Props = {
     username: string;
@@ -39,8 +40,10 @@ export const RecentPostsListClient: React.FC<Props> = (props) => {
     const observerRef = useRef<IntersectionObserver | null>(null);
     const loadMoreRef = useRef<HTMLDivElement>(null);
 
-    const categoriesParam = serializeFacet(categories);
-    const tagsParam = serializeFacet(tags);
+    const { getToken } = useAuth();
+    // Facet arrays are new refs each render; key the effect on their content.
+    const categoriesKey = categories.join(',');
+    const tagsKey = tags.join(',');
 
     useEffect(() => {
         // isError: stop the observer so a failing load-more (e.g. 429) is not retried
@@ -52,21 +55,18 @@ export const RecentPostsListClient: React.FC<Props> = (props) => {
                 const [entry] = entries;
                 if (entry?.isIntersecting && cursor !== null) {
                     startTransition(async () => {
-                        const facetParams = [
-                            categoriesParam
-                                ? `&categories=${categoriesParam}`
-                                : '',
-                            tagsParam ? `&tags=${tagsParam}` : '',
-                        ].join('');
                         try {
-                            const res = await fetch(
-                                `/api/posts/load-more?cursor=${cursor}&limit=10&username=${username}${facetParams}`
-                            );
-                            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-                            const data = await res.json();
-                            if (!Array.isArray(data?.posts))
-                                throw new Error('Malformed load-more response');
+                            const token = await getToken();
+                            const data = await getFeedPageClient({
+                                cursor,
+                                limit: 10,
+                                username,
+                                categories: categoriesKey
+                                    ? categoriesKey.split(',')
+                                    : [],
+                                tags: tagsKey ? tagsKey.split(',') : [],
+                                token,
+                            });
 
                             setPosts((prev) => [...prev, ...data.posts]);
                             setCursor(data.nextCursor);
@@ -95,8 +95,9 @@ export const RecentPostsListClient: React.FC<Props> = (props) => {
         isPending,
         isError,
         username,
-        categoriesParam,
-        tagsParam,
+        categoriesKey,
+        tagsKey,
+        getToken,
     ]);
 
     return (

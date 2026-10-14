@@ -2,16 +2,17 @@
 
 // Purpose: infinite-scroll list of posts for one tag (/tags/[tag]).
 // Invariants: cursor is an opaque STRING (Snowflake precision) — kept verbatim,
-//   passed straight into the load-more query, never Number()'d. Modeled on
+//   passed straight into the by-tag query, never Number()'d. Modeled on
 //   RecentPostsListClient (IntersectionObserver) but scoped by `tag` (no
 //   username). Shows a pulse skeleton while a page is in flight (P2.5).
-// Side effects: fetches /api/posts/load-more on intersection.
+// Side effects: fetches the blog-api. by-tag feed GET directly on intersection.
 
 import React, { useEffect, useRef, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
 import { type TPost } from '@/apis/blog.types';
+import { getTagPageClient } from '@/apis/getFeedPage.client.api';
 import { RecentPostCard } from '@/components/blog/RecentPostCard.client';
 
 type Props = {
@@ -57,16 +58,11 @@ export const TagPostsList: React.FC<Props> = (props) => {
                 if (entry?.isIntersecting && cursor !== null) {
                     startTransition(async () => {
                         try {
-                            const res = await fetch(
-                                `/api/posts/load-more?cursor=${cursor}&limit=20&tag=${encodeURIComponent(
-                                    tag
-                                )}`
-                            );
-                            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-                            const data = await res.json();
-                            if (!Array.isArray(data?.posts))
-                                throw new Error('Malformed load-more response');
+                            const data = await getTagPageClient({
+                                tag,
+                                cursor,
+                                limit: 20,
+                            });
 
                             setPosts((prev) => [...prev, ...data.posts]);
                             setCursor(data.nextCursor);
