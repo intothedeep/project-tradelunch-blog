@@ -331,7 +331,7 @@ React \code{cache()}와 React Query는 같지 않다. 서로를 대신하지 못
   \caption{이 사이트의 캐시 층 (2026/10/14 기준).}
   \label{tab:cc3-layers}
   \centering\small
-  \begin{tabularx}{\linewidth}{@{}L{3.2cm} L{2.2cm} L{2.6cm} L{1.4cm} Y@{}}
+  \begin{tabularx}{\linewidth}{@{}L{3.0cm} L{2.0cm} L{3.4cm} L{1.3cm} Y@{}}
     \toprule
     층 & 어디서 도나 & 얼마나 기억하나 & 쓰나 & 비고 \\
     \midrule
@@ -339,11 +339,11 @@ React \code{cache()}와 React Query는 같지 않다. 서로를 대신하지 못
     \midrule
     Next \code{'use cache'} (U5) & Next 서버 & \code{cacheLife('hours')} & 안 쓴다 & 뺌 (\decision{111}) \\
     \midrule
-    Next client router cache & 브라우저 (Next) & 30초 & 쓴다 & \code{staleTimes.dynamic = 30}, U2, \code{next.config.ts} \\
+    Next client router cache & 브라우저 (Next) & 30초 & 쓴다 & U2 \\
     \midrule
     React \code{cache()} & Next 서버 & 요청 하나 (렌더 하나) & 쓴다 & 같은 렌더 안 중복만 막는다. QW1 \\
     \midrule
-    TanStack React Query & 브라우저 & 탭마다, \code{staleTime} 동안 & 쓴다 & 기본 \code{staleTime} 60초 (\code{ReactQueryProvider.client.tsx}) \\
+    TanStack React Query & 브라우저 & 탭마다, \code{staleTime} 동안 & 쓴다 & 화면 사이에서 같은 데이터를 다시 쓴다 \\
     \bottomrule
   \end{tabularx}
   % src: decisions.plan.md #109, #111; cc.report.md U2 (staleTimes dynamic 30); next.config.ts line 59; components/providers/ReactQueryProvider.client.tsx line 18; 이 장 \Cref{fig:cc3-path} (엣지 1일)
@@ -370,7 +370,8 @@ React \code{cache()}와 React Query는 같지 않다. 서로를 대신하지 못
   \end{tabularx}
   % src: grep 2026-10-14 apps/dashboard_client_web/apis (import { cache: 9 files); grep useQuery|useInfiniteQuery|useMutation in hooks 31, components 2, app 0 = 33; cc.report.md QW1 19->13, U2 12; root CLAUDE.md "Client fetching goes through TanStack Query hooks"
 \end{table}
-두 개수는 2026/10/14에 \code{grep}으로 센 값이다. 저장된 run 산출물이 아니다.
+설정은 두 곳이다. router cache는 \code{next.config.ts}의 \code{staleTimes.dynamic = 30}이다. React Query의 기본 \code{staleTime}은 \code{ReactQueryProvider}의 60초다.
+(위 비교 표의) 개수는 2026/10/14에 \code{grep}으로 센 값이다. 저장된 run 산출물이 아니다.
 
 \begin{figure}[H]
   \centering
