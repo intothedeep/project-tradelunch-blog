@@ -1,0 +1,44 @@
+# PJ MVP2 prod measurement 2026-10-14 (api ab4c3c0, web 9f7c5fe, after cf-purge)
+## API cards
+{"success":true,"n":1,"keys":["overview","post_count","project","project_id"],"overview_keys":["post_id","slug","stored_uri","title"],"post_count":8}
+## API posts order
+0 283 training-a-cnn-from-scratch-4-to-93-2-on-100-classes-under-a-5m-parameter-budget
+1 284 cnn-from-scratch-1-7-a-2-3m-parameter-cnn-reaches-96-5-on-eurosat
+2 285 cnn-from-scratch-2-7-the-round-1-recipe-drops-from-97-6-to-84-7-on-100-classes
+3 286 cnn-from-scratch-3-7-nine-regularizers-none-beat-the-noise
+4 287 cnn-from-scratch-4-7-epochs-resolution-width-and-sam
+5 288 cnn-from-scratch-5-7-resnet-beat-vgg-by-4-5-points-on-6-400-training-images
+6 289 cnn-from-scratch-6-7-ensembles-distillation-and-a-94-9-that-became-93-2
+7 290 cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first
+## API 404s
+no-such-user-xyz/projects 404
+taeklim/projects/no-such-project 404
+## API cache-control
+cache-control: public, s-maxage=86400
+## web pages (status, [MOCK] count, time)
+/@taeklim/projects 200 0.180027s mock=0
+/@taeklim/projects/cnn-from-scratch 200 0.242808s mock=0
+/@taeklim/training-a-cnn-from-scratch-4-to-93-2-on-100-classes-under-a-5m-parameter-budget 200 0.167433s mock=0
+/@taeklim/posts 200 0.291976s mock=0
+/@taeklim/about 200 0.166324s mock=0
+/@taeklim/resume 200 0.209017s mock=0
+/ 200 0.221649s mock=0
+/tags/rust 200 0.265181s mock=0
+## web redirects
+/@taeklim 308 https://my.prettylog.com/@taeklim/posts
+/%40taeklim 308 https://my.prettylog.com/@taeklim/posts
+/blog 308 https://my.prettylog.com/
+/blog/@taeklim 308 https://my.prettylog.com/@taeklim/posts
+/blog/@taeklim/rust-config 308 https://my.prettylog.com/@taeklim/rust-config
+/blog/%40taeklim/rust-config 308 https://my.prettylog.com/@taeklim/rust-config
+/blog/taeklim/rust-config 308 https://my.prettylog.com/@taeklim/rust-config
+/about 308 https://my.prettylog.com/@taeklim/about
+/resume 308 https://my.prettylog.com/@taeklim/resume
+/no-at-xyz 404 
+## edge cache (2nd request)
+/@taeklim/projects cf-cache-status: HIT
+/@taeklim/rust-config cf-cache-status: HIT
+/@taeklim/saved cf-cache-status: DYNAMIC
+## sitemap
+/@taeklim urls: 23  /blog urls: 0
+## traffic-check.sh: 0 FAIL (run 2026-10-14)

@@ -207,3 +207,226 @@ PJ-1-08 AC2의 `/blog` 기대(200)는 PJ-1-24(#81) 전의 값이다. PJ-1-24 이
 ### 판정
 
 첫 순환이다. 판정하지 않는다 (MVP 사다리). 다음 순환은 한 가지만 고친다 (`rules/research.md` §8).
+
+## MVP2 (2026-10-14)
+
+단일 출처: `deploy/projects/mvp2-prod-2026-10-14.txt` (운영 원본 출력. api `ab4c3c0`, web `9f7c5fe`, `cf-purge` 뒤).
+이 절은 MVP2의 첫 순환이며, MVP1 절에 대한 두 번째 end-to-end 순환(cycle)이다.
+판정(verdict)은 실행 전에 쓴 PJ-1-16과 PJ-1-19의 AC에 대해서만 낸다. 비교는 단계마다 MVP1과 한다.
+
+### 요약
+
+운영에서 mock 없이 real 경로가 끝까지 돌았다. 웹 페이지 8곳이 모두 200이고 `[MOCK]`은 0개였다. 옛 URL 9개는 308, `/no-at-xyz`는 404였다. 엣지 캐시는 `/@taeklim/projects`와 `/@taeklim/rust-config`가 HIT, `/@taeklim/saved`가 DYNAMIC이었다. `traffic-check`는 0 FAIL이었다. 원본에 없는 항목은 아래 "원본에 없는 값"에 적었다.
+
+| 단계 | 상태 | 한 줄 결과 |
+| --- | --- | --- |
+| 1. API 카드 | ran | `success: true`, 카드 1개, `post_count` 8 |
+| 2. API 글 목록 순서 | ran | 글 8개, `post_id` 283 → 290 |
+| 3. API 오류와 캐시 | ran | 404 2개, `cache-control: public, s-maxage=86400` |
+| 4. 웹 페이지 | ran | 8곳 모두 200, `[MOCK]` 0개 |
+| 5. redirect | ran | 9개 308, `/no-at-xyz` 404 |
+| 6. 엣지 캐시 | ran | projects, rust-config HIT, saved DYNAMIC |
+| 7. sitemap | ran | `/@taeklim` URL 23개, `/blog` URL 0개 |
+| 8. traffic-check | ran | 0 FAIL |
+
+### 흐름 (ASCII 그림 1장)
+
+```
+웹 (web 9f7c5fe)  --real-->  API (api ab4c3c0)
+/@taeklim/projects           GET /v1/api/posts/users/taeklim/projects
+/@taeklim/projects/<p>       GET .../projects/<project>
+        |
+        v
+Cloudflare 엣지: 2회째 요청 HIT (saved는 DYNAMIC)
+```
+
+### 단계 1. API 카드
+
+- What: 운영 API가 프로젝트 카드를 real로 주는지 본다.
+- Why: PJ-1-16 AC1.
+- Input data: `GET /v1/api/posts/users/taeklim/projects` 1회 (운영 DB, real).
+- Output data: JSON 1개.
+- Result: 아래 표.
+- 좋은 점: 카드 `keys`에 `overview`가 중첩되어 있다. 나쁜 점: mock 카드와의 키 집합 대조(`jq -S 'keys'`)가 원본에 없다.
+- Status: ran.
+
+| 항목 | 값 |
+| --- | --- |
+| `success` | `true` |
+| 카드 수 `n` | 1 |
+| 카드 `keys` | `overview`, `post_count`, `project`, `project_id` |
+| `overview_keys` | `post_id`, `slug`, `stored_uri`, `title` |
+| `post_count` | 8 |
+
+### 단계 2. API 글 목록 순서
+
+- What: 프로젝트 글 8개의 순서를 본다.
+- Why: PJ-1-16 AC2 (순서 = `priority`, `seq`).
+- Input data: 운영 API의 글 8개.
+- Output data: 순번, `post_id`, slug 8줄 (원본 5–12행).
+- Result: 아래 표.
+- 좋은 점: overview가 첫 글이고 1/7부터 7/7까지 이어진다. 나쁜 점: `priority`, `seq` 값과 같은 SQL의 `ORDER BY` 결과가 원본에 없어 직접 대조하지 못했다.
+- Status: ran.
+
+| 순번 | `post_id` | slug 앞부분 |
+| --- | --- | --- |
+| 0 | 283 | `training-a-cnn-from-scratch-4-to-93-2-...` (overview) |
+| 1 | 284 | `cnn-from-scratch-1-7-...` |
+| 2 | 285 | `cnn-from-scratch-2-7-...` |
+| 3 | 286 | `cnn-from-scratch-3-7-...` |
+| 4 | 287 | `cnn-from-scratch-4-7-...` |
+| 5 | 288 | `cnn-from-scratch-5-7-...` |
+| 6 | 289 | `cnn-from-scratch-6-7-...` |
+| 7 | 290 | `cnn-from-scratch-7-7-...` |
+
+### 단계 3. API 오류와 캐시
+
+- What: 없는 사용자와 없는 프로젝트가 404인지, 캐시 헤더가 맞는지 본다.
+- Why: PJ-1-16 AC3, AC4.
+- Input data: 요청 3개.
+- Output data: 상태 코드 2개, 헤더 1줄.
+- Result: 아래 표.
+- 좋은 점: 두 오류 모두 404다. 나쁜 점: `Authorization` 헤더를 붙인 경우(`private, no-store` 기대)와 `projects` 카테고리가 없는 사용자(`200` + `[]` 기대)는 재지 않았다.
+- Status: ran.
+
+| 요청 | 결과 |
+| --- | --- |
+| `no-such-user-xyz/projects` | 404 |
+| `taeklim/projects/no-such-project` | 404 |
+| `cache-control` | `public, s-maxage=86400` |
+
+### 단계 4. 웹 페이지
+
+- What: 운영 웹 페이지 8곳의 상태 코드, `[MOCK]` 개수, 응답 시간을 본다.
+- Why: PJ-1-19 AC1.
+- Input data: 운영 URL 8개.
+- Output data: 상태, `[MOCK]` 개수, 시간 8줄 (원본 19–26행).
+- Result: 아래 표.
+- 좋은 점: 8곳 모두 200이고 `[MOCK]`은 0개다. 나쁜 점: 목록 페이지의 글 제목 순서를 이 원본은 담지 않는다. 순서는 단계 2의 API 값만 있다.
+- Status: ran.
+
+| URL | 상태 | `[MOCK]` | 시간 |
+| --- | --- | --- | --- |
+| `/@taeklim/projects` | 200 | 0 | 0.180027 s |
+| `/@taeklim/projects/cnn-from-scratch` | 200 | 0 | 0.242808 s |
+| `/@taeklim/training-a-cnn-from-scratch-4-to-93-2-...` (overview 글) | 200 | 0 | 0.167433 s |
+| `/@taeklim/posts` | 200 | 0 | 0.291976 s |
+| `/@taeklim/about` | 200 | 0 | 0.166324 s |
+| `/@taeklim/resume` | 200 | 0 | 0.209017 s |
+| `/` | 200 | 0 | 0.221649 s |
+| `/tags/rust` | 200 | 0 | 0.265181 s |
+
+### 단계 5. redirect
+
+- What: 옛 URL 형태가 308로 새 URL에 가는지 본다.
+- Why: PJ-1-19 AC2 (PJ-1-05 AC3, PJ-1-08 AC2).
+- Input data: 운영 URL 10개.
+- Output data: 상태 코드와 `location` 10줄.
+- Result: 아래 표.
+- 좋은 점: `%40taeklim`과 `taeklim`(`@` 없는 형태) 모두 새 URL로 간다. 나쁜 점: `?tags=rust` 형태는 원본에 없다.
+- Status: ran.
+
+| URL | 상태 | location |
+| --- | --- | --- |
+| `/@taeklim` | 308 | `https://my.prettylog.com/@taeklim/posts` |
+| `/%40taeklim` | 308 | `https://my.prettylog.com/@taeklim/posts` |
+| `/blog` | 308 | `https://my.prettylog.com/` |
+| `/blog/@taeklim` | 308 | `https://my.prettylog.com/@taeklim/posts` |
+| `/blog/@taeklim/rust-config` | 308 | `https://my.prettylog.com/@taeklim/rust-config` |
+| `/blog/%40taeklim/rust-config` | 308 | `https://my.prettylog.com/@taeklim/rust-config` |
+| `/blog/taeklim/rust-config` | 308 | `https://my.prettylog.com/@taeklim/rust-config` |
+| `/about` | 308 | `https://my.prettylog.com/@taeklim/about` |
+| `/resume` | 308 | `https://my.prettylog.com/@taeklim/resume` |
+| `/no-at-xyz` | 404 | |
+
+### 단계 6. 엣지 캐시
+
+- What: 2회째 요청이 Cloudflare 캐시에 맞는지, 본인 전용 화면이 캐시되지 않는지 본다.
+- Why: PJ-1-19 AC3, PJ-2-04 (`/@*/saved` bypass).
+- Input data: 같은 URL 2회 요청, 3곳.
+- Output data: `cf-cache-status` 3줄.
+- Result: 아래 표.
+- 좋은 점: 공개 HTML은 HIT이고 `saved`는 캐시되지 않는다. 나쁜 점: 없음.
+- Status: ran.
+
+| URL (2회째) | `cf-cache-status` |
+| --- | --- |
+| `/@taeklim/projects` | HIT |
+| `/@taeklim/rust-config` | HIT |
+| `/@taeklim/saved` | DYNAMIC |
+
+### 단계 7. sitemap
+
+- What: sitemap에 새 URL 형태만 있는지 본다.
+- Why: PJ-1-20 (링크 교체)의 운영 확인.
+- Input data: 운영 sitemap 1개.
+- Output data: URL 개수 2개.
+- Result: `/@taeklim` URL 23개, `/blog` URL 0개.
+- 좋은 점: 옛 `/blog` URL이 sitemap에 없다. 나쁜 점: 없음.
+- Status: ran.
+
+### 단계 8. traffic-check
+
+- What: Cloudflare 트래픽 점검 스크립트가 통과하는지 본다.
+- Why: PJ-1-18 AC2.
+- Input data: `_scripts/cloudflare/traffic-check.sh` 1회 (2026-10-14).
+- Output data: FAIL 개수 1줄.
+- Result: 0 FAIL.
+- 좋은 점: 표본 URL을 `/@taeklim/rust-config`로 바꾼 뒤에도 통과한다. 나쁜 점: 없음.
+- Status: ran.
+
+### MVP1 대비
+
+MVP1은 mock 모드의 로컬 실행이고, MVP2는 real 경로의 운영 실행이다.
+
+| 단계 | MVP1 (mock, 로컬) | MVP2 (real, 운영) | 변화 |
+| --- | --- | --- | --- |
+| 카드 | 2개 (`[MOCK] empty-project` 포함) | 1개 (`n` 1) | mock의 빈 프로젝트 카드가 사라졌다 |
+| 카드 제목 | `[MOCK]` 접두 | API는 `project` 키로 준다. 제목 텍스트는 원본에 없다 | `[MOCK]` 접두 없음 |
+| `[MOCK]` 개수 | 카드 2개 모두 `[MOCK]` | 페이지 8곳 모두 0 | mock 글자 0 |
+| 글 순서 | overview 1개 + 1/7 … 7/7 | `post_id` 283 → 290, 같은 순서 | 같음 (00 → 07) |
+| 글 수 | 8개 | `post_count` 8 | 같음 |
+| 페이지 상태 | 18개 URL, 기대와 같음 | 페이지 8곳 모두 200 | 같음 |
+| redirect | 5개 URL이 308 | 9개 형태 308, `/no-at-xyz` 404 | 형태가 늘었다 (`%40`, `@` 없는 형태) |
+| `/blog` | 308 → `/` | 308 → `https://my.prettylog.com/` | 같음. 호스트가 운영으로 바뀜 |
+| `/@taeklim/saved` | 307 → `/sign-in?...` (로그인 없음) | DYNAMIC (캐시 안 됨) | 새로 잰 값 |
+| 엣지 캐시 | 재지 않음 (로컬) | projects, rust-config HIT | 새로 잰 값 |
+| sitemap | 재지 않음 | `/@taeklim` 23개, `/blog` 0개 | 새로 잰 값 |
+| 예약 slug 400 | blog_agent `ValueError`만, Express 400 skipped | 아직 안 잼 (아래 "남은 것") | 변화 없음 |
+
+MVP1에서 제목이 `[MOCK]`으로 시작하던 카드는 MVP2 원본에 제목 텍스트가 없다. 이 값은 원본에서 읽지 못했다.
+
+### AC 대응 (판정)
+
+기준은 실행 전에 쓴 `00.tasks.md`의 PJ-1-16, PJ-1-19, PJ-1-18 AC다.
+
+| AC | 결과 줄 | 판정 |
+| --- | --- | --- |
+| PJ-1-16 AC1 | `success: true`, 카드 1개 (기대 ≥ 1). `overview` 중첩 키 있음. mock 키 집합 대조는 원본에 없음 | pass (`00.tasks.md` 기록에 "keys = mock keys"), 원본 대조 pending |
+| PJ-1-16 AC2 | 글 8개, overview가 첫 글. `priority`, `seq` 값과 같은 SQL 대조는 원본에 없음 | pass (`00.tasks.md` 기록에 "priority 0..7"), 원본 대조 pending |
+| PJ-1-16 AC3 | 404, 404. 카테고리 없는 사용자 `200` + `[]`는 안 잼 | 일부 pass |
+| PJ-1-16 AC4 | `public, s-maxage=86400`. `Authorization` 변형은 안 잼 | 일부 pass |
+| PJ-1-19 AC1 | 페이지 3곳 200 (projects, projects/cnn-from-scratch, overview 글), `[MOCK]` 0. 화면의 글 제목 순서는 원본에 없음 | pass (순서 줄은 `00.tasks.md` 기록의 "00→07"에 의존) |
+| PJ-1-19 AC2 | PJ-1-05 AC3 형태 3개 통과 (308, 308, 404). PJ-1-08 AC2는 나열된 형태 통과. `?tags=rust` 형태는 원본에 없음 | 일부 pass |
+| PJ-1-19 AC3 | 2회째 `/@taeklim/projects` HIT | pass |
+| PJ-1-19 AC4 | 이 절 | pass |
+| PJ-1-18 AC2 | 0 FAIL | pass |
+| PJ-2-04 | `/@taeklim/saved` DYNAMIC | pass |
+
+### 원본에 없는 값
+
+- 단계 1: mock 카드 키 집합 대조 결과.
+- 단계 2: `priority`, `seq` 값, 같은 SQL `ORDER BY` 결과.
+- 단계 3: `Authorization` 붙인 `cache-control`, `projects` 카테고리 없는 사용자의 응답.
+- 단계 4: 목록 페이지에 보이는 글 제목 순서, 카드 제목 텍스트.
+- 단계 5: `?tags=rust` 형태.
+
+### 남은 것
+
+- PJ-1-03 AC2–AC4: Express 예약 slug 400. 로그인한 토큰이 있어야 해서 재지 않았다.
+- PJ-1-22: mock 은퇴. 진행 중이다.
+- P1 gate review: reviewer가 한다.
+
+### 판정
+
+PJ-1-16, PJ-1-19, PJ-1-18의 AC 중 원본에 값이 있는 항목은 모두 pass다. 원본에 값이 없는 항목은 "일부 pass" 또는 "pending"으로 두었다. 이 절의 결과로 gate 통과를 선언하지 않는다. gate 판정은 reviewer의 몫이다.
