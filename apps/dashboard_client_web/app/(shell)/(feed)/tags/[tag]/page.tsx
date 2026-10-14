@@ -30,7 +30,7 @@ export default async function TagFeedPage({
     return (
         <section className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4">
             {/* Title box like the other pages; Hash stands in for a menu icon. */}
-            <header className="border border-primary bg-tone-home p-4">
+            <header className="border border-primary bg-muted p-4">
                 <h1 className="flex items-center gap-2 font-mono text-xl font-bold text-primary">
                     <Hash className="h-5 w-5 shrink-0" />
                     {decodedTag}
