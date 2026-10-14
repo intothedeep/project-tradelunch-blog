@@ -1,6 +1,6 @@
 import { logServerError } from '@/utils/serverLog.util';
 import { cache } from 'react';
-import { notFound } from 'next/navigation';
+import { notFound, unstable_rethrow } from 'next/navigation';
 import { ApiError } from '@/utils/apiError.util';
 import { serverRequest } from '@/apis/http.server';
 import type { TPost } from '@/apis/blog.types';
@@ -36,6 +36,7 @@ export const getPostBySlug = cache(
             });
             return envelope.data;
         } catch (error) {
+            unstable_rethrow(error);
             // A missing slug is a 404, not a crash: relative image refs in post
             // bodies (`![](x.png)`) resolve to legacy /blog/(at)user/x.png and land here.
             if (error instanceof ApiError && error.status === 404) notFound();

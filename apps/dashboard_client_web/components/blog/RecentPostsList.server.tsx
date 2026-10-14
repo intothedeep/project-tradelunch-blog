@@ -1,3 +1,4 @@
+import { unstable_rethrow } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
 import { getFeed } from '@/apis/getPosts.fetch.server';
@@ -31,6 +32,7 @@ export const RecentPostsList: React.FC<RecentPostsListProps> = async ({
     try {
         feed = await getFeed(undefined, 10, username, { categories, tags });
     } catch (err) {
+        unstable_rethrow(err);
         logServerError(
             '[RecentPostsList] feed fetch failed',
             err,

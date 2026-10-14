@@ -1,4 +1,5 @@
 // apis/getPosts.api.ts
+import { unstable_rethrow } from 'next/navigation';
 import { logServerError } from '@/utils/serverLog.util';
 import { TPaginatedResponse } from '@/apis/blog.types';
 import { serverRequest } from '@/apis/http.server';
@@ -55,6 +56,7 @@ export async function getBlogPostsByUsername(
         });
         return envelope.data;
     } catch (error) {
+        unstable_rethrow(error);
         logServerError('Failed to fetch posts', error, { username });
         throw new Error(`Failed to fetch posts: ${username}`);
     }

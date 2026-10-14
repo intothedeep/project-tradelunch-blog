@@ -6,6 +6,7 @@
 // verbatim, never Number()'d, and only sent when defined (omit for page 1).
 // Vestigial Cache-Control/Expires request headers removed — they were no-ops
 // on the request side (only response headers affect caching).
+import { unstable_rethrow } from 'next/navigation';
 import { logServerError } from '@/utils/serverLog.util';
 import { TPost } from '@/apis/blog.types';
 import { serverRequest } from '@/apis/http.server';
@@ -40,6 +41,8 @@ export async function getPostsByTag(
         const { posts, nextCursor, hasMore } = envelope.data;
         return { posts, nextCursor, hasMore };
     } catch (error) {
+        // cacheComponents runtime prerender: Next rejects hanging fetches with an internal error; rethrow it, do not log it as a failure.
+        unstable_rethrow(error);
         logServerError('Failed to fetch posts by tag', error, { tag });
         throw new Error(`Failed to fetch posts by tag: ${tag}`);
     }

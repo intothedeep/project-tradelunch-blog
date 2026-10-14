@@ -6,6 +6,7 @@
 // Vestigial Cache-Control/Expires request headers removed — they were no-ops
 // on the request side (only response headers affect caching).
 
+import { unstable_rethrow } from 'next/navigation';
 import { cache } from 'react';
 import { logServerError } from '@/utils/serverLog.util';
 import { TPopularTag } from '@repo/types';
@@ -26,6 +27,7 @@ export const getUserPopularTags = cache(
             });
             return envelope.data;
         } catch (error) {
+            unstable_rethrow(error);
             logServerError('Failed to fetch user popular tags', error, {
                 username,
             });
