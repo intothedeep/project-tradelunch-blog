@@ -1098,6 +1098,7 @@ Q4. U5와의 분리:
 ### 18.6 남는 예외 (오너에게 보일 것)
 
 1. **오너 질문.** 로그인 상태의 RSC 이동으로 모르는 page에 가면 잎이 not-found 화면을 낸다. RSC 응답 status는 200이다. 응답은 `DYNAMIC`이라 엣지에 저장되지 않는다. crawler는 이 길을 타지 않는다. 문서 load는 404다. 오너가 고른다: (a) 받아들인다 (기본안), (b) 로그인 RSC 이동도 검사한다. (b)는 글 이동(s5)마다 Express 호출 1회가 는다. G-CC에 직접 걸린다.
+   - #103 (2026-10-14): 오너가 (b)를 골랐다. 로그인 RSC 이동도 검사한다. branch `cc-u4`에서 `shouldCheck` 건너뛰기를 지웠다. 비용: gate 경로 이동마다 Express 호출 1회.
 2. 점이 든 경로(`/@u/x.png`)는 proxy matcher 밖이다. 잎 gate가 soft 404를 낸다. 9번 결과가 200이면 다음 단위에서 matcher 또는 layout의 동기 검사로 막는다. slug에 점이 없는지 먼저 확인한다.
 3. fail-open: API 시간 초과나 5xx면 proxy가 통과시킨다. 그 요청이 모르는 page면 soft 404가 엣지에 1일 남을 수 있다. 드물다. 잘못된 404보다 낫다.
 4. 글 slug 조회는 handle을 보지 않는다 (`posts.detail.ts` 140행, `username` 질의 없음). 오늘 동작과 같다. 이 단위에서 바꾸지 않는다.

@@ -39,6 +39,11 @@ on:
                 required: false
                 default: ''
                 type: string
+            rails:
+                description: 'Rail states (cc.design.md §19 A-B-A uses expanded only to fit 60 min)'
+                required: false
+                default: 'expanded,collapsed'
+                type: string
 
 permissions:
     contents: read
@@ -72,6 +77,7 @@ jobs:
                   PRIVATE_PATH: ${{ inputs.private_path }}
                   UNIT: ${{ inputs.unit }}
                   WEB_SHA: ${{ inputs.web_sha }}
+                  RAILS: ${{ inputs.rails }}
                   # Masked by GitHub; the script never prints it.
                   CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY_PROD }}
               run: |
@@ -79,7 +85,7 @@ jobs:
                   [ -n "$PRIVATE_PATH" ] && extra+=(--private-path "$PRIVATE_PATH")
                   [ -n "$UNIT" ] && extra+=(--unit "$UNIT")
                   [ -n "$WEB_SHA" ] && extra+=(--web-sha "$WEB_SHA")
-                  node _scripts/perf/cc-browser.mjs --tag "$TAG" --runs "$RUNS" --base "$BASE_URL" \
+                  node _scripts/perf/cc-browser.mjs --tag "$TAG" --runs "$RUNS" --base "$BASE_URL" --rails "$RAILS" \
                       --out "$RUNNER_TEMP/cc-runs" "${extra[@]}"
 
             # always(): an aborted run still has a manifest and the raw lines written so far.
