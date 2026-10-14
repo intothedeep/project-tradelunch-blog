@@ -4,7 +4,7 @@ import { getBlogPostsByUsername } from '@/apis/getPosts.api';
 import { SITE_URL } from '@/env.schema';
 
 // sitemap.xml generator (Next.js 16 MetadataRoute.Sitemap).
-// Scope: BLOG CONTENT ONLY — the content statics (/, /blog, /about, /resume)
+// Scope: BLOG CONTENT ONLY — the content statics (/, /about, /resume)
 // and every published post. Finance now lives in a SEPARATE app/repo
 // (finance_web) that owns its own sitemap; nothing finance is enumerated here.
 // (Those DB-backed finance detail URLs were also a large Supabase-egress source,
@@ -34,12 +34,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             lastModified: now,
             changeFrequency: 'weekly',
             priority: 1,
-        },
-        {
-            url: `${SITE_URL}/blog`,
-            lastModified: now,
-            changeFrequency: 'daily',
-            priority: 0.9,
         },
         {
             url: `${SITE_URL}/about`,

@@ -8,10 +8,8 @@ import { DEFAULT_BLOG_AUTHOR as ENV_DEFAULT_BLOG_AUTHOR } from '@/env.schema';
 
 export const DEFAULT_BLOG_AUTHOR = ENV_DEFAULT_BLOG_AUTHOR;
 
-// TEMPORARY single-user home switch. While the site has one author, the root
-// `/` feed focuses on this author's blog instead of the all-authors aggregate
-// (which moves to `/blog`). To revert, set NEXT_PUBLIC_DEFAULT_BLOG_AUTHOR=''
-// (empty) — `/` and the feed layout both branch on its truthiness.
+// Menu owner handle (Projects, About, Resume in useNavLinks, owner pages). `/` is
+// the all-authors feed (#81) and no longer reads this.
 export const HOME_FEED_AUTHOR = DEFAULT_BLOG_AUTHOR;
 
 // Strip a single leading '@' from a route username segment.

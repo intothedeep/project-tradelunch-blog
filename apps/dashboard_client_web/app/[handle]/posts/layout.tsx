@@ -16,12 +16,12 @@ import { stripUsernameAt } from '@/utils/blog-author';
 // MobileToc is the single mobile TOC. `username` is normalized of any leading '@'.
 type Props = {
     children: React.ReactNode;
-    params: Promise<{ username: string }>;
+    params: Promise<{ handle: string }>;
 };
 
-export default async function BlogUsernameLayout({ children, params }: Props) {
-    const { username: raw } = await params;
-    const username = stripUsernameAt(decodeURIComponent(raw));
+export default async function PostsLayout({ children, params }: Props) {
+    const { handle } = await params;
+    const username = stripUsernameAt(decodeURIComponent(handle));
 
     return (
         <BlogShell

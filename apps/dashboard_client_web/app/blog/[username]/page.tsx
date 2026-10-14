@@ -1,111 +1,25 @@
-export const dynamic = 'force-dynamic';
+import { permanentRedirect } from 'next/navigation';
 
-import type { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
+import { stripUsernameAt } from '@/utils/blog-author';
 
-import BlogMainPage from '@/app/blog/components/BlogMainPage';
-import { CategorySidebarWrapper } from '@/app/blog/components/CategorySidebarWrapper.server';
-import { AppliedFilters } from '@/components/blog/filter/AppliedFilters.client';
-import { FilterChipRow } from '@/components/blog/filter/FilterChipRow.client';
-import { getTagFilterItems } from '@/components/blog/filter/getFilterItems.server';
-import { MobileCategory } from '@/components/blog/MobileCategory.client';
-import { HOME_FEED_AUTHOR, stripUsernameAt } from '@/utils/blog-author';
-import { parseFilterState } from '@/utils/filter-state';
-import { getUserProfile } from '@/apis/getUserProfile.api';
-
-type PageProps = {
+type Props = {
     params: Promise<{ username: string }>;
-    // Multi-facet feed filter: `?categories=a,b&tags=x,y` (same-type OR,
-    // cross-type AND). Legacy single `?category_title=` is folded into
-    // `categories` by parseFilterState.
-    searchParams: Promise<{
-        categories?: string;
-        tags?: string;
-        category_title?: string;
-    }>;
+    searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-// While `/` is the owner's blog, the owner's author page is duplicate content of
-// home → canonicalize it to `/`. Every other author self-canonicalizes (query
-// variants like ?categories also fold onto the clean author URL).
-export async function generateMetadata({
+// Moved to `/@u/posts` (Phase PJ). next.config `redirects()` takes the `/blog/@u`
+// form first; this stub catches the forms its pattern misses (`%40u`, no `@`).
+export default async function LegacyBlogUserPage({
     params,
-}: PageProps): Promise<Metadata> {
-    const { username } = await params;
-    const author = stripUsernameAt(decodeURIComponent(username));
-    const canonical =
-        HOME_FEED_AUTHOR && author === HOME_FEED_AUTHOR
-            ? '/'
-            : `/blog/@${author}`;
-
-    // Enrich with profile data for richer title/description/og — degrade to
-    // raw `author` slug if the profile endpoint is unavailable or unknown user.
-    let displayName: string | undefined;
-    let postCount: number | undefined;
-    try {
-        const profile = await getUserProfile(author);
-        if (profile) {
-            displayName = profile.displayName ?? undefined;
-            postCount = profile.postCount ?? undefined;
-        }
-    } catch {
-        // Non-critical — fall back to raw author slug.
-    }
-
-    const resolvedName = displayName ?? author;
-    const title = `${resolvedName} — Posts | Taek Lim`;
-    const description = `Articles by ${resolvedName}${postCount ? ` — ${postCount} posts` : ''} on finance, markets, and engineering.`;
-
-    return {
-        title,
-        description,
-        alternates: { canonical },
-        openGraph: {
-            type: 'profile',
-            title,
-            description,
-            url: canonical,
-        },
-    };
-}
-
-export default async function BlogPage({ params, searchParams }: PageProps) {
+    searchParams,
+}: Props) {
     const { username } = await params;
     const sp = await searchParams;
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(sp)) {
+        for (const v of [value ?? []].flat()) query.append(key, v);
+    }
+    const qs = query.size > 0 ? `?${query.toString()}` : '';
     const author = stripUsernameAt(decodeURIComponent(username));
-
-    const filters = parseFilterState(sp);
-
-    const t = await getTranslations('blog.filters');
-    const tagItems = await getTagFilterItems(author);
-
-    return (
-        <>
-            <AppliedFilters username={author} />
-
-            {/* Mobile (<lg): the right rail (with its category tree) is hidden, so
-                surface categories as a collapsible accordion — mirroring the post
-                TOC ("Contents") on the detail page. Tags stay a chip row. */}
-            <div className="mb-3 flex flex-col gap-2 lg:hidden">
-                <MobileCategory title={t('categories')}>
-                    <CategorySidebarWrapper
-                        username={author}
-                        mode="filter"
-                        bare
-                    />
-                </MobileCategory>
-                <FilterChipRow
-                    username={author}
-                    facet="tags"
-                    items={tagItems}
-                    ariaLabel={t('tags')}
-                />
-            </div>
-
-            <BlogMainPage
-                username={author}
-                filters={filters}
-            />
-        </>
-    );
+    permanentRedirect(`/@${encodeURIComponent(author)}/posts${qs}`);
 }

@@ -1,4 +1,4 @@
-// app/blog/[username]/[slug]/opengraph-image.tsx
+// app/[handle]/[slug]/opengraph-image.tsx
 // Purpose: Dynamic OG image for each blog post. Colocated so Next.js auto-injects
 //   the <meta og:image> — the page's generateMetadata only provides stored_uri
 //   as an explicit fallback when present (avoids duplicate og:image tags).
@@ -28,7 +28,7 @@ export const contentType = OG_CONTENT_TYPE;
 export const alt = 'Blog post open graph image';
 
 interface Props {
-    params: Promise<{ slug: string; username: string }>;
+    params: Promise<{ slug: string; handle: string }>;
 }
 
 export default async function Image({ params }: Props): Promise<ImageResponse> {

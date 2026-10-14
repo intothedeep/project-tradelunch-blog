@@ -86,7 +86,7 @@ export function SavedPostsList() {
                         {t('saved.emptyTitle')}
                     </span>
                     <Link
-                        href="/blog"
+                        href="/"
                         className={ctaButtonClass}
                     >
                         {t('saved.emptyCta')}

@@ -46,6 +46,9 @@ export default function robots(): MetadataRoute.Robots {
                     '/me',
                     '/settings',
                     '/admin',
+                    // Per-viewer saved list (PJ-2-02), `/@u/saved` and `%40u`.
+                    '/@*/saved',
+                    '/%40*/saved',
                     // Facet-filter crawler trap (quota outage 2026-09-23): these
                     // query params combine to ~2^N force-dynamic feed URLs, each
                     // a fresh Express call; canonical already folds them for

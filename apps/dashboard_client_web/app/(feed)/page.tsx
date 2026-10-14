@@ -1,15 +1,12 @@
 import type { Metadata } from 'next';
 import BlogMainPage from '@/app/blog/components/BlogMainPage';
-import { HOME_FEED_AUTHOR } from '@/utils/blog-author';
 import { SITE_URL } from '@/env.schema';
 
 const TITLE = 'Taek Lim — Software Engineering & Backend';
 const DESCRIPTION =
     'Technical blog and portfolio by Taek Lim. Topics: software engineering, backend systems, and web development.';
 
-// Home is the CANONICAL representative for the owner's feed. While single-user,
-// `/blog/@<owner>` is duplicate content of `/`, so it canonicalizes here (see
-// app/blog/[username]/page.tsx) — consolidating SEO signals onto the home URL.
+// Home is the all-authors feed (#81); it is its own canonical.
 export const metadata: Metadata = {
     title: TITLE,
     description: DESCRIPTION,
@@ -22,20 +19,14 @@ export const metadata: Metadata = {
     },
 };
 
-// Root of my.prettylog.com. TEMPORARY single-user mode: the home feed focuses on
-// HOME_FEED_AUTHOR's blog (the owner) rather than the all-authors aggregate. The
-// aggregate "all posts" feed now lives at `/blog`. Set HOME_FEED_AUTHOR='' in
-// utils/blog-author.ts to restore the global feed here (then `/` renders the
-// all-authors aggregate again, unchanged). Per-request rendering mirrors the
-// blog routes so `next build` does not fetch the backend at prerender time. The
-// portfolio homepage still lives in `app/MainPage.tsx` (TerminalProfile).
+// Root of my.prettylog.com: the ALL-AUTHORS feed (empty username selects it in
+// getBlogPostsByUsername). Per-request rendering so `next build` does not fetch
+// the backend at prerender time. BlogShell's <main> already centers + width-caps
+// + pads the column, so BlogMainPage is rendered directly, with no extra wrapper.
 export const dynamic = 'force-dynamic';
 
-// Render BlogMainPage DIRECTLY (no extra padded/centered wrapper) — identical to
-// /blog/[username]/page.tsx. BlogShell's <main> already centers + width-caps +
-// pads the column, so wrapping again here double-padded `/` relative to the
-// author feed. Keeping the structure `main > div > section` identical on both
-// routes is what makes the mobile content padding consistent.
+const ALL_AUTHORS = '';
+
 export default function Page() {
-    return <BlogMainPage username={HOME_FEED_AUTHOR} />;
+    return <BlogMainPage username={ALL_AUTHORS} />;
 }

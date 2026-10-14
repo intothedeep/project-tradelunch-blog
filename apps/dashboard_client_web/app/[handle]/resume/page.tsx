@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import {
     Card,
     CardContent,
@@ -9,21 +10,24 @@ import {
 import { Badge } from '@/components/ui/badge';
 
 import clsx from 'clsx';
-import ResumeTOC from '@/app/resume/ResumeTOC.client';
+import ResumeTOC from '@/app/[handle]/resume/ResumeTOC.client';
 import { JsonLd } from '@/components/seo/JsonLd.server';
 import { buildProfilePageLd } from '@/lib/jsonld';
+import { HOME_FEED_AUTHOR } from '@/utils/blog-author';
+import { isOwnerHandle } from '@/utils/owner-handle';
+import { resumePath } from '@/utils/routes';
 
 export const metadata: Metadata = {
     title: 'Resume',
     description:
         'Résumé of Taek Lim — software engineering experience, skills, and education. Download PDF.',
     alternates: {
-        canonical: '/resume',
+        canonical: resumePath(HOME_FEED_AUTHOR),
     },
 };
 
-// Resume Image Page Component
-export const ResumePage = () => {
+// Content is hard-coded for the owner (PJ-2-01 minimal option).
+const ResumeView = () => {
     return (
         <div className="min-h-screen bg-background text-foreground font-mono">
             <JsonLd data={buildProfilePageLd()} />
@@ -120,4 +124,12 @@ export const ResumePage = () => {
     );
 };
 
-export default ResumePage;
+export default async function ResumePage({
+    params,
+}: {
+    params: Promise<{ handle: string }>;
+}) {
+    const { handle } = await params;
+    if (!isOwnerHandle(handle)) notFound();
+    return <ResumeView />;
+}

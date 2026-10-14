@@ -10,7 +10,7 @@ export const metadata = {
 
 const SUGGESTIONS = [
     { cmd: 'cd ~', href: '/', note: 'home' },
-    { cmd: 'ls /blog', href: '/blog', note: 'posts' },
+    { cmd: 'ls /', href: '/', note: 'posts' },
     { cmd: 'ls /log', href: '/log', note: 'short notes' },
 ] as const;
 

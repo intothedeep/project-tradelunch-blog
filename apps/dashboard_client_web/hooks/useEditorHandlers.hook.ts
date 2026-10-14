@@ -187,7 +187,7 @@ export function useEditorHandlers({
 
     const handleDelete = async () => {
         if (postId == null) {
-            router.push('/blog');
+            router.push('/');
             return;
         }
         if (!window.confirm(t('editor.deleteConfirm'))) return;
@@ -195,7 +195,7 @@ export function useEditorHandlers({
             postId,
             username: username ?? '',
         });
-        router.push('/blog');
+        router.push('/');
     };
 
     return {

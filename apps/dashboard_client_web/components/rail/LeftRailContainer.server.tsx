@@ -11,13 +11,18 @@ import { LeftRail } from '@/components/rail/LeftRail.client';
 import { TagCloud } from '@/components/rail/TagCloud.server';
 import { TagCloudSkeleton } from '@/components/rail/TagCloud.skeleton';
 
-export const LeftRailContainer = async () => {
+export const LeftRailContainer = async ({
+    showRecentVisited = true,
+}: {
+    showRecentVisited?: boolean;
+}) => {
     const cookieStore = await cookies();
     const initialCollapsed = cookieStore.get('railCollapsed')?.value === '1';
 
     return (
         <LeftRail
             initialCollapsed={initialCollapsed}
+            showRecentVisited={showRecentVisited}
             tagCloud={
                 <Suspense fallback={<TagCloudSkeleton />}>
                     <TagCloud />

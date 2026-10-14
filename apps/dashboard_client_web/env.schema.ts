@@ -39,6 +39,15 @@ const envSchema = z.object({
     // Dashboard data source switch. Absent env → 'mock' (live behavior unchanged).
     DASHBOARD_DATA_SOURCE: z.enum(['mock', 'backend']).default('mock'),
 
+    // Projects pages data source (Phase PJ). Server-only: not NEXT_PUBLIC_, so a
+    // browser bundle always sees the default. 'mock' serves the fixtures for the
+    // two not-yet-built Express endpoints; prod must stay 'real'. `.catch()` keeps
+    // a bad value from failing the build (same reason as the URLs above).
+    PROJECTS_DATA_SOURCE: z
+        .enum(['mock', 'real'])
+        .default('real')
+        .catch('real'),
+
     // Canonical public site origin (the deployed frontend domain). Single
     // source for robots.ts / sitemap.ts absolute URLs (and share links).
     // Unified here so consumers read ONE validated value instead of divergent
@@ -75,6 +84,9 @@ export const env = envSchema.parse({
     NEXT_PUBLIC_API_BASE: process.env.NEXT_PUBLIC_API_BASE,
     NEXT_PUBLIC_CDN_ASSETS: process.env.NEXT_PUBLIC_CDN_ASSETS,
     DASHBOARD_DATA_SOURCE: process.env.DASHBOARD_DATA_SOURCE,
+    // Dev-only fixture switch, never set in prod, so it stays out of turbo.json.
+    // eslint-disable-next-line turbo/no-undeclared-env-vars
+    PROJECTS_DATA_SOURCE: process.env.PROJECTS_DATA_SOURCE,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
         process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
@@ -87,5 +99,6 @@ export const HOST_NAME = env.HOST_NAME;
 export const API_BASE = env.NEXT_PUBLIC_API_BASE;
 export const CDN_ASSETS = env.NEXT_PUBLIC_CDN_ASSETS;
 export const DASHBOARD_DATA_SOURCE = env.DASHBOARD_DATA_SOURCE;
+export const PROJECTS_DATA_SOURCE = env.PROJECTS_DATA_SOURCE;
 export const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
 export const DEFAULT_BLOG_AUTHOR = env.NEXT_PUBLIC_DEFAULT_BLOG_AUTHOR;

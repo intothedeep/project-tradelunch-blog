@@ -25,9 +25,12 @@ import { SavedTags } from '@/components/rail/SavedTags.client';
 export const LeftRail = ({
     initialCollapsed = false,
     tagCloud,
+    showRecentVisited = true,
 }: {
     initialCollapsed?: boolean;
     tagCloud?: React.ReactNode;
+    // false on the projects screens (#79); every other page keeps the widget.
+    showRecentVisited?: boolean;
 }) => {
     useHydrateAtoms([[isLeftRailCollapsedAtom, initialCollapsed]]);
     const [isCollapsed, setIsCollapsed] = useAtom(isLeftRailCollapsedAtom);
@@ -70,7 +73,7 @@ export const LeftRail = ({
                 identically across `/` and `/blog/[username]`. */}
             {!isCollapsed ? (
                 <>
-                    <RecentVisited />
+                    {showRecentVisited ? <RecentVisited /> : null}
                     <SavedTags />
                 </>
             ) : null}

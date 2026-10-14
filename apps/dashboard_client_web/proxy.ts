@@ -8,6 +8,10 @@ const isProtectedRoute = createRouteMatcher([
     '/me(.*)',
     '/settings(.*)',
     '/admin(.*)',
+    // `/@u/saved` (also `%40u`): the viewer's own list (PJ-2-02). A RegExp
+    // because path-to-regexp strings treat '@' and '*' awkwardly. Keep the
+    // Cloudflare bypass expression in step (deploy/traffic/README.md, PJ-2-04).
+    /^\/(@|%40)[^/]+\/saved\/?$/i,
 ]);
 
 // CF2-0a (2026-09-22): the `locale` cookie and its Accept-Language detection

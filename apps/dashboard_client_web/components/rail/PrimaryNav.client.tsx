@@ -21,6 +21,7 @@ import {
     Bookmark,
     User,
     MessageSquare,
+    FolderKanban,
     type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -36,6 +37,7 @@ const ICON_BY_KEY: Record<string, LucideIcon> = {
     write: PenSquare,
     saved: Bookmark,
     myBlog: User,
+    projects: FolderKanban,
 };
 
 // Pure: a link is active when it is the exact path; for non-root links the

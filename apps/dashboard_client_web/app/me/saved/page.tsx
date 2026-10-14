@@ -1,12 +1,12 @@
-import { SavedPostsList } from '@/components/me/SavedPostsList.client';
+import { currentUser } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
 
-// Per-user saved-posts route: must never be statically prerendered (the client
-// list uses TanStack Query, which has no QueryClient during static export →
-// build error). Render dynamically, matching app/me/page.tsx. Auth is inherited
-// from the '/me(.*)' middleware matcher (no matcher edit).
-export const dynamic = 'force-dynamic';
+import { savedPath } from '@/utils/routes';
 
-// Saved-posts list route. Thin Server Component shell → client list (no data here).
-export default function SavedPostsPage() {
-    return <SavedPostsList />;
+// Old saved-posts URL: 307 to the viewer's `/@<username>/saved` (PJ-2-02). The
+// '/me(.*)' middleware matcher still guards this route, so a signed-out visitor
+// is sent to sign-in first. A user without a username has no author URL: home.
+export default async function SavedRedirectPage() {
+    const user = await currentUser();
+    redirect(user?.username ? savedPath(user.username) : '/');
 }
