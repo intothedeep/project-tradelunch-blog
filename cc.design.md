@@ -270,7 +270,7 @@ rail 접힘 상태: 세 안
 | QW1 빠른 수정 | 서버 fetch 수 / MISS 렌더 1회. 페이지 3개 합: `/`, `/@taeklim/posts`, `/@taeklim/<S>`. 각각 `?cb=` 새 값. `ssr_fetch` 로그 줄(U0a)을 그 요청 시간 창에서 센다 | 줄어든 수 ≥ max(범위 × 2, 2) | 미달이면 "중복 제거 효과 없음"으로 적는다. 가드가 통과하면 코드는 남긴다(C3, C2는 스트리밍 순서 수정이라 정확성 이득) |
 | QW2 rail 폭 hotfix | 정확성 판정(이진). (1) 익명 MISS `/?cb=X`의 HTML이 `Cookie: railCollapsed=1` 유무와 무관하게 rail 폭 class가 같다. (2) 쿠키 1인 브라우저의 첫 paint 폭 = 접힘(오너, Performance filmstrip). (3) hydration 오류 0 | 셋 모두 참 | 하나라도 거짓이면 되돌림 |
 | U1 공유 rail | W1 익명, `text/x-component` 응답 본문 바이트 합 | 줄어든 양 ≥ max(범위 × 2, 기준선 HAR rail 조각 크기 × 0.5) | 미달이면 "바이트 효과 없음"으로 적는다. 가드가 통과하면 U1은 남긴다(구조 정리) |
-| U2 staleTimes | W2 익명, 뒤로 3회 동안의 `_rsc` 요청 수 | 줄어든 수 ≥ max(범위 × 2, 1) | 0 감소면 되돌림(설정 한 줄) |
+| U2 staleTimes (§16이 대체) | W2 익명, 뒤로 3회 동안의 `_rsc` 요청 수 | 줄어든 수 ≥ max(범위 × 2, 1) | 0 감소면 되돌림(설정 한 줄) |
 | U3 잎 정리 | W1 로그인, 5단계(글 상세) 이동 시간 p50 (`[nav]` 로그) | 줄어든 양 ≥ max(범위 × 2, 기준 p50의 10 %) | 미달이면 "효과 없음"으로 적는다. 가드가 통과하면 남긴다(U4의 필수 준비) |
 | U4 flag on | W1 로그인, 이동 시간 p50 (5단계 전체) | 줄어든 양 ≥ max(범위 × 2, 기준 p50의 10 %) | 미달이면 U4 되돌림과 `recover` |
 | U5 'use cache' | MISS TTFB p50, `/`, `/@taeklim/projects`, `/@taeklim/<S>`, `?cb=` | 줄어든 양 ≥ max(범위 × 2, 50 ms) | 미달이면 그 fetcher의 지시문 되돌림 |
@@ -406,7 +406,7 @@ U0a 계측 ─► U0b 기준선 ─► QW1 빠른 수정 ─► QW2 rail 폭 hot
 | QW2 | R-A(§4.3): root layout 차단 script + `<html data-rail>` + CSS 폭. `BlogShell.server.tsx:44`, `LeftRailContainer.server.tsx:19`의 `cookies()` 삭제. `useHydrateAtoms` 2곳 삭제. about, resume layout 주석 정정 | MVP1 | S | QW1 (같은 배포로 묶지 않는다, 판정을 섞지 않으려고) | 정확성 판정 (이진) | 전부 + G-k | 예 + purge (필수, 옛 폭이 엣지에 1일 남음) | A2, D1, D5 | 판정 하나라도 거짓 → `git revert` + 재배포 + purge |
 | U1a | `app/[handle]/components/` → `components/projects/`, import 19곳 정리 | MVP1 | S | QW2 | 없음 (동작 불변) | G-c, G-e, smoke §7.3 | 예 + purge | 없음 (U1b 준비) | 빌드 실패 또는 smoke 변화 → `git revert` |
 | U1b | `(shell)` group, RailFrame/ContentFrame, `railVisibility`, `RailContextPublisher` (§4) | MVP1 | M | U1a | W1 익명 RSC 바이트 | 전부 + smoke §7.3 | 예 + purge | D6 | 가드 실패 또는 smoke 하나라도 status나 `location` 변화 → `git revert` + 재배포 + purge |
-| U2 | `experimental.staleTimes = { dynamic: 30 }`. `static`은 두지 않는다(기본 300초, flag 뒤 default `cacheLife.stale`, `cacheLife.md` 257행) | MVP1 | S | U1b | W2 `_rsc` 수 | 전부 | 예 + purge | A6 | 판정 실패 또는 오너가 30초 지연 거부(Q6) → 설정 줄 삭제 |
+| U2 | `experimental.staleTimes = { dynamic: 30 }`. `static`은 두지 않는다(기본 300초, flag 뒤 default `cacheLife.stale`, `cacheLife.md` 257행) | MVP1 | S | U1b | W2 `_rsc` 수 (§16이 대체: W1 s6 `_rsc`) | 전부 | 예 + purge | A6 | 판정 실패 또는 오너가 30초 지연 거부(Q6) → 설정 줄 삭제 |
 | U3 | flag off로 잎 정리: D11 `[slug]` rail 고르기 → Suspense 잎 `RightRailSwitch`(A7). 로그인 글 읽기 preload: page 맨 위 `void getPostBySlug(slug, token)`(C4, token 읽기는 잎 안). D12 `MobileContextHeader` Suspense, D8, D23. "빌드만" GH Actions 잡 + flag on 시험 빌드(배포 없음) | MVP1 | M | U2 | W1 로그인 5단계 이동 p50 | 전부 | 예 + purge | A7, C4, C2(`[slug]` 절반), C7(나머지) | 가드 실패 → `git revert` |
 | U4 | `cacheComponents: true`, D4–D7 `force-dynamic` 삭제, D9, D15, D21 sample, D25 `loading.tsx`, D26, D27 처리, D1 확인 | MVP2 | M | U3 | W1 로그인 이동 p50 | 전부 | 예 + purge | A1(확인), A4, A5, A8(sample로 재평가) | 판정 실패, G-e 실패, 또는 빌드가 스키마나 URL 변경 없이 통과 못함 → U4 커밋 `git revert` + 재배포 + purge (§3.1) |
 | U5 | `'use cache'` + `cacheTag` 3개: TagCloud(`tags`), tree(`tree:<u>`), projects(`projects:<u>`). token = null 경로만 | MVP3 | M | U4 | MISS TTFB p50 | 전부 (특히 G-i) | 예 + purge | 없음 (감사 밖, CC 계획) | 판정 실패, G-i, revalidate 뒤 옛 tree → 그 fetcher 지시문 삭제 |
@@ -556,7 +556,7 @@ rev1 Q1–Q10과 감사의 열린 항목(B4 선택, D4, §5)을 합쳤다. 중�
 | --- | --- | --- |
 | "root layout `getLocale()` (headers)" 막힘, 처방 `setRequestLocale('en')` | 막힘이 아니다. `i18n/request.ts`가 `requestLocale`을 읽지 않는다. 그래서 `headers()`가 불리지 않는다. 처방 불필요. U4 빌드로 최종 확인 | `node_modules/next-intl/dist/esm/development/server/react-server/getConfig.js` 25–33행 |
 | "첫 행 = `staleTimes`" | 첫 행 = 기준선(U0), 그다음 QW1, QW2, 공유 rail(U1, 오너 2026-10-14). `staleTimes`는 U2 | 오너 지시, rev2 |
-| "`staleTimes.dynamic = 30`" 단독 효과 | flag on 뒤에는 `cacheLife(...).stale`이 client 재사용을 정한다. `staleTimes`는 flag 전의 이득이다 | `cacheLife.md` 247–257행 |
+| "`staleTimes.dynamic = 30`" 단독 효과 | flag on 뒤에는 `cacheLife(...).stale`이 client 재사용을 정한다. `staleTimes`는 flag 전의 이득이다 (§16.6 정정: `dynamic`은 flag 뒤에도 이득) | `cacheLife.md` 247–257행 |
 
 ## 12. 감사 항목 추적표 (traceability)
 
@@ -818,3 +818,152 @@ app/(shell)/
 - 코드는 이미 그렇게 되어 있다: `utils/rail-visibility.ts` 5행 주석 "The rail itself stays on every (shell) route (saved and me…)".
 - 오른쪽 rail: saved는 #93의 공유 rail을 받는다. me는 오른쪽 rail에서 제외다(#93).
 - `decisions.plan.md`에 Q2 대체 행이 필요하다. Supersedes = Q2 기본값과 AC7.
+
+## 16. U2 재설정 (U2 re-scope, 2026-10-14)
+
+- 결정: system-architect + pm (오너 위임). U2 코드 전에 고정한다(write-first).
+- 결론: **(b) U2를 유지한다. 주 지표만 바꾼다. 스크립트 변경은 없다.**
+- 이 절이 §5.3 U2 행, §7 U2 행의 "W2 `_rsc` 수"를 대체한다.
+
+### 16.1 무엇을 알려고 하나
+
+- 질문: `staleTimes.dynamic = 30`이 30초 안의 **앞으로 재방문(forward re-visit)** 요청을 없애는가.
+- 옛 지표가 못 움직이는 이유: 뒤로 가기(back/forward)는 stale 시간을 보지 않는다.
+- 근거: 기준선 `w2_back3_rsc` = 0, 네 팔(arm) 모두 (`runs/20261014T052554Z_baseline_19f5e31_browser/summary.csv`).
+- 코드 근거: `segment-cache/bfcache.js` 104–112행 `readFromBFCache`는 staleness를 건너뛴다(`-1`).
+- 문서 근거: `staleTimes.md` 36행 "doesn't change back/forward caching".
+
+### 16.2 표: 세 안
+
+| 안 | 내용 | 판정 |
+| --- | --- | --- |
+| (a) U2 삭제 | 설정 줄 없음. A6 열린 채 | 버림. 측정할 수 있는 처방을 시험 없이 버린다 |
+| **(b) 유지, 지표 교체** | 같은 설정 한 줄. 주 지표 = W1 s6 | **채택**. 기전이 있고 이미 재는 칸이다 |
+| (c) U3, U4에 합침 | 한 배포에 두 변경 | 버림. U3, U4 지표는 이동 시간이다. 변경 하나씩 원칙이 깨진다 |
+
+### 16.3 시각화: 어느 이동이 바뀌나
+
+```
+W1 (익명)  s1 hard load `/` ──► s2 posts ─► s3 projects ─► s4 <P> ─► s5 <S> ─► s6 `/`
+             │ hydration이 `/`를 BFCache에 씀                                     │
+             │ staleAt = 적재 시각 + dynamic                                       │
+             └──────────────── 기준선 간격 8.1–10.1 s ──────────────────────────────┘
+  dynamic = 0  (오늘) : s6에서 staleAt 지남 → `_rsc` 1건
+  dynamic = 30 (U2)   : s6에서 아직 신선 → `_rsc` 0건
+W2 뒤로 ×3          : stale 무시 → 오늘도 0건, U2 뒤에도 0건 (못 움직임)
+```
+
+- s2–s5는 서로 다른 URL이다. 30초 안의 재방문은 s6 하나뿐이다.
+- 간격 출처: 기준선 `raw.jsonl`의 s1 `document` 요청 `at`과 s6 `_rsc` 요청 `at`의 차. 익명 8.1–8.2 s, 로그인 9.1–10.1 s.
+
+### 16.4 어떻게 하나 (사전 등록, `rules/measurement.md` §1)
+
+| 칸 | 값 |
+| --- | --- |
+| 주 지표 | `w1_s6_home_rsc_nonprefetch`, 익명(anon) expanded. `summary.csv`에 이미 있는 칸 |
+| 주 대비 | 직전 단위 뒤 3회 중앙값 vs U2 뒤 3회 중앙값 (§5.3 공통) |
+| 판정선 (통과) | 줄어든 수 ≥ max(범위 × 2, 1). 기준선 값 1, 범위 0 → 0이 되면 통과 |
+| 실패 조건 | 감소 0 → 설정 줄 삭제 + 재배포 + purge |
+| 유효 조건 | 그 run의 s1→s6 간격 < 25 s. 넘으면 그 run은 판정 불가로 적는다 |
+| 기록만 | 로그인 팔 같은 칸, `w1_rsc_nonprefetch` (5 → 4 예상), `w1_s6_home_nav_ms`, `w2_back3_rsc` (0 유지) |
+| 가드 | G-a…G-l 전부 (§5.3) |
+
+예 (기준선 숫자, `summary.csv` 12행, 16행):
+
+1. 기준선 익명 expanded s6 `_rsc` 비prefetch = 1 1 1, 범위 0.
+2. U2 뒤 값이 0 0 0이면 감소 1 ≥ max(0, 1). 통과.
+3. 같은 run의 `w2_back3_rsc`는 0 그대로여야 한다.
+
+- 간격은 스크립트가 아니라 판정 때 `raw.jsonl`의 `at`으로 계산한다. 그래서 스크립트 변경은 없다.
+- 간격 계산: data-analyst가 run마다 `at(s6 _rsc) − at(s1 document)`를 판정 항목에 적는다. 저장된 산출물 분석이라 "Allowed locally"다.
+- 25 s인 이유: hydration은 document 요청 뒤에 온다. 잰 간격이 실제보다 길다. 25 s는 안전 쪽 여유다.
+- 이 경로가 쓰이는 근거: hydration 시드가 `DYNAMIC_STALETIME_MS`로 staleAt을 쓴다(`create-initial-router-state.js` 49행, `bfcache.js` 50–51행).
+- Link 클릭은 `FreshnessPolicy.Default`로 간다(`navigate-reducer.js` 47행). 그 경우 `readFromBFCacheDuringRegularNavigation`이 staleAt을 본다(`ppr-navigations.js` 542–552행).
+- segment cache 경로가 운영에서 돈다: 기준선 `raw.jsonl`에 `next-router-segment-prefetch` 요청 185건.
+
+### 16.5 읽는 법
+
+| 경우 | 뜻 |
+| --- | --- |
+| s6 1 → 0, W2 0 유지 | U2 통과. A6 닫힘 |
+| s6 1 → 1, 간격 < 25 s | 설정이 듣지 않는다. 되돌림. A6 = "측정 결과 효과 없음" |
+| 간격 ≥ 25 s | 판정 불가. W1이 느려진 원인을 먼저 본다. 다시 3회 |
+| W2가 0이 아님 | U2와 무관한 회귀. 가드처럼 보고한다 |
+
+### 16.6 U4(cacheComponents)와의 관계: 코드 읽기, 측정 아님
+
+- `cacheLife.stale`은 prefetch 항목의 staleAt을 정한다(`segment-cache/cache.js` 1832–1852행, `x-nextjs-stale-time`).
+- 이동 응답의 dynamic 데이터는 `DYNAMIC_STALETIME_MS`를 쓴다. 예외는 page의 `unstable_dynamicStaleTime` 하나다(`fetch-server-response.js` 183–187행).
+- 그래서 flag 뒤에도 `staleTimes.dynamic`은 계속 듣는다. U4에 기댈 것이 없다.
+- 순서: U2를 U3, U4 앞에 둔다. 변경 하나씩 재야 원인을 가린다.
+- 정정: §11의 "`staleTimes`는 flag 전의 이득이다"는 `static`에만 맞다. `dynamic`은 flag 뒤에도 이득이다.
+
+### 16.7 남는 위험과 확인
+
+- Q6 범위: 오너 답은 뒤로 가기 기준이었다. 실제 변화는 30초 안의 링크 재클릭이다. 상한 30초는 같다. 막지 않는다. main session이 오너에게 한 줄로 알린다.
+- 앱에 `revalidatePath`, `revalidateTag`, `router.refresh` 호출이 없다(`rg` 0건). 그래서 mutation이 client cache를 비우지 않는다.
+- 고의 확인 (U2 task AC, 로그인): 글에 좋아요 → 다른 메뉴로 이동 → 10초 안에 그 글을 다시 클릭 → 좋아요 수와 상태 확인.
+- 같은 확인을 글 제목 수정 뒤에도 한다. 옛 값이 보이면 기록하고 Q6 범위로 오너에게 보고한다. 되돌림 조건은 아니다.
+
+### 16.8 pm에게 (이 절은 고치지 않는다)
+
+| 파일 | 고칠 곳 |
+| --- | --- |
+| `decisions.plan.md` | 이 재설정 행 먼저. Supersedes = §5.3 U2 주 지표 |
+| `deploy/traffic/review/cc/criteria.md` | U2 행 보정 행 추가. U2 실행 전이라 허용 |
+| `00.tasks.md` CC-U2 | 주 지표, kill, AC2를 §16.4로. 고의 확인 AC 하나 추가. 선행 CC-U1b → CC-U1c (`cc.plan.md` 18행 순서) |
+| `cc.plan.md` U2 tactic | kill "W2 `_rsc` 수 감소 0" → "W1 s6 익명 `_rsc` 감소 0" |
+
+## 17. rev2.2 이동 시간 지표 (nav metric, 2026-10-14)
+
+- 결정: system-architect + pm (오너 위임). **U3 비교 run 전에 고정한다(write-first).** U3 코드는 `0ac938c`에 커밋됐고 아직 배포 전이다.
+- 이 절이 §5.3의 U3, U4 행과 §14.1의 U3, U4 읽기를 대체한다. U5 읽기(§14.1)는 그대로다.
+- 공식 `max(범위 × 2, 기준값의 10 %)`는 바꾸지 않는다. 지표의 정의와 팔(arm)만 바꾼다.
+
+### 17.1 무엇이 틀렸나
+
+| 가정 (§14.1) | 실제 (브라우저 run) | 결과 |
+| --- | --- | --- |
+| run마다 원값 15개 (5단계 × 반복 3) | run마다 W1 1회, `[nav]` 원값 5개 (s2–s6) | 5개의 p50 = 세 번째로 큰 값 |
+| p50이 이동 전체를 대표한다 | 로그인 expanded 원값 예: {35, 20, 130, 473, 21} → p50 35 = s2 | 글 상세 s5(347–473 ms)가 바뀌어도 지표가 안 움직인다 |
+| rail 팔은 하나 | 브라우저 run에 expanded와 collapsed 두 팔이 있다 | 어느 팔로 판정하는지 정해지지 않았다 |
+
+### 17.2 고친 지표 (판정용)
+
+| 단위 | 주 지표 | 팔 | run 값 | 단위 값과 범위 | 이유 |
+| --- | --- | --- | --- | --- | --- |
+| U3 | `w1_s5_post_nav_ms` (W1 5단계, 글 상세로 가는 `[nav]`) | 로그인(auth), expanded | run마다 1개 | run 3개의 중앙값. 범위 = 최댓값 − 최솟값 | U3가 고치는 곳(A7 rail 고르기 잎, C4 preload)이 글 상세뿐이다. 다른 단계를 섞으면 효과가 희석된다 |
+| U4 = G-CC | `w1_nav_ms_s2_s6` (s2–s6 `[nav]` 합) | 로그인(auth), expanded | run마다 1개 | 같음 | flag는 모든 route에 걸친다. 걸음 전체 시간이 G-CC의 뜻이다. 합은 느린 단계(s4, s5)의 변화를 그대로 담는다 |
+
+- 로그인 팔인 이유: 로그인은 `DYNAMIC`이라 매번 오리진에 간다(§14.4). 익명은 엣지 HIT라 오리진 변화가 안 보인다.
+- expanded인 이유: 기본 상태다. 처음 방문자는 모두 expanded다. QW2 뒤 rail 상태는 렌더 경로를 바꾸지 않는다.
+- 기록만: collapsed 같은 칸, 익명 같은 칸, U4 단계별 run 값(s2–s6 각각).
+- 이름 정정: U4 지표는 p50이 아니라 **합**이다. §5.3과 G-CC 초안(§0)의 "이동 시간 p50"을 "s2–s6 이동 시간 합(run 3개 중앙값)"으로 읽는다.
+
+### 17.3 판정선 다시 계산 (저장된 브라우저 run, `summary.csv` `values` 칸 = run 순서)
+
+| 출처 run (배포) | U3 s5 run 값 | 중앙값 / 범위 | U3 판정선 | U4 합 run 값 | 중앙값 / 범위 | U4 판정선 |
+| --- | --- | --- | --- | --- | --- | --- |
+| U0b `runs/20261014T052554Z_baseline_19f5e31_browser/summary.csv` 38, 42행 | 473 / 347 / 379 | 379 / 126 | max(252, 37.9) = 252 ms | 679 / 561 / 585 | 585 / 118 | max(236, 58.5) = 236 ms |
+| after-QW `runs/20261014T053859Z_QW1_after_qw_61d48bc_browser/summary.csv` 41, 45행 | 287 (run 1개) | 범위 없음 | 계산 불가 | 556 (run 1개) | 범위 없음 | 계산 불가 |
+| **U1** `runs/20261014T055732Z_U1_u1_3596e4c_browser/summary.csv` 41, 45행 | 401 / 338 / 341 | **341 / 63** | max(126, 34.1) = **126 ms** | 607 / 533 / 541 | **541 / 74** | max(148, 54.1) = **148 ms** |
+
+비교 기준 규칙 (§5.3 "직전 단위 뒤 3회"):
+
+| 단위 | 비교 기준 | 지금 쓸 수 있는 값 |
+| --- | --- | --- |
+| U3 | U2 배포(`c26c69d`) 뒤 브라우저 3회 | 없음. U2 브라우저 run이 아직 없다. **U3 배포 전에 U2 브라우저 3회가 있어야 한다.** 그 값으로 판정선을 다시 낸다. 그때까지 가안 = U1 값: 기준 341 ms, 판정선 126 ms (U3 뒤 중앙값 ≤ 215 ms면 통과) |
+| U4 | U3 배포 뒤 브라우저 3회 | 없음. 가안 = U1 값: 기준 541 ms, 판정선 148 ms (U4 뒤 중앙값 ≤ 393 ms면 통과) |
+
+- U2는 s5에 영향이 없다(s5는 첫 방문 URL, §16.3). s6은 U2 뒤 빨라질 수 있다. 그래서 U4 기준은 반드시 U2, U3 뒤 값으로 다시 낸다.
+- U0b 줄은 참고다. 판정에 쓰지 않는다.
+- 잡음 주의: run 3개라 범위가 크다(s5 범위 63–169 ms). 판정선은 공식대로 범위 × 2를 따른다. 손으로 줄이지 않는다.
+
+### 17.4 pm에게
+
+| 파일 | 고칠 곳 |
+| --- | --- |
+| `decisions.plan.md` | #88 Update 2 행 먼저: U3 = s5 로그인 expanded, U4 = s2–s6 합 로그인 expanded. Supersedes = §14.1 U3, U4 읽기 |
+| `deploy/traffic/review/cc/criteria.md` | U3, U4 행 + §3 2, 3번 (이 dispatch에서 architect가 고쳤다. U3 비교 run 전 정정으로 표시) |
+| `00.tasks.md` CC-U3, CC-U4 | 주 지표 칸, AC의 지표 이름. CC-U3 선행에 "U2 브라우저 3회" 추가 |
+| `cc.plan.md` | G-CC 초안 measure를 "s2–s6 합"으로 |
