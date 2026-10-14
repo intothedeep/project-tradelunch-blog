@@ -21,16 +21,19 @@
 //     "full tree" size, never to be mixed with browser HAR bytes (design §5.4).
 //
 // Usage (repo root):
-//   node _scripts/perf/cc-measure.mjs --tag baseline1 [--base https://my.prettylog.com]
+//   node _scripts/perf/cc-measure.mjs --unit U0b --tag baseline1 --web-sha auto|<sha> [--base https://my.prettylog.com]
 //     [--runs 3] [--arms anon,auth] [--only w1,w2,w3,w4,miss,hit,rsc,guards]
 //     [--project <P> --slug <S>] [--user taeklim] [--gap-ms 1100] [--no-warmup]
 //     [--externals] [--out deploy/traffic/review/cc/runs]
+// --unit (U0b, QW1 ...) and --web-sha are required (cc.design.md §14.3). --web-sha is the DEPLOYED web
+// commit: `auto` reads it with ONE `gcloud compute ssh` (basename of ~/prettylog/web/current, as
+// _scripts/gcp/deploy-web.sh reaches the VM; env VM / ZONE override). A literal sha skips the ssh.
 // Local dev server over mkcert TLS: prefix with NODE_EXTRA_CA_CERTS="$(mkcert -CAROOT)/rootCA.pem".
 // Signed-in arm: see clerk-session.mjs (reads the Clerk key from the app env file; never printed).
 //
-// Output: <out>/<T>_<tag>_<sha7>/ raw.jsonl (one line per request, no request
+// Output: <out>/<T>_<unit>_<tag>_<websha7>/ raw.jsonl (one line per request, no request
 // cookies, Set-Cookie names only), manifest.json (params, env, code hashes,
-// metrics), summary.csv, snapshots of both scripts, optional externals.
+// metrics; web_sha, unit, harness_sha = local HEAD), summary.csv, snapshots of both scripts, optional externals.
 import { spawnSync, execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { appendFileSync, copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -62,6 +65,7 @@ const P = {
     only: String(args.only ?? 'w1,w2,w3,w4,miss,hit,rsc,guards').split(','),
     user: String(args.user ?? 'taeklim'),
     tag: String(args.tag ?? ''),
+    unit: String(args.unit ?? ''),
     gapMs: Math.max(1000, Number(args['gap-ms'] ?? 1100)), // never below 1 s (#68)
     warmup: !args['no-warmup'],
     externals: Boolean(args.externals),
@@ -71,11 +75,25 @@ const P = {
     envFile: resolve(repo, 'apps/dashboard_client_web/.env.local'),
 };
 if (!P.tag) throw new Error('--tag is required (baseline1, qw1, u1 ...)');
+if (!P.unit) throw new Error('--unit is required (U0b, QW1, QW2 ...)');
+if (!args['web-sha'] || args['web-sha'] === true) throw new Error('--web-sha is required: a deployed commit sha, or `auto` (one gcloud ssh)');
 
-const sha7 = execSync('git rev-parse --short=7 HEAD', { cwd: repo }).toString().trim();
+// The deployed web commit is the VM's release symlink; the response carries no sha header.
+function readDeployedSha() {
+    const vm = process.env.VM ?? 'tio_taek_lim@instance-servers';
+    const zone = process.env.ZONE ?? 'us-central1-a';
+    const r = spawnSync('gcloud', ['compute', 'ssh', vm, `--zone=${zone}`, '--tunnel-through-iap', '--command', 'basename "$(readlink ~/prettylog/web/current)"'], { encoding: 'utf8' });
+    if (r.status !== 0) throw new Error(`--web-sha auto failed (exit ${r.status}); read it yourself and pass the sha`);
+    return r.stdout.trim().split('\n').pop();
+}
+const webSha = String(args['web-sha']) === 'auto' ? readDeployedSha() : String(args['web-sha']);
+if (!/^[0-9a-f]{7,40}$/.test(webSha)) throw new Error(`web sha looks wrong: "${webSha.slice(0, 60)}"`);
+const webSha7 = webSha.slice(0, 7);
+
+const harnessSha = execSync('git rev-parse HEAD', { cwd: repo }).toString().trim();
 const dirty = execSync('git status --porcelain', { cwd: repo }).toString().trim() !== '';
 const T = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
-const runId = `${T}_${P.tag}_${sha7}`;
+const runId = `${T}_${P.unit}_${P.tag}_${webSha7}`;
 const dir = join(P.out, runId);
 mkdirSync(dir, { recursive: true });
 const rawPath = join(dir, 'raw.jsonl');
@@ -86,7 +104,7 @@ let aborted = null;
 const records = [];
 
 // One request. Returns { rec, text? }. Appends the raw line before returning (write-first).
-async function hit(ctx, name, path, { headers = {}, keepText = false } = {}) {
+async function hit(ctx, name, path, { headers = {}, keepText = false, saveSmall = false } = {}) {
     const wait = lastStart + P.gapMs - Date.now();
     if (wait > 0) await sleep(wait);
     lastStart = Date.now();
@@ -119,6 +137,11 @@ async function hit(ctx, name, path, { headers = {}, keepText = false } = {}) {
         set_cookie_names: res.headers.getSetCookie().map((c) => c.split('=')[0]),
         body_sha: createHash('sha256').update(buf).digest('hex').slice(0, 16),
     };
+    // Small bodies (< 1 KB) are kept to see what a near-empty prefetch holds (cc.design.md §14.4 item 2).
+    if (saveSmall && buf.length < 1024) {
+        rec.body_file = `w4_${ctx.arm}_r${ctx.run}_${name}.rsc`;
+        writeFileSync(join(dir, rec.body_file), buf);
+    }
     appendFileSync(rawPath, JSON.stringify(rec) + '\n');
     records.push(rec);
     if (res.status === 429) {
@@ -156,7 +179,7 @@ async function walks(arm, run, x, headersFor) {
     const on = (w) => P.only.includes(w);
     const call = async (walk, name, path, kind, extra = {}) => {
         const headers = { ...(await headersFor()), ...(kind === 'rsc' ? RSC : kind === 'prefetch' ? PREFETCH : {}) };
-        return hit({ arm, run, walk }, name, path, { headers, ...extra });
+        return hit({ arm, run, walk }, name, path, { headers, saveSmall: walk === 'w4', ...extra });
     };
     const cb = (n) => `cb=cc${runId}_${arm}_${run}_${n}`;
 
@@ -186,7 +209,8 @@ async function walks(arm, run, x, headersFor) {
     }
     if (on('w4')) {
         await call('w4', 'card_hover', `${U}/projects/${x.project}?${rscQuery('ccw4card')}`, 'prefetch');
-        const menu = { home: '/', posts: `${U}/posts`, projects: `${U}/projects`, about: `${U}/about`, resume: `${U}/resume`, log: '/log' };
+        // The real anonymous menu; /log is hidden (useNavLinks.hook.ts) and Explore is not a link.
+        const menu = { home: '/', projects: `${U}/projects`, about: `${U}/about`, resume: `${U}/resume` };
         for (const [k, p] of Object.entries(menu)) {
             await call('w4', `menu_${k}`, `${p}?${rscQuery(`ccw4m${k}`)}`, 'prefetch');
         }
@@ -211,6 +235,7 @@ async function walks(arm, run, x, headersFor) {
 }
 
 // G-e, G-e2, G-k: once per script, anonymous.
+let railBodies = null; // set by guards(), read by summarize()
 async function guards() {
     const U = `/@${P.user}`;
     const ctx = { arm: 'anon', run: 0, walk: 'guards' };
@@ -228,6 +253,16 @@ async function guards() {
         rail_cookie_fresh: (await hit(ctx, 'rail_cookie_fresh', `/?cb=ccs${runId}`, { headers: html, keepText: true })).text,
     };
     for (const [n, t] of Object.entries(bodies)) writeFileSync(join(dir, `${n}.html`), t);
+    railBodies = bodies;
+}
+
+// The rail <aside>: first one whose class holds both tokens. Whole class string is compared (QW2 may change the width class).
+function railAsideClass(html) {
+    for (const m of html.matchAll(/<aside\b[^>]*>/g)) {
+        const cls = /\sclass="([^"]*)"/.exec(m[0])?.[1];
+        if (cls?.includes('border-r-2') && cls.includes('border-primary')) return cls;
+    }
+    return null;
 }
 
 const stats = (v) => {
@@ -268,7 +303,7 @@ function summarize() {
         a.w3_load_more_requests = rs.filter((r) => r.walk === 'w3' && r.run === firstRun).length;
         a.set_cookie_lines = rs.reduce((t, r) => t + r.set_cookie_names.length, 0);
         // QW1: the windows to count ssr_fetch lines in (Cloud Logging, UA contains the run id).
-        a.miss_windows = rs.filter((r) => r.walk === 'miss').map((r) => ({ run: r.run, name: r.name, path: r.path, start: r.started_at, end: r.ended_at, status: r.status, cf_cache_status: r.cf_cache_status }));
+        a.miss_windows = rs.filter((r) => r.walk === 'miss').map((r) => ({ run: r.run, name: r.name, path: r.path, cb: new URL(r.path, 'http://x').searchParams.get('cb'), start: r.started_at, end: r.ended_at, status: r.status, cf_cache_status: r.cf_cache_status }));
         out.arms[arm] = a;
     }
     const g = (n) => records.find((r) => r.walk === 'guards' && r.name === n);
@@ -276,9 +311,14 @@ function summarize() {
     const rp = g('rail_plain');
     const rc = g('rail_cookie');
     const rf = g('rail_cookie_fresh');
-    // sha equality is exact bytes: unrelated per-render bytes can break it, so diff the saved .html files too.
-    out.guards.rail_cookie_same_key_same_html = rp && rc ? rp.body_sha === rc.body_sha : null;
-    out.guards.rail_cookie_fresh_same_html = rp && rf ? rp.body_sha === rf.body_sha : null;
+    // HTML body sha is not stable between responses (baseline.md §5 item 5): compare the rail <aside> class instead.
+    if (railBodies) {
+        const c = Object.fromEntries(Object.entries(railBodies).map(([n, t]) => [n, railAsideClass(t)]));
+        out.guards.rail_aside_class_plain = c.rail_plain;
+        out.guards.rail_aside_class_cookie = c.rail_cookie;
+        out.guards.rail_aside_class_cookie_fresh = c.rail_cookie_fresh;
+        out.guards.rail_width_same = c.rail_plain !== null && c.rail_plain === c.rail_cookie && c.rail_plain === c.rail_cookie_fresh;
+    }
     out.guards.rail_cache_status = rp && rc && rf ? [rp.cf_cache_status, rc.cf_cache_status, rf.cf_cache_status] : null;
     out.guards.public_set_cookie_lines = records.filter((r) => r.arm === 'anon' && r.set_cookie_names.length > 0).length;
     return out;
@@ -341,8 +381,10 @@ async function main() {
         code_sha: sha12(fileURLToPath(import.meta.url)),
         clerk_session_sha: sha12(join(here, 'clerk-session.mjs')),
         run_id: runId,
-        git_sha: sha7,
-        git_dirty: dirty, // the measured SITE version is the deployed commit, not necessarily this one
+        unit: P.unit,
+        web_sha: webSha, // the DEPLOYED commit that was measured
+        harness_sha: harnessSha, // local HEAD that ran this script
+        git_dirty: dirty, // local worktree state of the harness
         params: { ...P, envFile: undefined, out: undefined, project: x?.project, slug: x?.slug, rail_state: 'cookie unset (expanded) for all arms' },
         env: { node: process.version, platform: `${os.platform()} ${os.release()}`, started: T, requests: records.length },
         aborted,

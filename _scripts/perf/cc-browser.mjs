@@ -23,7 +23,11 @@
 // (1440x900). The collapsed rail state runs W1+W2 only (G-f scope). Pace: settle >= 1.5 s after
 // every action, 11 s between walks, so the Cloudflare 50 req / 10 s limit (#68) is never near.
 //
-// Usage (CI): node _scripts/perf/cc-browser.mjs --tag baseline1 [--base https://my.prettylog.com]
+// Files per run folder (replaces har_summary.py, cc.design.md §14.3): summary.csv (per metric),
+// browser_summary.json + browser_summary.txt (_rsc counts, max requests per 10 s, prefetch per link,
+// hydration error count, text/x-component byte sum, [nav] lines), nav.log, raw.jsonl.
+//
+// Usage (CI): node _scripts/perf/cc-browser.mjs --tag baseline1 [--unit QW1] [--web-sha <deployed sha>] [--base https://my.prettylog.com]
 //   [--runs 3] [--arms anon,auth] [--rails expanded,collapsed] [--user taeklim]
 //   [--project <P> --slug <S>] [--private-path /@taeklim/<private-slug>] [--out deploy/traffic/review/cc/runs]
 // The signed-in arm reads CLERK_SECRET_KEY from the environment (never printed).
@@ -58,6 +62,8 @@ const P = {
     rails: String(args.rails ?? 'expanded,collapsed').split(','),
     user: String(args.user ?? 'taeklim'),
     tag: String(args.tag ?? ''),
+    unit: args.unit ? String(args.unit) : null, // optional here: recorded in the manifest when given
+    webSha: args['web-sha'] ? String(args['web-sha']) : null, // deployed commit; the CI checkout sha is only the harness
     project: args.project,
     slug: args.slug,
     privatePath: args['private-path'],
@@ -72,7 +78,7 @@ const baseUrl = new URL(P.base);
 const U = `/@${P.user}`;
 const sha7 = (process.env.GITHUB_SHA ?? execSync('git rev-parse HEAD', { cwd: repo }).toString()).trim().slice(0, 7);
 const T = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
-const runId = `${T}_${P.tag}_${sha7}_browser`;
+const runId = [T, P.unit, P.tag, P.webSha?.slice(0, 7) ?? sha7, 'browser'].filter(Boolean).join('_');
 const dir = join(P.out, runId);
 mkdirSync(dir, { recursive: true });
 const rawPath = join(dir, 'raw.jsonl');
@@ -81,6 +87,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const HYDRATION = /hydrat|did not match|server rendered HTML|Minified React error #(418|423|425)/i;
 const warnings = [];
 let aborted = null;
+const details = []; // per (arm, rail, run): [nav] lines and prefetch per link, for browser_summary.*
 
 const raw = (rec) => appendFileSync(rawPath, JSON.stringify(rec) + '\n');
 
@@ -120,7 +127,7 @@ async function openSession(browser, ua, { arm, rail, run, walk }, auth) {
         await refresh();
     }
     const page = await ctx.newPage();
-    const S = { ctx, page, refresh, arm, rail, run, walk, cur: null, recs: [], flushed: 0, navLines: [], hydration: [], hydrationTotal: 0, steps: [] };
+    const S = { ctx, page, refresh, arm, rail, run, walk, cur: null, recs: [], flushed: 0, pending: [], navLines: [], hydration: [], hydrationTotal: 0, steps: [] };
     const byReq = new Map();
     page.on('request', (req) => {
         const u = new URL(req.url());
@@ -142,7 +149,10 @@ async function openSession(browser, ua, { arm, rail, run, walk }, auth) {
         if (!rec) return;
         rec.status = res.status();
         rec.cf_cache_status = res.headers()['cf-cache-status'] ?? null;
+        rec.xcomponent = (res.headers()['content-type'] ?? '').includes('text/x-component');
         if (rec.status === 429) aborted = aborted ?? `429 at ${rec.path}`; // a 429 corrupts the run: stop
+        // Decoded body bytes of RSC responses (the sum is a summary metric). Awaited at the step end.
+        if (rec.xcomponent) S.pending.push(res.body().then((b) => { rec.bytes = b.length; }, () => { rec.bytes = null; }));
     });
     page.on('console', (m) => {
         const text = m.text();
@@ -173,6 +183,7 @@ async function step(S, name, action) {
     }
     const wall = Date.now() - t0;
     await sleep(P.settleMs);
+    await Promise.all(S.pending.splice(0));
     const win = S.recs.slice(i0);
     const rec = {
         kind: 'step', arm: S.arm, rail: S.rail, run: S.run, walk: S.walk, step: name, wall_ms: wall,
@@ -307,6 +318,10 @@ function metricsOf(sessions, w4) {
         m.g_b_prefetch_total = pf.length;
         m.g_b_card_prefetch_total = pf.filter((r) => pathOnly(r.path) === w4.cardHref).length;
     }
+    const xc = all.filter((r) => r.xcomponent);
+    m.rsc_count_all = all.filter((r) => r.rsc).length;
+    m.rsc_bytes_total = xc.reduce((t, r) => t + (r.bytes ?? 0), 0);
+    m.rsc_bytes_w1 = xc.filter((r) => r.walk === 'w1').reduce((t, r) => t + (r.bytes ?? 0), 0);
     m.g_f_hydration_errors = sessions.reduce((t, s) => t + s.hydrationTotal, 0);
     const si = steps.find((s) => s.step === 's1_home' && s.signed_in !== undefined);
     if (si) m.auth_signed_in = si.signed_in ? 1 : 0;
@@ -342,6 +357,14 @@ async function runOnce(browser, ua, x, auth, { arm, rail, run }) {
         for (const s of sessions) await s.ctx.close().catch(() => {});
     }
     const m = metricsOf(sessions, w4);
+    const id = { arm, rail, run };
+    const navLines = sessions.flatMap((s) => s.navLines.map((n) => ({ ...id, walk: s.walk, ...n })));
+    const prefetchPerLink = w4
+        ? Object.fromEntries(w4.menu.map((h) => [h, sessions.flatMap((s) => s.recs).filter((r) => r.walk === 'w4' && r.step === 'first_screen' && r.prefetch && r.host === baseUrl.host && pathOnly(r.path) === h).length]))
+        : null;
+    if (run === 0) return m; // warmup: not summarised
+    details.push({ ...id, metrics: m, nav_lines: navLines, prefetch_per_menu_link: prefetchPerLink });
+    for (const n of navLines) appendFileSync(join(dir, 'nav.log'), `${n.arm} ${n.rail} run${n.run} ${n.walk} [nav] ${n.from} ${n.to} ${n.ms}\n`);
     const w2at = sessions[0].steps.filter((s) => s.walk === 'w2').map((s) => s.at);
     m.w2_back3_at_ok = w2at.join(',') === [`${U}/${x.slug}`, `${U}/projects/${x.project}`, `${U}/projects`].join(',') ? 1 : 0;
     return m;
@@ -355,6 +378,21 @@ const stats = (v) => {
 };
 
 const sha12 = (p) => createHash('sha256').update(readFileSync(p)).digest('hex').slice(0, 12);
+
+// One readable block per (arm, rail, run): the numbers cc.design.md §14.3 asks for.
+function textOf(d) {
+    const m = d.metrics;
+    const links = d.prefetch_per_menu_link ? Object.entries(d.prefetch_per_menu_link).map(([h, n]) => `${h}=${n}`).join(' ') : 'n/a';
+    return [
+        `== ${d.arm} ${d.rail} run${d.run}`,
+        `_rsc requests: all=${m.rsc_count_all} w1=${m.w1_rsc_total} w1_nonprefetch=${m.w1_rsc_nonprefetch} back3=${m.w2_back3_rsc ?? 'n/a'}`,
+        `max requests per 10 s: all=${m.g_a_max_10s} w1=${m.g_a_max_10s_w1} w3=${m.g_a_max_10s_w3 ?? 'n/a'} w4=${m.g_a_max_10s_w4 ?? 'n/a'}`,
+        `prefetch per menu link: ${links}`,
+        `hydration errors: ${m.g_f_hydration_errors}`,
+        `text/x-component bytes: total=${m.rsc_bytes_total} w1=${m.rsc_bytes_w1}`,
+        ...d.nav_lines.map((n) => `[nav] ${n.walk} ${n.from} ${n.to} ${n.ms} ms`),
+    ].join('\n');
+}
 
 async function main() {
     let browser = null;
@@ -419,13 +457,17 @@ async function main() {
         }
     }
     writeFileSync(join(dir, 'summary.csv'), rows.join('\n') + '\n');
+    writeFileSync(join(dir, 'browser_summary.json'), JSON.stringify(details, null, 2) + '\n');
+    writeFileSync(join(dir, 'browser_summary.txt'), details.map(textOf).join('\n') + '\n');
     writeFileSync(join(dir, 'manifest.json'), JSON.stringify({
         code_version: CODE_VERSION,
         code_sha: sha12(fileURLToPath(import.meta.url)),
         clerk_session_sha: sha12(join(here, 'clerk-session.mjs')),
         run_id: runId,
-        git_sha: sha7,
-        git_dirty: false, // CI checkout; the measured SITE version is the deployed commit
+        unit: P.unit,
+        web_sha: P.webSha, // the DEPLOYED commit; null when the workflow input was left empty
+        harness_sha: sha7, // CI checkout
+        git_dirty: false, // CI checkout
         params: { ...P, out: undefined },
         env: { node: process.version, chromium: chromeVersion, platform: `${os.platform()} ${os.release()}`, started: T },
         aborted,

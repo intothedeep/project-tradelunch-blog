@@ -14,6 +14,16 @@ on:
                 description: 'Run tag (baseline1, qw1, u1 ...)'
                 required: true
                 type: string
+            unit:
+                description: 'Unit measured (U0b, QW1 ...), recorded in the manifest (optional)'
+                required: false
+                default: ''
+                type: string
+            web_sha:
+                description: 'Deployed web commit sha, recorded in the manifest (optional; read it with the readlink command in cc.design.md 14.3)'
+                required: false
+                default: ''
+                type: string
             runs:
                 description: 'Runs per arm'
                 required: false
@@ -60,11 +70,15 @@ jobs:
                   RUNS: ${{ inputs.runs }}
                   BASE_URL: ${{ inputs.base_url }}
                   PRIVATE_PATH: ${{ inputs.private_path }}
+                  UNIT: ${{ inputs.unit }}
+                  WEB_SHA: ${{ inputs.web_sha }}
                   # Masked by GitHub; the script never prints it.
                   CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY_PROD }}
               run: |
                   extra=()
                   [ -n "$PRIVATE_PATH" ] && extra+=(--private-path "$PRIVATE_PATH")
+                  [ -n "$UNIT" ] && extra+=(--unit "$UNIT")
+                  [ -n "$WEB_SHA" ] && extra+=(--web-sha "$WEB_SHA")
                   node _scripts/perf/cc-browser.mjs --tag "$TAG" --runs "$RUNS" --base "$BASE_URL" \
                       --out "$RUNNER_TEMP/cc-runs" "${extra[@]}"
 
