@@ -10,7 +10,7 @@
 사전 등록(pre-registration) 판정이 난 단위는 다섯이다.
 통과는 QW1, U2, U7이다. 실패는 U3와 U4다.
 QW2는 판정이 미완이고 U1은 판정 불가다.
-U5와 U6은 U4에 막혀 시작하지 못했다.
+U5와 U6은 U4에 막혀 있었다. U5는 \decision{106}으로 진행하며 결과가 아직 없다. U6은 \decision{109}로 뺐다.
 
 \begin{table}[H]
   \caption{Phase CC 단위별 판정. 배포 sha와 한 줄 결과.}
@@ -297,8 +297,8 @@ HTML이 쿠키와 무관하므로 엣지가 어느 방문자의 HTML을 저장�
   % src: cc.report.md U1 판정 table; u1-verdict.md §0, §4.6
 \end{table}
 판정선 입력이 둘 빠졌다. 기준 run이 1개라 범위가 없고, rail 조각 크기는 기록 없음이다.
-\decision{99}가 운영 재배포 없이 가드로 닫았다. 오너 확인은 아직 없다(\decision{103}).
-% src: u1-verdict.md §1.2; decisions.plan.md #99, #103 (3)
+\decision{99}가 운영 재배포 없이 가드로 닫았다. 오너가 ``checked close it''이라고 답해 B로 확정됐다(\decision{107} (1)).
+% src: u1-verdict.md §1.2; decisions.plan.md #99, #107 (1)
 
 \paragraph{왜.}
 감사의 D6이다. rail이 형제 layout 6곳에 있어 이동마다 rail RSC를 다시 받았다.
@@ -807,16 +807,62 @@ W4가 메뉴 링크를 hover하지 않아서 hover 전용 build의 G-b는 구성
 % src: u4-aba-verdict.md §5.4, §5.5; decisions.plan.md #104
 
 \paragraph{지금 상태.}
-recovery 2/2 approach는 K2(검증된 산출물 없음)로 멈췄다. 다음은 K4이고 오너가 푼다.
+recovery 2/2 approach는 K2(검증된 산출물 없음)로 멈췄다. 다음은 K4였고 오너가 \decision{106}으로 풀었다.
 CC-U4는 열린 채이고 무효로 기록한다. U5와 U6은 막힌 채다.
 T build는 branch \code{cc-u4-t}에 있고 main에 없다.
 오늘 안에 통과하지 못해 G-CC는 미달로 닫혔다(\decision{103}, \decision{105}).
 % src: decisions.plan.md #105, #103 (2)
 
-\section{U5와 U6: 막힘}\label{sec:re-u56}
+\subsection{결정 \#106: 속도 판정 없이 운영에 둔다}\label{sec:re-u4-o}
 
 \paragraph{결과.}
-둘 다 시작하지 못했다. flag를 켜야 도는데 U4가 정지했기 때문이다(\decision{102}).
+오너가 U4를 속도 판정 없이 운영에 두기로 했다(K4 해제). 배포는 \code{f76c1d9}이다(\decision{106}, \decision{108}).
+배포 뒤 route 표 15개는 200이 7개, 404가 8개였다. G-a 측정 결과는 \textbf{측정 중}이다(run이 진행 중이라 값 없음).
+% src: decisions.plan.md #106, #108 (1); u4o-prerender-errors.md "배포와 확인"
+
+\paragraph{무엇이 바뀌었나.}
+\begin{table}[H]
+  \caption{\decision{106}의 변경. 이전 결정과 새 결정.}
+  \label{tab:re-u4-o}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{3.0cm} L{3.4cm} Y@{}}
+    \toprule
+    칸 & 이전 & \decision{106} \\
+    \midrule
+    Cloudflare 한도 & 50 / 10\,s (\decision{68}) & 70으로 올린다(오너) \\
+    \midrule
+    G-a 가드 & U0b + 20\,\% & 10초 최대 요청 60 이하 \\
+    \midrule
+    prefetch & (b)안 hover 전용 & 원래 prefetch(b안을 뺀다) \\
+    \midrule
+    로그인 prefetch & 존재 검사 & 존재 검사를 건너뛴다 \\
+    \midrule
+    로그인 클릭 이동 & 존재 검사 (\decision{103}) & 그대로 검사한다 \\
+    \midrule
+    익명 prefetch & 존재 검사 & 그대로 검사한다(엣지에 저장될 수 있다) \\
+    \bottomrule
+  \end{tabularx}
+  % src: decisions.plan.md #106
+\end{table}
+build는 branch \code{cc-u4-o}다(\code{cc-u4-t}에서 \code{fc83b75}를 되돌리고 로그인 prefetch의 존재 검사를 건너뜀).
+배포 뒤 확인 네 가지는 오류 0, 404 표, G-a 60 이하, hydration 0이다. 하나라도 어기면 되돌린다.
+오너의 이유는 사이트가 한가하다는 것이다. 메뉴 클릭 지연(\decision{105} 관찰)을 피하려고 b안을 뺐다.
+U5와 U6도 지금 진행한다.
+% src: decisions.plan.md #106 Rejected, Why
+
+\paragraph{배포 결과.}
+\code{f76c1d9}를 18:16 UTC에 배포하고 \code{cf-purge.sh}를 돌렸다.
+\begin{itemize}[nosep]
+  \item route 표 15개: 200이 7개, 404가 8개(\code{/nope}, \code{/zzz/foo}, \code{/xmlrpc.php}, 없는 프로젝트, 없는 사용자, 없는 글, 익명 \code{/@u/me}, \code{/@u/saved}).
+  \item \code{Invalid revalidate configuration}은 18줄이다. 모두 배포 전 줄이고 배포 뒤 smoke 2회 동안 늘지 않았다.
+  \item 배포 뒤 ERROR 줄 8개가 새로 생겼다. 원인과 처방은 \Cref{sec:le-prerender}에 있다.
+\end{itemize}
+% src: u4o-prerender-errors.md "배포와 확인"
+
+\section{U5와 U6: 막힘과 뺌}\label{sec:re-u56}
+
+\paragraph{결과.}
+둘 다 flag를 켜야 도는데 U4가 정지해 막혔다(\decision{102}). 오너가 \decision{106}으로 U5를 진행하기로 했고, \decision{109}가 U6을 뺐다. U5 판정 결과는 기록 없음이다. 자세한 설명은 \Cref{ch:cc3}에 있다.
 \begin{table}[H]
   \caption{U5, U6의 사전 등록 판정. 시작 전이다.}
   \label{tab:re-u56}
@@ -827,11 +873,20 @@ T build는 branch \code{cc-u4-t}에 있고 main에 없다.
     \midrule
     U5 & \code{'use cache'} 3개 (TagCloud, tree, projects) & MISS TTFB. 판정선 $\max(70\times 2,\ 50)=140$\,ms \\
     \midrule
-    U6 & \code{/api/revalidate}와 purge & 제목 수정 뒤 60초 안에 새 제목 (이진) \\
+    U6 & \code{/api/revalidate}와 purge & 뺌 (\decision{109}). 판정 없음 \\
     \bottomrule
   \end{tabularx}
   % src: criteria.md §1 U5, U6 rows; cc.design.md §7
 \end{table}
+
+\paragraph{U5의 측정 방법(결정 \#107).}
+U5도 흔들림을 피하려고 A-B-A 규칙을 쓴다(사전 등록, run 전).
+지표는 \code{criteria.md} U5 행 그대로다(MISS TTFB p50). 비교만 바뀐다.
+U0b 기준(263 ms)은 시간대가 달라서 쓰지 않는다.
+C1(U4 \code{f76c1d9}), T(U5 build), C2(U4)를 한 시간 묶음으로 돌리고 블록마다 3 run이다.
+유효 조건은 $d\le 0.10\,\tilde c$다. 통과는 $\tilde c-m(T)\ge\max(2d,\ 0.10\,\tilde c,\ 50\,\text{ms})$이고 $m(T)<\min(m(C1),m(C2))$다.
+그 밖은 미달이고 U5 지시문을 되돌린다. 측정 결과는 기록 없음이다.
+% src: decisions.plan.md #107 (2)
 
 \section{U7: load-more를 blog-api로}\label{sec:re-u7}
 

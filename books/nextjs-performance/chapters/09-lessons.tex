@@ -356,3 +356,82 @@ main session의 대기 루프 버그다. 원본은 dispatch 기록이고 저장 
 \paragraph{왜 중요한가.}
 이 묶음은 60분 창을 간신히 지켰다. 대기 하나가 더 길었다면 묶음 전체가 판정 불가였다(\S19.3).
 % src: cc.design.md §19.3 (60분 조건); u4-aba-verdict.md §7 item 10
+
+\section{runtime prerender와 catch}\label{sec:le-prerender}
+
+\paragraph{결과.}
+U4 \code{f76c1d9}를 배포한 뒤 \code{blog-web} 오류 로그에 ERROR 줄 8개가 새로 생겼다.
+화면 영향은 없었다. 응답은 200이고 \code{/tags/rust} 태그 링크 37개와 프로젝트 글 링크 8개가 들어 있었다.
+\begin{table}[H]
+  \caption{배포 뒤 ERROR 메시지(우리 코드). 한 줄에 메시지 둘이 잡혀 합 12가 줄 수 8보다 크다.}
+  \label{tab:le-prerender}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}Y r@{}}
+    \toprule
+    메시지 & 줄 \\
+    \midrule
+    Failed to fetch popular tags & 6 \\
+    \midrule
+    Failed to fetch posts by tag & 2 \\
+    \midrule
+    Failed to fetch user profile & 2 \\
+    \midrule
+    Failed to fetch a post & 2 \\
+    \bottomrule
+  \end{tabularx}
+  % src: u4o-prerender-errors.md "배포 뒤 ERROR 줄"
+\end{table}
+원인 문구(Next)는 8줄 모두 같다. ``During prerendering, fetch() rejects when the prerender is complete.''
+route는 \code{/[handle]/[slug]} 4, \code{/[handle]/projects/[project]} 4, \code{/tags/[tag]} 4다.
+% src: u4o-prerender-errors.md
+
+\paragraph{왜.}
+\code{cacheComponents}는 새 param 경로의 첫 요청에서 static shell을 runtime prerender로 만든다.
+캐시되지 않은 fetch는 prerender 동안 걸려 있다. shell이 끝나면 Next가 그 fetch를 reject한다(hanging promise rejection).
+우리 fetcher의 \code{catch}가 이 내부 신호를 진짜 오류로 보고 ERROR를 남겼다.
+% src: u4o-prerender-errors.md "원인"
+
+\paragraph{무엇.}
+서버 fetcher의 \code{catch} 7곳 첫 줄에 \code{unstable_rethrow(error)}(\code{next/navigation})를 넣었다.
+commit \code{181e6ed}(branch \code{cc-u4-o})다.
+Next 16.2.9의 \code{unstable-rethrow.server.js}가 \code{isHangingPromiseRejectionError}와 \code{isPrerenderInterruptedError}를 다시 던진다(main session 확인).
+ERROR를 WARNING으로 낮추는 안은 버렸다. 내부 신호를 계속 삼키기 때문이다(\decision{108}).
+% src: u4o-prerender-errors.md "처방"; decisions.plan.md #108 (2) Rejected
+
+\paragraph{어떻게.}
+\begin{enumerate}[nosep]
+  \item \code{catch} 블록의 첫 줄에서 \code{unstable_rethrow(error)}를 부른다.
+  \item Next 내부 신호(걸린 promise의 reject, prerender 중단)면 다시 던져 Next가 처리하게 한다.
+  \item 그 밖의 오류는 아래로 내려가 지금처럼 로그를 남긴다.
+\end{enumerate}
+U5 A-B-A에서 대조(C)와 처리(T)가 U5 하나만 다르게 하려고 이 수정을 U4 쪽에 먼저 넣었다(\decision{108}).
+% src: decisions.plan.md #108 (2)
+
+\paragraph{언제 효과가 있나.}
+새 param 경로의 첫 요청과 재검증(revalidation)에서 prerender가 돈다. 그때만 이 reject가 생긴다.
+재검증에서 생기는 이유의 본문 근거는 기록 없음이다.
+% src: u4o-prerender-errors.md "원인" (새 param 경로의 첫 요청). 재검증은 요청 문구, 본문 근거는 기록 없음
+
+\paragraph{왜 중요한가.}
+가짜 ERROR가 많으면 진짜 사고가 묻힌다.
+catch가 Next의 흐름 제어 신호까지 삼키면 \code{notFound()} 같은 신호가 사라지는 길이 열린다.
+시도 1의 500도 \code{TagCloud}의 catch가 신호 오류를 삼켜 생겼다(\Cref{sec:re-u4-a1}).
+% src: diagnosis-architect.md §0 (catch swallows signal); decisions.plan.md #108 Rejected
+
+\section{측정 착시: HEAD와 GET}\label{sec:le-headget}
+
+\paragraph{결과.}
+\code{curl -I}(HEAD)는 \code{cf-cache-status: DYNAMIC}을 보였다. GET은 HIT였다.
+엣지 캐시는 정상이었다.
+% src: u4o-prerender-errors.md "착시 하나"
+
+\paragraph{왜.}
+응답 헤더 \code{cache-control: private, no-cache, no-store}는 Next가 보낸다.
+Cloudflare 캐시 규칙이 GET에서 그것을 덮어쓴다. HEAD가 DYNAMIC을 보인 이유는 기록 없음이다.
+% src: u4o-prerender-errors.md "착시 하나" (HEAD 쪽 이유는 기록 없음)
+
+\paragraph{어떻게.}
+캐시 상태는 실제 독자가 보내는 GET으로 확인한다. 예: HEAD가 DYNAMIC이어도 GET이 HIT이면 정상이다.
+
+\paragraph{왜 중요한가.}
+HEAD만 보고 캐시가 꺼졌다고 판단하면 정상 배포를 되돌릴 수 있다.

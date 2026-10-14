@@ -1,0 +1,282 @@
+% chapters/10-cache-components.tex -- cacheComponents 세 단계: U4, U5, U6. 오너 요청으로 따로 설명한다.
+% ONLY sources: cc.design.md §2, §7.2, §8.3, §18, §19; decisions.plan.md #97, #102-#109;
+%   deploy/traffic/review/cc/{u4-verdict,u4-aba-verdict,u4o-prerender-errors,criteria,00.runs}.md; 00.tasks.md CC-U5, CC-U6.
+% Numbers are copied. U5 has no speed number yet: it is written as "기록 없음".
+\chapter{cacheComponents 세 단계: U4, U5, U6}\label{ch:cc3}
+
+% src: decisions.plan.md #106, #107, #109; u4o-prerender-errors.md
+\paragraph{결과.}
+U4는 운영에 있다. 속도 판정 없이 오너 결정으로 두었고 G-a 가드는 통과했다.
+U5는 branch \code{cc-u5}에 만들었지만 배포도 측정도 아직이다. 속도 숫자는 기록 없음이다.
+U6은 오너가 뺐다. 1일 지연을 받아들이고 급하면 Cloudflare purge를 손으로 한다.
+
+\begin{table}[H]
+  \caption{세 단계의 현재 상태.}
+  \label{tab:cc3-state}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{1.2cm} Y L{4.2cm}@{}}
+    \toprule
+    단계 & 바꾸는 것 & 지금 상태 \\
+    \midrule
+    U4 & \code{cacheComponents} 켜기, proxy의 진짜 404 gate & 운영 \code{181e6ed}. 속도 판정 없음 (\decision{106}) \\
+    \midrule
+    U5 & token 없는 읽기 3개에 \code{'use cache'} & branch \code{cc-u5}. 배포 전, 측정 전 \\
+    \midrule
+    U6 & revalidate route, purge 순서, \code{updateTag} & 뺌 (\decision{109}) \\
+    \bottomrule
+  \end{tabularx}
+  % src: decisions.plan.md #106, #107, #109; u4o-prerender-errors.md
+\end{table}
+
+\begin{inbrief}
+  \item[Why] 로그인 이동과 서버 렌더가 매번 오리진까지 가는 구조를 줄이려고 한다.
+  \item[When] 요청이 Next까지 올 때다. Cloudflare 엣지가 답하는 요청은 해당하지 않는다.
+  \item[Where] Next의 shell, Suspense 구멍, \code{'use cache'} 읽기다.
+  \item[How] U4가 static shell을 만들고, U5가 공개 읽기를 캐시하고, U6이 무효화를 맡을 예정이었다.
+\end{inbrief}
+
+\section{요청 경로 한눈에}\label{sec:cc3-path}
+
+\paragraph{무엇을 알려고 쓰나.}
+한 요청이 어디서 답을 받고, 세 단계가 그 경로의 어느 칸을 바꾸는가.
+\Cref{fig:cc3-path}가 경로를 보인다.
+
+\begin{figure}[H]
+  \centering
+  \resizebox{\linewidth}{!}{%
+  \begin{tikzpicture}[font=\scriptsize]
+    \node[flowbox, minimum width=2.2cm] (br) at (0,0) {브라우저};
+    \node[cfbox, minimum width=2.6cm] (cf) at (3.6,0) {Cloudflare 엣지\\HTML, \texttt{\_rsc} 1일 저장\\한도 70 / 10\,s};
+    \node[vmbox, minimum width=2.4cm] (px) at (7.4,0) {Next \texttt{proxy.ts}\\존재 검사 gate\\(U4)};
+    \node[flownew, minimum width=2.6cm] (sh) at (11.4,1.5) {static shell\\prefetch됨 (U4)};
+    \node[flownew, minimum width=2.6cm] (ho) at (11.4,0) {Suspense 구멍\\token 읽기, 요청마다 (U4)};
+    \node[flownew, minimum width=2.6cm] (uc) at (11.4,-1.5) {\texttt{'use cache'}\\tags, tree, projects (U5)};
+    \node[dbbox, minimum width=2.4cm] (ex) at (15.4,0) {Express / DB\\(\texttt{blog-api.})};
+    \draw[flowarrow] (br) -- (cf);
+    \draw[flowarrow] (cf) -- node[lbl, above] {MISS} (px);
+    \draw[flowarrow] (px) -- (sh); \draw[flowarrow] (px) -- (ho); \draw[flowarrow] (px) -- (uc);
+    \draw[flowarrow] (ho) -- (ex); \draw[flowarrow] (uc) -- node[lbl, below] {cache 비었을 때} (ex);
+  \end{tikzpicture}}
+  \par\smallskip{\centering\scriptsize \flowkey{flownew} 이 장의 세 단계가 바꾸는 칸 \quad \flowkey{cfbox} 엣지 \quad \flowkey{vmbox} Next \quad \flowkey{dbbox} 백엔드\par}
+  \caption{요청 경로. HIT는 엣지에서 끝나고 MISS만 Next까지 온다.}
+  \label{fig:cc3-path}
+  % src: cc.design.md §1, §7.2, §8.1; decisions.plan.md #106
+\end{figure}
+% src: cc.design.md §7.2 (static shell, Suspense 잎, 'use cache' 칸), decisions.plan.md #106 (한도 70)
+
+\section{U4: cacheComponents와 진짜 404 gate}\label{sec:cc3-u4}
+
+\paragraph{무엇을 알려고 쓰나.}
+\code{cacheComponents}를 켜고도 사이트가 올바르게 돌며, 로그인 이동이 빨라지는가.
+
+\begin{table}[H]
+  \caption{U4의 구성 요소.}
+  \label{tab:cc3-u4}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{3.4cm} Y@{}}
+    \toprule
+    요소 & 내용 \\
+    \midrule
+    flag & \code{cacheComponents: true}. 데이터는 모두 Suspense 잎, 캐시 없음 \\
+    \midrule
+    \code{force-dynamic} & flag와 같은 커밋에서 6줄 삭제 \\
+    \midrule
+    proxy gate 4종 & user, project, post, ownerOnly(\code{/@u/me}, \code{/@u/saved}) \\
+    \midrule
+    gate가 보는 요청 & 익명은 문서와 \code{_rsc}. 로그인은 문서와 클릭 이동. 로그인 prefetch는 건너뜀 \\
+    \midrule
+    실패 처리 & API 404면 맞는 route가 없는 경로로 rewrite해 진짜 404. 그 밖 오류와 시간 초과는 통과(fail-open) \\
+    \bottomrule
+  \end{tabularx}
+  % src: cc.design.md §7 U4 row, §9; decisions.plan.md #97, #103, #106
+\end{table}
+
+\paragraph{무엇.}
+U4는 route를 static shell과 Suspense 구멍으로 나눈다. 데이터 읽기는 모두 구멍 안으로 옮긴다.
+\code{proxy.ts}는 없는 page를 렌더 전에 진짜 HTTP 404로 보낸다.
+오너 제약이 있다. 모르는 page는 진짜 404여야 한다(\decision{89}).
+% src: cc.design.md §1, §7.1; decisions.plan.md #89, #97
+
+\paragraph{왜.}
+동적 route는 page payload를 prefetch하지 못하고 클릭마다 왕복이 생긴다(감사 A1, A4, A5).
+static shell을 prefetch하고 cache하면 이 왕복이 줄 것으로 기대했다.
+% src: perf.audit.md §0 S1, §2 A5; cc.design.md §1
+
+\paragraph{어떻게.}
+\begin{enumerate}[nosep]
+  \item flag를 켜면 route는 static shell과 구멍으로 나뉜다. 요청 시점 API(\code{cookies()}, \code{auth()})는 Suspense 안에서만 읽는다.
+  \item 새 param 경로의 첫 요청에서 Next가 shell을 runtime prerender로 만든다. 캐시되지 않은 fetch는 그동안 걸려 있다가 reject된다.
+  \item 우리 \code{catch}가 이 reject를 오류로 삼키지 않도록 \code{unstable_rethrow}를 넣었다(\Cref{sec:le-prerender}).
+  \item proxy는 없는 user, project, post를 API로 확인해 404로 보낸다. 시도 1에서는 알 수 없는 최상위 경로가 500이었고 A2 수정으로 고쳤다(\Cref{sec:re-u4-a1}).
+\end{enumerate}
+% src: u4o-prerender-errors.md "원인", "처방"; cc.report.md MVP2; decisions.plan.md #97
+
+\paragraph{언제 효과가 있나, 없나.}
+\begin{itemize}[nosep]
+  \item 익명 이동은 엣지 HIT라 오리진 변화가 안 보인다. 시도 2에서 익명 합은 218에서 201 ms였다.
+  \item 로그인 이동은 \cfs{DYNAMIC}이라 매번 오리진에 간다. 로그인 s4, s5에서 시도 2는 +34, +95 ms였다.
+  \item 이 이동 시간 비교는 흔들림과 섞여 판정이 없다(\Cref{sec:re-u4-aba}).
+  \item 시도 2는 메뉴 링크당 prefetch가 2에서 6, 로그인 10초 요청이 53 / 50 / 50이어서 G-a, G-b를 깼다.
+\end{itemize}
+% src: u4-verdict.md §2.3, §3; u4-aba-verdict.md §0
+
+\paragraph{왜 중요한가.}
+이 단위가 G-CC의 판정 단위였다. U5와 U6은 flag가 켜져 있어야 돈다(\decision{102}).
+% src: decisions.plan.md #100, #102 Consequences (2)
+
+\paragraph{지금 상태.}
+\begin{table}[H]
+  \caption{U4의 운영 상태. 속도 판정은 없다.}
+  \label{tab:cc3-u4-now}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}Y L{4.6cm}@{}}
+    \toprule
+    칸 & 값 \\
+    \midrule
+    운영 build & \code{181e6ed} (= \code{f76c1d9} + \code{unstable_rethrow}) \\
+    \midrule
+    둔 이유 & 오너 결정 \decision{106}. 속도 판정 없음 \\
+    \midrule
+    Cloudflare 한도, G-a 가드 & 70 / 10\,s, 10초 최대 요청 60 이하 \\
+    \midrule
+    G-a 로그인 (3 run) & 50 / 53 / 50, 통과 \\
+    \midrule
+    G-a 익명, hydration 오류 & 36 / 36 / 36, 0 \\
+    \midrule
+    route 표 15개 & 200 7개, 404 8개 \\
+    \midrule
+    rethrow 배포 (18:30 UTC) 뒤 오류 로그 새 줄 & 0 (855 $\to$ 855) \\
+    \bottomrule
+  \end{tabularx}
+  % src: u4o-prerender-errors.md "배포와 확인", "수정 배포 뒤", "U4 가드 run"; 00.runs.md row 29
+\end{table}
+배포 때 \code{/} 첫 요청이 502 한 번(PM2 reload 중)이었고 바로 뒤 3번은 200이었다.
+이동 시간 이득은 확인하지 못했다. 이동 시간 비교는 흔들림에 섞였고 A-B-A는 무효였다.
+% src: u4o-prerender-errors.md "수정 배포 뒤"; decisions.plan.md #105
+
+\section{U5: 공개 읽기에 \texttt{'use cache'}}\label{sec:cc3-u5}
+
+\paragraph{무엇을 알려고 쓰나.}
+자주 바뀌지 않는 공개 읽기 3개를 Next 안쪽에 캐시하면 MISS 렌더의 첫 바이트(TTFB)가 빨라지는가.
+
+\begin{table}[H]
+  \caption{U5의 \texttt{'use cache'} 세 읽기. 모두 token 없는 경로이고 \texttt{cacheLife('hours')}다.}
+  \label{tab:cc3-u5}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{3.0cm} L{3.0cm} Y@{}}
+    \toprule
+    읽기 & \code{cacheTag} & 쓰이는 곳 \\
+    \midrule
+    TagCloud 데이터 & \code{tags} & 모든 route의 rail \\
+    \midrule
+    projects tree & \code{tree:<u>} & 글 상세의 rail 고르기 \\
+    \midrule
+    projects 카드와 목록 & \code{projects:<u>} & \code{/@u/projects*} \\
+    \bottomrule
+  \end{tabularx}
+  % src: cc.design.md §7 U5 row, §7.2; 00.tasks.md CC-U5
+\end{table}
+글 본문과 피드는 넣지 않았다. 변경이 잦고 비공개 글 token 경로가 섞이기 때문이다.
+% src: cc.design.md §7 note "글 본문과 피드는 U5에 넣지 않는다"
+
+\paragraph{무엇.}
+세 fetcher에 \code{'use cache'}와 \code{cacheTag}, \code{cacheLife('hours')}를 붙였다.
+\code{'use cache'} 안에서는 \code{cookies()}와 \code{headers()}를 쓸 수 없다. 기본 저장소는 메모리 LRU다.
+그래서 token이 있는 호출은 언제나 캐시 밖 잎이다. 비공개 글이 캐시에 들어갈 길이 없다.
+% src: cc.design.md §2 table (use-cache.md), §7.2 note
+
+\paragraph{왜.}
+지금은 MISS 렌더마다 태그, tree, 목록을 \code{blog-api.}에서 다시 읽는다.
+이 읽기는 요청마다 다시 나가는 no-store 읽기였다. U0b 기준 MISS TTFB는 280 / 263 / 210 ms였다(중앙값 263).
+% src: cc.design.md §1 table (Next 데이터 캐시 = 없음); criteria.md §1 U5 row
+
+\paragraph{어떻게.}
+\begin{enumerate}[nosep]
+  \item 요청이 Next까지 와서 이 읽기를 부른다.
+  \item Next가 \code{cacheTag}로 묶은 안쪽 캐시를 먼저 본다. 있으면 \code{blog-api.}를 부르지 않는다.
+  \item 없으면 지금처럼 읽고 그 결과를 \code{cacheLife('hours')} 동안 둔다.
+\end{enumerate}
+측정도 같은 시간대에서 비교한다(\decision{107}). C1(U4 \code{f76c1d9}), T(U5), C2(U4)를 한 시간 묶음으로 돌고 블록마다 3 run이다.
+\begin{align*}
+  &d=|m(C1)-m(C2)|\le 0.10\,\tilde c && \text{유효 조건}\\
+  &\tilde c-m(T)\ge \max(2d,\ 0.10\,\tilde c,\ 50\,\text{ms}) && \text{통과 조건}
+\end{align*}
+가드에는 VM 메모리(G-i, 80 \%\,미만)가 특히 든다. 안쪽 캐시가 메모리에 있기 때문이다.
+% src: cc.design.md §2 (in-memory LRU), 00.tasks.md CC-U5 (G-i); decisions.plan.md #107 (2)
+
+\paragraph{언제 효과가 있나, 없나.}
+\begin{itemize}[nosep]
+  \item 엣지 HIT 요청은 Next에 오지 않는다. 이 캐시와 무관하다.
+  \item token이 있는 로그인 읽기는 캐시하지 않는다. 설계상 이 경로는 빨라지지 않는다.
+  \item 글 본문과 피드는 대상이 아니다.
+  \item 미달이면 그 fetcher의 지시문을 삭제한다(사전 등록 kill).
+\end{itemize}
+% src: cc.design.md §7.2 note; criteria.md §1 U5 row kill 칸; decisions.plan.md #107
+
+\paragraph{왜 중요한가.}
+익명 MISS 렌더가 이 읽기에 기대는 시간을 줄이는 것이 목표다. 감사 밖의 CC 계획 항목이다(닫는 감사 항목 없음).
+% src: 00.tasks.md CC-U5 "닫는 감사 항목: 없음"
+
+\paragraph{지금 상태.}
+branch \code{cc-u5}에 만들었다. 배포도 측정도 아직이다. 속도 숫자는 기록 없음이다.
+U4에 \code{unstable_rethrow}를 먼저 넣은 것은 A-B-A의 C와 T가 U5 하나만 다르게 하려는 것이다(\decision{108}).
+% src: decisions.plan.md #107, #108 (2), #109 (branch cc-u5)
+
+\section{U6: 무효화는 뺐다}\label{sec:cc3-u6}
+
+\paragraph{무엇을 알려고 쓰나.}
+글을 고친 뒤 안쪽 캐시와 엣지 캐시를 어떻게 새 값으로 바꾸려 했고, 왜 뺐는가.
+
+\begin{table}[H]
+  \caption{U6 설계와 \decision{109}의 결과.}
+  \label{tab:cc3-u6}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{3.6cm} Y L{2.6cm}@{}}
+    \toprule
+    부품 & 내용 & \decision{109} \\
+    \midrule
+    \code{/api/revalidate} & \code{POST}, 비밀 헤더, tag 목록. \code{revalidateTag(tag, \{ expire: 0 \})} & 뺌 \\
+    \midrule
+    \code{cf-purge.sh} 순서 & revalidate를 먼저, purge를 나중에 & 뺌 \\
+    \midrule
+    발행 action & \code{updateTag} & 되돌림 \\
+    \bottomrule
+  \end{tabularx}
+  % src: cc.design.md §8.3; decisions.plan.md #109
+\end{table}
+
+\paragraph{왜(설계의 순서).}
+순서가 중요했다. purge를 먼저 하면 엣지가 옛 Next 캐시로 다시 찬다.
+\code{expire: 0}이 아니라 \code{'max'}(stale-while-revalidate)면 첫 요청이 옛 값을 내고 엣지가 그것을 1일 저장한다.
+\begin{enumerate}[nosep]
+  \item 글 발행 또는 수정이 DB에 쓰인다.
+  \item (1) \code{my.}의 revalidate route가 tag를 만료시킨다.
+  \item (2) \code{cf-purge.sh}가 엣지를 비운다.
+\end{enumerate}
+% src: cc.design.md §8.3
+
+\paragraph{왜 뺐나.}
+오너 답은 이렇다. 실시간으로 갱신할 필요가 없고 1일은 기다릴 수 있다. 필요하면 Cloudflare 캐시를 무효화한다.
+비밀 키를 받는 POST 끝점이 하나 느는 것도 이유다(KISS).
+branch \code{cc-u5}에서 \code{/api/revalidate}, \code{cf-purge.sh} 호출, \code{updateTag}를 되돌렸다.
+handler는 \code{app/api/x_revalidate/x_route.ts}로 보관한다. route가 아니다.
+% src: decisions.plan.md #109
+
+\paragraph{남는 지연과 대처.}
+\begin{itemize}[nosep]
+  \item purge 뒤에도 Next 안쪽 캐시(\code{cacheLife('hours')})가 tree, projects, tags를 그 수명 동안 옛 값으로 줄 수 있다.
+  \item 그 사이 엣지가 다시 저장하면 다음 purge까지 남는다.
+  \item 급하면 한 시간 뒤 purge를 한 번 더 한다.
+\end{itemize}
+% src: decisions.plan.md #109 "남는 지연"
+
+\paragraph{언제 효과가 있나, 없나.}
+U6이 없어도 \code{cacheLife}가 최대 지연의 상한이다. 글 본문과 피드는 U5 대상이 아니라 이 지연과 무관하다.
+% src: cc.design.md §8.3 note ("잊어도 cacheLife가 최대 지연을 막는다"), §7 note
+
+\paragraph{왜 중요한가.}
+M-CC3 exit에서 U6의 정확성 판정 항목이 빠졌다. U6 행은 오너 결정으로 닫았다.
+% src: decisions.plan.md #109 Consequences
+
+\paragraph{지금 상태.}
+뺌(\decision{109}). 판정은 없다.
