@@ -1,11 +1,21 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import {
+    clerkMiddleware,
+    createRouteMatcher,
+    type ClerkMiddlewareAuth,
+} from '@clerk/nextjs/server';
 import {
     NextResponse,
     type NextFetchEvent,
     type NextRequest,
 } from 'next/server';
 import { DEFAULT_BLOG_AUTHOR } from '@/env.schema';
+import { checkExists } from '@/apis/existence.proxy';
 import { legacyRedirectPath } from '@/utils/legacyRedirect';
+import {
+    classifyGatePath,
+    NOT_FOUND_PATH,
+    shouldCheck,
+} from '@/utils/notFoundGate';
 
 // Routes that require an authenticated user.
 const isProtectedRoute = createRouteMatcher([
@@ -17,15 +27,6 @@ const isProtectedRoute = createRouteMatcher([
     // (owner, 2026-10-14), so no sign-in redirect. The Cloudflare bypass
     // expression must still cover both (deploy/traffic/README.md).
 ]);
-
-// `/@u/me` and `/@u/saved` are the viewer's own pages. Under cacheComponents the
-// owner check (OwnerOnly) runs in a Suspense leaf, which can only answer 200 plus
-// a 404 view. A request with no session is answered here instead, before any
-// render, so the status is a real 404. It is rewritten to a one-segment path
-// without `@`, which the `[handle]` layout already 404s (same as `/nope`).
-// A signed-in non-owner is still decided by OwnerOnly (needs the username).
-const OWNER_ONLY_PATH = /^\/(?:@|%40)[^/]+\/(?:me|saved)\/?$/i;
-const NOT_FOUND_PATH = '/__not-found';
 
 // CF2-0a (2026-09-22): the `locale` cookie and its Accept-Language detection
 // were removed from here. They were WRITE-ONLY — `'locale'` appeared nowhere
@@ -72,6 +73,45 @@ function toRequestLogLine(req: NextRequest) {
     };
 }
 
+// Real 404 for unknown pages (cc.design.md §18). Under cacheComponents the page
+// gates are Suspense leaves and can only answer 200 plus a not-found view, so
+// the status is decided here, before render. A missing page is rewritten to a
+// path that matches no route. Fail-open: API error or timeout passes the request
+// through to the leaf gate. One JSON line per checked request; no token/cookie.
+async function gateNotFound(auth: ClerkMiddlewareAuth, req: NextRequest) {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return null;
+    const gate = classifyGatePath(req.nextUrl.pathname);
+    if (!gate) return null;
+    const { userId, getToken } = await auth();
+    const signedIn = Boolean(userId);
+    const isRsc = req.headers.get('rsc') === '1';
+    if (!shouldCheck({ signedIn, isRsc })) return null;
+
+    const started = Date.now();
+    const token = signedIn ? await getToken() : null;
+    // Signed in but no token: cannot judge (would look anonymous). Pass through.
+    const result =
+        signedIn && !token ? 'unknown' : await checkExists(gate, token);
+    // eslint-disable-next-line turbo/no-undeclared-env-vars
+    if (process.env.LOG_REQUESTS !== 'false') {
+        console.log(
+            JSON.stringify({
+                severity: 'INFO',
+                message: 'gate',
+                kind: gate.kind,
+                result,
+                ms: Date.now() - started,
+                signedIn,
+                rsc: isRsc,
+            })
+        );
+    }
+    if (result !== 'missing') return null;
+    const url = req.nextUrl.clone();
+    url.pathname = NOT_FOUND_PATH;
+    return NextResponse.rewrite(url);
+}
+
 const clerk = clerkMiddleware(async (auth, req) => {
     // On in every environment like blog-api's pino; LOG_REQUESTS=false silences a noisy local session.
     // Runtime-only switch: it does not change build output, so it stays out of turbo.json.
@@ -83,16 +123,10 @@ const clerk = clerkMiddleware(async (auth, req) => {
             // Logging must never break a request.
         }
     }
+    const missing = await gateNotFound(auth, req);
+    if (missing) return missing;
     if (isProtectedRoute(req)) {
         await auth.protect();
-    }
-    if (OWNER_ONLY_PATH.test(req.nextUrl.pathname)) {
-        const { userId } = await auth();
-        if (!userId) {
-            const url = req.nextUrl.clone();
-            url.pathname = NOT_FOUND_PATH;
-            return NextResponse.rewrite(url);
-        }
     }
 });
 
