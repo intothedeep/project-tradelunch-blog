@@ -1,3 +1,5 @@
+import { notFound } from 'next/navigation';
+import { getUserProfile } from '@/apis/getUserProfile.api';
 import { BlogShell } from '@/components/shell/BlogShell.server';
 import { LeftRailContainer } from '@/components/rail/LeftRailContainer.server';
 import { RightRail } from '@/components/rail/RightRail.client';
@@ -22,6 +24,10 @@ type Props = {
 export default async function PostsLayout({ children, params }: Props) {
     const { handle } = await params;
     const username = stripUsernameAt(decodeURIComponent(handle));
+    // Unknown user -> real 404. Done in the layout because posts/loading.tsx
+    // would flush a 200 shell before the page could call notFound(). A 5xx
+    // throws (not null), so only a true 404 reaches notFound().
+    if (!(await getUserProfile(username))) notFound();
 
     return (
         <BlogShell

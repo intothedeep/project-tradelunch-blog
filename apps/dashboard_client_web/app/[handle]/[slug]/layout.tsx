@@ -1,3 +1,5 @@
+import { auth } from '@clerk/nextjs/server';
+import { getPostBySlug } from '@/apis/getPost.api';
 import { BlogShell } from '@/components/shell/BlogShell.server';
 import { LeftRailContainer } from '@/components/rail/LeftRailContainer.server';
 import { RightRail } from '@/components/rail/RightRail.client';
@@ -13,6 +15,12 @@ import { stripUsernameAt } from '@/utils/blog-author';
 // author rails as before. The anonymous tree read is the one sanctioned data
 // read in a layout (design §7.3). If the tree cannot load, fall back to the
 // author rails rather than break the post.
+//
+// The post read is also the 404 gate: loading.tsx wraps page.tsx in Suspense, so
+// a notFound() thrown in the page or its leaves runs after the 200 shell has
+// flushed (soft 404). A layout sits above that boundary, so notFound() here
+// still sets the HTTP status. It reads with the viewer token (same cache key as
+// PostContentCard) so the owner's private post is not 404'd.
 type Props = {
     children: React.ReactNode;
     params: Promise<{ handle: string; slug: string }>;
@@ -21,6 +29,16 @@ type Props = {
 export default async function PostDetailLayout({ children, params }: Props) {
     const { handle, slug } = await params;
     const username = stripUsernameAt(decodeURIComponent(handle));
+
+    let token: string | null = null;
+    try {
+        const { getToken } = await auth();
+        token = await getToken();
+    } catch {
+        token = null;
+    }
+    await getPostBySlug(slug, token);
+
     const { projectOfSlug } = await getProjectsTree(username, null).catch(
         () => ({ projectOfSlug: {} as Record<string, string> })
     );
