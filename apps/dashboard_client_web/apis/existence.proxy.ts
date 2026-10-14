@@ -6,7 +6,7 @@
 // passes. Never logs or returns the token.
 
 import { API_BASE } from '@/env.schema';
-import type { TGatePath } from '@/utils/notFoundGate';
+import { isLogId, type TGatePath } from '@/utils/notFoundGate';
 
 export type TExistence = 'found' | 'missing' | 'unknown';
 
@@ -17,6 +17,8 @@ function buildPath(gate: Exclude<TGatePath, { kind: 'ownerOnly' }>): string {
     if (gate.kind === 'user') return `/v1/api/posts/users/${u}/profile`;
     if (gate.kind === 'project')
         return `/v1/api/posts/users/${u}/projects/${encodeURIComponent(gate.project)}`;
+    if (gate.kind === 'log')
+        return `/v1/api/log/thread/${encodeURIComponent(gate.logId)}?limit=1`;
     return `/v1/api/posts/slug/${encodeURIComponent(gate.slug)}`;
 }
 
@@ -69,10 +71,36 @@ async function checkOwnerOnly(
     }
 }
 
+// `/@u/logs/<id>`: a malformed id is missing with no network. Otherwise the log
+// must exist and belong to the handle (the page redirects a foreign handle to
+// the author's URL; the gate answers 404 instead, #115). A deleted log has a
+// masked authorUsername (null): the page renders its tombstone, so it is found.
+async function checkLog(
+    gate: Extract<TGatePath, { kind: 'log' }>,
+    token: string | null
+): Promise<TExistence> {
+    if (!isLogId(gate.logId)) return 'missing';
+    const res = await fetchApi(buildPath(gate), token);
+    const existence = toExistence(res);
+    if (existence !== 'found' || !res) return existence;
+    try {
+        const body = (await res.json()) as {
+            data?: { focus?: { authorUsername?: string | null } };
+        };
+        const author = body.data?.focus?.authorUsername;
+        if (author === null) return 'found';
+        if (typeof author !== 'string') return 'unknown';
+        return author === gate.username ? 'found' : 'missing';
+    } catch {
+        return 'unknown';
+    }
+}
+
 export async function checkExists(
     gate: TGatePath,
     token: string | null
 ): Promise<TExistence> {
     if (gate.kind === 'ownerOnly') return checkOwnerOnly(gate.username, token);
+    if (gate.kind === 'log') return checkLog(gate, token);
     return toExistence(await fetchApi(buildPath(gate), token));
 }

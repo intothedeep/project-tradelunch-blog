@@ -10,6 +10,7 @@ export type TGatePath =
     | { kind: 'user'; username: string }
     | { kind: 'project'; username: string; project: string }
     | { kind: 'post'; username: string; slug: string }
+    | { kind: 'log'; username: string; logId: string }
     | { kind: 'ownerOnly'; username: string };
 
 // Rewrite target for a missing page. Four segments deep and no `@`, so it
@@ -26,6 +27,11 @@ const ROUTE_SHAPES = new Map<string, TRouteShape>(
 );
 // Reserved segments with their own page need no existence check.
 const RESERVED = new Set<string>(RESERVED_HANDLE_SEGMENTS);
+
+// Same shape the Express log API accepts (isValidBigintId): no leading zero, at
+// most 19 digits. Anything else cannot name a log. A string, never a Number.
+export const isLogId = (value: string): boolean =>
+    /^[1-9]\d{0,18}$/.test(value);
 
 function decodeSegments(pathname: string): string[] | null {
     try {
@@ -54,9 +60,11 @@ export function classifyGatePath(pathname: string): TGatePath | null {
     const username = handle.slice(1);
 
     if (segs.length === 3) {
-        return second === 'projects' && third
-            ? { kind: 'project', username, project: third }
-            : null;
+        if (!third) return null;
+        if (second === 'projects')
+            return { kind: 'project', username, project: third };
+        if (second === 'logs') return { kind: 'log', username, logId: third };
+        return null;
     }
     if (USER_SEGMENTS.includes(second)) return { kind: 'user', username };
     if (OWNER_ONLY_SEGMENTS.includes(second))

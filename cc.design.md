@@ -1148,6 +1148,7 @@ proxy(req)                                        proxy.ts
 | `PUBLIC_PATHS` | `utils/publicPaths.generated.ts` (생성: `scripts/gen-public-paths.mjs`) | `public/` 아래 파일 경로 목록. 손으로 고치지 않는다 |
 | `SERVED_FILES` | `proxy.ts` | `PUBLIC_PATHS` + `/robots.txt`, `/sitemap.xml`, `/favicon.ico`, `/icon.png`. 뒤 두 개는 `app/` metadata route라 `public/`에 없다. 그래서 손으로 넣었다 |
 | `KNOWN_TOP_LEVEL_SEGMENTS` | `utils/knownTopLevelSegments.ts` (검사: `_scripts/cc/check-known-top-level.mjs`) | `app/` 아래 정적(static) 첫 segment 목록. import가 없어 plain node가 읽는다 |
+| `log` 종류 (#115) | `utils/notFoundGate.ts` `classifyGatePath`, `apis/existence.proxy.ts` `checkLog` | `/@u/logs/<logId>`. logId가 `^[1-9]\d{0,18}$`가 아니면 Express 없이 404. 맞으면 `GET /v1/api/log/thread/<id>?limit=1`을 묻는다. 404면 없음, `focus.authorUsername`이 handle과 다르면 없음 (null은 삭제 tombstone이라 있음). 그 밖의 상태, 오류, 시간 초과는 통과 (fail-open) |
 | 로그인 RSC 검사 (#103) | `proxy.ts` `gateNotFound` | gate 경로의 GET, HEAD는 `rsc` 헤더와 관계없이 검사한다. `isRsc`는 로그 줄에만 쓴다 |
 | 로그인 prefetch 건너뜀 (#106) | `proxy.ts` `gateNotFound` | `signedIn`이고 `next-router-prefetch` 헤더가 있으면 검사하지 않는다. 클릭 이동은 검사한다. 익명 prefetch도 검사한다 (엣지 저장 가능) |
 | token 없음 | `proxy.ts` `gateNotFound` | 로그인인데 token이 없으면 `unknown`이다. 통과시킨다 (fail-open) |
