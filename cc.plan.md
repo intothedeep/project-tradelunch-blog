@@ -63,6 +63,7 @@ Phase PJ M4 (P2) 열림 (#82)
 
 #### Tactic: flag on, 데이터는 모두 Suspense 잎, 캐시 없음 (U4)
 - kill: 주 지표 판정 실패, G-e 실패, 또는 스키마나 URL 변경 없이 빌드 통과 불가 → U4 커밋 `git revert` + 재배포 + purge, 그다음 `recover`.
+- 상태 (2026-10-14, #102): kill 발동 (attempt 2 판정 FAIL + G-a FAIL). 되돌림 `7b1d1c9`. K3 정지, recovery 1/2. 다음 길은 오너가 고른다.
 
 ### M-CC3
 
