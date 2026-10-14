@@ -3,7 +3,7 @@
 
 % src: perf.audit.md §2, §3
 \paragraph{결과.}
-25개 항목 중 \ckdone{} 통과 6개, \ckopen{} 부분 통과와 실패 18개, \ckna{} 해당 없음 1개다.
+감사 시점에는 25개 항목 중 \ckdone{} 통과 6개, \ckopen{} 부분 통과와 실패 18개, \ckna{} 해당 없음 1개다.
 \Cref{tab:ck-all}에 항목 번호, 제목, 상태, 영향, 언제를 모았다.
 
 \paragraph{무엇을 알려고 쓰나.}
@@ -32,7 +32,7 @@
   \midrule
   \ckopen & A5 & \texttt{cacheComponents}가 켜져 있다 & FAIL (보류) & M & Phase CC 마지막 \\
   \midrule
-  \ckopen & A6 & \texttt{experimental.staleTimes}를 정했다 & FAIL & M & 지금 또는 CC 첫 행 \\
+  \ckdone & A6 & \texttt{experimental.staleTimes}를 정했다 & FAIL & M & 지금 또는 CC 첫 행 \\
   \midrule
   \ckopen & A7 & 클릭 직후 skeleton이 보인다 & PARTIAL & M & Phase CC \\
   \midrule
@@ -44,7 +44,7 @@
   \midrule
   \ckdone & B3 & action을 \texttt{queryFn}으로 쓰지 않는다 & PASS & 없음 & 유지 \\
   \midrule
-  \ckopen & B4 & load-more가 edge cache와 rate limit을 고려한다 & PARTIAL & M & 나중 \\
+  \ckdone & B4 & load-more가 edge cache와 rate limit을 고려한다 & PARTIAL & M & 나중 \\
   \midrule
   \ckopen & C1 & 같은 읽기는 한 요청에 한 번만 나간다 & PARTIAL & H & 지금 \\
   \midrule
@@ -60,7 +60,7 @@
   \midrule
   \ckopen & C7 & Suspense 경계와 fallback이 알맞다 & PARTIAL & M & 지금 \\
   \midrule
-  \ckopen & D1 & edge가 cache하는 HTML이 cookie로 바뀌지 않는다 & FAIL & M & 지금 (A2와 함께) \\
+  \ckdone & D1 & edge가 cache하는 HTML이 cookie로 바뀌지 않는다 & FAIL & M & 지금 (A2와 함께) \\
   \midrule
   \ckdone & D2 & viewport prefetch가 결정 \#70 한도 안이다 & PASS & 없음 & 유지 \\
   \midrule
@@ -70,5 +70,66 @@
   \midrule
   \ckopen & D5 & hydration이 올바르다 & PARTIAL & L & A2와 함께 \\
   \midrule
-  \ckopen & D6 & 영역 사이 이동이 shell을 다시 만들지 않는다 & FAIL & M & 나중 \\
+  \ckdone & D6 & 영역 사이 이동이 shell을 다시 만들지 않는다 & FAIL & M & 나중 \\
 \end{longtable}}
+
+\paragraph{Phase CC 뒤.}
+상자를 바꾼 것은 A6, B4, D1, D6 넷이다. 항목의 What을 측정이 확인한 경우만 바꿨다.
+위 표의 상태와 영향 열은 감사 시점 값이다. \Cref{tab:ck-cc}가 Phase CC 결과를 보인다.
+
+{\small
+\begin{longtable}{@{}L{0.9cm} L{2.0cm} L{9.6cm}@{}}
+  \caption{Phase CC 결과 (2026/10/14). 근거는 \Cref{ch:results}.}\label{tab:ck-cc}\\
+  \toprule
+  번호 & 결과 & 단위와 근거 \\
+  \midrule
+  \endfirsthead
+  \toprule
+  번호 & 결과 & 단위와 근거 \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  A1 & 막힘 & U4. 시도 2 되돌림, K3 정지 \\
+  \midrule
+  A2 & 일부 & QW2. (1) 참 3/3, (3) hydration 0, (2) 미측정 \\
+  \midrule
+  A3 & 배포됨 & QW1 통과. 항목별 코드 확인은 기록 없음 \\
+  \midrule
+  A4 & 막힘 & U4 \\
+  \midrule
+  A5 & 막힘 & U4. 운영은 \texttt{cacheComponents} 꺼짐 \\
+  \midrule
+  A6 & 완료 & U2 통과. 익명 s6 \texttt{\_rsc} 1 $\to$ 0 \\
+  \midrule
+  A7 & 미완 & U3 판정 실패, 코드 유지. \texttt{[slug]/layout.tsx} 40--46행이 아직 await \\
+  \midrule
+  A8 & 막힘 & U4 뒤 재평가 예정 \\
+  \midrule
+  B1, B3 & 유지 & G-l. \texttt{Promise.all} 0건 \\
+  \midrule
+  B2 & 기록 없음 & QW1 설계 \S7에 있음. 이름 바꾸기 확인 없음 \\
+  \midrule
+  B4 & 완료 & U7 통과. 12 $\to$ 0. AC4 미측정 \\
+  \midrule
+  C1, C3 & 배포됨 & QW1 통과. 19 $\to$ 13 \\
+  \midrule
+  C2 & 일부 & \texttt{/@u/posts}는 QW1 배포됨. \texttt{[slug]}는 U3 미완 \\
+  \midrule
+  C4 & 미완 & U3. AC2 미충족 \\
+  \midrule
+  C5, C6 & 유지 & G-l 통과 \\
+  \midrule
+  C7 & 일부 & QW1 배포됨. \texttt{MobileContextHeader}는 U3 미완 \\
+  \midrule
+  D1 & 완료 & QW2 (1) 참 3/3. 기준선 거짓 $\times$3으로 재현됨. 판정은 미완 \\
+  \midrule
+  D2, D3 & 유지 & G-l 통과 \\
+  \midrule
+  D4 & 변경 없음 & 미룸 \\
+  \midrule
+  D5 & 일부 & QW2에 묶임. hydration 오류 0 \\
+  \midrule
+  D6 & 완료 & U1. \texttt{(shell)/layout.tsx}에서 한 번. 바이트 판정 없음 (\decision{99}) \\
+\end{longtable}}
+% src: cc.report.md; criteria.md §1, §2; cc.design.md §12; decisions.plan.md #99, #102

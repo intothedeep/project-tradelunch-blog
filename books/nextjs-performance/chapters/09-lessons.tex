@@ -1,0 +1,358 @@
+% chapters/09-lessons.tex -- Phase CC에서 배운 측정 교훈.
+% ONLY sources: cc.report.md, deploy/traffic/review/cc/{criteria,00.runs,u1-verdict,u4-verdict}.md,
+%   u4-recover/diagnosis-{architect,data}.md, cc.design.md §14, §17, §19, decisions.plan.md #88, #99, #102.
+\chapter{측정 교훈}\label{ch:lessons}
+
+% src: cc.report.md summary
+\paragraph{결과.}
+숫자보다 측정 방법에서 배운 것이 많았다.
+개발 서버와 운영이 달랐고, 같은 코드의 값이 몇 시간 사이에 움직였다.
+바이트 지표는 null을 0으로 셌고, 5개 값의 p50은 한 걸음과 같았다.
+\Cref{tab:le-all}이 단위를 모으고 \Cref{fig:le-ba}가 전후 값을 보인다.
+
+\begin{inbrief}
+  \item[Why] 같은 실수를 다음 단위에서 되풀이하지 않으려고 한다.
+  \item[When] 새 단위를 배포하고 판정하기 전이다.
+  \item[Where] 측정 하네스(harness), 배포 전 검사, 판정 기준이다.
+  \item[How] 교훈마다 결과, 왜, 무엇, 어떻게, 언제, 왜 중요한가를 적는다.
+\end{inbrief}
+
+\section{전체 요약}\label{sec:le-summary}
+
+\begin{table}[H]
+  \caption{Phase CC 단위 요약. 지표, 전후 값, 판정선, 판정.}
+  \label{tab:le-all}
+  \centering\footnotesize
+  \begin{tabularx}{\linewidth}{@{}L{1.3cm} L{1.9cm} Y L{2.6cm} L{1.6cm} L{1.7cm}@{}}
+    \toprule
+    단위 & sha & 주 지표 & 전 $\to$ 후 & 판정선 & 판정 \\
+    \midrule
+    QW1 & \texttt{61d48bc} & 서버 fetch / MISS 렌더 & 19 $\to$ 13 & 2 & 통과 \\
+    \midrule
+    QW2 & \texttt{61d48bc} & 이진 판정 3개 & (1) 거짓$\times$3 $\to$ 참 3/3 & 해당 없음 & 미완 \\
+    \midrule
+    U1 & \texttt{3596e4c} & 익명 W1 RSC 바이트 & 기록 없음 & 계산 불가 & 판정 불가 \\
+    \midrule
+    U2 & \texttt{c26c69d} & s6 \texttt{\_rsc} 비prefetch & 1 $\to$ 0 & 1 & 통과 \\
+    \midrule
+    U3 & \texttt{0ac938c} & s5 글 이동 (ms) & 317 $\to$ 174 & 192 & 실패 (코드 유지) \\
+    \midrule
+    U4 시도 2 & \texttt{f122265} & s2--s6 합 (ms) & 329 $\to$ 434 & 68 & 실패 (회귀) \\
+    \midrule
+    U4 A-B-A & \texttt{7977436} & s2--s6 합 (ms) & 기록 없음 (무효) & 계산하지 않음 & 판정 없음 \\
+    \midrule
+    U7 & \texttt{964c9f8} & \texttt{my.} load-more 요청 & 12 $\to$ 0 & 0 & 통과 \\
+    \midrule
+    U5, U6 & 없음 & MISS TTFB, 이진 & 기록 없음 & 140, 해당 없음 & 시작 전 \\
+    \bottomrule
+  \end{tabularx}
+  % src: cc.report.md summary tables; criteria.md §1 rows
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \newcommand{\bapanel}[7]{%
+    \pgfmathsetmacro{\hb}{2.2*#3/max(#3,#4)}
+    \pgfmathsetmacro{\ha}{2.2*#4/max(#3,#4)}
+    \draw[fill=mutecol!40, draw=mutecol] (#1,0) rectangle (#1+0.8,\hb);
+    \draw[fill=#6!45, draw=#6] (#1+1.0,0) rectangle (#1+1.8,\ha);
+    \node[above] at (#1+0.4,\hb) {#3};
+    \node[above] at (#1+1.4,\ha) {#4};
+    \node[font=\footnotesize\bfseries] at (#1+0.9,3.0) {#2};
+    \node[below, align=center] at (#1+0.9,0) {#5\\#7};}
+  \resizebox{\linewidth}{!}{%
+  \begin{tikzpicture}[font=\scriptsize]
+    \node[anchor=west] at (0,4.0) {\flowkey{draw=mutecol, fill=mutecol!40} 전 (기준)};
+    \node[anchor=west] at (4.0,4.0) {\flowkey{draw=goodcol, fill=goodcol!45} 후, 통과};
+    \node[anchor=west] at (7.5,4.0) {\flowkey{draw=badcol, fill=badcol!45} 후, 실패};
+    \bapanel{0}{QW1}{19}{13}{서버 fetch 수}{goodcol}{통과}
+    \bapanel{3}{U2}{1}{0}{\texttt{\_rsc} 요청 수}{goodcol}{통과}
+    \bapanel{6}{U3}{317}{174}{s5 이동 (ms)}{badcol}{실패, 코드 유지}
+    \bapanel{9}{U4 시도 2}{329}{434}{s2--s6 합 (ms)}{badcol}{실패, 회귀}
+    \bapanel{12}{U7}{12}{0}{load-more 요청 수}{goodcol}{통과}
+    \draw[black!40] (-0.2,0) -- (14.2,0);
+  \end{tikzpicture}}
+  \caption{판정이 난 단위의 전후 값. 패널마다 축이 다르고 막대 높이는 그 패널 안에서만 비교한다.}
+  \label{fig:le-ba}
+  % src: cc.report.md QW1, U2, U3, MVP2, MVP3 Result lines
+\end{figure}
+
+\section{개발 서버와 운영은 다르다}\label{sec:le-dev}
+
+\paragraph{결과.}
+U4 시도 1에서 \code{/nope}가 개발 서버는 404, 운영은 500이었다.
+% src: cc.report.md MVP2 시도 1
+
+\paragraph{왜.}
+\code{next dev}는 캐시 설정 검사 블록 전체를 건너뛴다(\code{app-page.js:982}).
+운영만 \code{revalidate 0 < 1}을 오류로 던진다.
+시도 1의 runner 미리보기 빌드도 이 실패를 드러내지 못했다.
+% src: diagnosis-architect.md §2; diagnosis-data.md §0 fact 2
+
+\paragraph{무엇.}
+배포 전 검사를 만들었다. GitHub Actions에서 운영과 같은 standalone \code{server.js}를 띄운다.
+음성 대조도 둔다. 수정 전 \code{efe7eed}에서 \code{/nope}가 500이어야 한다.
+% src: diagnosis-architect.md §5
+
+\paragraph{어떻게.}
+\begin{enumerate}[nosep]
+  \item \code{cacheComponents: true}로 빌드한다.
+  \item \code{.next/static}과 \code{public}을 standalone에 복사한다.
+  \item \code{server.js}를 포트 3100으로 띄운다.
+  \item 경로표를 \code{curl}로 2번씩 친다. 첫 요청은 ISR 생성, 둘째는 캐시 경로다.
+  \item 로그에서 \code{Invalid revalidate configuration}이 0건인지 본다.
+\end{enumerate}
+예: 후보 A는 10/11행 통과였다. \code{/xmlrpc.php}가 500이어서 배포 전에 걸렸다. A2는 24/25행이었다.
+% src: diagnosis-architect.md §5, §7; cc.report.md MVP2 수정 A2
+
+\paragraph{언제 효과가 있나.}
+\code{next dev}는 이 실패를 재현하지 못한다. \code{next start}는 재현하지만 운영 형태가 아니다.
+% src: diagnosis-architect.md §5
+
+\paragraph{왜 중요한가.}
+이 검사가 없었다면 404 회귀를 운영에서 처음 보았을 것이다.
+% src: cc.report.md MVP2 시도 1 좋은 점, 나쁜 점
+
+\section{환경 흔들림}\label{sec:le-drift}
+
+\paragraph{결과.}
+U4 코드가 없는 같은 W1 경로에서 값이 329에서 476 ms로 움직였다.
+\begin{table}[H]
+  \caption{로그인 expanded s2--s6 합. 같은 W1 코드 경로의 build 4개.}
+  \label{tab:le-drift}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{4.2cm} L{1.8cm} L{3.0cm} r r@{}}
+    \toprule
+    run & 시각 (UTC) & run 값 (ms) & 중앙값 & 범위 \\
+    \midrule
+    U4 비교 기준 (\texttt{0ac938c}) & 07:44 & 295 / 329 / 329 & 329 & 34 \\
+    \midrule
+    U4 시도 2 (\texttt{f122265}) & 09:22 & 482 / 421 / 434 & 434 & 61 \\
+    \midrule
+    대조 U7 (\texttt{964c9f8}) & 09:54 & 454 / 609 / 500 & 500 & 155 \\
+    \midrule
+    대조 재확인 (\texttt{964c9f8}) & 10:17 & 459 / 623 / 476 & 476 & 164 \\
+    \bottomrule
+  \end{tabularx}
+  % src: cc.design.md §19.1 table
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[barchart, width=0.9\linewidth, height=6cm, ymax=620,
+      ylabel={로그인 expanded s2--s6 합 (ms)}, symbolic x coords={a,b,c,d}, xtick=data,
+      xticklabels={07:44\\\texttt{0ac938c},09:22\\\texttt{f122265},09:54\\\texttt{964c9f8},10:17\\\texttt{964c9f8}},
+      xticklabel style={align=center}, nodes near coords, bar width=30pt, legend columns=-1]
+      \addplot[fill=mutecol!50, draw=mutecol] coordinates {(a,329) (c,500) (d,476)};
+      \addplot[fill=badcol!50, draw=badcol] coordinates {(b,434)};
+      \legend{대조 (U4 코드 없음), U4 시도 2}
+    \end{axis}
+  \end{tikzpicture}
+  \caption{U4 코드가 없는 대조 run이 U4 run보다 높았다. 대조 두 개는 기준 329보다 147--171 ms 높다.}
+  \label{fig:le-drift}
+  % src: cc.design.md §19.1; deploy/traffic/review/cc/runs/20261014T101744Z_U4_env_recheck_964c9f8_browser
+\end{figure}
+
+\paragraph{왜.}
+원인은 정해지지 않았다. \decision{102} Update는 환경 흔들림(origin, API 지연)으로 읽는다.
+% src: decisions.plan.md #102 Update
+
+\paragraph{무엇.}
+비교를 A-B-A 묶음으로 바꿨다(\Cref{fig:re-aba}). 대조와 처리가 같은 시간대를 나눠 쓴다.
+% src: cc.design.md §19.2, §19.3
+
+\paragraph{어떻게.}
+잡음은 같은 시간대의 A-A 차 $d$에서 얻는다. 연습 예는 $m(C1)=476$, $m(C2)=500$이다(판정 아님).
+\begin{align*}
+  &d = 500-476 = 24 && \text{두 대조 블록의 차}\\
+  &0.10\times 488 = 48.8 && \text{기준의 10\,\%, 유효 조건 } d\le 48.8\\
+  &L=\max(48,\ 48.8)=48.8 && \text{판정선 (ms)}
+\end{align*}
+통과하려면 $m(T)\le 439$ ms, $m(T)<476$이고 T 5 run 중 4개 이상이 488 미만이어야 한다.
+% src: cc.design.md §19.4 예
+
+\paragraph{실제 묶음.}
+연습이 아니라 실제 묶음이 돌았다. $m(C1)=643$, $m(C2)=1177$이어서 $d=534$가 한도 89.75를 넘었다.
+같은 build의 두 블록이 달랐으므로 주 지표는 무효이고 판정이 없다(\Cref{sec:re-u4-aba}).
+무리 둘로 갈린 대조 10 run(526--661, 1134--2278)이 이 결과를 만들었다.
+% src: u4-aba-verdict.md §0, §1.1, §1.5, §6
+
+\paragraph{언제 효과가 있나.}
+$d$가 기준의 10\,\%를 넘으면 그 시간대는 흔들렸다. 판정 없이 다른 조용한 시각에 다시 한다.
+G-a와 G-b는 요청 수라서 지연 흔들림의 영향을 받지 않는다.
+% src: cc.design.md §19.2, §19.4
+
+\paragraph{왜 중요한가.}
+시도 2의 이동 판정이 흔들림과 섞였다. 07:44 기준과 비교하면 어떤 U4 run도 실패이거나 판정 불가였다.
+% src: cc.design.md §19.1
+
+\section{바이트 지표가 null을 0으로 셌다}\label{sec:le-null}
+
+\paragraph{결과.}
+같은 HIT 응답인데 \code{rsc_bytes_w1}이 270469 B와 10641 B로 갈렸다.
+\begin{table}[H]
+  \caption{U1 익명 expanded run별 바이트와 null 수.}
+  \label{tab:le-null}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{1.4cm} r L{2.4cm} r@{}}
+    \toprule
+    run & \texttt{rsc\_bytes\_w1} (B) & 엣지 상태 & null 수 \\
+    \midrule
+    1 & 270469 & 16 HIT & 1 \\
+    \midrule
+    2 & 270469 & 16 HIT & 1 \\
+    \midrule
+    3 & 10641 & 16 MISS & 9 \\
+    \bottomrule
+  \end{tabularx}
+  % src: u1-verdict.md §2.2
+\end{table}
+
+\paragraph{왜.}
+스크립트는 \code{res.body()}가 실패하면 \code{bytes = null}로 둔다. 합계에서 \code{?? 0}으로 0을 더한다.
+null의 원인(Playwright 실패 조건)은 확인하지 못했다.
+% src: u1-verdict.md §2.2, §2.5
+
+\paragraph{무엇.}
+스크립트 고침 목록을 만들었다. null을 0으로 세지 않고 \code{rsc_bytes_null_count}를 남긴다.
+\code{request.sizes()}를 쓸 수 있는지 확인한다. 이동 RSC 본문을 파일로 저장한다.
+% src: u1-verdict.md §5.2
+
+\paragraph{어떻게.}
+응답마다 null을 세고, null이 아닌 값을 더해 요약 값과 맞춘다.
+\begin{align*}
+  &258+257+448+4124+4653+479+422 = 10641 && \text{run 3의 null 아닌 값 7개}
+\end{align*}
+% src: u1-verdict.md §2.4
+
+\paragraph{언제 효과가 있나.}
+null은 MISS에서 많지만 HIT에서도 난다. 그래서 270469 B도 s6 하나(19020 B)를 빠뜨린 값이다.
+하네스 v2에서도 로그인 expanded는 run마다 null이 37--39개다. 바이트는 판정에 쓰지 않는다.
+% src: u1-verdict.md §2.5; 00.runs.md §1 row 19
+
+\paragraph{왜 중요한가.}
+이 결함 때문에 U1의 바이트 판정을 낼 수 없었다(\decision{99}).
+% src: u1-verdict.md §0
+
+\section{겹친 run이 창을 오염시킨다}\label{sec:le-overlap}
+
+\paragraph{결과.}
+\code{qw1_1}은 valid 2/3이었다. 오염 창이 3개였다(\code{3/home}, \code{3/projects}, \code{3/project}).
+% src: 00.runs.md §1 row 6
+
+\paragraph{왜.}
+브라우저 run이 05:38:59에 시작했고 MISS 창은 05:40대였다. 시간이 겹친다.
+인과는 확인하지 못했다.
+% src: 00.runs.md §1 row 6
+
+\paragraph{무엇.}
+QW1 지표는 MISS 요청 하나의 창에 \code{ssr_fetch} 줄을 묶어 센다. 창은 최대 5초다.
+창 안에 runId 없는 요청이 있으면 그 창을 뺀다.
+% src: decisions.plan.md #88 Update (2)
+
+\paragraph{어떻게.}
+run을 겹치지 않는다. 07:00 이후 run은 앞 run이 끝난 뒤 시작했다.
+A-B-A 묶음은 다른 배포, purge, workflow가 없을 때만 돈다.
+% src: 00.runs.md §1 note; cc.design.md §19.3
+
+\paragraph{언제 효과가 있나.}
+값 자체는 다른 run과 같은 13이었다. 오염은 valid 수를 줄여 판정의 근거를 약하게 한다.
+% src: 00.runs.md §3 item 3
+
+\paragraph{왜 중요한가.}
+서버 로그는 요청을 run별로 가르지 못한다. 겹침이 곧 오염의 입구다.
+% src: decisions.plan.md #88 Update (2)
+
+\section{5개 값의 p50은 한 걸음이다}\label{sec:le-p50}
+
+\paragraph{결과.}
+U3와 U4의 첫 지표(이동 시간 p50)는 글 상세 s5의 변화를 못 잡았다.
+% src: cc.design.md §17.1
+
+\paragraph{왜.}
+브라우저 run은 W1을 1번 걷는다. \code{[nav]} 원값이 5개(s2--s6)뿐이다.
+5개의 p50은 세 번째로 큰 값이다.
+예: 로그인 expanded 원값 \{35, 20, 130, 473, 21\}의 p50은 35이고 s2 값이다.
+% src: cc.design.md §17.1 table
+
+\paragraph{무엇.}
+U3는 s5 한 걸음(\code{w1_s5_post_nav_ms})으로, U4는 s2--s6 합(\code{w1_nav_ms_s2_s6})으로 바꿨다.
+공식은 그대로다. 팔은 로그인 expanded다.
+% src: decisions.plan.md #88 Update 2; cc.design.md §17.2
+
+\paragraph{어떻게.}
+run 값은 run마다 1개, 단위 값은 run 3개의 중앙값이다. 이 변경은 U3 비교 run 전에 고정했다.
+% src: cc.design.md §17, §17.2
+
+\paragraph{언제 효과가 있나.}
+로그인 이동은 \cfs{DYNAMIC}이라 매번 오리진에 간다. 익명은 엣지 HIT라 오리진 변화가 안 보인다.
+% src: cc.design.md §17.2
+
+\paragraph{왜 중요한가.}
+단위가 고치는 곳과 지표가 재는 곳이 같아야 효과가 보인다.
+% src: cc.design.md §17.2 이유 column
+
+\section{판정선은 미리, 사후 값은 기록만}\label{sec:le-prereg}
+
+\begin{itemize}[nosep]
+  \item U3의 판정선 192는 기준 run 2의 403 ms에서 나왔다. 손으로 줄이지 않았다.
+  \item U1의 재구성 바이트(317713 $\to$ 289489 B)는 사후에 고른 방법이라 판정에 쓰지 않았다.
+  \item 같은 배포 \code{0ac938c}에서 하네스 v1은 343, v2는 329였다. v2가 run마다 warmup을 더했기 때문이다. U4 run 전에 기준을 다시 잡았다.
+\end{itemize}
+% src: criteria.md §1 U3 row; u1-verdict.md §1.5; 00.runs.md §3 item 12; decisions.plan.md #88 Update 3
+
+\section{기록 없음 목록}\label{sec:le-missing}
+
+\begin{table}[H]
+  \caption{원본에 없어서 쓰지 못한 값.}
+  \label{tab:le-missing}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{4.4cm} Y@{}}
+    \toprule
+    칸 & 상태 \\
+    \midrule
+    QW2 (2) 첫 paint & 스크린샷 기록 없음 \\
+    \midrule
+    U1 rail 조각 크기, 기준 바이트 & 기록 없음 \\
+    \midrule
+    U7 AC4 (draft 2쪽) & 미측정 \\
+    \midrule
+    G-g (U4, U7 run) & 미측정 \\
+    \midrule
+    QW1 posts fetch 6 $\to$ 5 원인 & 기록 없음 \\
+    \bottomrule
+  \end{tabularx}
+  % src: criteria.md §1, §3; 00.runs.md §2.1, §2.1.1
+\end{table}
+
+\section{대기 루프 버그가 60분 창을 깎았다}\label{sec:le-wait}
+
+\paragraph{결과.}
+A-B-A 묶음에서 T 끝(17:22:41)과 C 되돌림(17:32:21) 사이에 약 9분 40초을 기다렸다.
+묶음 창은 58분 41초였고 60분 한도의 여유는 1분 19초였다.
+% src: u4-aba-verdict.md §0 timeline, §5.3
+
+\paragraph{왜.}
+main session의 대기 루프 버그다. 원본은 dispatch 기록이고 저장 파일은 없다.
+% src: u4-aba-verdict.md §5.4 (S-ABA-14)
+
+\paragraph{무엇.}
+대기 동안 운영은 T build였다. 이 대기가 창 여유를 줄였다.
+% src: u4-aba-verdict.md §5.4 row "T 끝 $\to$ 되돌림"
+
+\paragraph{어떻게.}
+시작과 끝 시각을 \code{raw.jsonl}의 \code{at}에서 변환해 창을 잰다.
+\begin{align*}
+  &1791999794231-1791996273059 = 3521172 && \text{ms, 58분 41초}
+\end{align*}
+% src: u4-aba-verdict.md §5.3
+
+\paragraph{언제 효과가 있나.}
+창에 여유가 작을수록 대기 하나가 묶음 전체를 판정 불가로 만든다.
+이번에는 두 읽기(첫 집계 run 기준 58분 41초, 첫 warmup 기준 59분 34초) 모두 60분 이내였다.
+% src: u4-aba-verdict.md §5.3
+
+\paragraph{왜 중요한가.}
+이 묶음은 60분 창을 간신히 지켰다. 대기 하나가 더 길었다면 묶음 전체가 판정 불가였다(\S19.3).
+% src: cc.design.md §19.3 (60분 조건); u4-aba-verdict.md §7 item 10

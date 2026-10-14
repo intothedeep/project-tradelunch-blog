@@ -142,3 +142,6 @@
   \item[How] rail은 잘 감쌌다(\code{UserContextRail.server.tsx:28,41,50}, \code{HomeRightRail.server.tsx:21,29}, \code{LeftRailContainer.server.tsx:27}). 빠진 곳은 다음과 같다: \code{posts/page.tsx:85}(A3), \code{PostContentCard.server.tsx:124}(C3), \code{MobileContextHeader}(\code{posts/layout.tsx:35}, \code{[slug]/layout.tsx:44}, Suspense 없이 \code{getUserProfile}을 await). about과 resume에는 \code{loading.tsx}가 없다.
   \item[When] 지금(C3와 같은 손질).
 \end{checkitem}
+
+\paragraph{Phase CC 뒤.}
+C1, C2, C3의 첫 손질은 QW1이다. 결과는 \Cref{sec:re-qw1}에 있다.

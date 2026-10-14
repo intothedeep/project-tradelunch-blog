@@ -1,0 +1,110 @@
+== anon expanded run1
+_rsc requests: all=30 w1=16 w1_nonprefetch=4 back3=0
+max requests per 10 s: all=27 w1=27 w3=10 w4=10
+prefetch per menu link: /=1 /@taeklim/projects=2 /@taeklim/about=2 /@taeklim/resume=2
+hydration errors: 0
+text/x-component bytes: total= w1= null=12 fallback=0 w1_miss=16
+[nav] w2 / /@taeklim/posts 246 ms
+[nav] w2 /@taeklim/posts /@taeklim/projects 17 ms
+[nav] w2 /@taeklim/projects /@taeklim/projects/cnn-from-scratch 335 ms
+[nav] w2 /@taeklim/projects/cnn-from-scratch /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first 456 ms
+[nav] w2 /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first / 24 ms
+== auth expanded run1
+_rsc requests: all=48 w1=22 w1_nonprefetch=4 back3=0
+max requests per 10 s: all=35 w1=35 w3=16 w4=16
+prefetch per menu link: /=1 /@taeklim/projects=2 /@taeklim/about=2 /@taeklim/resume=2 /write=2 /@taeklim/saved=2 /@taeklim/posts=2
+hydration errors: 0
+text/x-component bytes: total= w1= null=35 fallback=0 w1_miss=0
+[nav] w2 / /@taeklim/posts 21 ms
+[nav] w2 /@taeklim/posts /@taeklim/projects 22 ms
+[nav] w2 /@taeklim/projects /@taeklim/projects/cnn-from-scratch 143 ms
+[nav] w2 /@taeklim/projects/cnn-from-scratch /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first 431 ms
+[nav] w2 /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first / 26 ms
+== anon expanded run2
+_rsc requests: all=30 w1=16 w1_nonprefetch=4 back3=0
+max requests per 10 s: all=25 w1=25 w3=10 w4=10
+prefetch per menu link: /=1 /@taeklim/projects=2 /@taeklim/about=2 /@taeklim/resume=2
+hydration errors: 0
+text/x-component bytes: total= w1= null=12 fallback=0 w1_miss=16
+[nav] w2 / /@taeklim/posts 891 ms
+[nav] w2 /@taeklim/posts /@taeklim/projects 18 ms
+[nav] w2 /@taeklim/projects /@taeklim/projects/cnn-from-scratch 487 ms
+[nav] w2 /@taeklim/projects/cnn-from-scratch /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first 994 ms
+[nav] w2 /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first / 23 ms
+== auth expanded run2
+_rsc requests: all=48 w1=22 w1_nonprefetch=4 back3=0
+max requests per 10 s: all=33 w1=33 w3=16 w4=16
+prefetch per menu link: /=1 /@taeklim/projects=2 /@taeklim/about=2 /@taeklim/resume=2 /write=2 /@taeklim/saved=2 /@taeklim/posts=2
+hydration errors: 0
+text/x-component bytes: total= w1= null=35 fallback=0 w1_miss=0
+[nav] w2 / /@taeklim/posts 22 ms
+[nav] w2 /@taeklim/posts /@taeklim/projects 21 ms
+[nav] w2 /@taeklim/projects /@taeklim/projects/cnn-from-scratch 296 ms
+[nav] w2 /@taeklim/projects/cnn-from-scratch /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first 773 ms
+[nav] w2 /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first / 22 ms
+== anon expanded run3
+_rsc requests: all=29 w1=15 w1_nonprefetch=4 back3=0
+max requests per 10 s: all=22 w1=22 w3=10 w4=10
+prefetch per menu link: /=1 /@taeklim/projects=2 /@taeklim/about=2 /@taeklim/resume=2
+hydration errors: 0
+text/x-component bytes: total= w1= null=9 fallback=0 w1_miss=0
+[nav] w2 / /@taeklim/posts 115 ms
+[nav] w2 /@taeklim/posts /@taeklim/projects 18 ms
+[nav] w2 /@taeklim/projects /@taeklim/projects/cnn-from-scratch 63 ms
+[nav] w2 /@taeklim/projects/cnn-from-scratch /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first 132 ms
+[nav] w2 /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first / 23 ms
+== auth expanded run3
+_rsc requests: all=48 w1=22 w1_nonprefetch=4 back3=0
+max requests per 10 s: all=35 w1=35 w3=16 w4=16
+prefetch per menu link: /=1 /@taeklim/projects=2 /@taeklim/about=2 /@taeklim/resume=2 /write=2 /@taeklim/saved=2 /@taeklim/posts=2
+hydration errors: 0
+text/x-component bytes: total= w1= null=31 fallback=0 w1_miss=0
+[nav] w2 / /@taeklim/posts 21 ms
+[nav] w2 /@taeklim/posts /@taeklim/projects 24 ms
+[nav] w2 /@taeklim/projects /@taeklim/projects/cnn-from-scratch 143 ms
+[nav] w2 /@taeklim/projects/cnn-from-scratch /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first 315 ms
+[nav] w2 /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first / 23 ms
+== anon expanded run4
+_rsc requests: all=29 w1=15 w1_nonprefetch=4 back3=0
+max requests per 10 s: all=22 w1=22 w3=10 w4=10
+prefetch per menu link: /=1 /@taeklim/projects=2 /@taeklim/about=2 /@taeklim/resume=2
+hydration errors: 0
+text/x-component bytes: total= w1= null=5 fallback=0 w1_miss=0
+[nav] w2 / /@taeklim/posts 124 ms
+[nav] w2 /@taeklim/posts /@taeklim/projects 19 ms
+[nav] w2 /@taeklim/projects /@taeklim/projects/cnn-from-scratch 68 ms
+[nav] w2 /@taeklim/projects/cnn-from-scratch /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first 140 ms
+[nav] w2 /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first / 24 ms
+== auth expanded run4
+_rsc requests: all=48 w1=22 w1_nonprefetch=4 back3=0
+max requests per 10 s: all=34 w1=34 w3=16 w4=16
+prefetch per menu link: /=1 /@taeklim/projects=2 /@taeklim/about=2 /@taeklim/resume=2 /write=2 /@taeklim/saved=2 /@taeklim/posts=2
+hydration errors: 0
+text/x-component bytes: total= w1= null=34 fallback=0 w1_miss=0
+[nav] w2 / /@taeklim/posts 21 ms
+[nav] w2 /@taeklim/posts /@taeklim/projects 23 ms
+[nav] w2 /@taeklim/projects /@taeklim/projects/cnn-from-scratch 186 ms
+[nav] w2 /@taeklim/projects/cnn-from-scratch /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first 304 ms
+[nav] w2 /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first / 26 ms
+== anon expanded run5
+_rsc requests: all=29 w1=15 w1_nonprefetch=4 back3=0
+max requests per 10 s: all=22 w1=22 w3=10 w4=10
+prefetch per menu link: /=1 /@taeklim/projects=2 /@taeklim/about=2 /@taeklim/resume=2
+hydration errors: 0
+text/x-component bytes: total= w1= null=1 fallback=0 w1_miss=0
+[nav] w2 / /@taeklim/posts 128 ms
+[nav] w2 /@taeklim/posts /@taeklim/projects 18 ms
+[nav] w2 /@taeklim/projects /@taeklim/projects/cnn-from-scratch 56 ms
+[nav] w2 /@taeklim/projects/cnn-from-scratch /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first 116 ms
+[nav] w2 /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first / 25 ms
+== auth expanded run5
+_rsc requests: all=48 w1=22 w1_nonprefetch=4 back3=0
+max requests per 10 s: all=31 w1=31 w3=16 w4=16
+prefetch per menu link: /=1 /@taeklim/projects=2 /@taeklim/about=2 /@taeklim/resume=2 /write=2 /@taeklim/saved=2 /@taeklim/posts=2
+hydration errors: 0
+text/x-component bytes: total= w1= null=36 fallback=0 w1_miss=0
+[nav] w2 / /@taeklim/posts 21 ms
+[nav] w2 /@taeklim/posts /@taeklim/projects 23 ms
+[nav] w2 /@taeklim/projects /@taeklim/projects/cnn-from-scratch 309 ms
+[nav] w2 /@taeklim/projects/cnn-from-scratch /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first 930 ms
+[nav] w2 /@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first / 24 ms

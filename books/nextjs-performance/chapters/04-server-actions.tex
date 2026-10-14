@@ -99,3 +99,6 @@
   \item[How] client \code{components/blog/RecentPostsList.client.tsx:62}와 \code{TagPostsList.client.tsx:60}이 \code{/api/posts/load-more}를 부른다. Cloudflare 규칙은 \code{deploy/traffic/README.md:76}의 \code{not starts_with(..., "/api/")}다. \code{app/api/posts/load-more/route.ts:49,56}은 \code{Cache-Control}을 붙이지 않는다. 더해 이 route는 token 없이 읽는다(\code{:52}). 첫 page(\code{getFeed}, token 있음)와 다르다. 소유자의 draft가 2쪽부터 빠진다. 처방 후보: (a) 익명 응답에 \code{Cache-Control: public, s-maxage=60}과 Cloudflare 규칙을 더한다. (b) 브라우저가 \code{blog-api.} GET을 직접 부른다(이미 edge \cfs{HIT}).
   \item[When] 나중(traffic 설계와 함께). (a)와 (b)의 선택은 소유자.
 \end{checkitem}
+
+\paragraph{Phase CC 뒤.}
+B4는 U7로 처리했다. 결과는 \Cref{sec:re-u7}에 있다.

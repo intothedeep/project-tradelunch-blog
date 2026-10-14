@@ -1,0 +1,887 @@
+% chapters/08-results.tex -- Phase CC에서 이 사이트에 실제로 잰 결과. 단위마다 여섯 칸.
+% ONLY sources: cc.report.md, deploy/traffic/review/cc/{criteria,00.runs,u1-verdict,u4-verdict,u4-preview}.md,
+%   deploy/traffic/review/cc/u4-recover/diagnosis-{architect,data}.md, cc.design.md, decisions.plan.md #82-#103, perf.audit.md.
+% Numbers are copied, never derived. A missing number is written "기록 없음".
+\chapter{Phase CC 결과}\label{ch:results}
+
+% src: cc.report.md summary
+\paragraph{결과.}
+운영 \texttt{my.prettylog.com}에 배포한 단위를 하나씩 쟀다.
+사전 등록(pre-registration) 판정이 난 단위는 다섯이다.
+통과는 QW1, U2, U7이다. 실패는 U3와 U4다.
+QW2는 판정이 미완이고 U1은 판정 불가다.
+U5와 U6은 U4에 막혀 시작하지 못했다.
+
+\begin{table}[H]
+  \caption{Phase CC 단위별 판정. 배포 sha와 한 줄 결과.}
+  \label{tab:re-all}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{1.8cm} L{2.4cm} L{2.8cm} Y@{}}
+    \toprule
+    단위 & 배포 sha & 판정 & 한 줄 결과 \\
+    \midrule
+    QW1 & \texttt{61d48bc} & 통과 & 서버 fetch 19 $\to$ 13 \\
+    \midrule
+    QW2 & \texttt{61d48bc} & 미완 & 참 2개, 미측정 1개 \\
+    \midrule
+    U1 & \texttt{3596e4c} & 판정 불가 & 왼쪽 rail을 한 번만 그림 \\
+    \midrule
+    U2 & \texttt{c26c69d} & 통과 & \texttt{\_rsc} 비prefetch 1 1 1 $\to$ 0 0 0 \\
+    \midrule
+    U3 & \texttt{0ac938c} & 실패 (코드 유지) & 글 이동 317 $\to$ 174\,ms \\
+    \midrule
+    U4 시도 1 & \texttt{535b931} & 측정 없음 & 운영 500, 되돌림 \\
+    \midrule
+    U4 시도 2 & \texttt{f122265} & 실패 (회귀) & 329 $\to$ 434\,ms, 되돌림 \\
+    \midrule
+    U4 A-B-A & \texttt{7977436} & 판정 없음 (무효) & 가드 G-a, G-b 통과 \\
+    \midrule
+    U5, U6 & 없음 & 막힘 & U4가 먼저다 \\
+    \midrule
+    U7 & \texttt{964c9f8} & 통과 & \texttt{my.} load-more 요청 12 $\to$ 0 \\
+    \bottomrule
+  \end{tabularx}
+  % src: cc.report.md MVP1 summary table, MVP2 summary, MVP3
+\end{table}
+% src: cc.report.md MVP2 intro: 배포 sha 535b931, 7b4a138, 7b1d1c9는 dispatch 기록이다 (00.runs.md §1 note)
+
+\begin{inbrief}
+  \item[Why] 감사(audit)가 찾은 약점을 고쳤을 때 실제로 빨라졌는지 이 사이트에서 확인한다.
+  \item[When] 단위를 배포한 뒤, 사전에 정한 판정선으로 읽는다.
+  \item[Where] 운영 사이트의 익명 독자와 로그인 소유자의 이동이다.
+  \item[How] 단위마다 결과, 왜, 무엇, 어떻게, 언제 효과가 있나, 왜 중요한가를 순서대로 쓴다.
+\end{inbrief}
+
+\section{읽기 전에: 판정과 걸음}\label{sec:re-read}
+
+\paragraph{무엇을 알려고 쓰나.}
+각 단위가 미리 정한 주 지표(primary metric)를 판정선(threshold) 이상 움직였는가.
+
+\paragraph{어떻게 판정하나.}
+\begin{enumerate}[nosep]
+  \item 배포 전에 주 지표 하나, 판정선, 주 대비, 실패 조건을 적는다(\decision{88}).
+  \item 직전 단위 뒤 run 3개의 중앙값과 이 단위 뒤 run 3개의 중앙값을 비교한다.
+  \item 범위(range)는 run 3개의 최댓값에서 최솟값을 뺀 값이다.
+  \item 판정선은 범위의 두 배와 기준값의 10\,\%중 큰 쪽이다.
+\end{enumerate}
+% src: criteria.md §1 header rows, decisions.plan.md #88, #88 Update 2
+
+\paragraph{예: U3의 판정선.}
+기준 run 값은 317 / 403 / 307이고 범위는 96이다.
+\begin{align*}
+  &2\times 96 = 192 && \text{범위의 두 배}\\
+  &0.1\times 317 = 31.7 && \text{기준값의 10\,\%}\\
+  &\max(192,\ 31.7) = 192 && \text{판정선 (ms)}
+\end{align*}
+% src: criteria.md §1 U3 (rev2.2) row
+
+\paragraph{읽는 법.}
+\begin{table}[H]
+  \caption{판정 결과를 읽는 법.}
+  \label{tab:re-readcases}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{4.6cm} Y@{}}
+    \toprule
+    경우 & 뜻 \\
+    \midrule
+    줄어든 양이 판정선 이상 & 통과 \\
+    \midrule
+    줄어든 양이 판정선 미만 & 실패(효과 없음). 가드가 통과하면 코드는 남긴다 (U3) \\
+    \midrule
+    늘어난 양이 판정선 이상 & 회귀(regression). 되돌림 (U4) \\
+    \midrule
+    판정선 입력이 빠짐 & 판정 불가. 대체 판정을 만들지 않는다 (U1) \\
+    \bottomrule
+  \end{tabularx}
+  % src: criteria.md §1 U1, U3, U4 rows; cc.design.md §19.4
+\end{table}
+
+\paragraph{가드(guard).}
+가드는 모든 단위에서 깨지면 안 되는 선이다. 하나라도 깨지면 단위를 되돌린다.
+\begin{table}[H]
+  \caption{이 장에서 쓰는 가드.}
+  \label{tab:re-guards}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{1.4cm} Y Y@{}}
+    \toprule
+    ID & 무엇을 보나 & 통과 기준 \\
+    \midrule
+    G-a & 10초 창 최대 요청 수 & 기준선 + 20\,\% 이하. Cloudflare 한도는 50 / 10\,s (\decision{68}) \\
+    \midrule
+    G-b & 메뉴 링크 1개당 prefetch 수 & 기준선보다 늘지 않음 \\
+    \midrule
+    G-f & 콘솔 hydration 오류 & 0 \\
+    \midrule
+    G-j & 서버 fetch 수 / MISS 렌더 & 13 이하 \\
+    \bottomrule
+  \end{tabularx}
+  % src: criteria.md §2 rows G-a, G-b, G-f, G-j
+\end{table}
+
+\paragraph{W1 걸음.}
+\Cref{fig:re-w1}이 측정에 쓴 6걸음을 보인다.
+브라우저가 걸음마다 \texttt{[nav]} 줄에 이동 시간(ms)을 남긴다.
+팔(arm)은 익명과 로그인, 왼쪽 rail 펼침과 접힘의 조합이다.
+U3와 U4는 로그인 펼침 팔로 판정한다.
+% src: cc.design.md §16.3, §17.1, §17.2
+
+\begin{figure}[H]
+  \centering
+  \resizebox{\linewidth}{!}{%
+  \begin{tikzpicture}[font=\scriptsize]
+    \node[flowbox, minimum width=2.2cm] (s1) at (0,0) {s1\\문서 load \texttt{/}};
+    \node[flowbox, minimum width=2.2cm] (s2) at (3,0) {s2\\posts};
+    \node[flowbox, minimum width=2.2cm] (s3) at (6,0) {s3\\projects};
+    \node[flowbox, minimum width=2.2cm] (s4) at (9,0) {s4\\project};
+    \node[flowbox, minimum width=2.2cm] (s5) at (12,0) {s5\\글 상세};
+    \node[flowbox, minimum width=2.2cm] (s6) at (15,0) {s6\\홈 \texttt{/}};
+    \foreach \a/\b in {s1/s2,s2/s3,s3/s4,s4/s5,s5/s6} \draw[flowarrow] (\a) -- (\b);
+    \draw[<->, black!60] (2,-0.9) -- (16,-0.9)
+      node[midway, below=2pt] {s2--s6의 \texttt{[nav]} 합 = U4 주 지표};
+  \end{tikzpicture}}
+  \caption{W1 걸음 6개. U3는 s5 하나, U4는 s2--s6 합을 잰다.}
+  \label{fig:re-w1}
+  % src: cc.design.md §16.3, §17.2
+\end{figure}
+
+\section{QW1: 서버 fetch 중복 제거}\label{sec:re-qw1}
+
+\paragraph{결과.}
+통과다. MISS 렌더 1회의 서버 fetch 수가 19에서 13으로 줄었다.
+판정선은 $\max(0\times 2,\ 2)=2$다. 줄어든 수는 6이다.
+% src: cc.report.md QW1; criteria.md §1 QW1 row
+
+\begin{table}[H]
+  \caption{QW1의 서버 fetch 수. 기준은 19 / 19 / 19다.}
+  \label{tab:re-qw1}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{2.2cm} r r r@{}}
+    \toprule
+    run & 값 & valid & VM 메모리 (\%) \\
+    \midrule
+    \texttt{qw1\_1} & 13 & 2/3 & 53.4 \\
+    \midrule
+    \texttt{qw1\_2} & 13 & 3/3 & 53.4 \\
+    \midrule
+    \texttt{qw1\_3} & 13 & 3/3 & 53.8 \\
+    \bottomrule
+  \end{tabularx}
+  % src: cc.report.md QW1 table
+\end{table}
+
+\paragraph{왜.}
+감사의 C1은 영향 H다. 같은 읽기가 한 요청 안에서 여러 번 나갔다.
+Next의 fetch 중복 제거(memoization)는 \code{signal}이 있으면 꺼진다.
+이 앱의 \code{composeSignal}은 언제나 signal을 붙인다.
+그래서 모든 서버 fetch가 요청마다 따로 나갔다.
+C3(댓글이 본문을 막음), C2의 \code{/@u/posts} 절반, A3, B2도 같은 단위에 들어 있다.
+% src: perf.audit.md C1 영향; cc.design.md §2 (dedupe-fetch.js 88-96), §12 닫는 단위
+
+\paragraph{무엇.}
+설계 \S7이 정한 변경은 다섯이다.
+\begin{enumerate}[nosep]
+  \item \code{PostContentCard.server.tsx}의 \code{<Comments>}를 Suspense로 감싼다.
+  \item \code{getUserProfile} 등 fetcher 4개를 \code{cache()}로 감싼다.
+  \item \code{posts/page.tsx}의 \code{getTagFilterItems}를 async 잎으로 옮긴다.
+  \item \code{CategorySidebarWrapper}를 Suspense로 감싼다.
+  \item \code{post.action.ts}를 \code{x_post.action.ts}로 바꾼다.
+\end{enumerate}
+보고서가 확인한 것은 \code{cache(}와 Suspense 분리뿐이다.
+항목별 코드 확인은 기록 없음이다.
+% src: cc.design.md §7 QW1 row; cc.report.md QW1 What
+
+\paragraph{어떻게.}
+\begin{enumerate}[nosep]
+  \item 서버가 요청마다 \code{ssr_fetch} 로그 줄을 남긴다.
+  \item \code{?cb=} 새 값으로 엣지를 MISS로 만든다.
+  \item 세 페이지(\code{/}, \code{/@taeklim/posts}, \code{/@taeklim/<S>})의 줄을 MISS 창마다 센다.
+  \item 창 안에 다른 요청이 섞이면 오염으로 보고 그 창을 뺀다.
+\end{enumerate}
+예: \code{qw1_1}은 오염 창 3개를 빼서 valid 2/3이다. 값은 13으로 같았다.
+이후 U2와 U3에서는 12 / 12 / 12다(home 3, posts 5, post 4). posts가 6에서 5로 준 원인은 기록 없음이다.
+% src: cc.design.md §14.2; 00.runs.md §1 row 6, §2.1 notes; cc.report.md U2
+
+\paragraph{언제 효과가 있나.}
+지표는 MISS 렌더 1회의 fetch 수다. 시간(ms)이 아니다.
+fetch마다 지연은 재지 않았다(기록 없음).
+익명 GET은 엣지 HIT라 싸다. 로그인 요청은 Express까지 간다.
+% src: perf.audit.md §5 items 6; criteria.md §1 QW1 row
+
+\paragraph{왜 중요한가.}
+감사는 이 영향을 H로 적었다. Express와 Supabase 부하가 줄고, 로그인 요청은 엣지를 못 탄다.
+% src: perf.audit.md C1 상태 줄
+
+\section{QW2: rail 접힘 폭 hotfix}\label{sec:re-qw2}
+
+\paragraph{결과.}
+판정 미완이다. 이진 판정 셋 중 둘이 참이고 하나는 미측정이다.
+\begin{table}[H]
+  \caption{QW2 판정 셋. 셋 모두 참이어야 통과다.}
+  \label{tab:re-qw2}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}Y L{2.4cm} L{2.4cm}@{}}
+    \toprule
+    판정 & 기준선 & QW2 뒤 \\
+    \midrule
+    (1) rail 폭 class가 쿠키와 무관 & 거짓 $\times$3 & 참 3/3 \\
+    \midrule
+    (2) 쿠키 1인의 첫 paint가 접힘 & 미측정 & 미측정 \\
+    \midrule
+    (3) hydration 오류 0 & 0, 네 그룹 & 0, 네 그룹 (run 1회) \\
+    \bottomrule
+  \end{tabularx}
+  % src: cc.report.md QW2 table
+\end{table}
+(2)는 첫 paint 스크린샷이 없다. 기록 없음이다.
+
+\paragraph{왜.}
+감사의 D1이다. Cloudflare cache key는 쿠키를 보지 않는다.
+\code{railCollapsed}는 bypass 규칙에 없다.
+첫 MISS 방문자의 접힘 상태가 하루 동안 모든 익명 독자에게 간다.
+\Cref{ch:cross}는 재현이 없다고 썼다. 기준선 (1)이 거짓 $\times$3이어서 이제 재현됐다.
+% src: perf.audit.md D1 Why; criteria.md §1 QW2 row (D1 재현)
+
+\paragraph{무엇.}
+설계 \S4.3의 R-A안이다.
+\begin{itemize}[nosep]
+  \item root layout의 차단 inline script가 쿠키를 읽어 \code{<html data-rail>}을 쓴다.
+  \item 폭은 CSS가 정한다. 서버는 쿠키를 더 읽지 않는다.
+  \item \code{BlogShell.server.tsx}와 \code{LeftRailContainer.server.tsx}의 \code{cookies()}를 지운다.
+  \item \code{useHydrateAtoms} 두 곳을 지운다.
+\end{itemize}
+감사의 \code{useEffect}안은 쓰지 않았다. 접힘 사용자의 첫 화면 폭이 한 번 바뀌기 때문이다(\decision{86}).
+삭제 자체를 확인한 grep은 기록 없음이다.
+% src: cc.design.md §4.3, §7 QW2 row, §13; decisions.plan.md #86
+
+\paragraph{어떻게.}
+\begin{enumerate}[nosep]
+  \item 익명 MISS \code{/?cb=X}의 \code{<aside>} class 문자열을 쿠키 유무로 비교한다(\code{rail_width_same}).
+  \item 브라우저 콘솔의 hydration 오류를 센다.
+  \item 쿠키 1인의 첫 paint를 스크린샷으로 본다. 이것이 빠졌다.
+\end{enumerate}
+% src: criteria.md §1 QW2 row
+
+\paragraph{언제 효과가 있나.}
+HTML이 쿠키와 무관하므로 엣지가 어느 방문자의 HTML을 저장해도 같다.
+배포 뒤 purge가 필수다. 옛 폭이 엣지에 1일 남기 때문이다.
+접힘 쿠키 사용자의 첫 paint가 접힘인지는 확인하지 못했다.
+% src: cc.design.md §7 QW2 row (배포 + purge), criteria.md §1 QW2 (2)
+
+\paragraph{왜 중요한가.}
+지금 모든 익명 독자에게 보이는 정확성 버그였다. 영향은 M이다.
+% src: cc.design.md §7 note after table; perf.audit.md D1
+
+\section{U1: 공유 rail}\label{sec:re-u1}
+
+\paragraph{결과.}
+판정 불가다. 대체 판정을 만들지 않았다. 가드는 통과했다.
+\begin{table}[H]
+  \caption{U1 (\texttt{3596e4c})의 가드와 바이트 지표.}
+  \label{tab:re-u1}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}Y L{4.4cm}@{}}
+    \toprule
+    칸 & 값 \\
+    \midrule
+    G-f hydration 오류 & 0 \\
+    \midrule
+    G-a 10초 최대 요청 수 & 최대 36 (한도 50) \\
+    \midrule
+    G-b prefetch 최대 & 익명 2, 로그인 2 \\
+    \midrule
+    익명 expanded \code{rsc_bytes_w1} & 270469 / 270469 / 10641 B (null을 0으로 셈) \\
+    \midrule
+    재구성 합 (기록만) & 317713 $\to$ 289489 B \\
+    \bottomrule
+  \end{tabularx}
+  % src: cc.report.md U1 판정 table; u1-verdict.md §0, §4.6
+\end{table}
+판정선 입력이 둘 빠졌다. 기준 run이 1개라 범위가 없고, rail 조각 크기는 기록 없음이다.
+\decision{99}가 운영 재배포 없이 가드로 닫았다. 오너 확인은 아직 없다(\decision{103}).
+% src: u1-verdict.md §1.2; decisions.plan.md #99, #103 (3)
+
+\paragraph{왜.}
+감사의 D6이다. rail이 형제 layout 6곳에 있어 이동마다 rail RSC를 다시 받았다.
+\code{TagCloud}의 \code{getPopularTags}도 매번 나갔다.
+% src: perf.audit.md D6 Why
+
+\paragraph{무엇.}
+\begin{itemize}[nosep]
+  \item U1a: \code{app/[handle]/components/}를 \code{components/projects/}(11개 파일)로 옮겼다.
+  \item U1b: 왼쪽 rail을 \code{(shell)/layout.tsx}에서 한 번 그린다.
+  \item U1c: \code{HomeRightRail}을 \code{(feed)/layout.tsx}와 \code{[handle]/(rail)/layout.tsx} 두 곳에서 쓴다(\decision{94}).
+\end{itemize}
+% src: cc.report.md U1a, U1b, U1c; decisions.plan.md #94
+
+\paragraph{어떻게.}
+\begin{enumerate}[nosep]
+  \item 코드 grep으로 \code{RailFrame} 사용처를 센다. \code{(shell)/layout.tsx} 1개다.
+  \item 운영 GET으로 \code{<aside>} 수를 센다. 200 페이지 7개가 각 1개, 404 페이지는 0개다.
+  \item 익명 W1의 \code{text/x-component} 바이트 합으로 줄어든 양을 본다. 이것이 결함이었다(\Cref{sec:le-null}).
+\end{enumerate}
+% src: cc.report.md U1b table; u1-verdict.md §1
+
+\paragraph{언제 효과가 있나.}
+공유 layout 아래에서 옮겨 다닐 때만 rail을 다시 그리지 않는다.
+글 상세(\code{/@taeklim/<S>})와 about은 공유 오른쪽 rail 밖이다(\code{data-right-rail} 0).
+U1c가 노린 s3 감소는 바이트에 보이지 않았다. s3은 +821 B다.
+% src: cc.report.md U1c table; u1-verdict.md §3.5
+
+\paragraph{왜 중요한가.}
+D6의 영향은 M이다. 이동마다 shell을 다시 만들지 않는 구조가 CC의 전제다.
+익명 이동 시간 합이 241에서 380 ms로 늘었다. 원인은 기록 없음이다.
+% src: perf.audit.md D6; u1-verdict.md §4.2, §4.5
+
+\section{U2: staleTimes}\label{sec:re-u2}
+
+\paragraph{결과.}
+통과다. 익명 expanded의 s6 \code{_rsc} 비prefetch 요청이 1 1 1에서 0 0 0이 됐다.
+판정선은 $\max(0\times 2,\ 1)=1$이다.
+\begin{table}[H]
+  \caption{U2의 판정과 기록. U1 (\texttt{3596e4c})과 U2 (\texttt{c26c69d}).}
+  \label{tab:re-u2}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}Y L{2.6cm} L{2.6cm}@{}}
+    \toprule
+    칸 & U1 & U2 \\
+    \midrule
+    익명 expanded s6 \texttt{\_rsc} 비prefetch & 1 1 1 & 0 0 0 \\
+    \midrule
+    로그인 expanded s5 글 이동 (ms) & 401 338 341 & 317 403 307 \\
+    \midrule
+    hydration 오류 & 0 & 0 \\
+    \midrule
+    G-a (익명 / 로그인) & 최대 36 & 22 / 35 \\
+    \midrule
+    curl 서버 fetch 수 & 미측정 & 12 / 12 / 12 \\
+    \bottomrule
+  \end{tabularx}
+  % src: cc.report.md U2 table
+\end{table}
+유효 조건은 s1에서 s6까지 25초 미만이다. 익명 expanded는 8.25--8.30초라 run 3개가 모두 유효하다.
+% src: cc.report.md U2 유효 조건; criteria.md §1 U2 row
+
+\paragraph{왜.}
+감사의 A6이다. 동적 page의 router cache 보존 시간이 기본 0초다.
+같은 page로 돌아가도 다시 받는다. 이 요청은 Cloudflare 50 / 10\,s 한도에도 든다.
+% src: perf.audit.md A6 Why, 상태 줄
+
+\paragraph{무엇.}
+\code{next.config.ts}에 \code{staleTimes: { dynamic: 30 }}을 넣었다.
+\code{static}은 두지 않았다.
+% src: cc.report.md U2 What; cc.design.md §7 U2 row
+
+\paragraph{어떻게.}
+\begin{enumerate}[nosep]
+  \item hydration이 \code{/}를 router cache에 쓴다. 신선한 시간은 적재 시각에 30초를 더한 때까지다.
+  \item s6에서 \code{/}로 돌아올 때 아직 신선하면 \code{_rsc} 요청이 나가지 않는다.
+  \item 주 지표는 s6의 \code{_rsc} 비prefetch 수다.
+\end{enumerate}
+옛 지표(W2 뒤로 가기 3회의 \code{_rsc} 수)는 움직일 수 없어 바꿨다(\decision{96}).
+% src: cc.design.md §16.3, §16.4; decisions.plan.md #96
+
+\paragraph{언제 효과가 있나.}
+\begin{itemize}[nosep]
+  \item 30초 안에 같은 링크를 다시 누를 때만 듣는다. W1에서는 s6 하나다.
+  \item 뒤로 가기와 앞으로 가기(back/forward)에는 효과가 없다. 이 이동은 stale 시간을 보지 않는다.
+  \item \code{cacheComponents}를 켠 뒤에도 \code{dynamic}은 계속 듣는다.
+  \item 좋아요 수나 제목 수정이 최대 30초 늦게 보일 수 있다. 앱에 \code{revalidatePath}, \code{revalidateTag}, \code{router.refresh} 호출이 없다.
+\end{itemize}
+좋아요 뒤 재클릭 고의 확인은 기록 없음이다.
+같은 배포에 header tone 15\,\%와 filter chips가 함께 들어갔다.
+% src: cc.design.md §16.1, §16.6, §16.7; cc.report.md U2 나쁜 점
+
+\paragraph{왜 중요한가.}
+감사는 영향을 M으로 적었다. 요청 수가 줄면 G-a 여유가 생긴다.
+% src: perf.audit.md A6 상태 줄
+
+\section{U3: 잎 정리}\label{sec:re-u3}
+
+\paragraph{결과.}
+사전 등록 판정은 실패다. 가드가 모두 통과해 코드는 남겼다.
+로그인 expanded의 s5 글 이동이 317에서 174 ms로 줄었다. 줄어든 양은 143이다.
+판정선은 192다(\Cref{sec:re-read}).
+\begin{table}[H]
+  \caption{U3의 판정과 기록. U2 (\texttt{c26c69d})와 U3 (\texttt{0ac938c}).}
+  \label{tab:re-u3}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}Y L{2.8cm} L{2.8cm}@{}}
+    \toprule
+    칸 & U2 & U3 \\
+    \midrule
+    로그인 expanded s5 글 이동 (ms) & 317 403 307 $\to$ 317 & 176 174 169 $\to$ 174 \\
+    \midrule
+    범위 (ms) & 96 & 7 \\
+    \midrule
+    로그인 expanded s2--s6 합 (ms) & 527 & 343 (338--348) \\
+    \midrule
+    익명 expanded s5 (ms) & 73 & 45 \\
+    \midrule
+    hydration 오류 & 0 & 0 \\
+    \midrule
+    G-a (익명 / 로그인) & 22 / 35 & 22 / 35 \\
+    \bottomrule
+  \end{tabularx}
+  % src: cc.report.md U3 table
+\end{table}
+% src: cc.report.md U3 Result; criteria.md §1 U3 (rev2.2) row
+
+\paragraph{왜.}
+감사의 A7이다. \code{[slug]/layout.tsx}가 \code{getProjectsTree}를 \code{loading.tsx} 위에서 await한다.
+클릭해도 skeleton이 늦게 보인다. 글 상세는 가장 많이 여는 page다.
+U4에서 \code{cacheComponents}를 켜기 전에 layout을 정리해야 한다.
+% src: perf.audit.md A7; cc.report.md U3 Why
+
+\paragraph{무엇.}
+layout의 데이터 읽기를 Suspense 잎으로 옮겼다. 빌드만 점검하는 잡도 만들었다.
+설계 \S7은 \code{RightRailSwitch}, 로그인 글 preload, \code{MobileContextHeader} Suspense를 정했다.
+아직 남은 것이 있다. \code{[slug]/layout.tsx} 40--46행이 맨 위에서 \code{auth()}와 글 읽기를 await한다.
+이것은 AC2 미충족이고 CC-U3-2로 열려 있다.
+% src: cc.report.md U3 What, 나쁜 점; cc.design.md §7 U3 row
+
+\paragraph{어떻게.}
+주 지표는 로그인 expanded s5의 \code{[nav]} 값이다. run 값 3개의 중앙값을 쓴다.
+브라우저 \code{[nav]} 값만 판정에 쓴다. curl 지연은 쓰지 않는다.
+% src: decisions.plan.md #88 Update 2; criteria.md §1 U3 row
+
+\paragraph{언제 효과가 있나.}
+효과는 글 상세 이동 하나에 모인다. 익명 s5도 73에서 45 ms로 줄었다(기록만).
+판정선 192가 큰 까닭은 기준 run 2의 403 ms다. 손으로 줄이지 않는다.
+실제 감소 143은 판정선 192에 못 미쳤다.
+% src: criteria.md §1 U3 row 마지막 칸; cc.design.md §17.2
+
+\paragraph{왜 중요한가.}
+글 상세는 가장 많이 여는 page다(A7 영향 M). U4의 필수 준비이기도 하다.
+% src: perf.audit.md A7 상태 줄; criteria.md §1 U3 row
+
+\section{U4: cacheComponents}\label{sec:re-u4}
+
+\paragraph{결과.}
+실패다. 시도는 두 번이었고 둘 다 운영에서 되돌렸다.
+시도 1은 알 수 없는 경로가 운영에서 HTTP 500이었다.
+시도 2는 경로표 25행이 모두 맞았지만 로그인 이동 시간이 329에서 434 ms로 늘었다(회귀, regression).
+\begin{table}[H]
+  \caption{U4 시도 2 (\texttt{f122265})의 판정과 가드. 비교 기준은 \texttt{0ac938c} 위 하네스 v2다.}
+  \label{tab:re-u4}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}Y L{2.6cm} L{2.6cm}@{}}
+    \toprule
+    칸 & 기준 v2 & U4 시도 2 \\
+    \midrule
+    로그인 expanded s2--s6 합 (ms) & 295 / 329 / 329 $\to$ 329 & 482 / 421 / 434 $\to$ 434 \\
+    \midrule
+    범위 (ms) & 34 & 61 \\
+    \midrule
+    판정선 (통과는 261 이하) & 68 & 감소 $-105$, 실패 \\
+    \midrule
+    G-a 로그인 10초 최대 요청 수 & 35 & 53 / 50 / 50 \\
+    \midrule
+    G-b 메뉴 링크당 prefetch 최댓값 & 2 & 6 \\
+    \midrule
+    s1 prefetch 수 (로그인) & 13 & 32 \\
+    \midrule
+    익명 expanded 합 (ms) & 218 & 201 \\
+    \bottomrule
+  \end{tabularx}
+  % src: u4-verdict.md §0, §2.1, §2.2, §3; cc.report.md MVP2
+\end{table}
+% src: cc.report.md MVP2 요약, 시도 2
+
+\paragraph{왜.}
+감사의 A1, A4, A5다. S1 글의 핵심 처방은 static shell을 prefetch하고 cache하는 것이다.
+이것이 CC의 목표(G-CC)인 로그인 이동 시간 단축의 주 수단이었다.
+오너 제약도 있다. 모르는 page는 진짜 HTTP 404여야 한다(\decision{89}).
+% src: perf.audit.md A5; decisions.plan.md #89, #97, criteria.md §1 U4 row
+
+\paragraph{무엇.}
+\code{cacheComponents: true}를 켰다. blog route의 \code{force-dynamic} 6줄을 지웠다.
+\code{proxy.ts}에 존재 검사(gate)를 넣어 없는 page를 렌더 전에 404로 보낸다(\decision{97}).
+코드는 branch \code{cc-u4}에 있고 main에는 없다.
+% src: decisions.plan.md #97; u4-preview.md "What U4 must do"; cc.report.md MVP2 시도 1
+
+\paragraph{어떻게.}
+설계 \S19의 A-B-A 묶음으로 다시 쟀다(\Cref{sec:re-u4-aba}).
+시도 2는 하네스 v2의 브라우저 run 3회를 기준과 비교했다.
+% src: cc.design.md §19; u4-verdict.md §1
+
+\paragraph{언제 효과가 있나.}
+익명 이동은 엣지 HIT라 오리진 변화가 안 보인다. 익명 합은 218에서 201 ms로 줄었다.
+로그인 이동은 \cfs{DYNAMIC}이라 매번 오리진에 간다. 느려진 곳은 로그인 s4(+34)와 s5(+95) 둘뿐이다.
+% src: u4-verdict.md §2.1, §2.3
+
+\paragraph{왜 중요한가.}
+이 단위가 G-CC의 판정 단위다. 통과하지 못하면 U5와 U6이 시작하지 못한다.
+% src: decisions.plan.md #100, #102 Consequences (2)
+
+\subsection{시도 1: 운영 500}\label{sec:re-u4-a1}
+
+\paragraph{결과.}
+\code{/nope}, \code{/zzz-unknown}, \code{/foo/bar}가 운영에서 500이었다(본문 21 B, cf \cfs{BYPASS}).
+개발 서버(\code{next dev})에서는 404였다. 배포 \code{535b931}을 \code{7b4a138}로 되돌렸다.
+\begin{table}[H]
+  \caption{시도 1의 운영 경로 점검.}
+  \label{tab:re-u4-a1}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}Y L{3.6cm}@{}}
+    \toprule
+    경로 종류 & 운영 결과 \\
+    \midrule
+    없는 사용자, 프로젝트, 글 (문서와 \texttt{\_rsc}) & 진짜 404 \\
+    \midrule
+    익명의 \texttt{me}, \texttt{saved}, 비공개 글 & 진짜 404 \\
+    \midrule
+    실제 페이지 & 200, 정상 \\
+    \midrule
+    \texttt{/nope}, \texttt{/zzz-unknown}, \texttt{/foo/bar} & \textbf{500} (21 B) \\
+    \bottomrule
+  \end{tabularx}
+  % src: cc.report.md MVP2 시도 1 table
+\end{table}
+로그에는 요청 오류 6개가 있었다. 모두 \code{Invalid revalidate configuration provided: 0 < 1}이다.
+% src: diagnosis-data.md §0
+
+\paragraph{왜(원인).}
+\Cref{fig:re-u4-500}이 흐름을 보인다.
+\begin{enumerate}[nosep]
+  \item \code{/nope}는 \code{(shell)/[handle]}에 맞는다. \code{generateStaticParams}가 있어 증분 정적 생성(ISR) 경로로 렌더된다.
+  \item \code{HandleLayout}이 Suspense 밖에서 \code{notFound()}를 던진다.
+  \item Next가 404 화면을 \code{prerender-legacy} 저장소로 다시 렌더한다.
+  \item 거기서 \code{TagCloud}의 \code{no-store} fetch가 \code{revalidate = 0}을 남긴다. \code{TagCloud}의 catch가 신호 오류를 삼킨다.
+  \item 핸들러가 ISR 경로에서 \code{0 < 1}을 보면 오류를 던진다. 응답은 500이다.
+\end{enumerate}
+\code{next dev}는 이 검사 블록을 건너뛴다(\code{app-page.js:982}). 그래서 개발에서는 404가 나왔다.
+% src: diagnosis-architect.md §0, §1
+
+\begin{figure}[H]
+  \centering
+  \resizebox{\linewidth}{!}{%
+  \begin{tikzpicture}[font=\scriptsize]
+    \node[flowbox, minimum width=2.8cm] (a) at (0,0) {\texttt{GET /nope}\\ISR 경로로 렌더};
+    \node[flowbox, minimum width=2.8cm] (b) at (3.8,0) {\texttt{HandleLayout}\\Suspense 밖\\\texttt{notFound()}};
+    \node[flowbox, minimum width=2.8cm] (c) at (7.6,0) {404 화면을\\legacy 저장소로\\다시 렌더};
+    \node[badbox, minimum width=2.8cm] (d) at (11.4,0) {\texttt{TagCloud} no-store\\\texttt{revalidate = 0}};
+    \node[badbox, minimum width=2.8cm] (e) at (15.2,0) {\texttt{0 < 1} 오류\\HTTP 500};
+    \draw[flowarrow] (a) -- (b); \draw[flowarrow] (b) -- (c);
+    \draw[flowarrow] (c) -- (d); \draw[flowarrow] (d) -- (e);
+    \node[flowalt, minimum width=3.6cm] (dev) at (15.2,-1.8) {\texttt{next dev}는 이 검사를 건너뜀\\404};
+    \draw[flowarrow, dashed] (d) -- (dev);
+  \end{tikzpicture}}
+  \par\smallskip{\centering\scriptsize \flowkey{badbox} 실패가 생기는 단계 \quad \flowkey{flowalt} 개발 서버\par}
+  \caption{시도 1의 500 경로. 운영은 마지막에 500이고 개발 서버는 404다.}
+  \label{fig:re-u4-500}
+  % src: diagnosis-architect.md §1
+\end{figure}
+
+\paragraph{무엇(수정 A2).}
+\begin{itemize}[nosep]
+  \item proxy가 점이 든 경로까지 처리한다. 최상위 segment 허용 목록을 둔다.
+  \item 주인이 아닌 handle의 \code{/about}, \code{/resume}은 proxy에서 404로 보낸다.
+  \item 배포 전에 운영과 같은 standalone \code{server.js}를 GitHub Actions에서 돌려 경로표를 \code{curl}로 친다.
+\end{itemize}
+후보 A(허용 목록만)는 10/11이었다. \code{/xmlrpc.php}가 500이었다(run 38538786010).
+A2는 24/25행 통과, 로그의 \code{Invalid revalidate} 0건이었다(run 38539359383, \code{cc-u4} \code{3369fe8}).
+빠진 1행은 \code{/@taeklim/<slug>/opengraph-image}다. 기대 200, 결과 404였다.
+이전 운영(\code{7b4a138})도 같은 404여서 기대값이 틀렸다.
+음성 대조(\code{efe7eed})는 \code{/nope} 500을 재현했다.
+% src: cc.report.md MVP2 수정 A2; diagnosis-architect.md §7
+
+\subsection{시도 2: 회귀와 한도}\label{sec:re-u4-a2}
+
+\paragraph{결과.}
+A2를 합친 \code{f122265}를 배포했다. 경로표 25행은 모두 맞았다. 판정은 실패다.
+\Cref{tab:re-u4}가 값을 보인다. 단계별로 보면 느려진 곳은 로그인 s4와 s5다.
+\begin{table}[H]
+  \caption{로그인 expanded 단계 중앙값 (ms). 기준 v2와 U4 시도 2.}
+  \label{tab:re-u4-steps}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}Y r r r@{}}
+    \toprule
+    단계 & 기준 v2 & U4 & 차이 \\
+    \midrule
+    s2 posts & 20 & 18 & $-2$ \\
+    \midrule
+    s3 projects & 21 & 21 & 0 \\
+    \midrule
+    s4 project & 105 & 139 & \textbf{+34} \\
+    \midrule
+    s5 post & 142 & 237 & \textbf{+95} \\
+    \midrule
+    s6 home & 21 & 20 & $-1$ \\
+    \midrule
+    합 (단위 값) & 329 & 434 & \textbf{+105} \\
+    \bottomrule
+  \end{tabularx}
+  % src: u4-verdict.md §2.1
+\end{table}
+
+\paragraph{prefetch가 세 배로 늘었다.}
+메뉴 링크 1개당 prefetch 최댓값이 2에서 6으로 늘었다(G-b 실패).
+10초 창 최대 요청 수는 로그인에서 53 / 50 / 50이다. Cloudflare 한도 50 / 10\,s에 닿거나 넘는다(G-a 실패).
+실제 로그인 사용자가 막힐 수 있다.
+% src: u4-verdict.md §3 G-a, G-b rows
+
+\paragraph{판별.}
+메뉴 prefetch 폭증(s1 13 $\to$ 32)은 바로 다음 s2, s3을 늦추지 않았다.
+그래서 당시에는 구조 가설 H-S(\code{cacheComponents} 아래 로그인 오리진 렌더가 느려짐)가 우세했다.
+H-C(라우터 segment prefetch가 오리진에서 이동 렌더와 경합)는 열려 있었다.
+이 판단은 \Cref{sec:re-u4-state}의 흔들림 대조로 약해졌다.
+% src: u4-verdict.md §4.3
+
+\subsection{정지 이후: 선택지 (b)와 결정 \#103}\label{sec:re-u4-state}
+
+\paragraph{정지.}
+주 지표와 가드가 모두 실패해 K3로 멈췄다. recovery는 1/2다(\decision{102}).
+운영은 \code{cacheComponents}가 꺼진 상태다. 마지막 배포는 U7 \code{964c9f8}이다.
+% src: decisions.plan.md #102; cc.report.md MVP2 정지
+
+\paragraph{흔들림(drift).}
+U4 코드가 없는 운영 \code{964c9f8}에서 같은 W1을 다시 쟀다. 값은 476 ms였다(459 / 623 / 476).
+07:44의 기준 329 ms와 W1 코드 경로가 같다. 그래서 차이 약 +150 ms는 환경 흔들림이다.
+결과 1: 시도 2의 이동 판정(434 대 329)은 교란됐다. 회귀의 근거가 아니다. H-S는 약해졌다.
+결과 2: G-a와 G-b 실패는 개수 기반이라 그대로다. K3 정지와 되돌림도 그대로다.
+기록된 FAIL은 고치지 않는다. 주석만 단다. 주 지표의 원인은 흔들림과 섞였다. kill은 G-a, G-b 실패로 유지된다.
+% src: decisions.plan.md #102 Update, #88 Update 4 (12); cc.design.md §19.1, §19.2
+
+\paragraph{오너의 다음 길.}
+\begin{table}[H]
+  \caption{\decision{102}의 선택지. 오너가 (b)를 골랐다(\decision{104}).}
+  \label{tab:re-u4-opts}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{0.9cm} Y@{}}
+    \toprule
+    안 & 내용 \\
+    \midrule
+    (a) & S-CC B를 다시 본다. \code{cacheComponents}는 끄고 로그인 속도는 다른 단위로 찾는다. \\
+    \midrule
+    (b) & recovery 2/2를 연다. flag 아래 hover 전용 prefetch(\decision{70} c)와 H-C 측정을 한다. \\
+    \midrule
+    (c) & Phase CC를 MVP1 뒤에서 멈추고 U7로 닫는다. \\
+    \bottomrule
+  \end{tabularx}
+  % src: cc.report.md MVP2 정지; decisions.plan.md #102
+\end{table}
+main session이 (b)를 권고했다. 오너가 go를 줬고 recovery 2/2를 열었다(\decision{104}).
+T build는 branch \code{cc-u4-t}다. 결과는 \Cref{sec:re-u4-aba}에 있다.
+% src: decisions.plan.md #102 Update, #103 (4)
+
+\paragraph{A-B-A 묶음.}
+다음 run 전에 비교 방법을 고정했다(\decision{88} Update 4).
+\Cref{fig:re-aba}가 순서를 보인다. 첫 run부터 마지막 run까지 60분 이내여야 한다.
+\begin{figure}[H]
+  \centering
+  \resizebox{\linewidth}{!}{%
+  \begin{tikzpicture}[font=\scriptsize]
+    \node[flowalt, minimum width=2.8cm] (c1) at (0,0) {C1\\현재 운영 build\\5 run};
+    \node[flownew, minimum width=2.8cm] (t) at (4.4,0) {T\\U4 build 배포 + purge\\5 run};
+    \node[flowalt, minimum width=2.8cm] (c2) at (8.8,0) {C2\\대조 build 되돌림 + purge\\5 run};
+    \draw[flowarrow] (c1) -- (t); \draw[flowarrow] (t) -- (c2);
+    \node[lbl] at (4.4,-1.2) {블록마다 warmup 1회를 버림. 전체 60분 이내};
+  \end{tikzpicture}}
+  \flowlegend
+  \caption{A-B-A 묶음. 대조(C)와 처리(T)가 같은 시간대를 나눠 쓴다.}
+  \label{fig:re-aba}
+  % src: cc.design.md §19.3
+\end{figure}
+\begin{enumerate}[nosep]
+  \item 유효 조건은 $d=|m(C1)-m(C2)|\le 0.10\,\tilde c$다. $\tilde c$는 대조 10 run의 중앙값이다.
+  \item 판정선은 $L=\max(2d,\ 0.10\,\tilde c)$다.
+  \item 통과는 $\tilde c-m(T)\ge L$, $m(T)<\min(m(C1),m(C2))$, T 5 run 중 4개 이상이 $\tilde c$ 미만이다.
+  \item G-a나 G-b가 실패하면 주 지표와 무관하게 되돌린다.
+\end{enumerate}
+묶음 결과는 \Cref{sec:re-u4-aba}에 있다.
+% src: cc.design.md §19.4; criteria.md §1 U4 (rev2.3) row
+
+\paragraph{결정 \#103.}
+오너가 \decision{98}을 (b)로 뒤집었다. 로그인 상태의 RSC 이동도 proxy가 존재 검사를 한다.
+없는 page는 로그인이어도 404다. 비용은 로그인 이동마다 Express 호출 1회가 늘어나는 것이다.
+이 비용은 \code{w1_nav_ms_s2_s6}와 G-a에 영향을 준다. 적용 위치는 branch \code{cc-u4}의 proxy gate다.
+main은 \code{cacheComponents}가 꺼져 \code{notFound()}가 이미 404를 낸다.
+G-CC 날짜는 2026/10/14다. 오늘 U4가 A-B-A로 통과하지 못하면 G-CC는 미달로 닫는다.
+\decision{99}는 오너가 되물어 확정 전이다.
+% src: decisions.plan.md #103 (1)-(4)
+
+\subsection{A-B-A 묶음 결과: 주 지표 무효}\label{sec:re-u4-aba}
+
+\paragraph{결과.}
+주 지표 \code{w1_nav_ms_s2_s6}(로그인 expanded)는 무효이고 판정이 없다.
+같은 대조 build의 두 블록 차 $d$가 유효 한도를 넘었다(\Cref{tab:re-aba}).
+가드 G-a와 G-b는 T 5 run 모두 통과다.
+G-CC는 미달로 닫는다(\decision{105}). 운영은 \code{964c9f8} 그대로다.
+\begin{table}[H]
+  \caption{A-B-A 묶음의 유효 검사. 대조 build는 \texttt{964c9f8}이다.}
+  \label{tab:re-aba}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{3.2cm} Y@{}}
+    \toprule
+    칸 & 값 \\
+    \midrule
+    C1 run 값 (ms) & 643 / 1134 / 526 / 560 / 1307, 중앙값 643 \\
+    \midrule
+    C2 run 값 (ms) & 661 / 2278 / 528 / 1946 / 1177, 중앙값 1177 \\
+    \midrule
+    $\tilde c$ (대조 10 run 중앙값) & 897.5 \\
+    \midrule
+    유효 한도 $0.10\,\tilde c$ & 89.75 \\
+    \midrule
+    $d=|m(C1)-m(C2)|$ & 534 (무효) \\
+    \midrule
+    묶음 시간 & 58분 41초 (60분 이내) \\
+    \bottomrule
+  \end{tabularx}
+  % src: u4-aba-verdict.md §0, §1.1, §5.3
+\end{table}
+\begin{align*}
+  &|643-1177| = 534 && d\\
+  &0.10\times 897.5 = 89.75 && \text{유효 한도}\\
+  &534 > 89.75 && \text{무효, 2--4단계를 계산하지 않는다}
+\end{align*}
+대조 10 run은 두 무리로 갈렸다. 낮은 쪽 526--661(5개), 높은 쪽 1134--2278(5개)이다.
+그래서 블록 중앙값이 어느 무리에 떨어지느냐가 $d$를 정했다.
+% src: u4-aba-verdict.md §1.1, §1.5; decisions.plan.md #105
+
+\paragraph{가드.}
+\begin{table}[H]
+  \caption{T 5 run의 가드. 한도는 U0b 기준선 + 20\,\%다.}
+  \label{tab:re-aba-guards}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}Y L{3.4cm} L{2.4cm}@{}}
+    \toprule
+    가드와 팔 & T run 1--5 & 판정 \\
+    \midrule
+    G-a 로그인 (한도 45.6) & 20 / 25 / 21 / 28 / 27 & 통과 5/5 \\
+    \midrule
+    G-a 익명 (한도 27.6) & 23 / 23 / 22 / 24 / 22 & 통과 5/5 \\
+    \midrule
+    G-b 로그인 (한도 5) & 0 $\times$5 & 통과 5/5 \\
+    \midrule
+    G-b 익명 (한도 2) & 0 $\times$5 & 통과 5/5 \\
+    \bottomrule
+  \end{tabularx}
+  % src: u4-aba-verdict.md §3.1
+\end{table}
+G-b에는 측정 범위 한계가 있다. 하네스는 \code{/}를 열고 4초 동안의 viewport prefetch만 메뉴 링크별로 센다.
+W4가 메뉴 링크를 hover하지 않아서 hover 전용 build의 G-b는 구성상 0이다.
+% src: u4-aba-verdict.md §3.4
+
+\paragraph{관찰(판정 아님).}
+묶음이 무효라 아래는 판정이 아니다.
+\begin{table}[H]
+  \caption{로그인 expanded 단계 중앙값 (ms). 관찰이며 판정이 아니다.}
+  \label{tab:re-aba-steps}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}Y r r r@{}}
+    \toprule
+    단계 & C1 & T & C2 \\
+    \midrule
+    s2 posts (메뉴 링크) & 21 & \textbf{468} & 21 \\
+    \midrule
+    s3 projects (메뉴 링크) & 23 & \textbf{250} & 22 \\
+    \midrule
+    s4 project (본문 링크) & 186 & 196 & \textbf{444} \\
+    \midrule
+    s5 post (본문 링크) & 431 & 428 & \textbf{657} \\
+    \midrule
+    s6 home (메뉴 링크) & 24 & 20 & 23 \\
+    \bottomrule
+  \end{tabularx}
+  % src: u4-aba-verdict.md §2.1
+\end{table}
+\begin{itemize}[nosep]
+  \item s2와 s3은 대조 두 블록에서 같고 T에서만 크다. hover 전용 prefetch가 s1의 메뉴 prefetch(13개)를 0개로 없앴다.
+  \item 대조의 s2, s3이 약 20 ms인 것은 그 메뉴 prefetch 덕으로 읽는다(추정).
+  \item 주 지표가 s2--s6 합이라 이 비용이 합에 그대로 들어간다. 단계 중앙값으로 s2 + s3은 C1 44, C2 43, T 718 ms다.
+  \item 하네스는 Playwright \code{click()}으로 옮긴다. hover 시간이 수 ms라는 것은 가정이다. 마우스 사용자의 이득은 이보다 클 수 있다.
+  \item s4와 s5는 흔들림과 섞였다. T는 C1에 가깝지만 같은 build인 C2가 s4 +258, s5 +226 ms 움직였다.
+  \item 그래서 \code{cacheComponents}가 s4, s5에 중립이라고도 느리다고도 말할 수 없다.
+\end{itemize}
+메뉴 클릭 지연과 요청 한도는 맞바꿈이다. 둘 다 고치는 길은 architect가 오너 질문으로 낸다(\decision{105}).
+% src: u4-aba-verdict.md §2.3, §2.4, §4; decisions.plan.md #105 Consequences (4)
+
+\paragraph{묶음 조건의 이탈.}
+\begin{itemize}[nosep]
+  \item 시각이 조용한 시각(UTC 05--07)이 아니라 16:43--17:43이다. G-CC 날짜가 오늘이어서 \decision{104}가 이탈로 기록했다.
+  \item C2는 로그인 팔만 돌았다. C1과 T는 익명과 로그인이다. 이 팔 변경이 $d$와 섞였을 수 있다.
+  \item T 끝과 되돌림 사이에 약 9분 40초 대기가 있었다(\Cref{sec:le-wait}).
+\end{itemize}
+어느 원인이든 1단계는 $d$만 본다. 무효는 바뀌지 않는다.
+% src: u4-aba-verdict.md §5.4, §5.5; decisions.plan.md #104
+
+\paragraph{지금 상태.}
+recovery 2/2 approach는 K2(검증된 산출물 없음)로 멈췄다. 다음은 K4이고 오너가 푼다.
+CC-U4는 열린 채이고 무효로 기록한다. U5와 U6은 막힌 채다.
+T build는 branch \code{cc-u4-t}에 있고 main에 없다.
+오늘 안에 통과하지 못해 G-CC는 미달로 닫혔다(\decision{103}, \decision{105}).
+% src: decisions.plan.md #105, #103 (2)
+
+\section{U5와 U6: 막힘}\label{sec:re-u56}
+
+\paragraph{결과.}
+둘 다 시작하지 못했다. flag를 켜야 도는데 U4가 정지했기 때문이다(\decision{102}).
+\begin{table}[H]
+  \caption{U5, U6의 사전 등록 판정. 시작 전이다.}
+  \label{tab:re-u56}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{1.2cm} Y L{3.6cm}@{}}
+    \toprule
+    단위 & 내용 & 판정 \\
+    \midrule
+    U5 & \code{'use cache'} 3개 (TagCloud, tree, projects) & MISS TTFB. 판정선 $\max(70\times 2,\ 50)=140$\,ms \\
+    \midrule
+    U6 & \code{/api/revalidate}와 purge & 제목 수정 뒤 60초 안에 새 제목 (이진) \\
+    \bottomrule
+  \end{tabularx}
+  % src: criteria.md §1 U5, U6 rows; cc.design.md §7
+\end{table}
+
+\section{U7: load-more를 blog-api로}\label{sec:re-u7}
+
+\paragraph{결과.}
+통과다. \code{my.}에 오는 \code{/api/posts/load-more} 요청이 12에서 0이 됐다. 판정선은 0이다.
+\begin{table}[H]
+  \caption{U7 (\texttt{964c9f8})의 판정과 가드.}
+  \label{tab:re-u7}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}Y L{3.6cm}@{}}
+    \toprule
+    칸 & 값 \\
+    \midrule
+    \texttt{my.} load-more 요청 & 12 $\to$ 0 \\
+    \midrule
+    \texttt{blog-api} feed 요청 & 12 (모두 200) \\
+    \midrule
+    hydration 오류 & 0 \\
+    \midrule
+    G-a (익명 / 로그인) & 22 / 35 (50 미만) \\
+    \midrule
+    AC4 (소유자 draft가 2쪽에 보임) & 미측정 \\
+    \bottomrule
+  \end{tabularx}
+  % src: cc.report.md MVP3 table
+\end{table}
+
+\paragraph{왜.}
+감사의 B4다. \code{/api/}는 엣지 cache 밖이다. 스크롤 한 page가 VM 요청 하나이고 50 / 10\,s에 센다.
+이 route는 token 없이 읽어서 소유자의 draft가 2쪽부터 빠진다.
+% src: perf.audit.md B4 Why, How
+
+\paragraph{무엇.}
+\code{my.}의 load-more가 \code{blog-api}를 직접 부르게 했다(Q11 (b)안).
+설계 \S7은 \code{RecentPostsList.client.tsx}와 \code{TagPostsList.client.tsx}를 바꾸고
+\code{app/api/posts/load-more/route.ts}를 \code{x_} 접두로 은퇴시키라고 정했다.
+% src: cc.report.md MVP3 What; cc.design.md §7 U7 row
+
+\paragraph{어떻게.}
+브라우저 run의 \code{raw.jsonl}에서 \code{my.}의 \code{/api/posts/load-more} 줄을 센다.
+기준 U3와 U4 기준 run은 각 12, U7 run은 0이다.
+등록된 출처(\code{proxy.ts} 요청 로그)가 아니라 \code{raw.jsonl}로 셌다.
+% src: criteria.md §3 item 7, §1 U7 row; 00.runs.md §2
+
+\paragraph{언제 효과가 있나.}
+익명 feed는 \code{blog-api}에서 엣지 HIT다(run 2, 3). 로그인 feed는 모두 \cfs{DYNAMIC}이라 Express까지 간다.
+Express \code{rate_limit} 로그는 0줄이었다(dispatch 기록).
+W1은 load-more를 쓰지 않는다. 같은 run에서 로그인 W1 합이 500 ms였지만 원인은 U7이 아니라 흔들림으로 읽는다(\Cref{sec:le-drift}).
+% src: 00.runs.md §2.1.1; cc.report.md MVP3 기록만; decisions.plan.md #102 Update
+
+\paragraph{왜 중요한가.}
+스크롤이 50 / 10\,s 한도를 쓰던 문제(\decision{70}의 429)를 \texttt{my.} 쪽에서 없앤다. 감사는 영향을 M으로 적었다.
+% src: perf.audit.md B4 상태 줄
