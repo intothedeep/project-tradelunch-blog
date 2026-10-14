@@ -5,7 +5,7 @@
 
 - 상위 문서: `00.plan.md` Phase CC 절 (mission block, stub).
 - 설계: `cc.design.md` rev2 (system-architect). 감사: `perf.audit.md`, 출처 `perf.sources.md`.
-- 결정: `decisions.plan.md` #82–#88, #92, #93. 행: `00.tasks.md` Phase CC.
+- 결정: `decisions.plan.md` #82–#88, #92–#96. 행: `00.tasks.md` Phase CC.
 - 이 파일은 설계를 다시 쓰지 않는다. 절 번호로 인용한다.
 
 ## 1. 순서와 사다리
@@ -53,7 +53,8 @@ Phase PJ M4 (P2) 열림 (#82)
 - kill: 빌드 실패, 또는 smoke 15개 중 하나라도 status나 `location` 변화 → `git revert` + 재배포 + purge.
 
 #### Tactic: client router cache 재사용 (U2)
-- kill: W2 `_rsc` 수 감소 0, 또는 오너가 30초 지연을 거부(Q6) → 설정 줄 삭제.
+- ~~kill: W2 `_rsc` 수 감소 0, 또는 오너가 30초 지연을 거부(Q6) → 설정 줄 삭제.~~ <!-- SUPERSEDED 2026-10-14 by #96 -->
+- kill (#96, `cc.design.md` §16.4): W1 s6 익명 `_rsc` 감소 0 (s1→s6 간격 < 25 s인 run에서), 또는 오너가 30초 지연을 거부(Q6) → 설정 줄 삭제 + 재배포 + purge.
 
 #### Tactic: flag off 상태에서 잎 정리 (U3)
 - kill: 가드 실패 → `git revert`.
