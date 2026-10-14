@@ -3,7 +3,7 @@
 
 import { ChevronRight, Folder, File } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { HoverPrefetchLink } from '@/components/ui/HoverPrefetchLink.client';
 import {
     Collapsible,
     CollapsibleContent,
@@ -32,7 +32,7 @@ export function CategoryTree({ node, username }: CategoryTreeProps) {
     if (!hasChildren) {
         return (
             <SidebarMenuItem>
-                <Link
+                <HoverPrefetchLink
                     href={
                         node.slug
                             ? postPath(username, node.slug)
@@ -46,7 +46,7 @@ export function CategoryTree({ node, username }: CategoryTreeProps) {
                         <File />
                         <span>{node.title}</span>
                     </SidebarMenuButton>
-                </Link>
+                </HoverPrefetchLink>
 
                 {node.postCount > 0 && (
                     <SidebarMenuBadge>{node.postCount}</SidebarMenuBadge>

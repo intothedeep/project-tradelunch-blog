@@ -73,15 +73,3 @@ export function isUnknownPath(
 // answers these itself: a real file passes, anything else is a 404 (A2).
 export const isDottedPath = (pathname: string): boolean =>
     /\.[^/]*$/.test(pathname);
-
-// Signed-in RSC navigation is not checked: the Suspense leaf gates it (200
-// not-found view). Documents, and anonymous RSC, are checked here.
-export function shouldCheck({
-    signedIn,
-    isRsc,
-}: {
-    signedIn: boolean;
-    isRsc: boolean;
-}): boolean {
-    return !signedIn || !isRsc;
-}

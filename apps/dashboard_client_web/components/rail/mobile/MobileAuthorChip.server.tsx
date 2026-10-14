@@ -9,7 +9,7 @@
 // Side effects: none (data passed in).
 
 import Image from 'next/image';
-import Link from 'next/link';
+import { HoverPrefetchLink } from '@/components/ui/HoverPrefetchLink.client';
 import type { TUserProfile } from '@repo/types';
 import { postsPath } from '@/utils/routes';
 
@@ -24,7 +24,7 @@ export const MobileAuthorChip = ({
     const initial = (display || '?').charAt(0).toUpperCase();
 
     return (
-        <Link
+        <HoverPrefetchLink
             href={postsPath(profile.username)}
             className="inline-flex min-w-0 items-center gap-2 rounded-none border border-border px-2 py-1 transition-colors hover:bg-accent/50"
         >
@@ -49,7 +49,7 @@ export const MobileAuthorChip = ({
                     @{profile.username}
                 </span>
             </span>
-        </Link>
+        </HoverPrefetchLink>
     );
 };
 
