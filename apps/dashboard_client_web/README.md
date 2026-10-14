@@ -32,6 +32,96 @@ pnpm --filter dashboard_client_web check-types  # tsc --noEmit
 - Directory layout is strict — see [`.claude/rules/nexjts.md`](../../.claude/rules/nexjts.md).
   Path alias `@/*` is this dir; cross-workspace imports use `@repo/*`.
 
+## App layout (route groups)
+
+Phase CC split the shell into route groups. URLs did not change (groups add no path segment).
+Design: [`cc.design.md`](../../cc.design.md) §15.
+
+```text
+app/(shell)/
+├── layout.tsx                 left rail, rendered once for every screen below
+├── (feed)/layout.tsx          right rail #1: home, tags
+├── [handle]/
+│   ├── layout.tsx             handle must start with '@', else 404
+│   ├── (rail)/layout.tsx      right rail #2: posts, projects, saved
+│   ├── [slug]/                post detail: own layout
+│   ├── about/  resume/  me/   own layouts
+└── write/                     own layout
+```
+
+| Screens | Right rail | Owner of the rail |
+| --- | --- | --- |
+| `/`, `/tags/[tag]` | one `HomeRightRail` | `(shell)/(feed)/layout.tsx` |
+| `/@u/posts`, `/@u/projects`, `/@u/projects/<p>`, `/@u/saved` | one `HomeRightRail` for the same handle | `(shell)/[handle]/(rail)/layout.tsx` |
+| post detail, about, resume, me, write | own layout, no shared rail | each screen |
+
+- The left rail is rendered once in `(shell)/layout.tsx`, so it survives every move.
+- Each shared right rail stays mounted while the user moves inside its group.
+- The profile card sits in the `(rail)` layout. A client slot shows it on `/@u/posts` only.
+- Unknown user, project or post returns a real HTTP 404.
+  The layout gates it (`notFound()` in `(rail)/layout.tsx`), because a `loading.tsx` would flush a 200 shell first.
+- Anonymous `/@u/me` and `/@u/saved` return 404.
+
+## Section tones
+
+Each section has a pastel tone. The tone shows in the top bar and in the left rail items.
+
+| Piece | Where | Note |
+| --- | --- | --- |
+| Tokens `--tone-home`, `-projects`, `-saved`, `-about`, `-posts`, `-write` | `styles/globals.css` | light and dark values |
+| Classes `bg-tone-*` | same file (`--color-tone-*`) | Tailwind v4 theme colors |
+| `sectionTone(pathname)`, `toneOfNavKey(key)` | `utils/section-tone.ts` | pure: route or nav key to tone |
+| `TONE_BG`, `TONE_BG_FAINT` | same file | literal class names, so Tailwind sees them |
+
+- The top bar uses `TONE_BG_FAINT` (`bg-tone-*/15`, 15% of the tone over the page).
+- A route with no tone uses `bg-background/95`.
+- `resume` shares the `about` tone. The "My blog" nav item uses the `posts` tone.
+- Tag pages: the page title box is plain gray (`bg-muted`; tags are filters, not sections, owner 2026-10-14). The header still takes the home tone because `sectionTone()` maps `/tags/*` to `home`.
+
+## Performance measurement (Phase CC)
+
+**Purpose:** measure how a change affects page loads, moves between pages and server fetches on production.
+Design and metrics: [`cc.design.md`](../../cc.design.md) §5 and §14. Stage report: [`cc.report.md`](../../cc.report.md).
+
+| Tool | Runs where | Measures |
+| --- | --- | --- |
+| `_scripts/perf/cc-measure.mjs` | your Mac, HTTP only | TTFB and bytes for walks W1 to W4, anonymous and signed in |
+| `_scripts/perf/ssr-fetch-count.mjs` | your Mac, after a `cc-measure` run | Next-server `ssr_fetch` lines per MISS render (QW1 metric) |
+| `.github/workflows/cc-browser-measure.yml` | GitHub runner, headless chromium | `_rsc` count on Back, 10 s request peak, prefetch per link, hydration errors, `[nav]` time |
+| `.github/workflows/cc-build.yml` | GitHub runner | build with `cacheComponents` ON, to list what must change. No deploy |
+
+```sh
+# HTTP measurement. --unit and --web-sha are required.
+# --web-sha auto reads the deployed sha with one `gcloud compute ssh`; a literal sha skips the ssh.
+node _scripts/perf/cc-measure.mjs --unit U3 --tag after1 --web-sha auto
+
+# Server fetches per MISS render, from a finished run folder
+node _scripts/perf/ssr-fetch-count.mjs deploy/traffic/review/cc/runs/<run folder> --arm anon
+
+# Browser measurement (never on the Mac). Needs repo secret CLERK_SECRET_KEY_PROD.
+gh workflow run cc-browser-measure.yml -f tag=after1 -f unit=U3 -f web_sha=<deployed sha>
+gh run download <run id>      # fetch the artifact
+
+# cacheComponents preview build (runner only)
+gh workflow run cc-build.yml
+```
+
+- Output folder: `deploy/traffic/review/cc/runs/<time>_<unit>_<tag>_<websha7>/`.
+  It holds `raw.jsonl`, `manifest.json`, `summary.csv` and copies of the scripts.
+- Pace: requests at least 1 s apart, so the Cloudflare limit (50 requests per 10 s, decision #68) stays far away.
+- `cc-measure.mjs` has no browser. Its bytes are full-tree RSC bytes. Never compare them with browser bytes.
+- Harness v2 (2026-10-14): the browser script records bytes in the order `body()`, `request.sizes()`, `content-length`.
+  It leaves a byte sum empty when a size is unknown. It adds a W1 warmup per run.
+  Runs from before v2 use another byte definition. Ledger: [`_scripts/perf/CHANGELOG.md`](../../_scripts/perf/CHANGELOG.md).
+- Verdicts and run ledger: `deploy/traffic/review/cc/`.
+
+## cacheComponents is OFF in production
+
+- `next.config.ts` does not set `cacheComponents`. The production build is unchanged.
+- U4 (turn it on) was tried twice and reverted. The signed-in main metric went from 329 to 434 ms.
+  Guard G-a (requests per 10 s) also failed. Verdict: [`deploy/traffic/review/cc/u4-verdict.md`](../../deploy/traffic/review/cc/u4-verdict.md).
+- `cc-build.yml` turns the flag on inside the runner only, as a preview. It never changes the repo.
+
 ## How to run from scratch for local dev
 
 Local web, signed in, against the production API (`https://blog-api.prettylog.com`).

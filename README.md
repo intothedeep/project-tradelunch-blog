@@ -117,6 +117,7 @@ pnpm --filter dashboard_client_web exec next dev --turbopack -p 443 -H 0.0.0.0 -
 - [`log.plan.md`](./log.plan.md) — Log phases (Y, Y-TD, Y M2)
 - [`decisions.plan.md`](./decisions.plan.md) — resolved architecture decisions
 - [`gcp.design.md`](./gcp.design.md) — Vercel → GCP hosting design (draft)
+- [`cc.design.md`](./cc.design.md) / [`cc.report.md`](./cc.report.md) — Phase CC (cache and cost): route groups, perf measurement. `cacheComponents` is OFF in production. See the [web README](./apps/dashboard_client_web/README.md#app-layout-route-groups).
 - [`.claude/`](./.claude/) — agent harness: engineering principles and rules
 
 ---
