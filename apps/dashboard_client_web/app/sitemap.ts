@@ -2,10 +2,12 @@ import { logServerError } from '@/utils/serverLog.util';
 import type { MetadataRoute } from 'next';
 import { getBlogPostsByUsername } from '@/apis/getPosts.api';
 import { SITE_URL } from '@/env.schema';
-import { postPath } from '@/utils/routes';
+import { HOME_FEED_AUTHOR } from '@/utils/blog-author';
+import { aboutPath, postPath, resumePath } from '@/utils/routes';
 
 // sitemap.xml generator (Next.js 16 MetadataRoute.Sitemap).
-// Scope: BLOG CONTENT ONLY — the content statics (/, /about, /resume)
+// Scope: BLOG CONTENT ONLY — the content statics (/, /@<owner>/about,
+// /@<owner>/resume; the last two omitted when no owner is configured)
 // and every published post. Finance now lives in a SEPARATE app/repo
 // (finance_web) that owns its own sitemap; nothing finance is enumerated here.
 // (Those DB-backed finance detail URLs were also a large Supabase-egress source,
@@ -36,18 +38,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             changeFrequency: 'weekly',
             priority: 1,
         },
-        {
-            url: `${SITE_URL}/about`,
-            lastModified: now,
-            changeFrequency: 'monthly',
-            priority: 0.6,
-        },
-        {
-            url: `${SITE_URL}/resume`,
-            lastModified: now,
-            changeFrequency: 'monthly',
-            priority: 0.7,
-        },
+        ...(HOME_FEED_AUTHOR
+            ? [
+                  {
+                      url: `${SITE_URL}${aboutPath(HOME_FEED_AUTHOR)}`,
+                      lastModified: now,
+                      changeFrequency: 'monthly' as const,
+                      priority: 0.6,
+                  },
+                  {
+                      url: `${SITE_URL}${resumePath(HOME_FEED_AUTHOR)}`,
+                      lastModified: now,
+                      changeFrequency: 'monthly' as const,
+                      priority: 0.7,
+                  },
+              ]
+            : []),
     ];
 
     // Dynamic published posts: /@[username]/[slug]

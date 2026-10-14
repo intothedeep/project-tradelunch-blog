@@ -14,7 +14,7 @@ import { useMe } from '@/hooks/useMe.query.client';
 import { useLogStream } from '@/hooks/useLogStream.query.client';
 import { useDeleteLog } from '@/hooks/useDeleteLog.query.client';
 import { LogCard } from '@/components/log/LogCard';
-import { toUsernameSegment } from '@/utils/blog-author';
+import { logPath } from '@/utils/routes';
 import { cn } from '@/lib/utils';
 import type { TLog, TLogStreamResponse } from '@repo/types';
 
@@ -67,11 +67,7 @@ export function LogStream({ username, initialData }: Props) {
                     <li
                         key={log.id}
                         className="cursor-pointer"
-                        onClick={() =>
-                            router.push(
-                                `/log/${toUsernameSegment(username)}/${log.id}`
-                            )
-                        }
+                        onClick={() => router.push(logPath(username, log.id))}
                     >
                         <LogCard
                             log={log}

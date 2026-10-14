@@ -1,6 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton';
 
-// Suspense boundary for /log/[username] (cacheComponents): the shell shows
+// Suspense boundary for /@u/logs (cacheComponents): the shell shows
 // this until the stream fetch in page.tsx resolves.
 export default function Loading() {
     return (

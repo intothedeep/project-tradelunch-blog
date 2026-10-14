@@ -1,8 +1,8 @@
-// app/log/[username]/[logId]/page.tsx
-// Purpose: focus-view route for a single log node (/log/[username]/[logId]).
+// app/(shell)/[handle]/logs/[logId]/page.tsx
+// Purpose: focus-view route for a single log node (/@u/logs/[logId]).
 //   SSR: fetches the full thread (ancestors + focus + first children page).
 //   Canonical check: if the URL username doesn't match the focus author's username,
-//   redirect to the canonical URL (/log/[authorUsername]/[logId]).
+//   redirect to the canonical URL (/@authorUsername/logs/[logId]).
 //   404 when the logId does not exist.
 // Constraints: Server Component. The fetch runs behind loading.tsx (thread
 //   content is always fresh).
@@ -13,22 +13,23 @@ import {
     stripUsernameAt,
     toUsernameSegment,
 } from '@/utils/blog-author';
+import { logPath, logsPath } from '@/utils/routes';
 import { getLogThread } from '@/apis/get-log-thread.api';
 import { LogFocusView } from '@/components/log/LogFocusView.server';
 import { ApiError } from '@/utils/apiError.util';
 
 type Props = {
-    params: Promise<{ username: string; logId: string }>;
+    params: Promise<{ handle: string; logId: string }>;
 };
 
 // cacheComponents (CC-U4): one sample so the shell prerenders with known params.
 export function generateStaticParams() {
-    return [{ username: toUsernameSegment(HOME_FEED_AUTHOR), logId: '1' }];
+    return [{ handle: toUsernameSegment(HOME_FEED_AUTHOR), logId: '1' }];
 }
 
 export default async function LogFocusPage({ params }: Props) {
-    const { username: rawUsername, logId } = await params;
-    const username = stripUsernameAt(decodeURIComponent(rawUsername));
+    const { handle: rawHandle, logId } = await params;
+    const username = stripUsernameAt(decodeURIComponent(rawHandle));
 
     let data;
     try {
@@ -49,9 +50,7 @@ export default async function LogFocusPage({ params }: Props) {
     // the redirect — a deleted focus has no canonical username to enforce, and
     // the page still renders the masked tombstone regardless of the URL segment.
     if (data.focus.authorUsername && data.focus.authorUsername !== username) {
-        redirect(
-            `/log/${toUsernameSegment(data.focus.authorUsername)}/${logId}`
-        );
+        redirect(logPath(data.focus.authorUsername, logId));
     }
 
     return (
@@ -61,7 +60,7 @@ export default async function LogFocusPage({ params }: Props) {
                 className="mb-4"
             >
                 <a
-                    href={`/log/${toUsernameSegment(username)}`}
+                    href={logsPath(username)}
                     className="text-xs text-primary/60 hover:text-primary"
                 >
                     ← @{username}

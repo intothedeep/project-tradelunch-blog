@@ -12,7 +12,7 @@
 import { useRouter } from 'next/navigation';
 import { useLogTimeline } from '@/hooks/useLogTimeline.query.client';
 import { LogCard } from '@/components/log/LogCard';
-import { toUsernameSegment } from '@/utils/blog-author';
+import { logPath } from '@/utils/routes';
 import { cn } from '@/lib/utils';
 import type { TLog } from '@repo/types';
 
@@ -29,7 +29,7 @@ export function LogTimeline() {
 
     function openThread(log: TLog): void {
         if (!log.authorUsername) return;
-        router.push(`/log/${toUsernameSegment(log.authorUsername)}/${log.id}`);
+        router.push(logPath(log.authorUsername, log.id));
     }
 
     if (isLoading) {

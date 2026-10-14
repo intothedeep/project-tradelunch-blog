@@ -1,12 +1,12 @@
-// app/log/[username]/page.tsx
-// Purpose: SSR entry for the per-user log stream (/log/[username]).
+// app/(shell)/[handle]/logs/page.tsx
+// Purpose: SSR entry for the per-user log stream (/@u/logs).
 //   Fetches the first page server-side so the list paints immediately.
 //   Passes seed to LogStream (infinite scroll) and renders LogComposer
 //   (owner-only, determined client-side via useMe).
 //   Y-TD: LogTodoTabs rendered below the stream — gated owner-side (the
 //   component reads auth via useAuth so it renders nothing for non-owners).
 //   Y-M2: FollowButtonGate renders follow button for non-owner signed-in viewers.
-// Constraints: Server Component. username is @-stripped. The fetch runs
+// Constraints: Server Component. The handle is decoded and @-stripped. The fetch runs
 //   behind loading.tsx (the stream is always fresh, newest-first).
 
 import {
@@ -22,16 +22,16 @@ import { FollowButtonGate } from '@/components/log/FollowButtonGate.client';
 import type { TLogStreamResponse } from '@repo/types';
 
 type Props = {
-    params: Promise<{ username: string }>;
+    params: Promise<{ handle: string }>;
 };
 
 // cacheComponents (CC-U4): one sample so the shell prerenders with known params.
 export function generateStaticParams() {
-    return [{ username: toUsernameSegment(HOME_FEED_AUTHOR) }];
+    return [{ handle: toUsernameSegment(HOME_FEED_AUTHOR) }];
 }
 
 export default async function LogStreamPage({ params }: Props) {
-    const { username: raw } = await params;
+    const { handle: raw } = await params;
     const username = stripUsernameAt(decodeURIComponent(raw));
 
     let initialData: TLogStreamResponse | undefined;

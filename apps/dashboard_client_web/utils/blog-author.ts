@@ -18,7 +18,7 @@ export const stripUsernameAt = (raw: string): string =>
 
 // Build the canonical @-prefixed username URL segment (e.g. "@taeklim"). The '@'
 // stays LITERAL (a valid path character, RFC 3986 pchar) — only the username is
-// percent-encoded — so URLs read /log/@taeklim/1, not /log/%40taeklim/1. Accepts
+// percent-encoded — so URLs read /@taeklim/logs/1, not /%40taeklim/logs/1. Accepts
 // a raw username with or without a leading '@'.
 export const toUsernameSegment = (username: string): string =>
     `@${encodeURIComponent(stripUsernameAt(username))}`;

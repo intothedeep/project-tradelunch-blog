@@ -16,7 +16,7 @@ import { LogGlobalStream } from '@/components/log/LogGlobalStream.client';
 import { useLogTimeline } from '@/hooks/useLogTimeline.query.client';
 import { useRouter } from 'next/navigation';
 import { LogCard } from '@/components/log/LogCard';
-import { toUsernameSegment } from '@/utils/blog-author';
+import { logPath } from '@/utils/routes';
 import type { TLog, TLogStreamResponse } from '@repo/types';
 
 type Tab = 'all' | 'following';
@@ -38,7 +38,7 @@ function FollowingFeed() {
 
     function openThread(log: TLog): void {
         if (!log.authorUsername) return;
-        router.push(`/log/${toUsernameSegment(log.authorUsername)}/${log.id}`);
+        router.push(logPath(log.authorUsername, log.id));
     }
 
     if (isLoading) {

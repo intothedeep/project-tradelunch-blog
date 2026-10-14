@@ -35,3 +35,11 @@ export function mePath(u: string): string {
 export function savedPath(u: string): string {
     return `/${handleOf(u)}/saved`;
 }
+
+export function logsPath(u: string): string {
+    return `/${handleOf(u)}/logs`;
+}
+
+export function logPath(u: string, logId: string): string {
+    return `/${handleOf(u)}/logs/${encodeURIComponent(logId)}`;
+}

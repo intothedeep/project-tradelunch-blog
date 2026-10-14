@@ -13,7 +13,7 @@ export type TGatePath =
 // matches no route and Next answers its default 404 (root not-found.tsx).
 export const NOT_FOUND_PATH = '/__nf/__/__/__';
 
-const USER_SEGMENTS = ['posts', 'projects'];
+const USER_SEGMENTS = ['posts', 'projects', 'logs'];
 const OWNER_ONLY_SEGMENTS = ['me', 'saved'];
 // About and Resume are hard-coded owner content: any other handle is a 404.
 const OWNER_CONTENT_SEGMENTS = ['about', 'resume'];

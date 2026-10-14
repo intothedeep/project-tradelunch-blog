@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import { useLogTodos } from '@/hooks/useLogTodos.query.client';
 import { useDeleteLog } from '@/hooks/useDeleteLog.query.client';
 import { LogCard } from '@/components/log/LogCard';
-import { toUsernameSegment } from '@/utils/blog-author';
+import { logPath } from '@/utils/routes';
 import { cn } from '@/lib/utils';
 import type { TLogTodoStatus } from '@/apis/get-log-todos.api';
 
@@ -125,9 +125,7 @@ export function LogTodoTabs({ username }: Props) {
                             key={log.id}
                             className="cursor-pointer"
                             onClick={() =>
-                                router.push(
-                                    `/log/${toUsernameSegment(username)}/${log.id}`
-                                )
+                                router.push(logPath(username, log.id))
                             }
                         >
                             <LogCard

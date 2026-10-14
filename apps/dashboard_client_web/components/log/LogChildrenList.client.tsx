@@ -17,7 +17,7 @@ import { useMe } from '@/hooks/useMe.query.client';
 import { useLogThread } from '@/hooks/useLogThread.query.client';
 import { useDeleteLog } from '@/hooks/useDeleteLog.query.client';
 import { LogCard } from '@/components/log/LogCard';
-import { toUsernameSegment } from '@/utils/blog-author';
+import { logPath } from '@/utils/routes';
 import { cn } from '@/lib/utils';
 import type { TLog, TLogThreadResponse } from '@repo/types';
 
@@ -74,9 +74,7 @@ export function LogChildrenList({ username, logId, initialData }: Props) {
     }
 
     function openReply(log: TLog): void {
-        // '@' stays literal via toUsernameSegment (→ /log/@name/id, not %40).
-        const segment = toUsernameSegment(log.authorUsername ?? username);
-        router.push(`/log/${segment}/${log.id}`);
+        router.push(logPath(log.authorUsername ?? username, log.id));
     }
 
     // Group the flat pre-order children into depth-1 nodes + their depth-2 replies.
