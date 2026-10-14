@@ -84,7 +84,7 @@ class ImageProcessingAgent(BaseAgent):
 
         Args:
             image_path: Path to source image
-            output_path: Path for output (default: overwrite source)
+            output_path: Path for output (default: <post>/.generated/<stem>.og.webp)
             target_size: Target dimensions (width, height)
 
         Returns:
@@ -110,7 +110,15 @@ class ImageProcessingAgent(BaseAgent):
 
         # Save result as webp (q80, metadata stripped) with a .webp extension
         # so the stored OG asset matches the body-image codec (Phase F parity).
-        out_path = output_path or str(Path(image_path).with_suffix(".webp"))
+        # Default target is <post>/.generated/<stem>.og.webp: a file beside the
+        # source shares its stem and would be picked as the thumbnail on the
+        # next publish (books/debugging/14-blog-agent-publish.md §14.2).
+        if output_path is None:
+            src = Path(image_path)
+            gen_dir = src.parent / ".generated"
+            gen_dir.mkdir(exist_ok=True)
+            output_path = str(gen_dir / f"{src.stem}.og.webp")
+        out_path = output_path
         canvas.save(out_path, "WEBP", quality=80)
 
         self._log(
