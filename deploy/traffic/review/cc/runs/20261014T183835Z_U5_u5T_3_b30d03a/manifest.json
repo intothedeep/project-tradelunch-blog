@@ -1,0 +1,453 @@
+{
+  "code_version": "v2",
+  "code_sha": "a8e8c318e25c",
+  "clerk_session_sha": "a71ceb70441c",
+  "run_id": "20261014T183835Z_U5_u5T_3_b30d03a",
+  "unit": "U5",
+  "web_sha": "b30d03adc01676123b81af2fda36874a4a2d1ffb",
+  "harness_sha": "f7bc5245ff86f2a1535eb5691a3fd69e97da1fa9",
+  "git_dirty": true,
+  "params": {
+    "base": "https://my.prettylog.com",
+    "runs": 3,
+    "arms": [
+      "anon"
+    ],
+    "only": [
+      "miss"
+    ],
+    "user": "taeklim",
+    "tag": "u5T_3",
+    "unit": "U5",
+    "gapMs": 1100,
+    "warmup": true,
+    "externals": false,
+    "project": "cnn-from-scratch",
+    "slug": "cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first",
+    "rail_state": "cookie unset (expanded) for all arms"
+  },
+  "env": {
+    "node": "v24.3.0",
+    "platform": "darwin 27.0.0",
+    "started": "20261014T183835Z",
+    "requests": 17
+  },
+  "aborted": null,
+  "metrics": {
+    "arms": {
+      "anon": {
+        "steps": {
+          "miss.home": {
+            "ttfb_ms": {
+              "values": [
+                224,
+                196,
+                226
+              ],
+              "median": 224,
+              "min": 196,
+              "max": 226,
+              "range": 30
+            },
+            "total_ms": {
+              "values": [
+                384,
+                361,
+                385
+              ],
+              "median": 384,
+              "min": 361,
+              "max": 385,
+              "range": 24
+            },
+            "bytes": {
+              "values": [
+                262829,
+                262829,
+                262829
+              ],
+              "median": 262829,
+              "min": 262829,
+              "max": 262829,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "MISS",
+              "MISS",
+              "MISS"
+            ]
+          },
+          "miss.posts": {
+            "ttfb_ms": {
+              "values": [
+                392,
+                434,
+                439
+              ],
+              "median": 434,
+              "min": 392,
+              "max": 439,
+              "range": 47
+            },
+            "total_ms": {
+              "values": [
+                594,
+                567,
+                547
+              ],
+              "median": 567,
+              "min": 547,
+              "max": 594,
+              "range": 47
+            },
+            "bytes": {
+              "values": [
+                284065,
+                284065,
+                284065
+              ],
+              "median": 284065,
+              "min": 284065,
+              "max": 284065,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "MISS",
+              "MISS",
+              "MISS"
+            ]
+          },
+          "miss.projects": {
+            "ttfb_ms": {
+              "values": [
+                347,
+                383,
+                316
+              ],
+              "median": 347,
+              "min": 316,
+              "max": 383,
+              "range": 67
+            },
+            "total_ms": {
+              "values": [
+                521,
+                514,
+                469
+              ],
+              "median": 514,
+              "min": 469,
+              "max": 521,
+              "range": 52
+            },
+            "bytes": {
+              "values": [
+                177569,
+                177569,
+                177569
+              ],
+              "median": 177569,
+              "min": 177569,
+              "max": 177569,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "MISS",
+              "MISS",
+              "MISS"
+            ]
+          },
+          "miss.project": {
+            "ttfb_ms": {
+              "values": [
+                400,
+                330,
+                288
+              ],
+              "median": 330,
+              "min": 288,
+              "max": 400,
+              "range": 112
+            },
+            "total_ms": {
+              "values": [
+                592,
+                399,
+                424
+              ],
+              "median": 424,
+              "min": 399,
+              "max": 592,
+              "range": 193
+            },
+            "bytes": {
+              "values": [
+                193374,
+                193374,
+                193374
+              ],
+              "median": 193374,
+              "min": 193374,
+              "max": 193374,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "MISS",
+              "MISS",
+              "MISS"
+            ]
+          },
+          "miss.post": {
+            "ttfb_ms": {
+              "values": [
+                372,
+                283,
+                338
+              ],
+              "median": 338,
+              "min": 283,
+              "max": 372,
+              "range": 89
+            },
+            "total_ms": {
+              "values": [
+                538,
+                471,
+                539
+              ],
+              "median": 538,
+              "min": 471,
+              "max": 539,
+              "range": 68
+            },
+            "bytes": {
+              "values": [
+                157462,
+                157462,
+                157462
+              ],
+              "median": 157462,
+              "min": 157462,
+              "max": 157462,
+              "range": 0
+            },
+            "status": [
+              200,
+              200,
+              200
+            ],
+            "cf_cache_status": [
+              "MISS",
+              "MISS",
+              "MISS"
+            ]
+          }
+        },
+        "w1_nav_total_ms_s2_s6": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "range": 0
+        },
+        "w1_xcomponent_bytes": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "range": 0
+        },
+        "w2_requests_emulated": 0,
+        "w3_load_more_requests": 0,
+        "set_cookie_lines": 0,
+        "miss_windows": [
+          {
+            "run": 1,
+            "name": "home",
+            "path": "/?cb=cc20261014T183835Z_U5_u5T_3_b30d03a_anon_1_home",
+            "cb": "cc20261014T183835Z_U5_u5T_3_b30d03a_anon_1_home",
+            "start": "2026-10-14T18:38:37.433Z",
+            "end": "2026-10-14T18:38:37.817Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 1,
+            "name": "posts",
+            "path": "/@taeklim/posts?cb=cc20261014T183835Z_U5_u5T_3_b30d03a_anon_1_posts",
+            "cb": "cc20261014T183835Z_U5_u5T_3_b30d03a_anon_1_posts",
+            "start": "2026-10-14T18:38:38.533Z",
+            "end": "2026-10-14T18:38:39.127Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 1,
+            "name": "projects",
+            "path": "/@taeklim/projects?cb=cc20261014T183835Z_U5_u5T_3_b30d03a_anon_1_projects",
+            "cb": "cc20261014T183835Z_U5_u5T_3_b30d03a_anon_1_projects",
+            "start": "2026-10-14T18:38:39.633Z",
+            "end": "2026-10-14T18:38:40.154Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 1,
+            "name": "project",
+            "path": "/@taeklim/projects/cnn-from-scratch?cb=cc20261014T183835Z_U5_u5T_3_b30d03a_anon_1_project",
+            "cb": "cc20261014T183835Z_U5_u5T_3_b30d03a_anon_1_project",
+            "start": "2026-10-14T18:38:40.734Z",
+            "end": "2026-10-14T18:38:41.326Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 1,
+            "name": "post",
+            "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first?cb=cc20261014T183835Z_U5_u5T_3_b30d03a_anon_1_post",
+            "cb": "cc20261014T183835Z_U5_u5T_3_b30d03a_anon_1_post",
+            "start": "2026-10-14T18:38:41.836Z",
+            "end": "2026-10-14T18:38:42.374Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 2,
+            "name": "home",
+            "path": "/?cb=cc20261014T183835Z_U5_u5T_3_b30d03a_anon_2_home",
+            "cb": "cc20261014T183835Z_U5_u5T_3_b30d03a_anon_2_home",
+            "start": "2026-10-14T18:38:42.936Z",
+            "end": "2026-10-14T18:38:43.297Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 2,
+            "name": "posts",
+            "path": "/@taeklim/posts?cb=cc20261014T183835Z_U5_u5T_3_b30d03a_anon_2_posts",
+            "cb": "cc20261014T183835Z_U5_u5T_3_b30d03a_anon_2_posts",
+            "start": "2026-10-14T18:38:44.037Z",
+            "end": "2026-10-14T18:38:44.604Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 2,
+            "name": "projects",
+            "path": "/@taeklim/projects?cb=cc20261014T183835Z_U5_u5T_3_b30d03a_anon_2_projects",
+            "cb": "cc20261014T183835Z_U5_u5T_3_b30d03a_anon_2_projects",
+            "start": "2026-10-14T18:38:45.137Z",
+            "end": "2026-10-14T18:38:45.651Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 2,
+            "name": "project",
+            "path": "/@taeklim/projects/cnn-from-scratch?cb=cc20261014T183835Z_U5_u5T_3_b30d03a_anon_2_project",
+            "cb": "cc20261014T183835Z_U5_u5T_3_b30d03a_anon_2_project",
+            "start": "2026-10-14T18:38:46.237Z",
+            "end": "2026-10-14T18:38:46.636Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 2,
+            "name": "post",
+            "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first?cb=cc20261014T183835Z_U5_u5T_3_b30d03a_anon_2_post",
+            "cb": "cc20261014T183835Z_U5_u5T_3_b30d03a_anon_2_post",
+            "start": "2026-10-14T18:38:47.337Z",
+            "end": "2026-10-14T18:38:47.808Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 3,
+            "name": "home",
+            "path": "/?cb=cc20261014T183835Z_U5_u5T_3_b30d03a_anon_3_home",
+            "cb": "cc20261014T183835Z_U5_u5T_3_b30d03a_anon_3_home",
+            "start": "2026-10-14T18:38:48.439Z",
+            "end": "2026-10-14T18:38:48.824Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 3,
+            "name": "posts",
+            "path": "/@taeklim/posts?cb=cc20261014T183835Z_U5_u5T_3_b30d03a_anon_3_posts",
+            "cb": "cc20261014T183835Z_U5_u5T_3_b30d03a_anon_3_posts",
+            "start": "2026-10-14T18:38:49.541Z",
+            "end": "2026-10-14T18:38:50.088Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 3,
+            "name": "projects",
+            "path": "/@taeklim/projects?cb=cc20261014T183835Z_U5_u5T_3_b30d03a_anon_3_projects",
+            "cb": "cc20261014T183835Z_U5_u5T_3_b30d03a_anon_3_projects",
+            "start": "2026-10-14T18:38:50.642Z",
+            "end": "2026-10-14T18:38:51.111Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 3,
+            "name": "project",
+            "path": "/@taeklim/projects/cnn-from-scratch?cb=cc20261014T183835Z_U5_u5T_3_b30d03a_anon_3_project",
+            "cb": "cc20261014T183835Z_U5_u5T_3_b30d03a_anon_3_project",
+            "start": "2026-10-14T18:38:51.743Z",
+            "end": "2026-10-14T18:38:52.167Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          },
+          {
+            "run": 3,
+            "name": "post",
+            "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first?cb=cc20261014T183835Z_U5_u5T_3_b30d03a_anon_3_post",
+            "cb": "cc20261014T183835Z_U5_u5T_3_b30d03a_anon_3_post",
+            "start": "2026-10-14T18:38:52.843Z",
+            "end": "2026-10-14T18:38:53.382Z",
+            "status": 200,
+            "cf_cache_status": "MISS"
+          }
+        ]
+      }
+    },
+    "guards": {
+      "status_nope": null,
+      "status_nope_handle": null,
+      "status_nope_slug": null,
+      "rail_cache_status": null,
+      "public_set_cookie_lines": 0
+    }
+  }
+}
