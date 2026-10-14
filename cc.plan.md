@@ -5,10 +5,12 @@
 
 - 상위 문서: `00.plan.md` Phase CC 절 (mission block, stub).
 - 설계: `cc.design.md` rev2 (system-architect). 감사: `perf.audit.md`, 출처 `perf.sources.md`.
-- 결정: `decisions.plan.md` #82–#88, #92–#96. 행: `00.tasks.md` Phase CC.
+- 결정: `decisions.plan.md` #82–#88, #92–#111. 행: `00.tasks.md` Phase CC.
 - 이 파일은 설계를 다시 쓰지 않는다. 절 번호로 인용한다.
 
 ## 1. 순서와 사다리
+
+- 2026-10-14 CLOSING (#111): M-CC2, M-CC3 gate 없음. U4 운영 `181e6ed` (#106 판정 없이 유지). U5 뺌 (#111), U6 뺌 (#109), U7 통과. 다음 = Phase CC 최종 검토, 그 뒤 Phase PJ M4 (P2). 아래 사다리와 §2 U5, U6 절은 기록이다.
 
 ```
 P1 gate PASS (Phase PJ M3)
