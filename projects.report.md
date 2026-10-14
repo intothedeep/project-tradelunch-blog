@@ -1,6 +1,6 @@
 # Phase PJ 단계 보고 (Projects)
 
-요약: MVP1(mock, 로컬), MVP2(real, 운영), MVP3(최종 배포 `adcfc06`)를 아래 세 절에 적었다. P1 gate는 PASS다 (`pj.p1-gate.review.md` Cycle 2/2). 절: [MVP1](#mvp1-2026-10-13), [MVP2](#mvp2-2026-10-14), [MVP3](#mvp3-2026-10-14).
+요약: MVP1(mock, 로컬), MVP2(real, 운영), MVP3(최종 배포 `adcfc06`), P2(운영 `1c035f2`)를 아래 네 절에 적었다. P1 gate는 PASS다 (`pj.p1-gate.review.md` Cycle 2/2). P2 gate는 대기다. 절: [MVP1](#mvp1-2026-10-13), [MVP2](#mvp2-2026-10-14), [MVP3](#mvp3-2026-10-14), [P2](#p2-2026-10-14).
 
 ## MVP1 (2026-10-13)
 
@@ -546,3 +546,155 @@ Cloudflare "web cache" (Status code TTL 308 = 1 day)
 ### 판정
 
 gate 검토 Cycle 2/2의 판정은 PASS다. M1, M2, M3 exit가 모두 닫혔다 (`pj.p1-gate.review.md` C2-1). 비차단 ISSUE는 2건이다 (PJ-1-23 AC4 보고 절, AC3 traffic-check 값). 이 절이 앞의 것을 채운다.
+
+## P2 (2026-10-14)
+
+단일 출처: `deploy/projects/p2-prod-2026-10-14.txt` (운영 원본. web `8eac7d8` = P2 배포 `1c035f2` + R2, 익명 GET, 2026-10-14T19:19Z), `decisions.plan.md` #113 (Update 1–3), #114, `01.status.md` 2026-10-14 pj 줄.
+이 절은 P2(M4)의 단계 보고다. 판정(verdict)은 내리지 않는다. P2 gate는 reviewer의 몫이다.
+
+### 요약
+
+운영 주소 23개를 한 번 쟀다. 12개는 200, 9개는 404, 2개는 308이었다. `/@taeklim/about`, `/@taeklim/resume`, `/@taeklim/logs`는 200이다. `/log`, `/log/@taeklim`은 404다. 옛 `/about`, `/resume`은 308이다. sitemap에는 `/@taeklim/(about|resume)` 줄이 2개 있고, 옛 `/(about|resume)` 줄은 원본에 없다. `traffic-check` 결과와 모바일 메뉴 확인은 저장된 기록이 없다.
+
+| 단계 | 상태 | 한 줄 결과 |
+| --- | --- | --- |
+| 1. about, resume | ran | `/@taeklim/about`, `/resume` 200. 옛 `/about`, `/resume` 308 |
+| 2. saved, me (본인 전용) | ran (익명만) | `/@taeklim/saved`, `/@taeklim/me` 404 |
+| 3. logs 이동 | ran | `/@taeklim/logs` 200. `/log`, `/log/@taeklim` 404 (308 없음) |
+| 4. 모바일 메뉴 = 데스크톱 rail | 기록 없음 | 측정 파일 없음 |
+| 5. sitemap | ran | `/@taeklim/(about\|resume)` 2개 |
+| 6. 같은 배포의 500, favicon 고침 | ran | `/api/x`, `/tags`, `/favicon/x` 404. `/favicon.ico`, `/icon.png` 200 |
+| 7. traffic-check | 기록 없음 | 이 배포 뒤 결과 파일 없음 |
+
+### 주소 흐름 (ASCII 그림 1장)
+
+```
+옛 /about, /resume --308--> /@taeklim/about, /@taeklim/resume  (200)
+옛 /log, /log/@taeklim ----> 404  (308 없음, 오너 #113 Update 1-2)
+                             /@taeklim/logs  (200)
+/@taeklim/saved, /@taeklim/me --> 익명 404 (본인 전용)
+/api/x, /tags, /favicon/x ----> 404  (전에는 500)
+/favicon.ico, /icon.png ------> 200  (전에는 404)
+sitemap: /@taeklim/about, /@taeklim/resume
+```
+
+### 단계 1. about, resume
+
+- What: 두 화면이 `/@u/…` 아래서 200이고 옛 주소가 308인지 본다.
+- Why: PJ-2-01.
+- Input data: 운영 URL 4개.
+- Output data: 상태 코드 4줄. `location` 값은 원본에 없다.
+- Result: 아래 표.
+- 좋은 점: 새 주소 200, 옛 주소 308. 나쁜 점: 308 도착지(`location`)를 원본이 담지 않는다. 도착지는 MVP2 절 단계 5 표의 값(`/@taeklim/about`, `/@taeklim/resume`)만 있다.
+- Status: ran.
+
+| URL | 상태 |
+| --- | --- |
+| `/@taeklim/about` | 200 |
+| `/@taeklim/resume` | 200 |
+| `/about` | 308 |
+| `/resume` | 308 |
+
+### 단계 2. saved, me (본인 전용)
+
+- What: 익명 요청에 본인 전용 화면이 404인지 본다.
+- Why: PJ-2-02, #89.
+- Input data: 운영 URL 2개, 로그인 없음.
+- Output data: 상태 코드 2줄.
+- Result: `/@taeklim/me` 404, `/@taeklim/saved` 404.
+- 좋은 점: 익명에게는 404다. 나쁜 점: 오너 로그인 상태의 렌더는 이 원본에 없다. `/@taeklim/me`의 오너 렌더는 MVP3 절 단계 6에 기록이 있다. `/@taeklim/saved`의 오너 렌더는 기록이 없다.
+- Status: ran (익명만).
+
+### 단계 3. logs 이동
+
+- What: 로그가 `/@u/logs`로 옮겨졌고 옛 주소가 308 없이 404인지 본다.
+- Why: PJ-2-03, #113 Update(옛 `/log/@u…`에 308 없음), Update 2(`/log` 전체 피드 제거).
+- Input data: 운영 URL 4개.
+- Output data: 상태 코드 4줄.
+- Result: 아래 표.
+- 좋은 점: 없는 사용자 `/@nobodyxyz/logs`도 404다. 나쁜 점: `/@u/logs/<logId>`는 이 원본에 없다.
+- Status: ran.
+
+| URL | 상태 |
+| --- | --- |
+| `/@taeklim/logs` | 200 |
+| `/log` | 404 |
+| `/log/@taeklim` | 404 |
+| `/@nobodyxyz/logs` | 404 |
+
+### 단계 4. 모바일 메뉴
+
+- What: 모바일 메뉴가 데스크톱 rail과 같은 항목인지 본다.
+- Why: #113 Update 2 (오너 "check mobile menu and update them").
+- Input data: 없음.
+- Output data: 없음.
+- Result: 기록 없음. 같은 배포에 넣었다는 사실만 `decisions.plan.md` #113 Update 2와 `01.status.md`에 있다. 측정 파일이 없다.
+- Status: 기록 없음.
+
+### 단계 5. sitemap
+
+- What: sitemap이 308 대상이 아닌 새 주소만 담는지 본다.
+- Why: PJ-1-28 AC2.
+- Input data: 운영 `/sitemap.xml` (200)에서 about, resume, logs `<loc>`을 뽑은 줄.
+- Output data: `<loc>` 줄 2개.
+- Result: 아래 표.
+- 좋은 점: 옛 `/about`, `/resume` 줄이 없다. 나쁜 점: 원본은 뽑은 줄만 담는다. sitemap 전체 줄 수와 `/@taeklim/logs` 줄은 원본에 없다.
+- Status: ran.
+
+| 패턴 | 줄 수 |
+| --- | --- |
+| `<loc>https://my.prettylog.com/@taeklim/(about\|resume)</loc>` | 2 |
+| `<loc>https://my.prettylog.com/(about\|resume)</loc>` (옛 형태) | 0 (원본에 줄 없음) |
+
+### 단계 6. 같은 배포의 500, favicon 고침
+
+- What: 경로 모양이 틀린 요청이 500이 아닌 404인지, favicon 두 개가 200인지 본다.
+- Why: #113 Update 3 (architect R1: fall-through 500, favicon 404).
+- Input data: 운영 URL 8개.
+- Output data: 상태 코드 8줄.
+- Result: 아래 표. 전에는 `/api/x`, `/tags`, `/favicon/x`가 500, `/favicon.ico`, `/icon.png`가 404였다 (`01.status.md`, #113 Update 3).
+- 좋은 점: 500이 모두 404가 되었다. 나쁜 점: 고치기 전 값은 이 원본에 없고 `01.status.md`의 설명을 옮긴 것이다.
+- Status: ran.
+
+| URL | 상태 |
+| --- | --- |
+| `/api/x` | 404 |
+| `/tags` | 404 |
+| `/favicon/x` | 404 |
+| `/nope` | 404 |
+| `/favicon.ico` | 200 |
+| `/icon.png` | 200 |
+| `/robots.txt` | 200 |
+| `/sitemap.xml` | 200 |
+
+### 단계 7. traffic-check
+
+- What: 점검 스크립트 결과를 본다.
+- Why: PJ-2-05 AC, PJ-2-06 AC3.
+- Input data: 없음.
+- Output data: 없음.
+- Result: 기록 없음. 이 배포 뒤 `_scripts/cloudflare/traffic-check.sh` 결과 파일이 없다. 미실행인지 실행했으나 미저장인지 원본으로 가릴 수 없다. `01.status.md`는 "오류 로그 새 줄 0"만 적었다.
+- Status: 기록 없음.
+
+### 상태 코드 합계 (원본 23줄)
+
+| 상태 | 개수 |
+| --- | --- |
+| 200 | 12 |
+| 404 | 9 |
+| 308 | 2 |
+| 합계 | 23 |
+
+### 원본에 없는 값
+
+- 단계 1: 옛 `/about`, `/resume`의 `location`.
+- 단계 2: `/@taeklim/saved`의 오너 렌더.
+- 단계 3: `/@u/logs/<logId>` 상태.
+- 단계 4: 모바일 메뉴 확인 전부.
+- 단계 5: sitemap 전체 줄 수, `/@taeklim/logs` 줄.
+- 단계 7: `traffic-check.sh` 결과 (0 FAIL 또는 FAIL 목록, 미실행 사유).
+- GitHub standalone 점검의 P2 배포 결과. `01.status.md`의 standalone 결과(run 38551425110)는 `cc-u4` 가지의 배포 전 점검이고 P2 `1c035f2`의 값이 아니다.
+
+### 판정
+
+판정하지 않는다. 원본에 값이 있는 항목(주소 23개, sitemap 2줄)은 기대와 같다. 단계 4와 7은 기록이 없어 PJ-2-06 AC3이 닫히지 않았다. P2 gate는 reviewer가 한다.

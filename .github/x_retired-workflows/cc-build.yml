@@ -1,4 +1,5 @@
 name: CC build only
+# Retired 2026-10-14 (CC-D2): cacheComponents is on in next.config.ts
 # Phase CC U3: build the web app with cacheComponents ON inside the runner, to
 # list what U4 must fix. No deploy, no VM transfer, no secrets. The repo's
 # next.config.ts stays flag-off (production build is unchanged).

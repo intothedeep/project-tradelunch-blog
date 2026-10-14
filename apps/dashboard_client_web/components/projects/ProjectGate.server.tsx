@@ -3,7 +3,8 @@ import { getProjectPosts } from '@/apis/getProjectPosts.api';
 // 404 gate for an unknown project, as a Suspense leaf (cacheComponents).
 // getProjectPosts throws notFound() for a missing project; it is cache()-
 // memoized, so the page's identical call costs no second request. Status
-// stays 200 once the shell is out (see UserGate).
+// stays 200 once the shell is out (see UserGate). Backup defense only: proxy.ts
+// (#97, #103) decides the real 404 before render.
 export async function ProjectGate({
     username,
     project,

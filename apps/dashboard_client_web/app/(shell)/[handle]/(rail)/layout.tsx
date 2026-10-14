@@ -27,7 +27,9 @@ export default async function RailGroupLayout({ children, params }: Props) {
                 <>
                     {/* Unknown user -> 404 view. A layout cannot await uncached
                         data above every Suspense boundary under cacheComponents,
-                        so the gate is a leaf: the status stays 200 (noindex). */}
+                        so the gate is a leaf: the status stays 200 (noindex).
+                        Backup defense only: proxy.ts (#97, #103) decides the
+                        real 404 before render. */}
                     <Suspense fallback={null}>
                         <UserGate username={username} />
                     </Suspense>

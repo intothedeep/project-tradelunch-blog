@@ -12,6 +12,7 @@ export function generateStaticParams() {
 // 404 gate for an unknown project. Under cacheComponents a layout cannot await
 // uncached data above every Suspense boundary, so the gate is a Suspense leaf
 // (ProjectGate): the view becomes the 404 page, the HTTP status stays 200.
+// Backup defense only: proxy.ts (#97, #103) decides the real 404 before render.
 type Props = {
     children: React.ReactNode;
     params: Promise<{ handle: string; project: string }>;

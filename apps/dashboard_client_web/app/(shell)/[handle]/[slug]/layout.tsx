@@ -23,9 +23,10 @@ export function generateStaticParams() {
 //
 // The post read is also the 404 gate, as the Suspense leaf PostGate: under
 // cacheComponents a layout cannot await uncached data above every Suspense
-// boundary. The view becomes the 404 page, the HTTP status stays 200. PostGate
-// reads with the viewer token (same cache key as PostContentCard) so the
-// owner's private post is not 404'd, and preloads the first comment page.
+// boundary. The view becomes the 404 page, the HTTP status stays 200. The real
+// 404 comes from proxy.ts (#97, #103) before render; this is backup defense.
+// PostGate reads with the viewer token (same cache key as PostContentCard) so
+// the owner's private post is not 404'd, and preloads the first comment page.
 // The anonymous tree preload (`void`, never awaited) runs beside it.
 type Props = {
     children: React.ReactNode;
