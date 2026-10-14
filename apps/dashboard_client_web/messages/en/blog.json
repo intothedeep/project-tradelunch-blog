@@ -10,7 +10,8 @@
         "explore": "Explore",
         "write": "Write",
         "saved": "Saved",
-        "myBlog": "My blog"
+        "myBlog": "My blog",
+        "projects": "Projects"
     },
     "toc": {
         "heading": "Contents"
@@ -83,5 +84,13 @@
         "addCategory": "Filter by category {value}",
         "addTag": "Filter by tag {value}",
         "noPostsFor": "No posts match these filters."
+    },
+    "projects": {
+        "title": "Projects",
+        "subtitle": "Projects by @{username}",
+        "postCount": "{count, plural, =0 {No posts} one {# post} other {# posts}}",
+        "overview": "Overview",
+        "empty": "No projects yet.",
+        "treeTitle": "Projects"
     }
 }

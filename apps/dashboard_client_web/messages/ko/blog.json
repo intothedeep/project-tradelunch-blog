@@ -52,7 +52,8 @@
         "explore": "탐색",
         "write": "글쓰기",
         "saved": "저장됨",
-        "myBlog": "내 블로그"
+        "myBlog": "내 블로그",
+        "projects": "프로젝트"
     },
     "rail": {
         "popularTags": "인기 태그",
@@ -83,5 +84,13 @@
         "addCategory": "카테고리 {value}로 필터",
         "addTag": "태그 {value}로 필터",
         "noPostsFor": "이 필터에 맞는 글이 없습니다."
+    },
+    "projects": {
+        "title": "프로젝트",
+        "subtitle": "@{username}님의 프로젝트",
+        "postCount": "{count, plural, =0 {글 없음} other {글 #개}}",
+        "overview": "개요",
+        "empty": "아직 프로젝트가 없습니다.",
+        "treeTitle": "프로젝트"
     }
 }
