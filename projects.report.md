@@ -561,7 +561,7 @@ gate 검토 Cycle 2/2의 판정은 PASS다. M1, M2, M3 exit가 모두 닫혔다 
 | 1. about, resume | ran | `/@taeklim/about`, `/resume` 200. 옛 `/about`, `/resume` 308 |
 | 2. saved, me (본인 전용) | ran (익명만) | `/@taeklim/saved`, `/@taeklim/me` 404 |
 | 3. logs 이동 | ran | `/@taeklim/logs` 200. `/log`, `/log/@taeklim` 404 (308 없음) |
-| 4. 모바일 메뉴 = 데스크톱 rail | 기록 없음 | 측정 파일 없음 |
+| 4. 모바일 메뉴 = 데스크톱 rail | 오너 확인 (2026-10-14) | 휴대폰 화면 확인, 측정 파일 없음 |
 | 5. sitemap | ran | `/@taeklim/(about\|resume)` 2개 |
 | 6. 같은 배포의 500, favicon 고침 | ran | `/api/x`, `/tags`, `/favicon/x` 404. `/favicon.ico`, `/icon.png` 200 |
 | 7. traffic-check | ran | 0 FAIL, exit=0 (web `8eac7d8`) |
@@ -626,10 +626,10 @@ sitemap: /@taeklim/about, /@taeklim/resume
 
 - What: 모바일 메뉴가 데스크톱 rail과 같은 항목인지 본다.
 - Why: #113 Update 2 (오너 "check mobile menu and update them").
-- Input data: 없음.
-- Output data: 없음.
-- Result: 기록 없음. 같은 배포에 넣었다는 사실만 `decisions.plan.md` #113 Update 2와 `01.status.md`에 있다. 측정 파일이 없다.
-- Status: 기록 없음.
+- Input data: 오너 휴대폰 화면 (운영 `8eac7d8`).
+- Output data: 오너 답 "checked" (2026-10-14 채팅).
+- Result: 오너가 아이콘, 섹션 색, 직각 모서리를 확인했다. 측정 파일은 없다.
+- Status: ran (오너 확인).
 
 ### 단계 5. sitemap
 
@@ -691,10 +691,9 @@ sitemap: /@taeklim/about, /@taeklim/resume
 - 단계 1: 옛 `/about`, `/resume`의 `location`.
 - 단계 2: `/@taeklim/saved`의 오너 렌더.
 - 단계 3: `/@u/logs/<logId>` 상태.
-- 단계 4: 모바일 메뉴 확인 전부.
 - 단계 5: sitemap 전체 줄 수, `/@taeklim/logs` 줄.
 - GitHub standalone 점검의 P2 배포 결과. `01.status.md`의 standalone 결과(run 38551425110)는 `cc-u4` 가지의 배포 전 점검이고 P2 `1c035f2`의 값이 아니다.
 
 ### 판정
 
-판정하지 않는다. 원본에 값이 있는 항목(주소 23개, sitemap 2줄, traffic-check)은 기대와 같다. 단계 4(모바일 메뉴)는 기록이 없다. PJ-2-06 AC3(traffic-check 한 줄)은 단계 7로 채워졌다. P2 gate는 reviewer가 한다.
+판정하지 않는다. 원본에 값이 있는 항목(주소 23개, sitemap 2줄, traffic-check)은 기대와 같다. 단계 4(모바일 메뉴)는 오너가 휴대폰에서 확인했다. PJ-2-06 AC3(traffic-check 한 줄)은 단계 7로 채워졌다. P2 gate는 reviewer가 한다.
