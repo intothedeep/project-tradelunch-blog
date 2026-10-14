@@ -125,6 +125,115 @@ alert first.
 
 ---
 
+## Log views (blog-web, blog-api): done 2026-10-13
+
+Purpose: read `blog-web` and `blog-api` apart in Logs Explorer, without one big pile of logs.
+Done by the owner, checked with `gcloud logging views list`.
+
+Layout: both logs sit in one bucket. A log view is a saved filter on that bucket.
+
+```text
+VM Instance (instance-servers)      resource type: same for both
+  └─ _Default bucket (30 days)       storage: same for both
+       ├─ LOG_ID("blog-api")   receiver blog-api in ops-agent.yaml
+       ├─ LOG_ID("blog-web")   receiver blog-web
+       ├─ LOG_ID("syslog")     Ops Agent default (noise)
+       └─ LOG_ID("ops-agent-…")
+```
+
+Three levels of separation:
+
+| Level | State | What it gives | Cost of it |
+| --- | --- | --- | --- |
+| Log name (`LOG_ID`) | already existed | filter by name in a query | none |
+| Log view | **added now** | pick the log in the "Refine scope" menu | no extra cost, storage stays in `_Default` |
+| Separate bucket + sink | not done | own retention, own access | needs a sink and a `_Default` exclusion |
+
+Chosen: log views. A separate bucket is worth it only for different retention or access.
+
+Commands the owner ran (once):
+
+```sh
+P=$(gcloud config get-value project)
+gcloud logging views create blog-web --bucket=_Default --location=global \
+  --log-filter='LOG_ID("blog-web")' --description="Next.js blog-web" --project=$P
+gcloud logging views create blog-api --bucket=_Default --location=global \
+  --log-filter='LOG_ID("blog-api")' --description="Express blog-api" --project=$P
+```
+
+Verify (`gcloud logging views list --bucket=_Default --location=global`), output:
+
+```text
+VIEW_ID   FILTER                                                                                                          DESCRIPTION
+_AllLogs                                                                                                                  Access to all logs
+_Default  NOT LOG_ID("cloudaudit.googleapis.com/data_access") AND NOT LOG_ID("externalaudit.googleapis.com/data_access")  Access to all logs except data access logs
+blog-api  LOG_ID("blog-api")                                                                                              Express blog-api
+blog-web  LOG_ID("blog-web")                                                                                              Next.js blog-web
+```
+
+Use: Logs Explorer → **Refine scope** → log view → `blog-web` or `blog-api`.
+
+---
+
+## Timestamped JSON error lines (blog-web, commit `35b3630`)
+
+Purpose: tell old errors from new ones. Status: committed and pushed 2026-10-13, **not yet deployed to the VM**.
+The JSON error line below is **not observed** in real output yet.
+
+Problem: `pm2 logs blog-web --err` showed error lines with no time (book case 13). Old and new could not be told apart.
+
+Why not PM2 `log_date_format`:
+
+- PM2 would prefix every line with a date, for example `2026-10-13T23:40:01: {"level":30,...}`.
+- The Ops Agent `parse_json` (`ops-agent.yaml`) then fails on every pino and request JSON line.
+- Cloud Logging would lose the structured fields, the severity mapping and the request-log queries (decisions #56, #58).
+
+Fix: the JSON lines already carry `time`. Make the time-less lines JSON too. `ops-agent.yaml` is unchanged.
+
+| Line | Before | Now |
+| --- | --- | --- |
+| blog-api pino (`apps/dashboard_server/src/lib/logger.ts:24`) | JSON with `time` | unchanged |
+| blog-web request log (`apps/dashboard_client_web/proxy.ts:38`) | JSON with `time` | unchanged |
+| plain `console.error` strings, e.g. `[RecentPostsList] feed fetch failed` | text, no time | JSON with `time` via `logServerError` |
+| Next's own `⨯ [TypeError: fetch failed] { digest ... }` output | text, no time | still printed (Next internals); an extra JSON line comes from `onRequestError` |
+
+Where (`apps/dashboard_client_web`):
+
+- New `utils/serverLog.util.ts`: `toErrorLogLine(severity, message, err?, context?)` (pure) and `logServerError(message, err?, context?, severity='ERROR')`.
+- `instrumentation.ts`: `onRequestError` first calls `logServerError('request error', err, {digest, path, method, routerKind, routePath, routeType})`, then does the existing POST to Express `/v1/api/error-logs`.
+- `console.error` became `logServerError` in `apis/getPostsByTag.api.ts`, `getUserPopularTags.api.ts`, `getPosts.api.ts`, `getUserProfile.api.ts`, `getPopularTags.api.ts`, `getPost.api.ts` (ERROR, they rethrow) and in `app/sitemap.ts`, `app/blog/components/RecentPostsList.server.tsx` (WARNING, handled fallback).
+- Client components (`error.tsx` files, `CategoryErrorboundary.client.tsx`, `useDraftAutosave.hook.ts`) are unchanged: they log in the browser.
+
+Line keys: the context keys, then `time` (ISO), `severity` (`ERROR` or `WARNING`), `message`, `err{name,message,code}`, `cause{name,message,code}`.
+The fixed keys come after the context keys, so context cannot overwrite them.
+The line is not gated by `LOG_REQUESTS`.
+`cause.code` carries the network code, e.g. `ETIMEDOUT` (undici wraps it: `TypeError: fetch failed` → cause `AggregateError` with code `ETIMEDOUT`).
+
+Expected line (**inferred from the code, not observed**):
+
+```json
+{"username":"tio","time":"2026-10-13T09:12:03.411Z","severity":"WARNING","message":"[RecentPostsList] feed fetch failed","err":{"name":"TypeError","message":"fetch failed"},"cause":{"name":"AggregateError","message":"","code":"ETIMEDOUT"}}
+```
+
+Notes:
+
+- Next's `⨯` multi-line output still appears. Next prints it and the code cannot change it.
+- An error in an `apis/*.api.ts` file logs twice per request: its own line, and the `onRequestError` line.
+- `digest` in the `onRequestError` line is the digest Next prints in its `⨯` line. It pairs the two. Not checked against real output yet.
+
+Check after deploy (replaces the `ls -l` / `wc -l` workaround of book case 13):
+
+```sh
+gcloud logging read 'LOG_ID("blog-web") AND severity>=WARNING' --freshness=1h --limit 20 --format='value(timestamp, jsonPayload.message, jsonPayload.cause.code)'
+```
+
+| Result | Meaning |
+| --- | --- |
+| empty | no errors in the last hour |
+| lines with a time before the release | old errors |
+
+---
+
 ## Volume and noise — option C for now (decision #57)
 
 Cloud Logging bills by **bytes ingested**, not by entry count. Retention: `_Default` bucket,
@@ -291,6 +400,7 @@ Two places run the same filter language. Logs Explorer does not accept `#` comme
 | one path | `log_id("blog-web")` `jsonPayload.path="/blog"` |
 | one country | `log_id("blog-web")` `jsonPayload.country="KR"` |
 | signed-in visitors | `log_id("blog-web")` `jsonPayload.signedIn=true` |
+| errors and warnings (after `35b3630` is deployed) | `log_id("blog-web")` `severity>=WARNING` |
 
 Page loads only, as pasted into the Query box:
 
@@ -312,6 +422,10 @@ gcloud logging read 'log_id("blog-web") AND jsonPayload.message="request" AND js
 gcloud logging read 'log_id("blog-web") AND jsonPayload.ua=~"(?i)bot|crawl|spider|externalhit|slurp|preview|fetch"' \
   --project=mywebsite-511502 --freshness=1d --limit=20 \
   --format='table(timestamp,jsonPayload.path,jsonPayload.ua)'
+
+# errors and warnings, last hour (after 35b3630 is deployed; empty = none)
+gcloud logging read 'LOG_ID("blog-web") AND severity>=WARNING' --freshness=1h --limit 20 \
+  --format='value(timestamp, jsonPayload.message, jsonPayload.cause.code)'
 
 # top paths, last 7 days (counts)
 gcloud logging read 'log_id("blog-web") AND jsonPayload.message="request" AND jsonPayload.rsc=false' \

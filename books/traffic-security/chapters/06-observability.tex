@@ -130,6 +130,209 @@ Logs Explorer와 \texttt{gcloud logging read}는 같은 필터 언어를 쓴다.
 \end{itemize}
 
 %% ---------------------------------------------------------------------------
+\section{로그 뷰와 시각 있는 오류 줄}\label{sec:06-views}
+
+\begin{inbrief}
+  \item[Why] \texttt{blog-web}과 \texttt{blog-api}를 따로 보고, 오류 줄의 시각으로 옛 오류와 새 오류를 가른다.
+  \item[When] Logs Explorer에서 한 서비스만 볼 때, 그리고 release 뒤 오류를 확인할 때.
+  \item[Where] Cloud Logging의 \texttt{\_Default} 버킷(bucket)과 \texttt{apps/dashboard\_client\_web}의 오류 로그 코드.
+  \item[How] 로그 뷰(log view) 둘을 만들었다. 시각 없는 오류 줄을 JSON 줄로 바꿨다.
+\end{inbrief}
+
+% src: scratchpad logging-views-errorjson-2026-10-13.facts.md §3; deploy/logging/README.md §Log views
+\subsection{로그 뷰 (log view)}\label{sec:06-logviews}
+
+\paragraph{결과.}
+Logs Explorer의 ``Refine scope'' 메뉴에서 \texttt{blog-web}과 \texttt{blog-api}를 따로 고른다.
+2026/10/13에 오너가 만들었고 \texttt{gcloud logging views list}로 확인했다.
+
+\paragraph{무엇을 알려고 하나.}
+두 서비스의 로그가 한 곳에 섞여 있는데 따로 볼 수 있는가.
+
+\paragraph{문제.}
+오너는 모든 로그가 기본 범주 하나 아래에 있다고 보았다.
+실제로 두 로그는 같은 VM 인스턴스(VM instance)와 같은 \texttt{\_Default} 버킷에 있다.
+이름(\code{LOG_ID})으로만 갈린다.
+\Cref{fig:06-log-layout}이 배치를 보인다.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[font=\small]
+    \node[vmbox, minimum width=13cm] (vm) at (0,3.4) {VM 인스턴스 \texttt{instance-servers}: 리소스 유형(resource type)이 둘 다 같다};
+    \node[flowbox, minimum width=3.3cm] (a) at (-5.25,1.4) {\footnotesize\texttt{LOG\_ID("blog-api")}\\\scriptsize receiver \texttt{blog-api}};
+    \node[flowbox, minimum width=3.3cm] (w) at (-1.75,1.4) {\footnotesize\texttt{LOG\_ID("blog-web")}\\\scriptsize receiver \texttt{blog-web}};
+    \node[flowalt, minimum width=3.3cm] (s) at (1.75,1.4) {\footnotesize\texttt{LOG\_ID("syslog")}\\\scriptsize Ops Agent 기본};
+    \node[flowalt, minimum width=3.3cm] (o) at (5.25,1.4) {\footnotesize\texttt{LOG\_ID("ops-agent-...")}\\\scriptsize Ops Agent 자신};
+    \begin{scope}[on background layer]
+      \node[zone, fit=(a)(w)(s)(o), inner sep=10pt, label={[font=\scriptsize, anchor=north east]south east:\texttt{\_Default} 버킷, 30일, 저장소가 같다}] (bk) {};
+    \end{scope}
+    \node[flownew, minimum width=3.1cm] (va) at (-5.25,-1.0) {뷰 \texttt{blog-api}};
+    \node[flownew, minimum width=3.1cm] (vw) at (-1.75,-1.0) {뷰 \texttt{blog-web}};
+    \draw[flowarrow] (vm) -- (bk.north);
+    \draw[flowarrow, dashed] (va) -- (a);
+    \draw[flowarrow, dashed] (vw) -- (w);
+  \end{tikzpicture}
+  \caption{로그 배치와 새 뷰. 파란 상자가 이번에 더한 뷰이고, 회색 상자는 잡음 로그다.
+  (src: deploy/logging/README.md §Log views)}\label{fig:06-log-layout}
+\end{figure}
+
+\paragraph{처방.}
+분리 수준은 세 가지다. \Cref{tab:06-sep-levels}에 적었다.
+로그 뷰를 골랐다.
+비용이 없고 저장소가 \texttt{\_Default}에 그대로 남는다.
+버킷을 따로 두는 일은 보관 기간이나 접근 권한이 달라야 할 때만 값을 한다.
+
+\begin{table}[H]
+  \caption{로그 분리 수준 세 가지.}\label{tab:06-sep-levels}
+  % src: scratchpad logging-views-errorjson-2026-10-13.facts.md §3
+  \small
+  \begin{tabularx}{\linewidth}{L{3.6cm} L{2.6cm} Y}
+    \toprule
+    수준 & 상태 & 얻는 것과 값 \\
+    \midrule
+    로그 이름(log name, \code{LOG_ID}) & 이미 있었다 & 질의에서 이름으로 거른다. 비용 없음 \\
+    \midrule
+    로그 뷰(log view) & \textbf{이번에 더했다} & 메뉴에서 로그를 고른다. 추가 비용 없음 \\
+    \midrule
+    별도 버킷(bucket)과 싱크(sink) & 하지 않았다 & 보관 기간과 접근을 따로 둔다. 싱크와 \texttt{\_Default} 제외 규칙이 필요하다 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\paragraph{명령.}
+오너가 한 번 돌렸다.
+
+\begin{lstlisting}[language={}]
+P=$(gcloud config get-value project)
+gcloud logging views create blog-web --bucket=_Default --location=global \
+  --log-filter='LOG_ID("blog-web")' --description="Next.js blog-web" --project=$P
+gcloud logging views create blog-api --bucket=_Default --location=global \
+  --log-filter='LOG_ID("blog-api")' --description="Express blog-api" --project=$P
+\end{lstlisting}
+
+\paragraph{확인.}
+\texttt{gcloud logging views list --bucket=\_Default --location=global}의 출력이다.
+뷰 둘이 목록에 있다.
+
+\begin{lstlisting}[language={}]
+VIEW_ID   FILTER                                                          DESCRIPTION
+_AllLogs                                                                  Access to all logs
+_Default  NOT LOG_ID("cloudaudit.googleapis.com/data_access") AND ...     Access to all logs except data access logs
+blog-api  LOG_ID("blog-api")                                              Express blog-api
+blog-web  LOG_ID("blog-web")                                              Next.js blog-web
+\end{lstlisting}
+
+\paragraph{읽는 법.}
+Logs Explorer에서 ``Refine scope''를 누르고, 로그 뷰를 고르고, \texttt{blog-web}이나 \texttt{blog-api}를 고른다.
+
+% src: scratchpad logging-views-errorjson-2026-10-13.facts.md §1 §2; deploy/logging/README.md §Timestamped JSON error lines
+\subsection{시각 있는 JSON 오류 줄}\label{sec:06-errorjson}
+
+\paragraph{결과.}
+커밋 \commit{35b3630}이 \texttt{blog-web}의 오류 줄에 시각을 넣었다.
+커밋하고 push했다.
+VM에는 아직 배포하지 않았다.
+그래서 JSON 오류 줄을 실제 출력에서 아직 보지 못했다.
+
+\paragraph{무엇을 알려고 하나.}
+오류 줄이 옛 것인가 새 것인가.
+
+\paragraph{문제.}
+\texttt{pm2 logs blog-web --err}의 오류 줄에 시각이 없었다 (\Cref{sec:dbg-case13}).
+옛 줄과 새 줄을 가를 수 없었다.
+
+\paragraph{원인.}
+시각 없는 줄은 두 종류였다.
+\begin{itemize}[nosep]
+  \item \texttt{console.error} 문자열. 예: \texttt{[RecentPostsList] feed fetch failed}.
+  \item Next.js가 직접 찍는 여러 줄 출력. 줄 앞에 x 모양 기호가 붙고 \texttt{[TypeError: fetch failed]}와 digest가 나온다. Next 내부라 바꿀 수 없다.
+\end{itemize}
+JSON 줄은 이미 \code{time}을 가진다.
+\texttt{blog-api}의 pino는 \texttt{logger.ts:24}에서 isoTime으로 쓴다.
+\texttt{blog-web} 요청 로그는 \texttt{proxy.ts:38}이 쓴다.
+
+\paragraph{처방.}
+오너는 먼저 PM2 \code{log_date_format}을 청했다.
+채택하지 않았다.
+PM2가 모든 줄 앞에 날짜를 붙이기 때문이다. 예: \code{2026-10-13T23:40:01: {"level":30,...}}.
+그러면 Ops Agent의 \code{parse_json}이 모든 pino 줄과 요청 JSON 줄에서 실패한다.
+Cloud Logging이 구조화 필드, severity 매핑, 요청 로그 질의를 잃는다 (\decision{56}, \decision{58}).
+그래서 시각 없는 줄을 JSON으로 바꿨다.
+\texttt{ops-agent.yaml}은 그대로다.
+\Cref{tab:06-errorjson}가 줄 종류별로 무엇이 바뀌었는지 보인다.
+
+\begin{table}[H]
+  \caption{줄 종류별 변화.}\label{tab:06-errorjson}
+  % src: scratchpad logging-views-errorjson-2026-10-13.facts.md §1 §2
+  \small
+  \begin{tabularx}{\linewidth}{L{5.2cm} L{2.8cm} Y}
+    \toprule
+    줄 & 전 & 후 \\
+    \midrule
+    \texttt{blog-api} pino & \code{time}이 있는 JSON & 그대로 \\
+    \midrule
+    \texttt{blog-web} 요청 로그 & \code{time}이 있는 JSON & 그대로 \\
+    \midrule
+    \texttt{console.error} 문자열 & 문자열, 시각 없음 & \code{logServerError}로 \code{time}이 있는 JSON \\
+    \midrule
+    Next의 x 기호 여러 줄 출력 & 문자열, 시각 없음 & 계속 찍힌다(Next 내부). \code{onRequestError}가 JSON 줄을 하나 더한다 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+코드 위치는 \texttt{apps/dashboard\_client\_web}다.
+\begin{itemize}[nosep]
+  \item 새 파일 \texttt{utils/serverLog.util.ts}: \code{toErrorLogLine(severity, message, err?, context?)}(순수 함수)와 \code{logServerError(message, err?, context?, severity='ERROR')}.
+  \item \texttt{instrumentation.ts}의 \code{onRequestError}: 먼저 \code{logServerError}를 \code{'request error'}와 키 \code{digest}, \code{path}, \code{method}, \code{routerKind}, \code{routePath}, \code{routeType}로 부르고, 그 뒤 Express \code{/v1/api/error-logs}로 POST한다(원래 있던 동작).
+  \item \code{console.error}를 \code{logServerError}로 바꾼 파일은 아래 둘이다.
+  \begin{itemize}[nosep]
+    \item ERROR(다시 던진다): \code{apis/getPostsByTag.api.ts}, \code{getUserPopularTags.api.ts}, \code{getPosts.api.ts}, \code{getUserProfile.api.ts}, \code{getPopularTags.api.ts}, \code{getPost.api.ts}.
+    \item WARNING(대체 경로로 처리): \code{app/sitemap.ts}, \code{app/blog/components/RecentPostsList.server.tsx}.
+  \end{itemize}
+  \item 클라이언트 컴포넌트는 그대로다. 브라우저에서 로그를 남긴다.
+  \begin{itemize}[nosep]
+    \item \code{error.tsx} 파일들, \code{CategoryErrorboundary.client.tsx}, \code{useDraftAutosave.hook.ts}.
+  \end{itemize}
+\end{itemize}
+
+줄의 키는 context 키, \code{time}(ISO), \code{severity}(\code{ERROR} 또는 \code{WARNING}), \code{message}, \code{err}, \code{cause} 순서다. \code{err}와 \code{cause}는 각각 \code{name}, \code{message}, \code{code}를 가진다.
+고정 키를 context 뒤에 펼치므로 context가 덮어쓰지 못한다.
+\code{LOG_REQUESTS}로 끄지 않는다.
+\code{cause.code}가 \code{ETIMEDOUT} 같은 코드를 나른다.
+undici가 이를 감싼다: \code{TypeError: fetch failed}의 cause가 \code{AggregateError}이고 코드가 \code{ETIMEDOUT}이다.
+
+\paragraph{기대하는 줄.}
+아래 줄은 코드에서 추정한 것이다. 아직 관찰하지 않았다.
+
+\begin{lstlisting}[language={}]
+{"username":"tio","time":"2026-10-13T09:12:03.411Z","severity":"WARNING",
+ "message":"[RecentPostsList] feed fetch failed",
+ "err":{"name":"TypeError","message":"fetch failed"},
+ "cause":{"name":"AggregateError","message":"","code":"ETIMEDOUT"}}
+\end{lstlisting}
+
+\paragraph{부작용.}
+\begin{itemize}[nosep]
+  \item Next의 x 기호 여러 줄 출력은 여전히 나온다.
+  \item \texttt{apis/*.api.ts}의 오류는 요청마다 두 번 기록된다. 자기 줄 하나와 \code{onRequestError} 줄 하나다.
+  \item \code{digest}는 Next가 x 기호 줄에 찍는 digest다. 두 줄을 짝짓는 키다. 실제 출력과 맞는지는 아직 보지 않았다.
+\end{itemize}
+
+\paragraph{확인 (배포 뒤).}
+사례 13의 \code{ls -l}과 \code{wc -l} 우회 대신 아래 질의를 쓴다.
+
+\begin{lstlisting}[language={}]
+gcloud logging read 'LOG_ID("blog-web") AND severity>=WARNING' --freshness=1h --limit 20 \
+  --format='value(timestamp, jsonPayload.message, jsonPayload.cause.code)'
+\end{lstlisting}
+
+\paragraph{읽는 법.}
+\begin{itemize}[nosep]
+  \item 빈 결과: 지난 1시간에 오류가 없다.
+  \item release보다 앞선 시각의 줄: 옛 오류다.
+\end{itemize}
+
+%% ---------------------------------------------------------------------------
 \section{로그 양 스냅샷}\label{sec:06-volume}
 
 \begin{inbrief}

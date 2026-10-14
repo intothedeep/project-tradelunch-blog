@@ -82,7 +82,18 @@ Verdict:
 
 Not verified: that the 4 errors are 2 IPv4 and 2 IPv6 addresses. Why the old timeouts happened.
 
-Possible follow-up, not decided: set a pm2 `log_date_format` so error lines carry timestamps.
+Follow-up (2026-10-13):
+
+- PM2 `log_date_format` was rejected. It prefixes every line with a date, so the Ops Agent `parse_json` fails on every JSON line.
+- Commit `35b3630` turns the time-less error lines into JSON lines with `time`. It is pushed, not yet deployed to the VM.
+- The JSON error line is not observed in real output yet.
+- After deploy, this query replaces the `ls -l` / `wc -l` workaround. Empty = no errors in the last hour. Times before the release = old errors.
+
+```sh
+gcloud logging read 'LOG_ID("blog-web") AND severity>=WARNING' --freshness=1h --limit 20 --format='value(timestamp, jsonPayload.message, jsonPayload.cause.code)'
+```
+
+- Details: `deploy/logging/README.md` "Timestamped JSON error lines" and book chapter 06, `sec:06-errorjson`.
 
 ## Lesson
 
