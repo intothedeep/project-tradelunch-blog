@@ -7,7 +7,7 @@
 //   ownerUsername (already @-stripped on the detail page) is passed so the
 //   island can show the post-owner delete affordance.
 
-import { getComments } from '@/apis/getComments.api';
+import { getCommentsFirstPage } from '@/apis/getCommentsFirstPage.api';
 import { CommentsSection } from '@/components/blog/comments/CommentsSection.client';
 import type { TCommentListResponse } from '@repo/types';
 
@@ -20,7 +20,7 @@ export const Comments = async ({
 }) => {
     let initialPage: TCommentListResponse | undefined;
     try {
-        initialPage = await getComments(postId, { limit: 50 });
+        initialPage = await getCommentsFirstPage(postId);
     } catch {
         // The island refetches client-side; a server fetch failure must not
         // break the post page. Render the section with no seed.

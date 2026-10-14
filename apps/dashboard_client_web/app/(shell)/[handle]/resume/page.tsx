@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 
 import clsx from 'clsx';
 import ResumeTOC from './ResumeTOC.client';
+import LastUpdatedDate from './LastUpdatedDate.client';
 import { JsonLd } from '@/components/seo/JsonLd.server';
 import { buildProfilePageLd } from '@/lib/jsonld';
 import { HOME_FEED_AUTHOR } from '@/utils/blog-author';
@@ -112,10 +113,7 @@ const ResumeView = () => {
                             STATUS: READY
                         </div>
                         <div className="text-foreground">
-                            Last Updated:{' '}
-                            <span suppressHydrationWarning>
-                                {new Date().toLocaleDateString()}
-                            </span>
+                            Last Updated: <LastUpdatedDate />
                         </div>
                     </CardContent>
                 </Card>
