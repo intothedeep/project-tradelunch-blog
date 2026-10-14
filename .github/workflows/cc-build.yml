@@ -30,6 +30,10 @@ jobs:
         run: |
           sed -i 's/^const nextConfig: NextConfig = {$/&\n    cacheComponents: true,/' apps/dashboard_client_web/next.config.ts
           grep -n 'cacheComponents' apps/dashboard_client_web/next.config.ts
+          # Preview U4: the flag rejects route segment 'dynamic'; drop it here only.
+          grep -rl "export const dynamic = 'force-dynamic'" apps/dashboard_client_web/app \
+            | xargs -r sed -i "/export const dynamic = 'force-dynamic';/d"
+          grep -rn "export const dynamic" apps/dashboard_client_web/app || echo 'no route dynamic left'
 
       - name: Build web
         # Same env as gcp.yml "Build web" (NEXT_PUBLIC_* are baked at build time).
