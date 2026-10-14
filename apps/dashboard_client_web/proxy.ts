@@ -13,9 +13,11 @@ import { checkExists } from '@/apis/existence.proxy';
 import { legacyRedirectPath } from '@/utils/legacyRedirect';
 import {
     classifyGatePath,
+    isUnknownPath,
     NOT_FOUND_PATH,
     shouldCheck,
 } from '@/utils/notFoundGate';
+import { isOwnerHandle } from '@/utils/owner-handle';
 
 // Routes that require an authenticated user.
 const isProtectedRoute = createRouteMatcher([
@@ -73,6 +75,12 @@ function toRequestLogLine(req: NextRequest) {
     };
 }
 
+function rewriteToNotFound(req: NextRequest) {
+    const url = req.nextUrl.clone();
+    url.pathname = NOT_FOUND_PATH;
+    return NextResponse.rewrite(url);
+}
+
 // Real 404 for unknown pages (cc.design.md §18). Under cacheComponents the page
 // gates are Suspense leaves and can only answer 200 plus a not-found view, so
 // the status is decided here, before render. A missing page is rewritten to a
@@ -106,10 +114,7 @@ async function gateNotFound(auth: ClerkMiddlewareAuth, req: NextRequest) {
             })
         );
     }
-    if (result !== 'missing') return null;
-    const url = req.nextUrl.clone();
-    url.pathname = NOT_FOUND_PATH;
-    return NextResponse.rewrite(url);
+    return result === 'missing' ? rewriteToNotFound(req) : null;
 }
 
 const clerk = clerkMiddleware(async (auth, req) => {
@@ -123,6 +128,13 @@ const clerk = clerkMiddleware(async (auth, req) => {
             // Logging must never break a request.
         }
     }
+    // Pure path check first: an unknown top-level path or a non-owner /@u/about
+    // would otherwise render under ISR and 500 (cc.design.md section 18).
+    if (
+        (req.method === 'GET' || req.method === 'HEAD') &&
+        isUnknownPath(req.nextUrl.pathname, isOwnerHandle)
+    )
+        return rewriteToNotFound(req);
     const missing = await gateNotFound(auth, req);
     if (missing) return missing;
     if (isProtectedRoute(req)) {

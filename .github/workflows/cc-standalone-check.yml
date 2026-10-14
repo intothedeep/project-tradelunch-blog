@@ -32,6 +32,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @repo/types build
 
+      - name: Allowlist matches app/ top-level routes
+        run: node _scripts/cc/check-known-top-level.mjs
+
       - name: Build web (standalone, same as gcp.yml)
         run: |
           pnpm --filter dashboard_client_web build
