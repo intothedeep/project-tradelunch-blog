@@ -5,7 +5,7 @@
 
 - 상위 문서: `00.plan.md` Phase CC 절 (mission block, stub).
 - 설계: `cc.design.md` rev2 (system-architect). 감사: `perf.audit.md`, 출처 `perf.sources.md`.
-- 결정: `decisions.plan.md` #82–#88, #92. 행: `00.tasks.md` Phase CC.
+- 결정: `decisions.plan.md` #82–#88, #92, #93. 행: `00.tasks.md` Phase CC.
 - 이 파일은 설계를 다시 쓰지 않는다. 절 번호로 인용한다.
 
 ## 1. 순서와 사다리
@@ -15,7 +15,7 @@ P1 gate PASS (Phase PJ M3)
    │
    ▼
 M-CC1 MVP1 (flag off) ─────────────────────────────────────────────────────────
- U0a 계측 ─► U0b 기준선 ─► QW1 빠른 수정 ─► QW2 rail 폭 hotfix ─► U1a ─► U1b 공유 rail ─► U2 staleTimes ─► U3 잎 정리
+ U0a 계측 ─► U0b 기준선 ─► QW1 빠른 수정 ─► QW2 rail 폭 hotfix ─► U1a ─► U1b 공유 왼쪽 rail ─► U1c 공유 오른쪽 rail (#93) ─► U2 staleTimes ─► U3 잎 정리
    │                                                                                       gate (reviewer)
    ▼
 M-CC2 MVP2 (flag on) ── U4 cacheComponents: true ── gate (reviewer)        S-CC = B (owner 2026-10-14, #85)
@@ -47,7 +47,7 @@ Phase PJ M4 (P2) 열림 (#82)
 - kill: 가드 G-a…G-l 하나라도 실패 → `git revert` + 재배포 + purge.
 - kill (QW2): 정확성 판정 3개 중 하나라도 거짓 → 같은 되돌림.
 
-#### Tactic: 공유 rail을 route group layout에서 한 번 렌더 (U1a, U1b)
+#### Tactic: 공유 rail을 route group layout에서 한 번 렌더 (U1a, U1b, U1c)
 - kill: 빌드 실패, 또는 smoke 15개 중 하나라도 status나 `location` 변화 → `git revert` + 재배포 + purge.
 
 #### Tactic: client router cache 재사용 (U2)
@@ -72,7 +72,7 @@ Phase PJ M4 (P2) 열림 (#82)
 #### Tactic: load-more를 엣지 안으로 (U7)
 - kill: 판정 실패, 또는 로그인 draft가 2쪽부터 안 보임 → `git revert`.
 
-## 3. 오너 질문: 모두 답함 (2026-10-14, #92)
+## 3. 오너 질문: 모두 답함 (2026-10-14, Q1–Q13 #92, Q14–Q15 #93 Update)
 
 | # | 질문 (한 줄) | 답 | 쓰는 행 |
 | --- | --- | --- | --- |
@@ -91,6 +91,8 @@ Phase PJ M4 (P2) 열림 (#82)
 | Q12 | QW1, QW2를 P1 gate 전에 내도 되나 | 기준선 바로 뒤 ("take yours"). 코드는 지금 시작 ("dispatch all") | CC-U0a, QW1, QW2 |
 | Q13 | D4(tree 링크 `<a href>`)를 CC 밖으로 미뤄도 되나 | 미룬다 ("take yours") | 없음 (행 없음) |
 | 순서 | QW1, QW2를 U1 앞에 둘까 (#83과 다름) | 기본값 수용 (#87 Update) | CC-QW1…U1b 선행 칸 |
+| Q14 (#93) | `/@u/me`에도 공유 오른쪽 rail(HomeRightRail)을 넣나 | 넣지 않는다 (owner "ok go with your recommendations") | CC-U1c |
+| Q15 (#93) | `/@u/posts`의 프로필 카드와 인기 태그를 옮기나, 빼나 | 인기 태그는 뺀다. 프로필 카드는 `/@u/posts`에서만 공유 rail 위에 남긴다 (owner, 같은 답) | CC-U1c |
 | G-CC | 판정선 숫자와 날짜 | 판정선 = 기준선 뒤 (#88). 날짜 = 없음 | 없음 (DRAFT 유지) |
 
 ## 4. 설계와 코드가 다른 곳 (2026-10-14 grep, 행 AC는 코드 기준)
