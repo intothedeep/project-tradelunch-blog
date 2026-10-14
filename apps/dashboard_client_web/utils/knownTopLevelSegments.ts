@@ -8,7 +8,6 @@ export const KNOWN_TOP_LEVEL_SEGMENTS = [
     'api',
     'onboarding',
     'sign-in',
-    'sign-up',
     'tags',
     'write',
 ] as const;
@@ -32,7 +31,6 @@ export const TOP_LEVEL_ROUTE_SHAPES: Record<
     onboarding: { minDepth: 1, maxDepth: 1 },
     // Clerk catch-all pages: any depth.
     'sign-in': { minDepth: 1, maxDepth: Infinity },
-    'sign-up': { minDepth: 1, maxDepth: Infinity },
     tags: { minDepth: 2, maxDepth: 2 },
     write: { minDepth: 1, maxDepth: 2 },
 };

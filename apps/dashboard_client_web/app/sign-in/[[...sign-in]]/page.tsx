@@ -9,7 +9,11 @@ export function generateStaticParams() {
 export default function SignInPage() {
     return (
         <div className="flex min-h-[60vh] items-center justify-center p-6">
-            <SignIn />
+            {/* New sign-ups are closed (owner, #117): hide Clerk's "Sign up"
+                footer link. The Clerk dashboard "Restricted" mode enforces it. */}
+            <SignIn
+                appearance={{ elements: { footerAction: { display: 'none' } } }}
+            />
         </div>
     );
 }
