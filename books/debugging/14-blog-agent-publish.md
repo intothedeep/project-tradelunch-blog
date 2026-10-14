@@ -1,6 +1,6 @@
 # 14. blog_agent publish: an IPv6 connect failure, then a broken top image
 
-Result (2026-10-13): 14.1 fixed in `753c2c9`. 14.2 fixed for one post by hand, root cause open. 14.3 is a reusable toolkit.
+Result (2026-10-13): 14.1 fixed in `753c2c9`. 14.2 fixed in `11b3023`. 14.3 is a reusable toolkit.
 
 Script: `apps/blog_agent/scripts/publish_oneshot.py`.
 
@@ -160,13 +160,33 @@ Owner's output after:
 
 Versions are kept. The site shows the latest per slug. No row was deleted.
 
-Root cause: OPEN. Proposed:
+Root cause: fixed in `11b3023` (owner pick, 2026-10-13).
 
-1. Write the OG webp to a temp dir with `resize_for_og(..., output_path=...)`. The post folder is never modified.
-2. Pick the thumbnail deterministically. Prefer the file the markdown references. Else order png, jpg, jpeg, webp, gif, svg.
-3. Move leftover `.webp` files out of the post folder (`00-overview` and the `how-to-build-quick-app` posts). Do not rename them to `x_...` in place. An `x_` name no longer matches the stem, so it would upload as a body image.
+```text
+<post>/
+├── <stem>.md
+├── <stem>.png               original thumbnail (you write it)
+├── *.png                    original body images
+└── .generated/              tool output, hidden, kept, overwritten each publish
+    └── <stem>.og.webp       OG 1200×630 from the last publish
+```
 
-Rule of thumb: the first publish of a post folder is safe. A second publish hits this until the fix lands.
+1. `resize_for_og` default output is `<post>/.generated/<stem>.og.webp` (`agents/image_processing_agent.py`). Every caller gets it.
+2. Both asset scanners use `iterdir()` and skip subfolders, so `.generated/` is never a thumbnail or body-image candidate.
+3. Leftover top-level `.webp` files were moved into each post's `.generated/` (24 posts, every one still has its `.png` thumbnail). Not renamed to `x_...` in place: an `x_` name no longer matches the stem, so it would upload as a body image.
+4. The `00-overview` body line is back to `00-overview.png`.
+
+Options not taken: a temp dir deleted after upload (works, but the last OG file is gone), and a deterministic thumbnail pick order (a guard; the cause is gone without it).
+
+Verification (no DB, no upload), on a copy of the `00-overview` folder:
+
+| Run | Thumbnail picked | OG output | Top-level files |
+| --- | --- | --- | --- |
+| 1 | `00-overview.png` | `.generated/00-overview.og.webp` | unchanged |
+| 2 (the old failure case) | `00-overview.png` | same file, overwritten | unchanged |
+| deliberate breakage: copy the webp back to the top level | `00-overview.webp` | | the old bug returns |
+
+Source files are `.png`. CDN files are `.webp`: the thumbnail as `<slug>.webp` (also `og_image_url`), body images as `<slug>-N.webp`.
 
 ### Evidence
 
