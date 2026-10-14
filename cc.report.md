@@ -1,7 +1,7 @@
 # Phase CC 단계 보고 (Cache and Cost)
 
-요약: Phase CC는 2026-10-14에 닫는다 (D #111). 운영은 U4 `181e6ed`다. 이 build는 `cacheComponents` 켬, proxy 진짜 404 gate, 로그인 RSC gate (D #103), 원래 prefetch (D #106), `unstable_rethrow` 수정을 담는다. main은 `9be830a`로 합쳤다. Cloudflare 한도는 70 / 10 s다. G-CC(로그인 이동 시간 주 지표)는 미달이다. 주 지표 판정이 없다 (A-B-A 무효 D #105, 이후 판정 없이 유지 D #106).
-MVP1(M-CC1, 운영 `my.prettylog.com`) 단위 9개를 아래에 적었다. 판정 통과 2개(QW1, U2), 실패 1개(U3, 가드가 통과해 코드 유지), 판정 불가 1개(U1), 판정 미완 1개(QW2)다. U0a, U0b, U1a, U1b는 판정 없는 계측과 구조 단위다. MVP2(U4)는 시도 2번이 되돌려졌다. 시도 1은 운영 500, 시도 2는 판정 실패(329 → 434 ms)다. 그 뒤 A-B-A 묶음은 무효였다 (d = 534 ms). 오너가 D #106으로 판정 없이 U4를 운영에 뒀고 G-a 가드는 통과했다 (로그인 50 / 53 / 50, 한도 60). 배포 뒤 서버 오류 로그 8줄은 `unstable_rethrow`로 고쳤다. MVP3는 U7만 통과했다(`my.` load-more 요청 12 → 0). U5는 뺐다 (MISS TTFB 302 → 316 ms, 참고선 50 ms 미달, `Connection closed.` 43회, D #111). U6도 뺐다 (D #109, 1일 지연을 받아들이고 purge는 손으로 한다). 다음: P2, 그 뒤 Alpha Arena 방식 (D #108). 절: [MVP1](#mvp1-2026-10-14), [MVP2](#mvp2-u4), [MVP3](#mvp3-u7), [Phase CC 닫음](#phase-cc-닫음).
+요약: Phase CC는 2026-10-14에 닫는다 (D #111). 운영은 U4 `181e6ed`다. 이 build는 `cacheComponents` 켬, proxy 진짜 404 gate, 로그인 RSC gate (D #103), 원래 prefetch (D #106), `unstable_rethrow` 수정을 담는다. main은 `9be830a`로 합쳤다. Cloudflare 한도는 70 / 10 s다. G-CC(로그인 이동 시간 주 지표)는 미달이다. 주 지표 판정이 없다 (A-B-A 무효 D #105, 이후 판정 없이 유지 D #106). 이 보고의 이동 시간 비교(U3 317 → 174 ms, U4 시도 2 329 → 434 ms)는 대조 없는 연속 비교다. 같은 코드 경로가 07:44에 329 ms, 10:17에 476 ms였다 (D #102 Update).
+MVP1(M-CC1, 운영 `my.prettylog.com`) 단위 9개를 아래에 적었다. 판정 통과 2개(QW1, U2), 사전 등록 판정 미달 1개(U3, 가드 통과로 코드 유지), 판정 불가 1개(U1), 판정 미완 1개(QW2)다. U0a, U0b, U1a, U1b는 판정 없는 계측과 구조 단위다. MVP2(U4)는 시도 2번이 되돌려졌다. 시도 1은 운영 500, 시도 2는 되돌림이다. 시도 2의 329 → 434 ms는 drift와 섞여 회귀의 근거가 아니다. 되돌림 근거는 G-a, G-b FAIL이다. 그 뒤 A-B-A 묶음은 무효였다 (d = 534 ms). 오너가 D #106으로 판정 없이 U4를 운영에 뒀다. G-a는 #106이 바꾼 선(≤ 60)으로만 통과다 (로그인 50 / 53 / 50). 사전 등록 G-a (45.6)와 G-b (로그인 5, 익명 2)로는 FAIL이다. #106이 G-b를 배포 뒤 확인 목록에서 뺐다. 배포 뒤 서버 오류 로그 8줄은 `unstable_rethrow`로 고쳤다. MVP3는 U7만 통과했다(`my.` load-more 요청 12 → 0, 잰 가드만 통과). U5는 뺐다 (MISS TTFB 302 → 316 ms. 감소가 없어 참고선 50 ms와 `criteria.md` 판정선 140 ms를 모두 못 채웠다. `Connection closed.` 43회, D #111). U6도 뺐다 (D #109, 1일 지연을 받아들이고 purge는 손으로 한다). 다음: P2, 그 뒤 Alpha Arena 방식 (D #108). 절: [MVP1](#mvp1-2026-10-14), [MVP2](#mvp2-u4), [MVP3](#mvp3-u7), [Phase CC 닫음](#phase-cc-닫음).
 
 ## MVP1 (2026-10-14)
 
@@ -11,10 +11,10 @@ MVP1(M-CC1, 운영 `my.prettylog.com`) 단위 9개를 아래에 적었다. 판�
 
 ### 요약
 
-운영에 배포한 단위를 순서대로 쟀다. 세 단위만 사전 등록(pre-registration) 판정이 났다. QW1은 통과, U2는 통과, U3는 실패다. U3는 가드(guard)가 모두 통과해 코드를 남겼다. U1은 측정 결함으로 판정을 못 냈다. QW2는 셋 중 하나가 미측정이다. 가드 G-h, G-j, G-l과 smoke 15개는 이제 기록이 있다(아래 "열린 것").
+운영에 배포한 단위를 순서대로 쟀다. 세 단위만 사전 등록(pre-registration) 판정이 났다. QW1은 통과, U2는 통과, U3는 미달이다. U3는 가드(guard)가 통과해 코드를 남겼다. U1은 측정 결함으로 판정을 못 냈다. QW2는 셋 중 하나가 미측정이다. 가드 G-h, G-j, G-l과 smoke 15개는 이제 기록이 있다(아래 "열린 것").
 
 | 단위 | 배포 sha | 판정 | 한 줄 결과 | 절 |
-| --- | --- | --- | --- |
+| --- | --- | --- | --- | --- |
 | U0a 계측 | 없음 (smoke는 로컬) | 없음 | 계측 코드와 측정 스크립트 동작 확인 | [U0a](#u0a-계측-instrumentation) |
 | U0b 기준선 | `19f5e31` | 없음 | curl 3 run, 브라우저 1 폴더 | [U0b](#u0b-기준선-baseline) |
 | QW1 | `61d48bc` | 통과 | 서버 fetch 19 → 13 | [QW1](#qw1-서버-fetch-중복-제거) |
@@ -23,26 +23,26 @@ MVP1(M-CC1, 운영 `my.prettylog.com`) 단위 9개를 아래에 적었다. 판�
 | U1b | `3596e4c` | 판정 불가 | 왼쪽 rail을 한 번만 그림 | [U1b](#u1b-왼쪽-rail-공유-layout) |
 | U1c | `3596e4c` | 판정 불가 | 오른쪽 rail 하나 | [U1c](#u1c-오른쪽-rail-공유) |
 | U2 | `c26c69d` | 통과 | `_rsc` 비prefetch 1 1 1 → 0 0 0 | [U2](#u2-staletimes) |
-| U3 | `0ac938c` | 실패 (코드 유지) | 글 이동 317 → 174 ms | [U3](#u3-잎-정리-leaf-cleanup) |
-| U4 | 시도 `535b931`, `f122265` (되돌림), A-B-A `7977436`, 운영 `f76c1d9` → `181e6ed` | 시도 실패, A-B-A 무효, 판정 없이 유지 (D #106) | MVP2 절을 본다 | [MVP2](#mvp2-u4) |
+| U3 | `0ac938c` | 사전 등록 판정 미달 (코드 유지) | 글 이동 317 → 174 ms (대조 없는 연속 비교) | [U3](#u3-잎-정리-leaf-cleanup) |
+| U4 | 시도 `535b931`, `f122265` (되돌림), A-B-A `7977436`, 운영 `f76c1d9` → `181e6ed` | 시도 실패, A-B-A 무효, 판정 없이 유지 (D #106). G-a는 #106 선으로만 통과 | MVP2 절을 본다 | [MVP2](#mvp2-u4) |
 
 ### 흐름 (ASCII 그림 1장)
 
 ```
 smoke(local) -> U0b 기준선 -> [61d48bc QW1+QW2] -> [3596e4c U1a/b/c]
    -> [c26c69d U2] -> [0ac938c U3] -> M-CC1 gate (ISSUE 1/2, PASS 2/2) -> U4 (MVP2)
-판정:  없음         없음            통과 / 미완        판정 불가        통과      실패(유지)
+판정:  없음         없음            통과 / 미완        판정 불가        통과      미달(유지)
 ```
 
 ### 열린 것 (모든 단위 공통)
 
-- `cc/00.runs.md`는 19행까지 있다. U2, U3, U4 기준(v2) 행과 단위별 가드 표(§2.1)가 들어 있다.
+- `cc/00.runs.md`는 29행까지 있다. U2, U3, U4 기준(v2) 행과 단위별 가드 표(§2.1)가 들어 있다. drift 대조 run `20261014T101744Z_U4_env_recheck_964c9f8_browser` 1개와 U5 폴더 6개는 대장에 없다.
 - G-h는 통과다. 폴더 6개에서 이동 `_rsc` 359건의 값 12개가 prefetch 요청에 0건 나왔다 (`cc/criteria.md` §2).
 - G-j(QW1 지표)는 U2, U3에서 통과다. run마다 12, 한도 13이다 (`cc/criteria.md` §2).
 - smoke 15개는 `0ac938c`에서 1회 잼. 모두 기대와 같다. 이 파일이 기준선이다 (`cc/smoke-0ac938c.txt`, D #101).
 - G-g는 통과다. 익명이 비공개 글을 요청하면 404이고 본문이 없다 (`body_has_title=0`). `0ac938c`에서 1회 잼.
 - G-l: B1, B3, C6, D3 통과. D2 `prefetch=` 줄은 13이고 `19f5e31`부터 같다. C5는 통과다 (SSR 본문 있음, 홈 글 링크 14).
-- 단위별 smoke는 없다. 기준선 하나만 있다. 열린 것은 U1 오너 확인(#99)과 QW2 (2)다.
+- 단위별 smoke는 없다. 기준선 하나만 있다. U1은 #107 (1)로 B 확정이고 바이트 판정 없이 닫았다. 열린 것은 QW2 (2)다.
 
 ---
 
@@ -247,12 +247,12 @@ UserContextRail: [slug]/layout.tsx                                  (1곳)
 - Output data: `cc/u1-verdict.md`.
 - Result: 판정 불가. 기준 run이 1개라 범위가 없다. rail 조각 크기 R은 미측정이다. 바이트 지표가 null 응답을 0으로 센다.
 - 좋은 점: 가드 G-f, G-a, G-b가 통과했다. 나쁜 점: 재구성 값은 사후에 고른 방법이라 판정에 쓰지 않는다.
-- Status: ran. 판정 불가. main session이 선택지 B(운영 재배포 없이 가드로 닫음)를 골랐다. 오너 확인이 남았다 (gate M5).
+- Status: ran. 판정 불가. 선택지 B(운영 재배포 없이 가드로 닫음)를 #107 (1)이 확정했다.
 
 | 칸 | 값 |
 | --- | --- |
 | G-f hydration 오류 | 0 |
-| G-a 10초 최대 요청 수 | 최대 36 (한도 50) |
+| G-a 10초 최대 요청 수 | 최대 36 (가드 선은 팔마다 U0b + 20 %, 익명 27.6 / 로그인 45.6. 50은 Cloudflare 한도 D #68) |
 | G-b prefetch 최대 | 익명 2, 로그인 2 |
 | 익명 expanded s6 `_rsc` 비prefetch | 1 1 1 |
 | `rsc_bytes_w1` 익명 expanded | 270469 / 270469 / 10641 B (null을 0으로 셈) |
@@ -309,9 +309,9 @@ U2  0 0 0           (판정선: 1 이상 감소 -> 통과)
 - Why: U4(`cacheComponents`)를 켜기 전에 layout을 정리한다. 주 지표는 로그인 expanded `w1_s5_post_nav_ms`다 (§17).
 - Input data: 브라우저 run 3개, curl run 3개. 배포 `0ac938c`. 기준은 U2 브라우저 run.
 - Output data: `cc/runs/20261014T073207Z_U3_u3_0ac938c_browser/`, `cc/runs/*_U3_u3_{1,2,3}_0ac938c/`, `cc/u4-preview.md`.
-- Result: 317 → 174 ms. 줄어든 양 143. 판정선 max(96 × 2, 31.7) = 192. **실패**. 가드가 통과해 코드를 남겼다.
+- Result: 317 → 174 ms. 줄어든 양 143. 판정선 max(96 × 2, 31.7) = 192. 사전 등록 판정은 **미달**(효과 없음)이다. 가드가 통과해 코드를 남겼다. 317 → 174 ms는 대조 없는 연속 비교 값이다. 같은 코드 경로가 07:44에 329 ms, 10:17에 476 ms였다 (D #102 Update).
 - 좋은 점: 기록값이 모두 줄었다 (아래 표). 나쁜 점: `[slug]/layout.tsx` 40–46행이 아직 맨 위에서 `auth()`와 글 읽기를 await한다 (AC2 미충족, gate M4).
-- Status: ran. 판정 실패, 코드 유지.
+- Status: ran. 사전 등록 판정 미달, 코드 유지.
 
 | 칸 | U2 (`c26c69d`) | U3 (`0ac938c`) |
 | --- | --- | --- |
@@ -329,7 +329,7 @@ U2  0 0 0           (판정선: 1 이상 감소 -> 통과)
 s5 글 이동 (로그인 expanded, ms)
 U2  █████████████████████████████▌  317
 U3  ████████████████▎               174
-판정선: 192 이상 감소 필요.  실제 감소: 143 -> 실패
+판정선: 192 이상 감소 필요.  실제 감소: 143 -> 미달 (대조 없는 연속 비교)
 ```
 
 증거: `cc/runs/20261014T073207Z_U3_u3_0ac938c_browser/summary.csv`, `cc/runs/20261014T071810Z_U3_u3_1_0ac938c/`, `cc/runs/20261014T072233Z_U3_u3_2_0ac938c/`, `cc/runs/20261014T072654Z_U3_u3_3_0ac938c/`, `cc/u4-preview.md`, `01.status.md` 89행, `cc.m1-gate.review.md` §3.8.
@@ -350,16 +350,16 @@ M-CC2의 단위다. `cacheComponents`를 켜서 로그인 사용자의 이동 �
 ### 요약
 
 | 시도 | 배포 sha | 무엇이 났나 | 판정 | 조치 |
-| --- | --- | --- | --- |
+| --- | --- | --- | --- | --- |
 | 1 | `535b931` | 알 수 없는 최상위 경로가 HTTP 500 | 실패 (404 회귀) | `7b4a138`로 되돌림, recovery 1/2 열림 |
-| 2 | `f122265` | 경로표 25행 모두 맞음. 이동 시간 329 → 434 ms | 실패 (주 지표, G-a) | `7b1d1c9`로 되돌림, K3 정지 |
+| 2 | `f122265` | 경로표 25행 모두 맞음. 이동 시간 329 → 434 ms (drift와 섞임, D #102 Update) | 실패 (G-a, G-b). 주 지표 비교는 회귀의 근거가 아님 | `7b1d1c9`로 되돌림, K3 정지 |
 | A-B-A | `7977436` (T) | 대조 두 블록 차 d = 534 ms. 한도 89.75 ms | 주 지표 무효, 판정 없음. G-a, G-b 통과 | `964c9f8`로 되돌림 (D #105) |
-| 운영 | `f76c1d9` → `181e6ed` | G-a 로그인 50 / 53 / 50. 오류 로그 새 줄 8 → 0 | 속도 판정 없이 유지 (D #106) | 운영에 둠 |
+| 운영 | `f76c1d9` → `181e6ed` | G-a 로그인 50 / 53 / 50. 오류 로그 새 줄 8 → 0 | 속도 판정 없이 유지 (D #106). G-a는 #106 선(≤ 60)으로만 통과, 사전 등록 G-a, G-b로는 FAIL | 운영에 둠 |
 
 ```
 535b931 (시도 1) -> 운영 500 -> 7b4a138 되돌림 -> 원인 진단 -> A2 수정 (Actions 24/25 통과)
                                                                    |
-f122265 (시도 2) -> 경로표 25행 OK -> 판정 FAIL 329 -> 434 ms -> 7b1d1c9 되돌림
+f122265 (시도 2) -> 경로표 25행 OK -> G-a, G-b FAIL (329 -> 434 ms는 drift와 섞임) -> 7b1d1c9 되돌림
                  -> K3 정지 -> D #102 -> 오너에게 (a)/(b)/(c)
                                           |
 7977436 (A-B-A, T) -> 주 지표 무효 (d 534 > 89.75) -> 964c9f8 되돌림 (D #105)
@@ -402,15 +402,15 @@ f76c1d9 (D #106, 원래 prefetch) -> 오류 8줄 -> 181e6ed (unstable_rethrow) -
 
 증거: `cc/u4-recover/diagnosis-architect.md` §0, §1, §7, `01.status.md` 2026-10-14 CC-U4 attempt 1, recover 1/2 줄.
 
-### 시도 2 (`f122265`, 판정 실패)
+### 시도 2 (`f122265`, G-a, G-b 실패)
 
 - What: A2를 합친 `cc-u4`를 배포하고 경로표와 브라우저 run으로 쟀다.
 - Why: 사전 등록 판정이다. 로그인 expanded `w1_nav_ms_s2_s6` 중앙값이 261 ms 이하여야 통과다.
 - Input data: 비교 기준은 `0ac938c` 위 하네스 v2 브라우저 3회다. 값 295 / 329 / 329, 중앙값 329, 범위 34다. 이전 v1 기준 343은 이 판정에 쓰지 않는다 (`cc/criteria.md` §1 U4 행).
 - Output data: `cc/runs/20261014T092201Z_U4_u4_f122265_browser/`, `cc/runs/*_U4_u4_{1,2,3}_f122265/`, `cc/u4-verdict.md`.
-- Result: 329 → 434 ms (run 값 482 / 421 / 434, 범위 61). 판정선 max(34 × 2, 32.9) = 68 ms. 통과선 261 ms. **실패**. 지표가 105 ms 늘었다.
-- 좋은 점: 경로표 25행이 모두 맞다 (진짜 404 포함). 나쁜 점: 효과가 없는 정도가 아니라 반대 방향이다(회귀). G-a도 실패다.
-- Status: ran. 판정 실패, 되돌림 `7b1d1c9`.
+- Result: 329 → 434 ms (run 값 482 / 421 / 434, 범위 61). 판정선 max(34 × 2, 32.9) = 68 ms. 통과선 261 ms. 지표가 105 ms 늘었다. 이 비교는 drift와 섞였다. 같은 코드 경로 `964c9f8`가 10:17에 476 ms였다 (D #102 Update). 회귀의 근거가 아니다. 되돌림 근거는 G-a, G-b FAIL이다.
+- 좋은 점: 경로표 25행이 모두 맞다 (진짜 404 포함). 나쁜 점: G-a, G-b가 실패다.
+- Status: ran. G-a, G-b 실패, 되돌림 `7b1d1c9`.
 
 가드 (`cc/u4-verdict.md` §3):
 
@@ -439,14 +439,14 @@ f76c1d9 (D #106, 원래 prefetch) -> 오류 8줄 -> 181e6ed (unstable_rethrow) -
 ```
 
 - 느려진 곳은 s4와 s5뿐이다. 로그인 이동 요청은 오리진 렌더(`DYNAMIC`)다. 익명 이동 요청은 엣지 HIT이고 익명 합은 218 → 201 ms로 줄었다.
-- 메뉴 prefetch 폭증(s1 prefetch 13 → 32)은 s2, s3을 늦추지 않았다. 그래서 prefetch를 줄이는 처방(#70)은 G-a, G-b만 고치고 주 지표는 못 고칠 가능성이 크다.
-- 우세 가설은 H-S다 (`cacheComponents`에서 로그인 상세 route의 오리진 렌더가 느려졌다). H-C (라우터 segment prefetch가 오리진에서 이동 렌더와 경합)는 열려 있다. 이 데이터로는 가를 수 없다.
+- 메뉴 prefetch 폭증(s1 prefetch 13 → 32)은 s2, s3을 늦추지 않았다. 그래서 prefetch를 줄이는 처방(#70)은 G-a, G-b만 고치고 주 지표는 못 고칠 가능성이 있었다. 이 판단도 drift와 섞인 비교에서 나왔다.
+- 당시 우세 가설은 H-S였다 (`cacheComponents`에서 로그인 상세 route의 오리진 렌더가 느려졌다). 흔들림 대조(같은 코드 476 ms, D #102 Update)로 H-S는 약해졌다. H-C (라우터 segment prefetch가 오리진에서 이동 렌더와 경합)는 열려 있다. 이 데이터로는 가를 수 없다.
 
 증거: `cc/u4-verdict.md` §0–§4, `cc/runs/20261014T092201Z_U4_u4_f122265_browser/summary.csv`, `01.status.md` 2026-10-14 CC-U4 attempt 2 줄.
 
 ### 정지 (K3, D #102)
 
-- 이 접근은 주 지표와 가드가 둘 다 실패해 K3로 멈췄다. recovery는 1/2다.
+- 이 접근은 주 지표와 가드가 둘 다 실패해 K3로 멈췄다. recovery는 1/2다. 주 지표 비교는 그 뒤 drift와 섞인 것으로 밝혀졌다 (D #102 Update). 정지 근거로 남는 것은 G-a, G-b FAIL이다.
 - 오너 질문 (`01.status.md`): 다음 길 하나를 골라줘.
   - (a) S-CC B를 다시 본다. `cacheComponents`는 끄고 로그인 속도는 다른 단위로 찾는다.
   - (b) recovery 2/2를 연다. flag 아래 hover 전용 prefetch(#70 c)와 H-C 측정을 한다.
@@ -510,6 +510,7 @@ C1 중앙값 643      C2 중앙값 1177      d = 534 > 89.75  -> 무효
 | 익명 prefetch | 존재 검사 | 그대로 검사 (엣지에 저장될 수 있다) |
 
 - 배포 뒤 확인 네 가지: 오류 0, 404 표, G-a ≤ 60, hydration 0. 하나라도 어기면 되돌린다.
+- 가드 선을 실패 뒤에 바꿨다. G-a는 45.6에서 60으로 올랐다. G-b는 배포 뒤 확인 목록에서 빠졌다 (D #106).
 - 현재 proxy 구성: `proxy.ts`, `utils/notFoundGate.ts`, `apis/existence.proxy.ts`.
 - 수정 반영: purge는 손으로 한다. 급하지 않으면 최대 1일 옛 값이 남는다 (D #109).
 
@@ -542,15 +543,17 @@ C1 중앙값 643      C2 중앙값 1177      d = 534 > 89.75  -> 무효
 
 - What: 운영 `f76c1d9`에서 브라우저 run 3개로 가드를 쟀다.
 - Input data: `cc/runs/20261014T181839Z_U4_u4o_f76c1d9_browser/summary.csv`. 익명, 로그인 팔, expanded.
-- Result: 로그인 `g_a_max_10s` 50 / 53 / 50. 익명 36 / 36 / 36. 한도 60 이하라 **통과**. hydration 0.
+- Result: 로그인 `g_a_max_10s` 50 / 53 / 50. 익명 36 / 36 / 36. #106 선(≤ 60)으로는 **통과**. hydration 0.
+- 사전 등록 선으로는 FAIL이다. G-a는 로그인 한도 45.6, 익명 한도 27.6을 넘는다. G-b는 로그인 6 / 6 / 5가 한도 5를, 익명 6이 한도 2를 넘는다 (G-b는 #106이 배포 뒤 확인 목록에서 뺐다).
 - 기록: 링크당 prefetch 최댓값은 로그인 6 / 6 / 5, 익명 6이다.
-- Status: ran. 가드 유효, 주 지표는 판정하지 않는다 (D #106, 흔들림).
+- 가드 run은 `f76c1d9`에서 돌았다. 운영 `181e6ed`의 브라우저 가드 run은 없다. `181e6ed`는 오류 줄 수와 `/` GET 4회만 확인했다 (main session 메모, `cc/u4o-prerender-errors.md`).
+- Status: ran. #106 선으로 가드 통과, 주 지표는 판정하지 않는다 (D #106, 흔들림).
 
 ```
 G-a 로그인 (10 s 최대 요청, 한도 70 = Cloudflare)
 run 1  █████████████████████████ 50
 run 2  ██████████████████████████▌ 53
-run 3  █████████████████████████ 50      (가드선 60 이하 -> 통과)
+run 3  █████████████████████████ 50      (#106 선 60 이하 -> 통과. 사전 등록 45.6 -> FAIL)
 ```
 
 증거: `cc/00.runs.md` 29행, `cc/u4o-prerender-errors.md`.
@@ -565,8 +568,8 @@ M-CC3 중 U7이 통과했다. U5와 U6은 뺐다 (아래 "U5", "U6" 절).
 - Why: `my.`에 오는 `/api/posts/load-more` 요청을 없애는 것이 목표다. 사전 판정선은 0이다 (`cc/criteria.md` §1 U7 행).
 - Input data: 운영 브라우저 run 1폴더, 배포 `964c9f8`.
 - Output data: `cc/runs/20261014T095432Z_U7_u7_964c9f8_browser/`.
-- Result: `my.`의 load-more 요청 12 → 0. `blog-api` feed 요청은 12, 모두 200. **통과**.
-- 좋은 점: 가드가 모두 통과다. 나쁜 점: AC4 (로그인 오너의 draft가 2쪽에 보임)는 측정하지 못했다.
+- Result: `my.`의 load-more 요청 12 → 0. `blog-api` feed 요청은 12, 모두 200. **통과**. 셈 출처는 브라우저 `raw.jsonl`이다. 등록 출처 `proxy.ts` 로그가 아니다 (`cc/criteria.md` §3 7번).
+- 좋은 점: 잰 가드 G-a, G-b, G-f는 통과다. G-d, G-e, G-g, G-i, G-j는 미측정이다. traffic-check와 `rate_limit` 0줄은 dispatch 기록이다. 나쁜 점: AC4 (로그인 오너의 draft가 2쪽에 보임)는 측정하지 못했다.
 - Status: ran. 판정 통과.
 
 | 칸 | 값 |
@@ -584,7 +587,7 @@ my. load-more 요청 (run 중)
 U7                   0     (판정선 0, 통과)
 ```
 
-- 기록만: 로그인 W1 s2–s6 합은 500 ms (454–609, 범위 155)였다. `0ac938c`의 기준은 329 ms다. W1은 load-more를 쓰지 않는다. 원인은 정해지지 않았다.
+- 기록만: 로그인 W1 s2–s6 합은 500 ms (454–609, 범위 155)였다. `0ac938c`의 기준은 329 ms다. W1은 load-more를 쓰지 않는다. 같은 코드 경로가 10:17에 476 ms였다 (D #102 Update). drift로 읽는다 (추정).
 
 증거: `01.status.md` 2026-10-14 CC-U7 PASS 줄, `cc/runs/20261014T095432Z_U7_u7_964c9f8_browser/`.
 
@@ -595,7 +598,8 @@ U7                   0     (판정선 0, 통과)
 - Input data: 운영 `my.prettylog.com`, 익명. `cc-measure.mjs --only miss --runs 3`. 읽기 A: run마다 `/`, `/@taeklim/projects`, `/@taeklim/<S>` 원값 9개의 p50, run 3개의 중앙값.
 - 비교: A-B 두 블록이다. 오너가 3단계(C2)를 쓰지 않기로 했다 (D #110). 그래서 흔들림을 가르지 못한다. 결과는 참고이고 유지 여부는 오너가 정한다.
 - Output data: `cc/runs/20261014T183605Z_U5_u5C_181e6ed`(C 3 run), `cc/runs/20261014T183758Z_U5_u5T_1_b30d03a`(T 3 run), 기록 `cc/u5-ab.md`.
-- Result: MISS TTFB 중앙값 C 302 ms, T 316 ms. T가 C보다 14 ms 느리다. 참고선 max(0.10 × 302, 50) = 50 ms. **미달**.
+- Result: MISS TTFB 중앙값 C 302 ms, T 316 ms. T가 C보다 14 ms 느리다. 줄어든 양이 없다. 참고선 max(0.10 × 302, 50) = 50 ms와 `cc/criteria.md` U5 행의 판정선 140 ms를 모두 못 채운다. **미달**. 140 ms는 U0b 범위에서 나온 선이다. #107이 U0b 비교를 대체했다.
+- 결과의 뜻: C 블록 run 값 472 / 302 / 263의 퍼짐이 C와 T의 차 14 ms보다 크다. C2가 없어 효과 유무는 판정되지 않았다.
 - 나쁜 점: T 동안 `blog-web` 오류 로그가 855줄에서 1134줄로 늘었다. `⨯ Error: Connection closed.` 43회(digest `978306872`)다. route는 `/[handle]/projects`, `/[handle]/projects/[project]`(render)다. 응답 status는 200이다. 원인은 미확인이다. 후보: `'use cache'` 안의 값 직렬화, `cache()` 안의 `'use cache'`, tree 경로의 `clientRequest`.
 - Status: ran. 참고선 미달, 오류 발생, 18:39:18 UTC에 U4 `181e6ed`로 되돌리고 purge. 되돌린 뒤 smoke 새 줄 0. 오너가 A안으로 U5를 뺐다 (D #111).
 
@@ -607,7 +611,7 @@ U7                   0     (판정선 0, 통과)
 ```
 MISS TTFB 중앙값 (ms)
 C (U4)  ██████████████████████████████▏ 302
-T (U5)  ███████████████████████████████▌ 316    (참고선 50 ms 이상 감소 필요. 실제 +14)
+T (U5)  ███████████████████████████████▌ 316    (참고선 50 ms, 판정선 140 ms 이상 감소 필요. 실제 +14)
 ```
 
 증거: `cc/u5-ab.md`, `decisions.plan.md` #110, #111.
@@ -627,16 +631,16 @@ T (U5)  ████████████████████████
 ## Phase CC 닫음
 
 오너가 D #111에서 U5를 빼고 U4만 운영에 두기로 했다. Phase CC는 2026-10-14에 닫는다.
-M-CC2, M-CC3 gate 대신 Phase CC 최종 검토(reviewer, system-architect, data-analyst)로 닫는다 (D #111). 그 검토 결과는 이 보고에 없다.
+M-CC2, M-CC3 gate 대신 Phase CC 최종 검토(reviewer, system-architect, data-analyst)로 닫는다 (D #111). 그 검토 결과는 이 보고에 없다. 판정 문구는 data-analyst 최종 검토(`deploy/traffic/review/cc/final-review-data.md`)에 맞췄다.
 
 ### 최종 상태
 
 - 운영: U4 `181e6ed`. `cacheComponents` 켬, proxy 진짜 404 gate, 로그인 RSC gate (D #103), 로그인 prefetch는 존재 검사를 건너뜀, 원래 prefetch (D #106), `unstable_rethrow` 수정 (D #108).
 - main: merge `9be830a`(`cc-u4-o`). app tree가 `181e6ed`와 같다. branch `cc-u5`는 보관한다. main에 없다.
-- Cloudflare 한도 70 / 10 s. G-a 가드 ≤ 60. 가드 run 50 / 53 / 50, 통과.
+- Cloudflare 한도 70 / 10 s. G-a 가드 ≤ 60 (#106이 45.6에서 바꿨다. G-b는 배포 뒤 확인 목록에서 뺐다). 가드 run은 `f76c1d9`에서 돌았고 50 / 53 / 50이다. #106 선으로만 통과다. 사전 등록 G-a, G-b로는 FAIL이다. 운영 `181e6ed`의 브라우저 가드 run은 없다.
 - 수정 반영: purge는 손으로 한다. 지연은 최대 1일이다 (D #109).
 - G-CC(by 2026-10-14): **미달**. 주 지표 판정이 없다 (A-B-A 무효 D #105, D #106은 판정 없이 유지).
-- 남은 이득: QW1, U2, U3, U7, U4. U4의 이득은 요청 한도 안에 있음, 실제 404, runtime prerender다 (D #111).
+- 남은 이득: QW1, U2, U7, U4. U3는 사전 등록 판정 미달이고 가드 통과로 코드만 유지한다. U4의 이득은 실제 404와 runtime prerender다 (D #111). 요청 수는 #106 선(≤ 60)만 통과한다.
 - 다음: P2, 그 뒤 Alpha Arena 방식 (D #108, Nof1 Alpha Arena).
 
 ### 최종 단위 표
@@ -649,12 +653,12 @@ M-CC2, M-CC3 gate 대신 Phase CC 최종 검토(reviewer, system-architect, data
 | QW2 | `61d48bc` | 미완 | 참 2개, 미측정 1개 |
 | U1a, U1b, U1c | `3596e4c` | 판정 불가 | rail 공유 layout |
 | U2 | `c26c69d` | 통과 | `_rsc` 비prefetch 1 1 1 → 0 0 0 |
-| U3 | `0ac938c` | 실패 (코드 유지) | 글 이동 317 → 174 ms |
+| U3 | `0ac938c` | 사전 등록 판정 미달 (코드 유지) | 글 이동 317 → 174 ms (대조 없는 연속 비교) |
 | U4 시도 1 | `535b931` | 실패 (404 회귀) | 운영 500 |
-| U4 시도 2 | `f122265` | 실패 (회귀) | 329 → 434 ms |
+| U4 시도 2 | `f122265` | 실패 (G-a, G-b). 이동 시간 비교는 drift와 섞임 | 329 → 434 ms (회귀의 근거 아님, D #102 Update) |
 | U4 A-B-A | `7977436` | 판정 없음 (무효) | d = 534 ms, G-a, G-b 통과 |
-| U4 운영 | `f76c1d9` → `181e6ed` | 판정 없이 유지 (D #106) | G-a 50 / 53 / 50, 오류 줄 새 0 |
-| U5 | `b30d03a` (`cc-u5`) | 미달 (참고), 뺌 (D #111) | MISS TTFB 302 → 316 ms, `Connection closed.` 43회 |
+| U4 운영 | `f76c1d9` → `181e6ed` | 판정 없이 유지 (D #106) | G-a 50 / 53 / 50 (#106 선 ≤ 60만 통과, 사전 등록 G-a, G-b는 FAIL), 오류 줄 새 0 |
+| U5 | `b30d03a` (`cc-u5`) | 미달 (참고), 뺌 (D #111) | MISS TTFB 302 → 316 ms (참고선 50 ms, 판정선 140 ms 모두 미달), `Connection closed.` 43회 |
 | U6 | 없음 | 뺌 (D #109) | 1일 지연, 손 purge |
 | U7 | `964c9f8` | 통과 | `my.` load-more 요청 12 → 0 |
 

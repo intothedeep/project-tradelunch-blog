@@ -1,0 +1,27 @@
+# P2 운영 주소 표 (web 8eac7d8 = 1c035f2 + R2), 2026-10-14T19:19Z, 익명 GET, ?cb= 붙임
+/                                    200
+/@taeklim/posts                      200
+/@taeklim/projects                   200
+/@taeklim/projects/cnn-from-scratch  200
+/@taeklim/about                      200
+/@taeklim/resume                     200
+/@taeklim/logs                       200
+/tags/rust                           200
+/favicon.ico                         200
+/icon.png                            200
+/robots.txt                          200
+/sitemap.xml                         200
+/log                                 404
+/log/@taeklim                        404
+/api/x                               404
+/tags                                404
+/favicon/x                           404
+/nope                                404
+/@nobodyxyz/logs                     404
+/@taeklim/me                         404
+/@taeklim/saved                      404
+/about                               308
+/resume                              308
+# sitemap about/resume/logs loc:
+<loc>https://my.prettylog.com/@taeklim/about</loc>
+<loc>https://my.prettylog.com/@taeklim/resume</loc>

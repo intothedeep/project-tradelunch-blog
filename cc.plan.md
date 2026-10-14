@@ -11,6 +11,7 @@
 ## 1. 순서와 사다리
 
 - 2026-10-14 CLOSING (#111): M-CC2, M-CC3 gate 없음. U4 운영 `181e6ed` (#106 판정 없이 유지). U5 뺌 (#111), U6 뺌 (#109), U7 통과. 다음 = Phase CC 최종 검토, 그 뒤 Phase PJ M4 (P2). 아래 사다리와 §2 U5, U6 절은 기록이다.
+- 2026-10-14 CLOSED (#111, #114, 최종 검토 끝: `deploy/traffic/review/cc/final-review-{reviewer,architect,data}.md`). 30 rows: 25 done, 2 in progress (CC-U2, CC-R2), 3 open (CC-D1, CC-D2, CC-D3). lint must-fix = `a9845cb`. R1 = `1c035f2`. 아카이브는 남은 5행이 닫힌 뒤. P2 운영 `1c035f2`.
 
 ```
 P1 gate PASS (Phase PJ M3)

@@ -9,9 +9,10 @@
 \paragraph{결과.}
 운영 \texttt{my.prettylog.com}에 배포한 단위를 하나씩 쟀다.
 사전 등록(pre-registration) 판정이 난 단위는 다섯이다.
-통과는 QW1, U2, U7이다. 실패는 U3와 U4다.
+통과는 QW1, U2, U7이다. U3는 사전 등록 판정 미달이고 코드는 가드 통과로 남겼다. U4 시도 2는 G-a, G-b 실패로 되돌렸다.
+U3와 U4 시도 2의 이동 시간 비교는 대조 없는 연속 비교다. 같은 코드 경로가 07:44에 329 ms, 10:17에 476 ms였다(\decision{102} Update).
 QW2는 판정이 미완이고 U1은 판정 불가다.
-U5와 U6은 U4에 막혀 있었다. U5는 \decision{106}으로 진행해 측정했고 참고선 50 ms에 못 미쳐 뺐다(302 $\to$ 316 ms, \decision{111}). U6은 \decision{109}로 뺐다.
+U5와 U6은 U4에 막혀 있었다. U5는 \decision{106}으로 진행해 측정했다. 감소가 없어 참고선 50 ms와 \code{criteria.md}의 판정선 140 ms를 모두 못 채웠고 뺐다(302 $\to$ 316 ms, \decision{111}). U6은 \decision{109}로 뺐다.
 운영에는 U4 \code{181e6ed}만 남았다. Phase CC는 닫혔고 G-CC는 미달이다(주 지표 판정 없음, \decision{111}).
 
 \begin{table}[H]
@@ -30,17 +31,17 @@ U5와 U6은 U4에 막혀 있었다. U5는 \decision{106}으로 진행해 측정�
     \midrule
     U2 & \texttt{c26c69d} & 통과 & \texttt{\_rsc} 비prefetch 1 1 1 $\to$ 0 0 0 \\
     \midrule
-    U3 & \texttt{0ac938c} & 실패 (코드 유지) & 글 이동 317 $\to$ 174\,ms \\
+    U3 & \texttt{0ac938c} & 사전 등록 판정 미달 (코드 유지) & 글 이동 317 $\to$ 174\,ms (대조 없는 연속 비교) \\
     \midrule
     U4 시도 1 & \texttt{535b931} & 측정 없음 & 운영 500, 되돌림 \\
     \midrule
-    U4 시도 2 & \texttt{f122265} & 실패 (회귀) & 329 $\to$ 434\,ms, 되돌림 \\
+    U4 시도 2 & \texttt{f122265} & 실패 (G-a, G-b). 이동 시간 비교는 drift와 섞임 & 329 $\to$ 434\,ms (회귀의 근거 아님), 되돌림 \\
     \midrule
     U4 A-B-A & \texttt{7977436} & 판정 없음 (무효) & 가드 G-a, G-b 통과 \\
     \midrule
-    U4 운영 & \texttt{181e6ed} & 판정 없이 유지 (\decision{106}) & G-a 로그인 50 / 53 / 50 (한도 60) \\
+    U4 운영 & \texttt{181e6ed} & 판정 없이 유지 (\decision{106}) & G-a 로그인 50 / 53 / 50. \decision{106} 선(60 이하)만 통과, 사전 등록 G-a, G-b로는 FAIL \\
     \midrule
-    U5 & \texttt{b30d03a} & 참고선 미달, 뺌 & MISS TTFB 302 $\to$ 316\,ms \\
+    U5 & \texttt{b30d03a} & 미달 (참고선 50\,ms, 판정선 140\,ms), 뺌 & MISS TTFB 302 $\to$ 316\,ms \\
     \midrule
     U6 & 없음 & 뺌 (\decision{109}) & 1일 지연, 손 purge \\
     \midrule
@@ -94,7 +95,7 @@ U5와 U6은 U4에 막혀 있었다. U5는 \decision{106}으로 진행해 측정�
     \midrule
     줄어든 양이 판정선 미만 & 실패(효과 없음). 가드가 통과하면 코드는 남긴다 (U3) \\
     \midrule
-    늘어난 양이 판정선 이상 & 회귀(regression). 되돌림 (U4) \\
+    늘어난 양이 판정선 이상 & 회귀(regression). 되돌림. U4 시도 2는 이 칸에 들었으나 drift와 섞여 회귀의 근거가 아니다. 되돌림 근거는 G-a, G-b 실패다 \\
     \midrule
     판정선 입력이 빠짐 & 판정 불가. 대체 판정을 만들지 않는다 (U1) \\
     \bottomrule
@@ -291,7 +292,7 @@ HTML이 쿠키와 무관하므로 엣지가 어느 방문자의 HTML을 저장�
     \midrule
     G-f hydration 오류 & 0 \\
     \midrule
-    G-a 10초 최대 요청 수 & 최대 36 (한도 50) \\
+    G-a 10초 최대 요청 수 & 최대 36 (가드 선은 팔마다 U0b + 20\,\%, 익명 27.6 / 로그인 45.6. 50은 Cloudflare 한도 \decision{68}) \\
     \midrule
     G-b prefetch 최대 & 익명 2, 로그인 2 \\
     \midrule
@@ -303,7 +304,7 @@ HTML이 쿠키와 무관하므로 엣지가 어느 방문자의 HTML을 저장�
   % src: cc.report.md U1 판정 table; u1-verdict.md §0, §4.6
 \end{table}
 판정선 입력이 둘 빠졌다. 기준 run이 1개라 범위가 없고, rail 조각 크기는 기록 없음이다.
-\decision{99}가 운영 재배포 없이 가드로 닫았다. 오너가 ``checked close it''이라고 답해 B로 확정됐다(\decision{107} (1)).
+\decision{99}가 운영 재배포 없이 가드로 닫았다. 오너가 ``checked close it''이라고 답해 B로 확정됐다(\decision{107} (1)). 바이트 판정 없이 닫았다.
 % src: u1-verdict.md §1.2; decisions.plan.md #99, #107 (1)
 
 \paragraph{왜.}
@@ -404,9 +405,10 @@ D6의 영향은 M이다. 이동마다 shell을 다시 만들지 않는 구조가
 \section{U3: 잎 정리}\label{sec:re-u3}
 
 \paragraph{결과.}
-사전 등록 판정은 실패다. 가드가 모두 통과해 코드는 남겼다.
+사전 등록 판정은 미달이다(효과 없음). 가드가 통과해 코드는 남겼다.
 로그인 expanded의 s5 글 이동이 317에서 174 ms로 줄었다. 줄어든 양은 143이다.
 판정선은 192다(\Cref{sec:re-read}).
+317 $\to$ 174 ms는 대조 없는 연속 비교 값이다. 같은 코드 경로가 07:44에 329 ms, 10:17에 476 ms였다(\decision{102} Update, \Cref{sec:le-drift}).
 \begin{table}[H]
   \caption{U3의 판정과 기록. U2 (\texttt{c26c69d})와 U3 (\texttt{0ac938c}).}
   \label{tab:re-u3}
@@ -453,7 +455,7 @@ layout의 데이터 읽기를 Suspense 잎으로 옮겼다. 빌드만 점검하�
 \paragraph{언제 효과가 있나.}
 효과는 글 상세 이동 하나에 모인다. 익명 s5도 73에서 45 ms로 줄었다(기록만).
 판정선 192가 큰 까닭은 기준 run 2의 403 ms다. 손으로 줄이지 않는다.
-실제 감소 143은 판정선 192에 못 미쳤다.
+실제 감소 143은 판정선 192에 못 미쳤다. 이 감소는 흔들림과 가를 수 없다.
 % src: criteria.md §1 U3 row 마지막 칸; cc.design.md §17.2
 
 \paragraph{왜 중요한가.}
@@ -463,9 +465,10 @@ layout의 데이터 읽기를 Suspense 잎으로 옮겼다. 빌드만 점검하�
 \section{U4: cacheComponents}\label{sec:re-u4}
 
 \paragraph{결과.}
-실패다. 시도는 두 번이었고 둘 다 운영에서 되돌렸다.
+시도는 두 번이었고 둘 다 운영에서 되돌렸다.
 시도 1은 알 수 없는 경로가 운영에서 HTTP 500이었다.
-시도 2는 경로표 25행이 모두 맞았지만 로그인 이동 시간이 329에서 434 ms로 늘었다(회귀, regression).
+시도 2는 경로표 25행이 모두 맞았지만 G-a, G-b가 실패했다. 로그인 이동 시간은 329에서 434 ms로 늘었다.
+이 비교는 drift와 섞였다. 같은 코드 경로 \code{964c9f8}가 10:17에 476 ms였다(\decision{102} Update). 회귀의 근거가 아니다.
 \begin{table}[H]
   \caption{U4 시도 2 (\texttt{f122265})의 판정과 가드. 비교 기준은 \texttt{0ac938c} 위 하네스 v2다.}
   \label{tab:re-u4}
@@ -478,7 +481,7 @@ layout의 데이터 읽기를 Suspense 잎으로 옮겼다. 빌드만 점검하�
     \midrule
     범위 (ms) & 34 & 61 \\
     \midrule
-    판정선 (통과는 261 이하) & 68 & 감소 $-105$, 실패 \\
+    판정선 (통과는 261 이하) & 68 & 감소 $-105$ (drift와 섞임) \\
     \midrule
     G-a 로그인 10초 최대 요청 수 & 35 & 53 / 50 / 50 \\
     \midrule
@@ -512,7 +515,7 @@ layout의 데이터 읽기를 Suspense 잎으로 옮겼다. 빌드만 점검하�
 
 \paragraph{언제 효과가 있나.}
 익명 이동은 엣지 HIT라 오리진 변화가 안 보인다. 익명 합은 218에서 201 ms로 줄었다.
-로그인 이동은 \cfs{DYNAMIC}이라 매번 오리진에 간다. 느려진 곳은 로그인 s4(+34)와 s5(+95) 둘뿐이다.
+로그인 이동은 \cfs{DYNAMIC}이라 매번 오리진에 간다. 느려진 곳은 로그인 s4(+34)와 s5(+95) 둘뿐이다. 이 차이도 drift와 섞인 비교다.
 % src: u4-verdict.md §2.1, §2.3
 
 \paragraph{왜 중요한가.}
@@ -825,8 +828,10 @@ T build는 branch \code{cc-u4-t}에 있고 main에 없다.
 \paragraph{결과.}
 오너가 U4를 속도 판정 없이 운영에 두기로 했다(K4 해제). 배포는 \code{f76c1d9}이다(\decision{106}, \decision{108}).
 배포 뒤 route 표 15개는 200이 7개, 404가 8개였다.
-G-a 가드 run은 통과다. 로그인 10초 최대 요청이 50 / 53 / 50이고 한도는 60 이하다. 익명은 36 / 36 / 36이고 hydration 오류는 0이다.
-링크당 prefetch 최댓값은 로그인 6 / 6 / 5, 익명 6이다(기록만). 주 지표는 판정하지 않는다(\decision{106}, 흔들림).
+U4는 \decision{106} 선(60 이하)만 통과한다. 로그인 10초 최대 요청이 50 / 53 / 50이다. 익명은 36 / 36 / 36이고 hydration 오류는 0이다.
+사전 등록 G-a(로그인 45.6, 익명 27.6)와 G-b(로그인 5, 익명 2)로는 FAIL이다. 링크당 prefetch 최댓값은 로그인 6 / 6 / 5, 익명 6이다.
+\decision{106}이 G-b를 배포 뒤 확인 목록에서 뺐다. 주 지표는 판정하지 않는다(\decision{106}, 흔들림).
+가드 run은 \code{f76c1d9}에서 돌았다. 운영 \code{181e6ed}는 오류 줄 수와 \code{/} GET 4회만 확인했다(main session 메모). 브라우저 가드 run은 없다.
 % src: decisions.plan.md #106, #108 (1); u4o-prerender-errors.md "배포와 확인", "U4 가드 run"; 00.runs.md row 29
 
 \paragraph{무엇이 바뀌었나.}
@@ -840,7 +845,7 @@ G-a 가드 run은 통과다. 로그인 10초 최대 요청이 50 / 53 / 50이고
     \midrule
     Cloudflare 한도 & 50 / 10\,s (\decision{68}) & 70으로 올린다(오너) \\
     \midrule
-    G-a 가드 & U0b + 20\,\% & 10초 최대 요청 60 이하 \\
+    G-a 가드 & U0b + 20\,\% & 10초 최대 요청 60 이하 (실패 뒤에 바꾼 선). G-b는 배포 뒤 확인 목록에서 뺀다 \\
     \midrule
     prefetch & (b)안 hover 전용 & 원래 prefetch(b안을 뺀다) \\
     \midrule
@@ -872,7 +877,7 @@ U5와 U6도 지금 진행한다.
 
 \paragraph{결과.}
 둘 다 flag를 켜야 도는데 U4가 정지해 막혔다(\decision{102}). 오너가 \decision{106}으로 U5를 진행하기로 했다.
-U5는 MISS TTFB가 302에서 316 ms로 14 ms 느렸고 참고선 50 ms에 못 미쳤다(\decision{110}).
+U5는 MISS TTFB가 302에서 316 ms로 14 ms 느렸다. 감소가 없어 참고선 50 ms와 \code{criteria.md}의 판정선 140 ms를 모두 못 채웠다(\decision{110}).
 U5 build에서 \code{Connection closed.} 오류가 43번 났다. 오너가 U5를 뺐다(\decision{111}).
 \decision{109}가 U6을 뺐다. Phase CC는 U4만 운영에 두고 닫혔고 G-CC는 미달이다.
 자세한 설명은 \Cref{ch:cc3}에 있다.
@@ -885,7 +890,7 @@ U5 build에서 \code{Connection closed.} 오류가 43번 났다. 오너가 U5를
     \toprule
     단위 & 내용 & 판정 \\
     \midrule
-    U5 & \code{'use cache'} 3개 (TagCloud, tree, projects) & MISS TTFB. 302 $\to$ 316\,ms, 참고선 50\,ms 미달. 뺌 (\decision{111}) \\
+    U5 & \code{'use cache'} 3개 (TagCloud, tree, projects) & MISS TTFB. 302 $\to$ 316\,ms, 참고선 50\,ms와 판정선 140\,ms 모두 미달. 뺌 (\decision{111}) \\
     \midrule
     U6 & \code{/api/revalidate}와 purge & 뺌 (\decision{109}). 판정 없음 \\
     \bottomrule
@@ -898,7 +903,8 @@ U5 build에서 \code{Connection closed.} 오류가 43번 났다. 오너가 U5를
 지표는 \code{criteria.md} U5 행 그대로다(MISS TTFB, 익명, \code{cc-measure.mjs --only miss}, 블록당 3 run).
 run마다 \code{/}, \code{/@taeklim/projects}, \code{/@taeklim/<S>} 원값 9개의 p50을 잡고, run 3개의 중앙값을 블록 값으로 쓴다.
 C는 운영 U4 \code{181e6ed}이고 T는 U5 \code{b30d03a}다.
-참고선은 $\max(0.10\times 302,\ 50)=50$\,ms다. C2가 없어 흔들림을 가르지 못해 결과는 참고다.
+참고선은 $\max(0.10\times 302,\ 50)=50$\,ms다. \code{criteria.md} U5 행의 판정선은 140\,ms다(U0b 범위에서 나온 선이고 \decision{107}이 U0b 비교를 대체했다).
+C2가 없어 흔들림을 가르지 못해 결과는 참고다.
 % src: decisions.plan.md #110; u5-ab.md header and 참고선
 
 \begin{table}[H]
@@ -916,7 +922,8 @@ C는 운영 U4 \code{181e6ed}이고 T는 U5 \code{b30d03a}다.
   \end{tabularx}
   % src: u5-ab.md table
 \end{table}
-T가 C보다 14 ms 느리다. 참고선 50 ms에 못 미친다.
+T가 C보다 14 ms 느리다. 감소가 없으므로 참고선 50 ms와 판정선 140 ms 모두에 못 미친다.
+C 블록 run 값 472 / 302 / 263의 퍼짐이 이 차 14 ms보다 크다. 효과 유무는 판정되지 않았다.
 T 동안 \code{blog-web} 오류 로그가 855줄에서 1134줄로 늘었다. \code{Error: Connection closed.}가 43번(digest \code{978306872})이다.
 route는 \code{/[handle]/projects}와 \code{/[handle]/projects/[project]}이고 응답 status는 200이다. 원인은 미확인이다.
 18:39:18 UTC에 U4 \code{181e6ed}로 되돌렸고, 되돌린 뒤 smoke의 새 줄은 0이었다.
@@ -927,6 +934,7 @@ route는 \code{/[handle]/projects}와 \code{/[handle]/projects/[project]}이고 
 
 \paragraph{결과.}
 통과다. \code{my.}에 오는 \code{/api/posts/load-more} 요청이 12에서 0이 됐다. 판정선은 0이다.
+잰 가드 G-a, G-b, G-f는 통과다. G-d, G-e, G-g, G-i, G-j는 미측정이다. traffic-check와 \code{rate_limit}은 dispatch 기록이다.
 \begin{table}[H]
   \caption{U7 (\texttt{964c9f8})의 판정과 가드.}
   \label{tab:re-u7}
@@ -969,7 +977,7 @@ route는 \code{/[handle]/projects}와 \code{/[handle]/projects/[project]}이고 
 \paragraph{언제 효과가 있나.}
 익명 feed는 \code{blog-api}에서 엣지 HIT다(run 2, 3). 로그인 feed는 모두 \cfs{DYNAMIC}이라 Express까지 간다.
 Express \code{rate_limit} 로그는 0줄이었다(dispatch 기록).
-W1은 load-more를 쓰지 않는다. 같은 run에서 로그인 W1 합이 500 ms였지만 원인은 U7이 아니라 흔들림으로 읽는다(\Cref{sec:le-drift}).
+W1은 load-more를 쓰지 않는다. 같은 run에서 로그인 W1 합이 500 ms였다. 같은 코드 경로가 10:17에 476 ms였으므로(\decision{102} Update) 원인은 U7이 아니라 흔들림으로 읽는다(추정, \Cref{sec:le-drift}).
 % src: 00.runs.md §2.1.1; cc.report.md MVP3 기록만; decisions.plan.md #102 Update
 
 \paragraph{왜 중요한가.}

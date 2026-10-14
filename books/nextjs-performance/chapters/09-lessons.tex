@@ -35,17 +35,17 @@
     \midrule
     U2 & \texttt{c26c69d} & s6 \texttt{\_rsc} 비prefetch & 1 $\to$ 0 & 1 & 통과 \\
     \midrule
-    U3 & \texttt{0ac938c} & s5 글 이동 (ms) & 317 $\to$ 174 & 192 & 실패 (코드 유지) \\
+    U3 & \texttt{0ac938c} & s5 글 이동 (ms) & 317 $\to$ 174 (대조 없는 연속 비교) & 192 & 사전 등록 판정 미달 (코드 유지) \\
     \midrule
-    U4 시도 2 & \texttt{f122265} & s2--s6 합 (ms) & 329 $\to$ 434 & 68 & 실패 (회귀) \\
+    U4 시도 2 & \texttt{f122265} & s2--s6 합 (ms) & 329 $\to$ 434 (drift와 섞임) & 68 & 실패 (G-a, G-b) \\
     \midrule
     U4 A-B-A & \texttt{7977436} & s2--s6 합 (ms) & 기록 없음 (무효) & 계산하지 않음 & 판정 없음 \\
     \midrule
     U7 & \texttt{964c9f8} & \texttt{my.} load-more 요청 & 12 $\to$ 0 & 0 & 통과 \\
     \midrule
-    U4 운영 & \texttt{181e6ed} & G-a 로그인 10초 최대 요청 & 50 / 53 / 50 & 60 이하 & 가드 통과, 주 지표 판정 없음 \\
+    U4 운영 & \texttt{181e6ed} & G-a 로그인 10초 최대 요청 & 50 / 53 / 50 & 60 이하 (\decision{106}) & \decision{106} 선만 통과. 사전 등록 G-a, G-b는 FAIL. 주 지표 판정 없음 \\
     \midrule
-    U5 & \texttt{b30d03a} & MISS TTFB (ms) & 302 $\to$ 316 & 50 (참고선) & 미달, 뺌 \\
+    U5 & \texttt{b30d03a} & MISS TTFB (ms) & 302 $\to$ 316 & 50 (참고선), 140 (\code{criteria.md}) & 둘 다 미달, 뺌 \\
     \midrule
     U6 & 없음 & 이진 & 해당 없음 & 해당 없음 & 뺌 (\decision{109}) \\
     \bottomrule
@@ -71,8 +71,8 @@
     \node[anchor=west] at (7.5,4.0) {\flowkey{draw=badcol, fill=badcol!45} 후, 실패};
     \bapanel{0}{QW1}{19}{13}{서버 fetch 수}{goodcol}{통과}
     \bapanel{3}{U2}{1}{0}{\texttt{\_rsc} 요청 수}{goodcol}{통과}
-    \bapanel{6}{U3}{317}{174}{s5 이동 (ms)}{badcol}{실패, 코드 유지}
-    \bapanel{9}{U4 시도 2}{329}{434}{s2--s6 합 (ms)}{badcol}{실패, 회귀}
+    \bapanel{6}{U3}{317}{174}{s5 이동 (ms)}{badcol}{미달, 코드 유지}
+    \bapanel{9}{U4 시도 2}{329}{434}{s2--s6 합 (ms)}{badcol}{G-a, G-b 실패}
     \bapanel{12}{U7}{12}{0}{load-more 요청 수}{goodcol}{통과}
     \draw[black!40] (-0.2,0) -- (14.2,0);
   \end{tikzpicture}}
@@ -189,6 +189,8 @@ G-a와 G-b는 요청 수라서 지연 흔들림의 영향을 받지 않는다.
 
 \paragraph{왜 중요한가.}
 시도 2의 이동 판정이 흔들림과 섞였다. 07:44 기준과 비교하면 어떤 U4 run도 실패이거나 판정 불가였다.
+U3의 317 $\to$ 174 ms도 대조 없는 연속 비교다. 이동 시간으로 낸 U3와 U4 시도 2의 판정은 회귀나 이득의 근거가 아니다.
+U4 시도 2를 되돌린 근거는 G-a, G-b 실패다.
 % src: cc.design.md §19.1
 
 \section{바이트 지표가 null을 0으로 셌다}\label{sec:le-null}
@@ -323,6 +325,8 @@ run 값은 run마다 1개, 단위 값은 run 3개의 중앙값이다. 이 변경
     U7 AC4 (draft 2쪽) & 미측정 \\
     \midrule
     G-g (U4, U7 run) & 미측정 \\
+    \midrule
+    G-d, G-e, G-i, G-j (U7 run) & 미측정. traffic-check와 \code{rate_limit} 0줄은 dispatch 기록 \\
     \midrule
     QW1 posts fetch 6 $\to$ 5 원인 & 기록 없음 \\
     \midrule
@@ -471,7 +475,8 @@ route는 \code{/[handle]/projects}와 \code{/[handle]/projects/[project]}뿐이�
 속도 값이 괜찮아도 오류가 나면 유지할 수 없다. 측정 값과 오류 로그를 route마다 함께 보고 나서 유지를 정한다.
 
 \paragraph{같은 측정의 한계.}
-U5는 C2 없이 A-B 두 블록으로 쟀다(\decision{110}). T가 C보다 14 ms 느렸지만 C의 run별 p50부터 472 / 302 / 263으로 달랐다.
+U5는 C2 없이 A-B 두 블록으로 쟀다(\decision{110}). T가 C보다 14 ms 느렸지만 C의 run별 p50부터 472 / 302 / 263으로 달랐다. 이 퍼짐이 차 14 ms보다 크다.
+감소가 없으므로 참고선 50 ms와 \code{criteria.md} 판정선 140 ms를 모두 못 채웠다.
 C2가 없어서 이 차이가 U5 때문인지 시간대 흔들림 때문인지 가르지 못한다.
 그래서 결과는 참고였고 유지 여부를 오너가 정했다(\decision{110}). 흔들림을 가르려면 C2가 있어야 한다(\Cref{sec:le-drift}).
 % src: u5-ab.md table, 참고선 아래 줄; decisions.plan.md #110
