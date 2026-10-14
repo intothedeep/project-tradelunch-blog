@@ -1,0 +1,355 @@
+{
+  "run_id": "20261014T050727Z_baseline2_b13f4ee",
+  "web_sha": null,
+  "unit": null,
+  "arm": "anon",
+  "source": "gcloud logging read",
+  "pages": [
+    "home",
+    "posts",
+    "post"
+  ],
+  "pages_contaminated": [],
+  "clock_window": [],
+  "run_value": {
+    "median": 19,
+    "min": 19,
+    "max": 19,
+    "values": [
+      19,
+      19,
+      19
+    ],
+    "n_valid": 3,
+    "n_repetitions": 3,
+    "range": 0
+  },
+  "repetitions": [
+    {
+      "run": 1,
+      "valid": true,
+      "sum": 19,
+      "per_page": {
+        "home": 5,
+        "posts": 10,
+        "post": 4
+      }
+    },
+    {
+      "run": 2,
+      "valid": true,
+      "sum": 19,
+      "per_page": {
+        "home": 5,
+        "posts": 10,
+        "post": 4
+      }
+    },
+    {
+      "run": 3,
+      "valid": true,
+      "sum": 19,
+      "per_page": {
+        "home": 5,
+        "posts": 10,
+        "post": 4
+      }
+    }
+  ],
+  "windows": [
+    {
+      "run": 1,
+      "name": "home",
+      "path": "/?cb=cc20261014T050727Z_baseline2_b13f4ee_anon_1_home",
+      "cb": "cc20261014T050727Z_baseline2_b13f4ee_anon_1_home",
+      "cf_cache_status": "MISS",
+      "status": 200,
+      "mode": "request-line",
+      "contaminated": false,
+      "foreign_requests": [],
+      "window_ms": 1080,
+      "capped": false,
+      "count": 5,
+      "by_path": {
+        "/v1/api/posts": 1,
+        "/v1/api/tags": 2,
+        "/v1/api/posts/users/taeklim/categories": 2
+      }
+    },
+    {
+      "run": 1,
+      "name": "posts",
+      "path": "/@taeklim/posts?cb=cc20261014T050727Z_baseline2_b13f4ee_anon_1_posts",
+      "cb": "cc20261014T050727Z_baseline2_b13f4ee_anon_1_posts",
+      "cf_cache_status": "MISS",
+      "status": 200,
+      "mode": "request-line",
+      "contaminated": false,
+      "foreign_requests": [],
+      "window_ms": 1144,
+      "capped": false,
+      "count": 10,
+      "by_path": {
+        "/v1/api/posts/users/taeklim/profile": 4,
+        "/v1/api/posts/users/taeklim/tags": 2,
+        "/v1/api/posts/users/taeklim": 1,
+        "/v1/api/posts/users/taeklim/categories": 2,
+        "/v1/api/tags": 1
+      }
+    },
+    {
+      "run": 1,
+      "name": "projects",
+      "path": "/@taeklim/projects?cb=cc20261014T050727Z_baseline2_b13f4ee_anon_1_projects",
+      "cb": "cc20261014T050727Z_baseline2_b13f4ee_anon_1_projects",
+      "cf_cache_status": "MISS",
+      "status": 200,
+      "mode": "request-line",
+      "contaminated": false,
+      "foreign_requests": [],
+      "window_ms": 1091,
+      "capped": false,
+      "count": 3,
+      "by_path": {
+        "/v1/api/posts/users/taeklim/projects": 1,
+        "/v1/api/tags": 1,
+        "/v1/api/posts/users/taeklim/categories": 1
+      }
+    },
+    {
+      "run": 1,
+      "name": "project",
+      "path": "/@taeklim/projects/cnn-from-scratch?cb=cc20261014T050727Z_baseline2_b13f4ee_anon_1_project",
+      "cb": "cc20261014T050727Z_baseline2_b13f4ee_anon_1_project",
+      "cf_cache_status": "MISS",
+      "status": 200,
+      "mode": "request-line",
+      "contaminated": false,
+      "foreign_requests": [],
+      "window_ms": 1081,
+      "capped": false,
+      "count": 3,
+      "by_path": {
+        "/v1/api/posts/users/taeklim/projects/cnn-from-scratch": 1,
+        "/v1/api/tags": 1,
+        "/v1/api/posts/users/taeklim/categories": 1
+      }
+    },
+    {
+      "run": 1,
+      "name": "post",
+      "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first?cb=cc20261014T050727Z_baseline2_b13f4ee_anon_1_post",
+      "cb": "cc20261014T050727Z_baseline2_b13f4ee_anon_1_post",
+      "cf_cache_status": "MISS",
+      "status": 200,
+      "mode": "request-line",
+      "contaminated": false,
+      "foreign_requests": [],
+      "window_ms": 4425,
+      "capped": false,
+      "count": 4,
+      "by_path": {
+        "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first": 1,
+        "/v1/api/posts/users/taeklim/categories": 1,
+        "/v1/api/tags": 1,
+        "/v1/api/posts/368580271928250368/comments": 1
+      }
+    },
+    {
+      "run": 2,
+      "name": "home",
+      "path": "/?cb=cc20261014T050727Z_baseline2_b13f4ee_anon_2_home",
+      "cb": "cc20261014T050727Z_baseline2_b13f4ee_anon_2_home",
+      "cf_cache_status": "MISS",
+      "status": 200,
+      "mode": "request-line",
+      "contaminated": false,
+      "foreign_requests": [],
+      "window_ms": 1056,
+      "capped": false,
+      "count": 5,
+      "by_path": {
+        "/v1/api/posts": 1,
+        "/v1/api/tags": 2,
+        "/v1/api/posts/users/taeklim/categories": 2
+      }
+    },
+    {
+      "run": 2,
+      "name": "posts",
+      "path": "/@taeklim/posts?cb=cc20261014T050727Z_baseline2_b13f4ee_anon_2_posts",
+      "cb": "cc20261014T050727Z_baseline2_b13f4ee_anon_2_posts",
+      "cf_cache_status": "MISS",
+      "status": 200,
+      "mode": "request-line",
+      "contaminated": false,
+      "foreign_requests": [],
+      "window_ms": 1091,
+      "capped": false,
+      "count": 10,
+      "by_path": {
+        "/v1/api/posts/users/taeklim/profile": 4,
+        "/v1/api/posts/users/taeklim/tags": 2,
+        "/v1/api/posts/users/taeklim": 1,
+        "/v1/api/tags": 1,
+        "/v1/api/posts/users/taeklim/categories": 2
+      }
+    },
+    {
+      "run": 2,
+      "name": "projects",
+      "path": "/@taeklim/projects?cb=cc20261014T050727Z_baseline2_b13f4ee_anon_2_projects",
+      "cb": "cc20261014T050727Z_baseline2_b13f4ee_anon_2_projects",
+      "cf_cache_status": "MISS",
+      "status": 200,
+      "mode": "request-line",
+      "contaminated": false,
+      "foreign_requests": [],
+      "window_ms": 1156,
+      "capped": false,
+      "count": 3,
+      "by_path": {
+        "/v1/api/posts/users/taeklim/projects": 1,
+        "/v1/api/tags": 1,
+        "/v1/api/posts/users/taeklim/categories": 1
+      }
+    },
+    {
+      "run": 2,
+      "name": "project",
+      "path": "/@taeklim/projects/cnn-from-scratch?cb=cc20261014T050727Z_baseline2_b13f4ee_anon_2_project",
+      "cb": "cc20261014T050727Z_baseline2_b13f4ee_anon_2_project",
+      "cf_cache_status": "MISS",
+      "status": 200,
+      "mode": "request-line",
+      "contaminated": false,
+      "foreign_requests": [],
+      "window_ms": 1096,
+      "capped": false,
+      "count": 3,
+      "by_path": {
+        "/v1/api/posts/users/taeklim/projects/cnn-from-scratch": 1,
+        "/v1/api/tags": 1,
+        "/v1/api/posts/users/taeklim/categories": 1
+      }
+    },
+    {
+      "run": 2,
+      "name": "post",
+      "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first?cb=cc20261014T050727Z_baseline2_b13f4ee_anon_2_post",
+      "cb": "cc20261014T050727Z_baseline2_b13f4ee_anon_2_post",
+      "cf_cache_status": "MISS",
+      "status": 200,
+      "mode": "request-line",
+      "contaminated": false,
+      "foreign_requests": [],
+      "window_ms": 5000,
+      "capped": true,
+      "count": 4,
+      "by_path": {
+        "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first": 1,
+        "/v1/api/posts/users/taeklim/categories": 1,
+        "/v1/api/tags": 1,
+        "/v1/api/posts/368580271928250368/comments": 1
+      }
+    },
+    {
+      "run": 3,
+      "name": "home",
+      "path": "/?cb=cc20261014T050727Z_baseline2_b13f4ee_anon_3_home",
+      "cb": "cc20261014T050727Z_baseline2_b13f4ee_anon_3_home",
+      "cf_cache_status": "MISS",
+      "status": 200,
+      "mode": "request-line",
+      "contaminated": false,
+      "foreign_requests": [],
+      "window_ms": 1127,
+      "capped": false,
+      "count": 5,
+      "by_path": {
+        "/v1/api/posts": 1,
+        "/v1/api/tags": 2,
+        "/v1/api/posts/users/taeklim/categories": 2
+      }
+    },
+    {
+      "run": 3,
+      "name": "posts",
+      "path": "/@taeklim/posts?cb=cc20261014T050727Z_baseline2_b13f4ee_anon_3_posts",
+      "cb": "cc20261014T050727Z_baseline2_b13f4ee_anon_3_posts",
+      "cf_cache_status": "MISS",
+      "status": 200,
+      "mode": "request-line",
+      "contaminated": false,
+      "foreign_requests": [],
+      "window_ms": 1074,
+      "capped": false,
+      "count": 10,
+      "by_path": {
+        "/v1/api/posts/users/taeklim/profile": 4,
+        "/v1/api/posts/users/taeklim/tags": 2,
+        "/v1/api/posts/users/taeklim": 1,
+        "/v1/api/tags": 1,
+        "/v1/api/posts/users/taeklim/categories": 2
+      }
+    },
+    {
+      "run": 3,
+      "name": "projects",
+      "path": "/@taeklim/projects?cb=cc20261014T050727Z_baseline2_b13f4ee_anon_3_projects",
+      "cb": "cc20261014T050727Z_baseline2_b13f4ee_anon_3_projects",
+      "cf_cache_status": "MISS",
+      "status": 200,
+      "mode": "request-line",
+      "contaminated": false,
+      "foreign_requests": [],
+      "window_ms": 1116,
+      "capped": false,
+      "count": 3,
+      "by_path": {
+        "/v1/api/posts/users/taeklim/projects": 1,
+        "/v1/api/tags": 1,
+        "/v1/api/posts/users/taeklim/categories": 1
+      }
+    },
+    {
+      "run": 3,
+      "name": "project",
+      "path": "/@taeklim/projects/cnn-from-scratch?cb=cc20261014T050727Z_baseline2_b13f4ee_anon_3_project",
+      "cb": "cc20261014T050727Z_baseline2_b13f4ee_anon_3_project",
+      "cf_cache_status": "MISS",
+      "status": 200,
+      "mode": "request-line",
+      "contaminated": false,
+      "foreign_requests": [],
+      "window_ms": 1145,
+      "capped": false,
+      "count": 3,
+      "by_path": {
+        "/v1/api/posts/users/taeklim/projects/cnn-from-scratch": 1,
+        "/v1/api/tags": 1,
+        "/v1/api/posts/users/taeklim/categories": 1
+      }
+    },
+    {
+      "run": 3,
+      "name": "post",
+      "path": "/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first?cb=cc20261014T050727Z_baseline2_b13f4ee_anon_3_post",
+      "cb": "cc20261014T050727Z_baseline2_b13f4ee_anon_3_post",
+      "cf_cache_status": "MISS",
+      "status": 200,
+      "mode": "request-line",
+      "contaminated": false,
+      "foreign_requests": [],
+      "window_ms": 5000,
+      "capped": true,
+      "count": 4,
+      "by_path": {
+        "/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first": 1,
+        "/v1/api/posts/users/taeklim/categories": 1,
+        "/v1/api/tags": 1,
+        "/v1/api/posts/368580271928250368/comments": 1
+      }
+    }
+  ]
+}

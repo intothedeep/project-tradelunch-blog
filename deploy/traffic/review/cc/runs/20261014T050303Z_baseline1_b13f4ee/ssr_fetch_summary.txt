@@ -1,0 +1,11 @@
+run 20261014T050303Z_baseline1_b13f4ee  arm anon  source gcloud logging read
+ssr_fetch per MISS render, pages home+posts+post (sum per repetition):
+  rep 1: 19  {"home":5,"posts":10,"post":4}
+  rep 2: 19  {"home":5,"posts":10,"post":4}
+  rep 3: 19  {"home":5,"posts":10,"post":4}
+run value: median 19  range 0  valid 3/3
+contaminated windows: none
+clock-window fallback: none
+  post rep 1 by path: {"/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first":1,"/v1/api/posts/users/taeklim/categories":1,"/v1/api/tags":1,"/v1/api/posts/368580271928250368/comments":1}
+  post rep 2 by path: {"/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first":1,"/v1/api/posts/users/taeklim/categories":1,"/v1/api/posts/368580271928250368/comments":1,"/v1/api/tags":1}
+  post rep 3 by path: {"/v1/api/posts/slug/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first":1,"/v1/api/posts/users/taeklim/categories":1,"/v1/api/posts/368580271928250368/comments":1,"/v1/api/tags":1}
