@@ -98,3 +98,14 @@ jobs:
       - name: Server log tail
         if: always()
         run: tail -n 60 server.log || true
+
+      - name: Diagnostic (not gating) og:image URL of a real post
+        if: always()
+        run: |
+          s=/@taeklim/cnn-from-scratch-7-7-139-runs-in-4-days-with-the-rules-written-first
+          curl -s --max-time 30 "http://localhost:3000$s" > post.html || true
+          echo "post page bytes: $(wc -c < post.html)"
+          grep -o '<meta[^>]*og:image[^>]*>' post.html | head -3
+          u=$(grep -o 'property="og:image" content="[^"]*"' post.html | head -1 | sed 's/.*content="//; s/"$//')
+          echo "og:image url: $u"
+          [ -n "$u" ] && curl -s -o /dev/null -w 'og:image status %{http_code}/%{size_download}B\n' --max-time 30 "http://localhost:3000$(echo "$u" | sed 's|^https\?://[^/]*||')" || true
