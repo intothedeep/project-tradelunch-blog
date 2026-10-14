@@ -53,6 +53,11 @@ export const LeftRail = ({
             </button>
 
             <PrimaryNav />
+            {/* Closing rule under the menu, matching the toggle row above. */}
+            <div
+                aria-hidden
+                className="mx-3 h-px bg-border in-data-[rail=collapsed]:hidden"
+            />
 
             {tagCloud ? (
                 <div className="contents in-data-[rail=collapsed]:hidden">
