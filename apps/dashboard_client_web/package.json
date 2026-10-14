@@ -5,8 +5,8 @@
     "private": true,
     "scripts": {
         "dev": "cross-env next dev --port 3000 --turbopack",
-        "build:dev": "node scripts/gen-public-paths.mjs && cross-env next build",
-        "build:prod": "node scripts/gen-public-paths.mjs && cross-env next build",
+        "build:dev": "cross-env next build",
+        "build:prod": "cross-env next build",
         "build": "pnpm run build:dev",
         "start:server": "next start -p 3000",
         "start:old": "cross-env pm2 start \"next start -p 3000\" --name dashboard_client_web",

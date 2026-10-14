@@ -13,20 +13,9 @@ import { checkExists } from '@/apis/existence.proxy';
 import { legacyRedirectPath } from '@/utils/legacyRedirect';
 import {
     classifyGatePath,
-    isDottedPath,
-    isUnknownPath,
     NOT_FOUND_PATH,
     shouldCheck,
 } from '@/utils/notFoundGate';
-import { isOwnerHandle } from '@/utils/owner-handle';
-import { PUBLIC_PATHS } from '@/utils/publicPaths.generated';
-
-// Dotted paths that are real files: public/ (generated) and the two metadata routes.
-const SERVED_FILES = new Set<string>([
-    ...PUBLIC_PATHS,
-    '/robots.txt',
-    '/sitemap.xml',
-]);
 
 // Routes that require an authenticated user.
 const isProtectedRoute = createRouteMatcher([
@@ -84,12 +73,6 @@ function toRequestLogLine(req: NextRequest) {
     };
 }
 
-function rewriteToNotFound(req: NextRequest) {
-    const url = req.nextUrl.clone();
-    url.pathname = NOT_FOUND_PATH;
-    return NextResponse.rewrite(url);
-}
-
 // Real 404 for unknown pages (cc.design.md §18). Under cacheComponents the page
 // gates are Suspense leaves and can only answer 200 plus a not-found view, so
 // the status is decided here, before render. A missing page is rewritten to a
@@ -123,7 +106,10 @@ async function gateNotFound(auth: ClerkMiddlewareAuth, req: NextRequest) {
             })
         );
     }
-    return result === 'missing' ? rewriteToNotFound(req) : null;
+    if (result !== 'missing') return null;
+    const url = req.nextUrl.clone();
+    url.pathname = NOT_FOUND_PATH;
+    return NextResponse.rewrite(url);
 }
 
 const clerk = clerkMiddleware(async (auth, req) => {
@@ -137,13 +123,6 @@ const clerk = clerkMiddleware(async (auth, req) => {
             // Logging must never break a request.
         }
     }
-    // Pure path check first: an unknown top-level path or a non-owner /@u/about
-    // would otherwise render under ISR and 500 (cc.design.md section 18).
-    if (
-        (req.method === 'GET' || req.method === 'HEAD') &&
-        isUnknownPath(req.nextUrl.pathname, isOwnerHandle)
-    )
-        return rewriteToNotFound(req);
     const missing = await gateNotFound(auth, req);
     if (missing) return missing;
     if (isProtectedRoute(req)) {
@@ -167,24 +146,17 @@ export default function proxy(req: NextRequest, event: NextFetchEvent) {
             res.headers.set('Cache-Control', 'public, s-maxage=86400');
             return res;
         }
-        // Dotted path: a real file passes untouched (no Clerk, no cookies); any
-        // other one is a 404 decided here, before it can reach [handle] (A2).
-        if (isDottedPath(req.nextUrl.pathname))
-            return SERVED_FILES.has(req.nextUrl.pathname)
-                ? NextResponse.next()
-                : rewriteToNotFound(req);
     }
     return clerk(req, event);
 }
 
 export const config = {
     matcher: [
-        // Page routes (skip _next, api, trpc, favicon/). Dotted paths now reach the
-        // proxy, which passes real files and 404s the rest (A2). Kept at this reach even
+        // Page routes (skip _next, api, static files). Kept at this reach even
         // though locale detection is gone: narrowing it to protected routes
         // breaks the root ClerkProvider and any public RSC calling `auth()`,
         // which throw when the middleware has not run (CF2-0b, rejected).
-        '/((?!_next|api|trpc|favicon/).*)',
+        '/((?!_next|api|.*\\..*).*)',
         // Clerk's recommended matcher: always run on API/trpc routes.
         '/(api|trpc)(.*)',
     ],
