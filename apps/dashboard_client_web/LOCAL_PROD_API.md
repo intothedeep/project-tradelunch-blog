@@ -138,34 +138,38 @@ Then make a certificate that names the host:
 
 ```sh
 MKCERT=$(ls ~/Library/Caches/mkcert/mkcert-* | head -1)
-mkdir -p certificates
-"$MKCERT" -key-file certificates/local-key.pem -cert-file certificates/local.pem \
+CERTS=~/.config/prettylog/certs
+mkdir -p $CERTS
+"$MKCERT" -key-file $CERTS/local-key.pem -cert-file $CERTS/local.pem \
   local.prettylog.com localhost 127.0.0.1
-openssl x509 -in certificates/local.pem -noout -ext subjectAltName   # must list DNS:local.prettylog.com
+chmod 600 $CERTS/local-key.pem
+openssl x509 -in $CERTS/local.pem -noout -ext subjectAltName   # must list DNS:local.prettylog.com
 ```
 
-- `certificates/` is in this app's `.gitignore`. Never commit it.
+- The certificate lives outside the repo, in `~/.config/prettylog/certs/` (moved there 2026-10-13).
+- It cannot be committed by mistake, and it survives a fresh clone.
 - The certificate lasts about two years. Make it again with the same command when it expires.
 - `brew install mkcert` + `mkcert -install` works too, in place of Next's copy.
 
 ### 4. Run the dev server with production keys (Mac)
 
 ```sh
-cd ~/Documents/00_projects/project_tradelunch/apps/dashboard_client_web
+cd ~/Documents/00_projects/project_tradelunch
 read -s 'PK?pk_live: ' && echo && read -s 'SK?sk_live: ' && echo
 
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$PK CLERK_SECRET_KEY=$SK \
 NEXT_PUBLIC_API_BASE=https://blog-api.prettylog.com \
-pnpm exec next dev --turbopack -p 443 -H 0.0.0.0 --experimental-https \
-  --experimental-https-key certificates/local-key.pem \
-  --experimental-https-cert certificates/local.pem
+pnpm --filter dashboard_client_web exec next dev --turbopack -p 443 -H 0.0.0.0 --experimental-https \
+  --experimental-https-key "$HOME/.config/prettylog/certs/local-key.pem" \
+  --experimental-https-cert "$HOME/.config/prettylog/certs/local.pem"
 ```
 
 - `read -s` keeps the keys off the screen and out of shell history.
 - Both key variables are required. Without them the dev keys in `.env.local` load and every
   signed-in call returns 401 again.
-- Run `next` from `apps/dashboard_client_web` (or with `pnpm --filter dashboard_client_web exec`):
-  it is not installed at the repo root (`Command "next" not found`).
+- Run from the repo root with `pnpm --filter dashboard_client_web exec`.
+- It runs `next` inside `apps/dashboard_client_web`. The certificate paths are absolute, so the folder does not matter.
+- A bare `pnpm exec next` at the root fails. `next` is not installed there (`Command "next" not found`).
 - `0.0.0.0` also accepts connections from other devices on the same network. Stop the server
   (`Ctrl+C`) when the test is done.
 

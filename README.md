@@ -89,6 +89,23 @@ pnpm format          # prettier write
 
 Env files live per app (`.env`, `.env.local`, `.env.production`, `.env.example`).
 
+### Local web against the production API (HTTPS, live Clerk keys)
+
+Serves the local web at `https://local.prettylog.com` on port 443.
+One-time setup (hosts entry, CORS origin, mkcert certificate): [`apps/dashboard_client_web/LOCAL_PROD_API.md`](./apps/dashboard_client_web/LOCAL_PROD_API.md).
+The certificate lives outside the repo, in `~/.config/prettylog/certs/`.
+
+```sh
+# from the repo root
+read -s 'PK?pk_live: ' && echo && read -s 'SK?sk_live: ' && echo
+
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$PK CLERK_SECRET_KEY=$SK \
+NEXT_PUBLIC_API_BASE=https://blog-api.prettylog.com \
+pnpm --filter dashboard_client_web exec next dev --turbopack -p 443 -H 0.0.0.0 --experimental-https \
+  --experimental-https-key "$HOME/.config/prettylog/certs/local-key.pem" \
+  --experimental-https-cert "$HOME/.config/prettylog/certs/local.pem"
+```
+
 ---
 
 ## Documentation
