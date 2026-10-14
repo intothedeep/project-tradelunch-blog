@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 
 import { getFeed } from '@/apis/getPosts.fetch.server';
-import { RecentPostsListClient } from '@/app/blog/components/RecentPostsList.client';
+import { RecentPostsListClient } from '@/components/blog/RecentPostsList.client';
 import { CDN_ASSETS } from '@/env.schema';
 import { serializeFacet } from '@/utils/filter-state';
 import { logServerError } from '@/utils/serverLog.util';

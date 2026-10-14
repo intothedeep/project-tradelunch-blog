@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { MobileCategory } from '@/components/blog/MobileCategory.client';
-import { CategoryErrorBoundary } from '@/app/blog/components/CategoryErrorboundary.client';
+import { CategoryErrorBoundary } from '@/components/blog/CategoryErrorboundary.client';
 import { ProjectsTreeWrapper } from '@/app/[handle]/components/ProjectsTreeWrapper.server';
 
 // < lg: the projects tree as a collapsed accordion above the main column (the

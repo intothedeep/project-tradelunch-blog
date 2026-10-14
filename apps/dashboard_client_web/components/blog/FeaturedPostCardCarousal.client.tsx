@@ -1,7 +1,7 @@
 'use client';
 
 import { use, useRef, useState } from 'react';
-import { FeaturedPostCard } from '@/app/blog/components/FeaturedPostCard.server';
+import { FeaturedPostCard } from '@/components/blog/FeaturedPostCard.server';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TPaginatedResponse } from '@/apis/blog.types';
 

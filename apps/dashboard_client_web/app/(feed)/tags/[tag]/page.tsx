@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 
 import { getPostsByTag } from '@/apis/getPostsByTag.api';
-import { TagPostsList } from '@/app/blog/components/TagPostsList.client';
+import { TagPostsList } from '@/components/blog/TagPostsList.client';
 import { CDN_ASSETS } from '@/env.schema';
 
 // Global by-tag feed: all posts across all authors carrying `tag`, read live at

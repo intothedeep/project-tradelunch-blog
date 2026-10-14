@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     buildCategoryTree,
     CategoryTree,
-} from '@/app/blog/components/CategoryTree.client';
+} from '@/components/blog/CategoryTree.client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { ETreeNodeType, TTreeNode, TTreeNodeWithChildren } from '@repo/types';

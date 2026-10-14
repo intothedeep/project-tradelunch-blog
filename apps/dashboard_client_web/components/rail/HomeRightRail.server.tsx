@@ -6,8 +6,8 @@
 
 import { Suspense } from 'react';
 import { ProjectsTreeWrapper } from '@/app/[handle]/components/ProjectsTreeWrapper.server';
-import { CategorySidebarWrapper } from '@/app/blog/components/CategorySidebarWrapper.server';
-import { CategoryErrorBoundary } from '@/app/blog/components/CategoryErrorboundary.client';
+import { CategorySidebarWrapper } from '@/components/blog/CategorySidebarWrapper.server';
+import { CategoryErrorBoundary } from '@/components/blog/CategoryErrorboundary.client';
 import { RecentPostsWidget } from '@/components/rail/RecentPostsWidget.client';
 import { TagCloud } from '@/components/rail/TagCloud.server';
 import { HOME_FEED_AUTHOR } from '@/utils/blog-author';

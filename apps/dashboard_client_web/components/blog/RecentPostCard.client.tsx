@@ -21,11 +21,11 @@ import clsx from 'clsx';
 import { MessageSquare } from 'lucide-react';
 import { TPost } from '@/apis/blog.types';
 import { cn } from '@/lib/utils';
-import { PostContentHeader } from '@/app/blog/components/PostContentHeader.server';
-import { ShareButton } from '@/app/blog/components/post-card-actions/ShareButton.client';
-import { SaveButton } from '@/app/blog/components/post-card-actions/SaveButton.client';
-import { LikeButton } from '@/app/blog/components/post-card-actions/LikeButton.client';
-import { PostActions } from '@/app/blog/components/post-card-actions/PostActions.client';
+import { PostContentHeader } from '@/components/blog/PostContentHeader.server';
+import { ShareButton } from '@/components/blog/post-card-actions/ShareButton.client';
+import { SaveButton } from '@/components/blog/post-card-actions/SaveButton.client';
+import { LikeButton } from '@/components/blog/post-card-actions/LikeButton.client';
+import { PostActions } from '@/components/blog/post-card-actions/PostActions.client';
 import { StatusBadge } from '@/components/blog/StatusBadge';
 import { postPath, postsPath } from '@/utils/routes';
 import { serializeFacet } from '@/utils/filter-state';
@@ -67,7 +67,7 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
     return (
         <Card
             className={cn(
-                'relative',
+                'relative rounded-none',
                 'lg:max-w-2xl lg:mx-auto',
                 'bg-card border-primary transition-all group',
                 'hover:shadow-primary hover:shadow-xs hover:border-primary hover:bg-secondary',
@@ -156,7 +156,7 @@ export const RecentPostCard: React.FC<RecentPostCardProps> = ({
 
                 {/* Image */}
                 {imageUrl && (
-                    <div className="relative w-full aspect-video mb-3 rounded border border-primary/30 overflow-hidden bg-muted">
+                    <div className="relative w-full aspect-video mb-3 border border-primary/30 overflow-hidden bg-muted">
                         <Image
                             src={imageUrl}
                             alt={post.title}

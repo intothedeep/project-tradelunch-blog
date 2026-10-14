@@ -16,7 +16,7 @@ export const FeaturedPostCard: React.FC<FeaturedPostCardProps> = ({ post }) => {
     return (
         <Card
             className={cn(
-                'bg-secondary border-primary/30 hover:border-primary transition-colors cursor-pointer group h-full',
+                'rounded-none bg-secondary border-primary/30 hover:border-primary transition-colors cursor-pointer group h-full',
                 'overflow-hidden'
             )}
         >

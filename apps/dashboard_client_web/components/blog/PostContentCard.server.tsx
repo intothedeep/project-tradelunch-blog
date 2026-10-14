@@ -1,13 +1,13 @@
 import Link from 'next/link';
 import { auth } from '@clerk/nextjs/server';
 import { getPostBySlug } from '@/apis/getPost.api';
-import { PostContentHeader } from '@/app/blog/components/PostContentHeader.server';
-import { LikeButton } from '@/app/blog/components/post-card-actions/LikeButton.client';
-import { SaveButton } from '@/app/blog/components/post-card-actions/SaveButton.client';
-import { ShareButton } from '@/app/blog/components/post-card-actions/ShareButton.client';
-import { PostActions } from '@/app/blog/components/post-card-actions/PostActions.client';
-import { Comments } from '@/app/blog/components/comments/Comments.server';
-import { RecordRecentView } from '@/app/blog/components/RecordRecentView.client';
+import { PostContentHeader } from '@/components/blog/PostContentHeader.server';
+import { LikeButton } from '@/components/blog/post-card-actions/LikeButton.client';
+import { SaveButton } from '@/components/blog/post-card-actions/SaveButton.client';
+import { ShareButton } from '@/components/blog/post-card-actions/ShareButton.client';
+import { PostActions } from '@/components/blog/post-card-actions/PostActions.client';
+import { Comments } from '@/components/blog/comments/Comments.server';
+import { RecordRecentView } from '@/components/blog/RecordRecentView.client';
 import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer.server';
 import { OwnerEditButton } from '@/components/blog/OwnerEditButton.client';
 import { StatusBadge } from '@/components/blog/StatusBadge';
@@ -51,7 +51,7 @@ export const PostContentCard = async ({
     return (
         <Card
             className={cn(
-                'flex-1 min-w-0',
+                'flex-1 min-w-0 rounded-none',
                 'bg-card border-primary transition-all group',
                 'text-sm'
             )}

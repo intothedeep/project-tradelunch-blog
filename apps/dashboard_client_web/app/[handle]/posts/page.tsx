@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 
-import BlogMainPage from '@/app/blog/components/BlogMainPage';
-import { CategorySidebarWrapper } from '@/app/blog/components/CategorySidebarWrapper.server';
+import BlogMainPage from '@/components/blog/BlogMainPage';
+import { CategorySidebarWrapper } from '@/components/blog/CategorySidebarWrapper.server';
 import { AppliedFilters } from '@/components/blog/filter/AppliedFilters.client';
 import { FilterChipRow } from '@/components/blog/filter/FilterChipRow.client';
 import { getTagFilterItems } from '@/components/blog/filter/getFilterItems.server';

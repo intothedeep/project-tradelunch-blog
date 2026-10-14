@@ -1,7 +1,7 @@
 // app/blog/CategorySidebarWrapper.server.tsx
 import { auth } from '@clerk/nextjs/server';
 import { getCategoriesByUsername } from '@/apis/getCategories.api';
-import { CategorySidebar } from '@/app/blog/components/CategorySidebar.client';
+import { CategorySidebar } from '@/components/blog/CategorySidebar.client';
 import { TTreeNodeWithChildren } from '@repo/types';
 
 type Props = {

@@ -8,7 +8,7 @@
 //   island can show the post-owner delete affordance.
 
 import { getComments } from '@/apis/getComments.api';
-import { CommentsSection } from '@/app/blog/components/comments/CommentsSection.client';
+import { CommentsSection } from '@/components/blog/comments/CommentsSection.client';
 import type { TCommentListResponse } from '@repo/types';
 
 export const Comments = async ({

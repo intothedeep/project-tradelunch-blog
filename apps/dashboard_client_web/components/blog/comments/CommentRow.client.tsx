@@ -12,8 +12,8 @@
 
 import { useTranslations } from 'next-intl';
 import type { TComment } from '@repo/types';
-import { CommentComposer } from '@/app/blog/components/comments/CommentComposer.client';
-import { CommentDeleteDialog } from '@/app/blog/components/comments/CommentDeleteDialog.client';
+import { CommentComposer } from '@/components/blog/comments/CommentComposer.client';
+import { CommentDeleteDialog } from '@/components/blog/comments/CommentDeleteDialog.client';
 import { cn } from '@/lib/utils';
 
 type Props = {

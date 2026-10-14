@@ -24,9 +24,9 @@ import {
     buildRenderRows,
     rebuildDescendingOrder,
 } from '@/utils/commentTree.util';
-import { CommentComposer } from '@/app/blog/components/comments/CommentComposer.client';
-import { CommentRow } from '@/app/blog/components/comments/CommentRow.client';
-import { CommentsPagination } from '@/app/blog/components/comments/CommentsPagination.client';
+import { CommentComposer } from '@/components/blog/comments/CommentComposer.client';
+import { CommentRow } from '@/components/blog/comments/CommentRow.client';
+import { CommentsPagination } from '@/components/blog/comments/CommentsPagination.client';
 import type { TComment, TCommentListResponse } from '@repo/types';
 
 type Props = {

@@ -13,7 +13,7 @@ import type { TTreeNode, TTreeNodeWithChildren } from '@repo/types';
 import {
     buildCategoryTree,
     CategoryTree,
-} from '@/app/blog/components/CategoryTree.client';
+} from '@/components/blog/CategoryTree.client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { hrefOfNode, selectedNodeIdOf } from '@/utils/projects-tree';
 

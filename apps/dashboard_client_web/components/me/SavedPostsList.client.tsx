@@ -12,7 +12,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { RecentPostCard } from '@/app/blog/components/RecentPostCard.client';
+import { RecentPostCard } from '@/components/blog/RecentPostCard.client';
 import { SavedSearchBox } from '@/components/me/SavedSearchBox.client';
 import { useSavedPosts } from '@/hooks/useSavedPosts.query.client';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue.hook';

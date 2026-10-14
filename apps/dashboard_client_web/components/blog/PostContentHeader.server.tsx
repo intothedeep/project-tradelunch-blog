@@ -1,5 +1,5 @@
 import { TPost } from '@/apis/blog.types';
-import { MoveBack } from '@/app/blog/components/MoveBack';
+import { MoveBack } from '@/components/blog/MoveBack';
 import { formatPostDate } from '@/utils/formatPostDate';
 import Image from 'next/image';
 import Link from 'next/link';

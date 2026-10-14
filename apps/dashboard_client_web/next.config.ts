@@ -60,8 +60,7 @@ const nextConfig: NextConfig = {
     // Author URLs moved from /blog/@u/... to /@u/... (Phase PJ). 308, query kept.
     // These run before the Clerk middleware, so the response carries no cookie
     // and Cloudflare can store it. The bare `/blog` goes to `/` (#81); exact match, so it never catches `/blog/@u`.
-    // Forms the patterns miss (`%40u`, no `@`) are caught by the permanentRedirect
-    // stubs in app/blog/[username]/{page,[slug]/page}.tsx.
+    // The `%40u` and no-`@` forms follow, `@` rules first (app/blog stubs are gone).
     async redirects() {
         return [
             { source: '/blog', destination: '/', permanent: true },
@@ -78,6 +77,36 @@ const nextConfig: NextConfig = {
             {
                 source: '/blog/:handle(@[^/]+)/:slug/opengraph-image',
                 destination: '/:handle/:slug/opengraph-image',
+                permanent: true,
+            },
+            {
+                source: '/blog/%40:user',
+                destination: '/@:user/posts',
+                permanent: true,
+            },
+            {
+                source: '/blog/%40:user/:slug',
+                destination: '/@:user/:slug',
+                permanent: true,
+            },
+            {
+                source: '/blog/%40:user/:slug/opengraph-image',
+                destination: '/@:user/:slug/opengraph-image',
+                permanent: true,
+            },
+            {
+                source: '/blog/:user([^@%/][^/]*)',
+                destination: '/@:user/posts',
+                permanent: true,
+            },
+            {
+                source: '/blog/:user([^@%/][^/]*)/:slug',
+                destination: '/@:user/:slug',
+                permanent: true,
+            },
+            {
+                source: '/blog/:user([^@%/][^/]*)/:slug/opengraph-image',
+                destination: '/@:user/:slug/opengraph-image',
                 permanent: true,
             },
             // About and Resume are owner pages under the owner handle (PJ-2-01).

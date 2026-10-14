@@ -30,7 +30,7 @@ export const LeftRailAside = ({
     return (
         <aside
             className={cn(
-                'hidden shrink-0 border-r border-border transition-[width] duration-200 md:block',
+                'hidden shrink-0 border-r-2 border-primary transition-[width] duration-200 md:block',
                 isCollapsed ? 'w-14' : 'w-64'
             )}
         >

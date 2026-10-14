@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
 import { type TPost } from '@/apis/blog.types';
-import { RecentPostCard } from '@/app/blog/components/RecentPostCard.client';
+import { RecentPostCard } from '@/components/blog/RecentPostCard.client';
 import { serializeFacet } from '@/utils/filter-state';
 
 type Props = {

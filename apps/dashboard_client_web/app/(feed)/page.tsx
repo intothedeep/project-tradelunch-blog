@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import BlogMainPage from '@/app/blog/components/BlogMainPage';
+import BlogMainPage from '@/components/blog/BlogMainPage';
 import { SITE_URL } from '@/env.schema';
 
 const TITLE = 'Taek Lim — Software Engineering & Backend';

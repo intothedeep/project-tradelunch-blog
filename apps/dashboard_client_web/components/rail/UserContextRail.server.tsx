@@ -13,8 +13,8 @@ import { TagCloud } from '@/components/rail/TagCloud.server';
 import { TagCloudSkeleton } from '@/components/rail/TagCloud.skeleton';
 import { RailSection } from '@/components/rail/RailSection.client';
 import { RightRailToc } from '@/components/rail/RightRailToc.client';
-import { CategorySidebarWrapper } from '@/app/blog/components/CategorySidebarWrapper.server';
-import { CategoryErrorBoundary } from '@/app/blog/components/CategoryErrorboundary.client';
+import { CategorySidebarWrapper } from '@/components/blog/CategorySidebarWrapper.server';
+import { CategoryErrorBoundary } from '@/components/blog/CategoryErrorboundary.client';
 
 export const UserContextRail = async ({ username }: { username: string }) => {
     const t = await getTranslations('blog');

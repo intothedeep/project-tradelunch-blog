@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { RightRailToc } from '@/components/rail/RightRailToc.client';
-import { CategoryErrorBoundary } from '@/app/blog/components/CategoryErrorboundary.client';
+import { CategoryErrorBoundary } from '@/components/blog/CategoryErrorboundary.client';
 import { ProjectsTreeWrapper } from '@/app/[handle]/components/ProjectsTreeWrapper.server';
 
 // Right rail of the projects screens: the post TOC (empty, so nothing, on list
