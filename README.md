@@ -38,8 +38,13 @@ Product surfaces:
 
 - **Blog / portfolio** — multi-user technical posts (Clerk auth), Markdown + LaTeX, likes,
   comments, saved posts, category/tag filters, in-app authoring at `/write`.
-- **Log** — Threads-style microfeed at `/log` and `/log/[username]`: recursive replies, todo
-  marks (owner-only), likes, follows, following timeline.
+- **Log** — Threads-style microfeed at `/@username/logs` (and `/@username/logs/<logId>`):
+  recursive replies, todo marks (owner-only), likes, follows, following timeline. The old
+  `/log` feed and `/log/…` addresses were removed and return 404 (#113).
+- **User routes** — `/@username/{posts,projects,about,resume,saved,me,logs}`. A project post
+  detail shares its parent's right rail: TOC plus `HomeRightRail` (#118).
+- **Sign-up is closed** (#117): `/sign-up` returns 404, the sign-in page hides the "Sign up"
+  link, and the Clerk dashboard is set to Restricted.
 
 ---
 
@@ -117,7 +122,7 @@ pnpm --filter dashboard_client_web exec next dev --turbopack -p 443 -H 0.0.0.0 -
 - [`log.plan.md`](./log.plan.md) — Log phases (Y, Y-TD, Y M2)
 - [`decisions.plan.md`](./decisions.plan.md) — resolved architecture decisions
 - [`gcp.design.md`](./gcp.design.md) — Vercel → GCP hosting design (draft)
-- [`cc.design.md`](./cc.design.md) / [`cc.report.md`](./cc.report.md) — Phase CC (cache and cost, closed 2026-10-14): route groups, perf measurement. `cacheComponents` is ON in production (U4, `181e6ed`). Unknown pages get a real 404 from the proxy gate (`proxy.ts`, `utils/notFoundGate.ts`, `apis/existence.proxy.ts`). Server fetcher `catch` blocks call `unstable_rethrow` first (runtime prerender). Cloudflare limit is 70 / 10 s. Purge is manual, staleness up to 1 day. See the [web README](./apps/dashboard_client_web/README.md#cachecomponents-is-on-in-production-u4).
+- [`cc.design.md`](./cc.design.md) / [`cc.report.md`](./cc.report.md) — Phase CC (cache and cost, closed 2026-10-14): route groups, perf measurement. `cacheComponents` is ON in production (U4, `181e6ed`). Unknown pages get a real 404 from the proxy gate (`proxy.ts`, `utils/notFoundGate.ts`, `apis/existence.proxy.ts`). The gate kinds are user, project, post, log (#115) and owner-only. Deploy artifacts download to `.gh-artifacts/`. The CI check `cc-standalone-check.yml` runs on every push to `main` that touches the web app. Server fetcher `catch` blocks call `unstable_rethrow` first (runtime prerender). Cloudflare limit is 70 / 10 s. Purge is manual, staleness up to 1 day. See the [web README](./apps/dashboard_client_web/README.md#cachecomponents-is-on-in-production-u4).
 - [`.claude/`](./.claude/) — agent harness: engineering principles and rules
 
 ---

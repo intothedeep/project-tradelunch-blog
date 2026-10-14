@@ -46,6 +46,7 @@ app/(shell)/
 │   ├── (rail)/layout.tsx      right rail #2: posts, projects, saved
 │   ├── [slug]/                post detail: own layout
 │   ├── about/  resume/  me/   own layouts
+│   ├── logs/                  log feed and /logs/<logId>: own layout
 └── write/                     own layout
 ```
 
@@ -53,7 +54,8 @@ app/(shell)/
 | --- | --- | --- |
 | `/`, `/tags/[tag]` | one `HomeRightRail` | `(shell)/(feed)/layout.tsx` |
 | `/@u/posts`, `/@u/projects`, `/@u/projects/<p>`, `/@u/saved` | one `HomeRightRail` for the same handle | `(shell)/[handle]/(rail)/layout.tsx` |
-| post detail, about, resume, me, write | own layout, no shared rail | each screen |
+| post detail (outside a project), about, resume, me, logs, write | own layout, no shared rail | each screen |
+| post detail inside a project | `RightRailToc` on top, then the same `HomeRightRail` as the project page (#118) | `components/projects/RightRailSwitch.server.tsx` |
 
 - The left rail is rendered once in `(shell)/layout.tsx`, so it survives every move.
 - Each shared right rail stays mounted while the user moves inside its group.
@@ -61,6 +63,21 @@ app/(shell)/
 - Unknown user, project or post returns a real HTTP 404.
   The layout gates it (`notFound()` in `(rail)/layout.tsx`), because a `loading.tsx` would flush a 200 shell first.
 - Anonymous `/@u/me` and `/@u/saved` return 404.
+- The right rail has `pt-4`, the same top padding as the main column, so the first box and the body start on one line (`components/rail/RightRail.client.tsx`).
+
+## Routes
+
+User screens live under `/@u/`: `posts`, `projects`, `about`, `resume`, `saved`, `me`, `logs`.
+
+| Path | Status |
+| --- | --- |
+| `/@u/logs`, `/@u/logs/<logId>` | log screens (moved from `/log/@u`, P2) |
+| `/log`, `/log/…` | 404 (feed removed, #113). No 308 from the old addresses |
+| `/sign-up…` | 404. New sign-ups are closed (#117). The sign-in page hides Clerk's "Sign up" link |
+| `/about`, `/resume` | 308 to `/@taeklim/about`, `/@taeklim/resume` |
+
+- Sign-ups: `sign-up` is not in the known top-level segments, so the proxy answers 404. The Clerk dashboard mode is Restricted, which the owner set.
+- IDs in `/logs/<logId>` are strings, never `Number()` (BIGINT).
 
 ## Section tones
 
@@ -125,11 +142,19 @@ gh run download <run id>      # fetch the artifact
 | File | Role |
 | --- | --- |
 | `proxy.ts` | runs the gate before render. A missing page is rewritten to a path with no route, so Next answers a real HTTP 404 |
-| `utils/notFoundGate.ts` | pure path classifier: user, project, post, owner-only (`/@u/me`, `/@u/saved`) |
+| `utils/notFoundGate.ts` | pure path classifier: user, project, post, log (`/@u/logs/<id>`), owner-only (`/@u/me`, `/@u/saved`) |
 | `apis/existence.proxy.ts` | existence probe to the API. Only a 404 means missing. Any other status, error or timeout passes (fail-open) |
 
 - Signed-in client navigation is checked too (decision #103). Signed-in prefetch skips the check (decision #106).
 - An unknown top-level path such as `/nope` is a real 404 (attempt 1 returned 500).
+- The `log` gate (decision #115) exists because a page-level `notFound()` under `cacheComponents` answers 200 after the shell streams (a soft 404, and the edge cached it).
+  A non-numeric `logId` is a 404 with no API call.
+
+**Deploy and CI.**
+
+- `_scripts/gcp/deploy-web.sh` downloads the build artifact into `.gh-artifacts/` (not an `x_` folder, so the `x_` cleanup does not delete it). It purges Cloudflare after the PM2 release.
+- If the edge still holds a 200 from the reload window, purge once more after the reload settles.
+- `.github/workflows/cc-standalone-check.yml` runs on every push to `main` that touches `apps/dashboard_client_web/**`, and by hand (`workflow_dispatch`).
 
 **`unstable_rethrow` rule.** In every server `catch` (fetchers, leaves, pages, metadata), call `unstable_rethrow(error)` from `next/navigation` first.
 

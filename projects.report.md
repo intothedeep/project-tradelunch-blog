@@ -1,6 +1,6 @@
 # Phase PJ 단계 보고 (Projects)
 
-요약: MVP1(mock, 로컬), MVP2(real, 운영), MVP3(최종 배포 `adcfc06`), P2(운영 `1c035f2`)를 아래 네 절에 적었다. P1 gate는 PASS다 (`pj.p1-gate.review.md` Cycle 2/2). P2 gate는 대기다. 절: [MVP1](#mvp1-2026-10-13), [MVP2](#mvp2-2026-10-14), [MVP3](#mvp3-2026-10-14), [P2](#p2-2026-10-14).
+요약: MVP1(mock, 로컬), MVP2(real, 운영), MVP3(최종 배포 `adcfc06`), P2(운영 `1c035f2`)를 아래 네 절에 적었다. P1 gate는 PASS다 (`pj.p1-gate.review.md` Cycle 2/2). P2 gate는 PASS다 (`deploy/projects/p2-gate.review.md` cycle 2/2, cycle 1 ISSUE M-1 → #115). 절: [MVP1](#mvp1-2026-10-13), [MVP2](#mvp2-2026-10-14), [MVP3](#mvp3-2026-10-14), [P2](#p2-2026-10-14).
 
 ## MVP1 (2026-10-13)
 
@@ -696,4 +696,25 @@ sitemap: /@taeklim/about, /@taeklim/resume
 
 ### 판정
 
-판정하지 않는다. 원본에 값이 있는 항목(주소 23개, sitemap 2줄, traffic-check)은 기대와 같다. 단계 4(모바일 메뉴)는 오너가 휴대폰에서 확인했다. PJ-2-06 AC3(traffic-check 한 줄)은 단계 7로 채워졌다. P2 gate는 reviewer가 한다.
+판정하지 않는다. 원본에 값이 있는 항목(주소 23개, sitemap 2줄, traffic-check)은 기대와 같다. 단계 4(모바일 메뉴)는 오너가 휴대폰에서 확인했다. PJ-2-06 AC3(traffic-check 한 줄)은 단계 7로 채워졌다. P2 gate 결과는 아래 "P2 gate" 절 (cycle 2/2 PASS).
+
+### P2 gate (2026-10-14)
+
+출처: `deploy/projects/p2-gate.review.md` (cycle 1/2, cycle 2/2), `decisions.plan.md` #115, `01.status.md` 2026-10-14 pj 줄.
+
+```
+cycle 1  ISSUE M-1  -->  #115 log gate (df0a482)  -->  cycle 2  PASS (M4 exit 닫힘)
+```
+
+| 차례 | 판정 | 내용 | 근거 파일 |
+| --- | --- | --- | --- |
+| cycle 1/2 | ISSUE (must-fix 1) | `/@taeklim/logs/0`, `/abc`, `/99999999999999`, `/@nobodyxyz/logs/31`이 200 not-found 화면. 2회째 `cf-cache-status: HIT`, `age: 90` (soft 404, #89 위반). AC는 전부 PASS | `p2-gate.review.md` §4 M-1 |
+| 고침 | #115 | proxy gate에 `log` 종류 추가. `loading.tsx` 제거와 `export const dynamic` 복원은 하지 않음 | `decisions.plan.md` #115 |
+| cycle 2/2 | PASS (must-fix 0) | 위 4경로 모두 2회 404 `BYPASS`. `/@taeklim/logs/31` 200 유지. 회귀 8경로 일치. 정적 검사 2/2 exit 0 | `p2-gate.review.md` C2, C3 |
+
+- 운영 배포 직후 엣지에 reload 중 200이 하나 남아 purge를 한 번 더 했다 (`01.status.md`).
+
+### 후속 (2026-10-14)
+
+- 새 가입 차단: #117. `/sign-up` 404, 로그인 화면의 "Sign up" 링크 숨김. 오너가 Clerk 쪽 차단을 확인했다.
+- 공유 aside: #118. 프로젝트 글 상세의 오른쪽 rail = TOC + `HomeRightRail` (부모와 공유). 일반 글은 그대로.

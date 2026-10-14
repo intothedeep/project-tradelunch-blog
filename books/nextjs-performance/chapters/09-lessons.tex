@@ -480,3 +480,11 @@ U5는 C2 없이 A-B 두 블록으로 쟀다(\decision{110}). T가 C보다 14 ms 
 C2가 없어서 이 차이가 U5 때문인지 시간대 흔들림 때문인지 가르지 못한다.
 그래서 결과는 참고였고 유지 여부를 오너가 정했다(\decision{110}). 흔들림을 가르려면 C2가 있어야 한다(\Cref{sec:le-drift}).
 % src: u5-ab.md table, 참고선 아래 줄; decisions.plan.md #110
+
+\section{page의 \texttt{notFound()}는 soft 404다}\label{sec:le-softnf}
+
+\paragraph{교훈.}
+\code{cacheComponents} 아래서 page 안의 \code{notFound()}는 soft 404를 만든다. shell이 먼저 흘러가 상태가 이미 200이기 때문이다.
+그래서 동적 route마다 proxy 존재 gate가 필요하다. P2의 \code{/@u/logs/<id>}가 200과 엣지 \cfs{HIT}를 냈고 gate 종류 \code{log}로 고쳤다(\Cref{sec:cc3-p2gate}).
+배포 뒤 purge는 PM2 reload가 가라앉은 뒤에 한다. reload 중에 엣지에 200이 하나 남아 purge를 한 번 더 했다.
+% src: p2-gate.review.md cycle 1 M-1, cycle 2 C2; decisions.plan.md #115; 01.status.md 2026-10-14 pj

@@ -83,7 +83,7 @@ Phase CC는 닫혔고 G-CC는 미달이다(\decision{111}).
     \midrule
     \code{force-dynamic} & flag와 같은 커밋에서 6줄 삭제 \\
     \midrule
-    proxy gate 4종 & user, project, post, ownerOnly(\code{/@u/me}, \code{/@u/saved}) \\
+    proxy gate 5종 & user, project, post, log, ownerOnly(\code{/@u/me}, \code{/@u/saved}). log는 P2 gate 뒤에 더했다(\Cref{sec:cc3-p2gate}) \\
     \midrule
     gate가 보는 요청 & 익명은 문서와 \code{_rsc}. 로그인은 문서와 클릭 이동. 로그인 prefetch는 건너뜀 \\
     \midrule
@@ -165,6 +165,64 @@ U5와 U6은 flag가 켜져 있어야 돈다(\decision{102}).
 P2 배포 \code{1c035f2}가 fall-through 500을 고쳤다. \code{/api/x}, \code{/tags}, \code{/favicon/x}가 500이었다.
 이제 proxy가 경로 모양으로 404를 낸다. \code{/favicon.ico}와 \code{/icon.png}는 404에서 200으로 되살렸다.
 % src: 01.status.md 마지막 줄 (2026-10-14 pj, P2 운영 1c035f2); decisions.plan.md #113, #114
+
+\subsection{P2 gate 발견: \texttt{/@u/logs/<id>}가 soft 404였다}\label{sec:cc3-p2gate}
+
+\paragraph{결과.}
+P2 gate 1회차(cycle 1)는 ISSUE였다. 운영의 \code{/@taeklim/logs/0}, \code{/abc}, \code{/99999999999999}, \code{/@nobodyxyz/logs/31}이 not-found 화면을 HTTP 200으로 냈다. 2회째 요청은 \cfs{HIT}, \code{age} 90이었다.
+\code{df0a482}로 고친 뒤 2회차(cycle 2)는 PASS였다. 네 경로 모두 2회 다 404 \cfs{BYPASS}였고 \code{/@taeklim/logs/31}은 200으로 남았다.
+% src: p2-gate.review.md cycle 1 M-1, cycle 2 C2; decisions.plan.md #115
+
+\begin{table}[H]
+  \caption{log 상세 경로의 gate 전후. 경로 모양은 \texttt{/@u/logs/<id>}.}
+  \label{tab:cc3-p2gate}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}Y L{2.8cm} L{2.8cm}@{}}
+    \toprule
+    경로 & cycle 1 (고치기 전) & cycle 2 (고친 뒤) \\
+    \midrule
+    \code{/@taeklim/logs/0}, \code{/abc}, \code{/99999999999999} & 200, 엣지 \cfs{HIT} & 404 \cfs{BYPASS} \\
+    \midrule
+    \code{/@nobodyxyz/logs/31} & 200, 엣지 \cfs{HIT} & 404 \cfs{BYPASS} \\
+    \midrule
+    \code{/@taeklim/logs/31} (있는 log) & 200 & 200 \\
+    \bottomrule
+  \end{tabularx}
+  % src: p2-gate.review.md cycle 1 M-1, cycle 2 C2
+\end{table}
+
+\paragraph{왜.}
+gate의 \code{classifyGatePath}가 3세그먼트 경로를 \code{projects}일 때만 분류했다. \code{/@u/logs/<id>}는 \code{null}이라 존재 검사를 받지 않았다.
+그러면 \code{cacheComponents} 아래서 \code{loading.tsx}의 shell이 먼저 흘러간다. page 안의 \code{notFound()}는 그 뒤 스트림에서 실행된다. 이때 상태 줄은 이미 200이다.
+% src: p2-gate.review.md cycle 1 M-1 "원인 (코드)"
+
+\paragraph{무엇.}
+gate 종류 \code{log}를 더했다(\decision{115}). 하지 않은 일도 정했다.
+\code{loading.tsx}를 빼거나 \code{export const dynamic}을 되돌리지 않았다. 빌드가 깨지고(\decision{97}) PJ-2-03 AC3이 금지한다.
+% src: decisions.plan.md #115; p2-gate.review.md cycle 1 M-1 "피할 안"
+
+\paragraph{어떻게.}
+\begin{enumerate}[nosep]
+  \item 경로가 \code{/@u/logs/<id>} 모양이면 종류를 \code{log}로 분류한다.
+  \item \code{<id>}가 1에서 9로 시작하는 숫자 1개에서 19개가 아니면 네트워크 없이 없는 것으로 본다.
+  \item 맞으면 \code{GET /v1/api/log/thread/<id>?limit=1}을 부르고 글쓴이를 handle과 비교한다.
+  \item API가 404면 맞는 route가 없는 경로로 rewrite해 진짜 404를 낸다. 삭제된 log는 tombstone 화면을 보이므로 있는 것으로 본다. 그 밖의 오류와 시간 초과는 통과시킨다(fail-open).
+\end{enumerate}
+예: \code{/@taeklim/logs/abc}는 숫자가 아니므로 API를 부르지 않고 404다. \code{/@taeklim/logs/31}은 있는 log라 200이다.
+% src: p2-gate.review.md cycle 2 C2 "코드 (df0a482)"; apis/existence.proxy.ts checkLog; utils/notFoundGate.ts isLogId
+
+\paragraph{언제 효과가 있나.}
+\begin{itemize}[nosep]
+  \item gate는 경로 모양이 gate 종류에 들어올 때만 돈다. 동적 route를 새로 만들고 종류를 더하지 않으면 같은 soft 404가 다시 난다.
+  \item API 오류와 시간 초과는 통과시키므로(fail-open) 그 순간에는 gate가 404를 보장하지 않는다.
+  \item 배포 때 엣지에도 같은 일이 있었다. PM2 reload 중에 엣지에 200이 하나 남았고 두 번째 purge로 지웠다.
+\end{itemize}
+% src: p2-gate.review.md cycle 1 M-1 "원인 (코드)"; apis/existence.proxy.ts; 01.status.md 2026-10-14 pj "재purge 1회 (reload 중 엣지에 남은 200)"
+
+\paragraph{왜 중요한가.}
+soft 404는 Cloudflare에 하루 남는다. 오너 선 ``모르는 page는 진짜 HTTP 404''(\decision{89})가 운영에서 깨진다.
+AC가 전부 PASS여도 이 선이 위라서 gate는 ISSUE였다.
+% src: p2-gate.review.md cycle 1 M-1 "깨진 선", 판정
 
 \section{U5: 공개 읽기에 \texttt{'use cache'}}\label{sec:cc3-u5}
 
