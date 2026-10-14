@@ -40,7 +40,7 @@ import os from 'node:os';
 import { chromium } from 'playwright';
 import { openClerkSession } from './clerk-session.mjs';
 
-const CODE_VERSION = 'v1';
+const CODE_VERSION = 'v2';
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
 
@@ -68,6 +68,7 @@ const P = {
     slug: args.slug,
     privatePath: args['private-path'],
     warmup: !args['no-warmup'],
+    runWarmup: !args['no-run-warmup'], // v2: unrecorded W1 pass before every measured run
     settleMs: Math.max(1500, Number(args['settle-ms'] ?? 1500)), // never below 1.5 s (#68)
     walkGapMs: Math.max(11000, Number(args['walk-gap-ms'] ?? 11000)), // drains the 10 s window
     out: resolve(repo, String(args.out ?? 'deploy/traffic/review/cc/runs')),
@@ -104,6 +105,38 @@ async function discover() {
     if (!project || !slug) throw new Error(`could not find project=${project} slug=${slug}; pass --project/--slug`);
     const pk = /pk_live_[A-Za-z0-9+/=_-]+/.exec(await get('/'))?.[0] ?? process.env.CLERK_PUBLISHABLE_KEY;
     return { project, slug, pk };
+}
+
+const RSC_SAVE_CAP = 300 * 1024; // bytes kept per saved navigation body
+const saveCount = new Map(); // `${arm}_${rail}_r${run}_${step}` -> files written so far
+
+// v2: body size by a fallback chain, so a failed res.body() is not a null (u1-verdict.md §2).
+// 1 body() = decoded bytes (the v1 value). 2 request.sizes().responseBodySize and 3 content-length
+// are wire (encoded) sizes: they differ from decoded when the response is compressed. bytes_src says which.
+async function recordBody(res, rec) {
+    let buf = null;
+    try {
+        buf = await res.body();
+        rec.bytes = buf.length;
+        rec.bytes_src = 'body';
+    } catch {
+        rec.bytes = null;
+        rec.bytes_src = null;
+        const wire = await res.request().sizes().then((z) => z.responseBodySize, () => 0);
+        const cl = Number(res.headers()['content-length']);
+        if (wire > 0) (rec.bytes = wire), (rec.bytes_src = 'sizes');
+        else if (cl > 0) (rec.bytes = cl), (rec.bytes_src = 'content-length');
+    }
+    // v2: keep W1 navigation (non-prefetch) bodies so the rail fragment size R can be measured.
+    if (buf && rec.walk === 'w1' && rec.run > 0 && !rec.prefetch) {
+        const key = `${rec.arm}_${rec.rail}_r${rec.run}_${rec.step}`;
+        const n = (saveCount.get(key) ?? 0) + 1;
+        saveCount.set(key, n);
+        const file = `w1_${key}${n > 1 ? `_${n}` : ''}.rsc`;
+        writeFileSync(join(dir, file), buf.subarray(0, RSC_SAVE_CAP));
+        rec.rsc_file = file;
+        rec.rsc_truncated = buf.length > RSC_SAVE_CAP;
+    }
 }
 
 // One browser context with its own request recorder. `refresh` re-sets the 60 s Clerk JWT.
@@ -152,7 +185,7 @@ async function openSession(browser, ua, { arm, rail, run, walk }, auth) {
         rec.xcomponent = (res.headers()['content-type'] ?? '').includes('text/x-component');
         if (rec.status === 429) aborted = aborted ?? `429 at ${rec.path}`; // a 429 corrupts the run: stop
         // Decoded body bytes of RSC responses (the sum is a summary metric). Awaited at the step end.
-        if (rec.xcomponent) S.pending.push(res.body().then((b) => { rec.bytes = b.length; }, () => { rec.bytes = null; }));
+        if (rec.xcomponent) S.pending.push(recordBody(res, rec));
     });
     page.on('console', (m) => {
         const text = m.text();
@@ -320,8 +353,14 @@ function metricsOf(sessions, w4) {
     }
     const xc = all.filter((r) => r.xcomponent);
     m.rsc_count_all = all.filter((r) => r.rsc).length;
-    m.rsc_bytes_total = xc.reduce((t, r) => t + (r.bytes ?? 0), 0);
-    m.rsc_bytes_w1 = xc.filter((r) => r.walk === 'w1').reduce((t, r) => t + (r.bytes ?? 0), 0);
+    // v2: a run with any unknown size reports an empty byte sum, never a sum that counted nulls as 0.
+    m.rsc_bytes_null_count = xc.filter((r) => r.bytes == null).length;
+    m.rsc_bytes_w1_null_count = xc.filter((r) => r.walk === 'w1' && r.bytes == null).length;
+    m.rsc_bytes_fallback_count = xc.filter((r) => r.bytes_src === 'sizes' || r.bytes_src === 'content-length').length;
+    m.rsc_bytes_total = m.rsc_bytes_null_count ? null : xc.reduce((t, r) => t + r.bytes, 0);
+    m.rsc_bytes_w1 = m.rsc_bytes_null_count ? null : xc.filter((r) => r.walk === 'w1').reduce((t, r) => t + r.bytes, 0);
+    // v2: W1 document/RSC responses served MISS: the run is not a warm-edge run.
+    m.w1_miss_count = all.filter((r) => r.walk === 'w1' && (r.type === 'document' || r.rsc) && r.cf_cache_status === 'MISS').length;
     m.g_f_hydration_errors = sessions.reduce((t, s) => t + s.hydrationTotal, 0);
     const si = steps.find((s) => s.step === 's1_home' && s.signed_in !== undefined);
     if (si) m.auth_signed_in = si.signed_in ? 1 : 0;
@@ -339,6 +378,12 @@ async function runOnce(browser, ua, x, auth, { arm, rail, run }) {
     };
     let w4 = null;
     try {
+        if (run > 0 && P.runWarmup) {
+            // v2: unrecorded W1 pass (labelled run 0, no bodies saved, not in the metrics) to warm the edge.
+            const wu = await openSession(browser, ua, { arm, rail, run: 0, walk: 'w1' }, arm === 'auth' ? auth : null);
+            await walkW1W2(wu, x, arm === 'auth').finally(() => wu.ctx.close().catch(() => {}));
+            await sleep(P.walkGapMs);
+        }
         const s1 = await open('w1');
         await walkW1W2(s1, x, arm === 'auth');
         await s1.ctx.close();
@@ -389,7 +434,7 @@ function textOf(d) {
         `max requests per 10 s: all=${m.g_a_max_10s} w1=${m.g_a_max_10s_w1} w3=${m.g_a_max_10s_w3 ?? 'n/a'} w4=${m.g_a_max_10s_w4 ?? 'n/a'}`,
         `prefetch per menu link: ${links}`,
         `hydration errors: ${m.g_f_hydration_errors}`,
-        `text/x-component bytes: total=${m.rsc_bytes_total} w1=${m.rsc_bytes_w1}`,
+        `text/x-component bytes: total=${m.rsc_bytes_total ?? ''} w1=${m.rsc_bytes_w1 ?? ''} null=${m.rsc_bytes_null_count} fallback=${m.rsc_bytes_fallback_count} w1_miss=${m.w1_miss_count}`,
         ...d.nav_lines.map((n) => `[nav] ${n.walk} ${n.from} ${n.to} ${n.ms} ms`),
     ].join('\n');
 }

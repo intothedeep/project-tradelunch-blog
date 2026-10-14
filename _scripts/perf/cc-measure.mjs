@@ -42,7 +42,7 @@ import { dirname, join, resolve } from 'node:path';
 import os from 'node:os';
 import { openClerkSession } from './clerk-session.mjs';
 
-const CODE_VERSION = 'v1';
+const CODE_VERSION = 'v2';
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
 
