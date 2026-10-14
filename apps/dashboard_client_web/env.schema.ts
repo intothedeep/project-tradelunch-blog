@@ -61,13 +61,6 @@ const envSchema = z.object({
     // Env-driven so the owner username can change per deploy without a code
     // edit; empty string ('') reverts `/` to the all-authors aggregate feed.
     NEXT_PUBLIC_DEFAULT_BLOG_AUTHOR: z.string().default('taeklim'),
-
-    // CC-U4: build-time sample params for cacheComponents. With the flag on, a
-    // dynamic segment needs a generateStaticParams sample so the shell can be
-    // prerendered; nothing is fetched for it, so any value works. Real values
-    // render on first request. Server-only (not NEXT_PUBLIC_).
-    CC_SAMPLE_SLUG: z.string().min(1).default('cc-sample-slug'),
-    CC_SAMPLE_PROJECT: z.string().min(1).default('cc-sample-project'),
 });
 
 // Dot-access each var so Next inlines the NEXT_PUBLIC_* ones into the CLIENT
@@ -87,8 +80,6 @@ export const env = envSchema.parse({
         process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
     NEXT_PUBLIC_DEFAULT_BLOG_AUTHOR:
         process.env.NEXT_PUBLIC_DEFAULT_BLOG_AUTHOR,
-    CC_SAMPLE_SLUG: process.env.CC_SAMPLE_SLUG,
-    CC_SAMPLE_PROJECT: process.env.CC_SAMPLE_PROJECT,
 });
 
 export const SERVER_PORT = env.PORT;
@@ -98,5 +89,3 @@ export const CDN_ASSETS = env.NEXT_PUBLIC_CDN_ASSETS;
 export const DASHBOARD_DATA_SOURCE = env.DASHBOARD_DATA_SOURCE;
 export const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
 export const DEFAULT_BLOG_AUTHOR = env.NEXT_PUBLIC_DEFAULT_BLOG_AUTHOR;
-export const CC_SAMPLE_SLUG = env.CC_SAMPLE_SLUG;
-export const CC_SAMPLE_PROJECT = env.CC_SAMPLE_PROJECT;

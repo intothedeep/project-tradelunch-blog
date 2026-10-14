@@ -20,10 +20,11 @@ export const metadata: Metadata = {
 };
 
 // Root of my.prettylog.com: the ALL-AUTHORS feed (empty username selects it in
-// getBlogPostsByUsername). BlogMainPage reads the feed in a Suspense leaf,
-// so the build prerenders only the shell. ContentFrame's <main> already centers
-// + width-caps + pads the column, so BlogMainPage is rendered directly, with no
-// extra wrapper.
+// getBlogPostsByUsername). Per-request rendering so `next build` does not fetch
+// the backend at prerender time. ContentFrame's <main> already centers + width-caps
+// + pads the column, so BlogMainPage is rendered directly, with no extra wrapper.
+export const dynamic = 'force-dynamic';
+
 const ALL_AUTHORS = '';
 
 export default function Page() {

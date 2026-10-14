@@ -7,17 +7,10 @@ import { TagPostsList } from '@/components/blog/TagPostsList.client';
 import { CDN_ASSETS } from '@/env.schema';
 
 // Global by-tag feed: all posts across all authors carrying `tag`, read live at
-// request time (loading.tsx is the Suspense boundary). Already wrapped in
-// ContentFrame by (feed)/layout.tsx, so render the feed body only.
-// A tag with zero posts is NOT a 404: it shows a tag-miss empty state pointing
-// back to popular tags.
-//
-// cacheComponents needs one sample tag so the shell prerenders with known
-// params (usePathname in the global nav is runtime data otherwise). Any other
-// tag renders on first request.
-export function generateStaticParams() {
-    return [{ tag: 'cc-sample' }];
-}
+// request time. Already wrapped in ContentFrame by (feed)/layout.tsx — render the
+// feed body only. A tag with zero posts is NOT a 404: it shows a tag-miss empty
+// state pointing back to popular tags.
+export const dynamic = 'force-dynamic';
 
 export default async function TagFeedPage({
     params,
