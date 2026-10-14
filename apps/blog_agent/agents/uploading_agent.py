@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any
 from pydantic import ValidationError
 
 import config
+from configs.routes import assert_slug_not_reserved
 from schema import (
     ArticleMetadata,
     CategoryInfo,
@@ -81,6 +82,11 @@ class UploadingAgent(BaseAgent):
                         f"(e.g., my-post.md → my-post.png) or use ![thumbnail](path) in content.",
                         "agent": self.name,
                     }
+
+                # Stop before any image upload; the repository checks again at insert.
+                assert_slug_not_reserved(
+                    data.get("slug") or generate_slug_from_title(data.get("title", "untitled"))
+                )
 
                 # S3 path context: [user_id]/[category]/.../[slug]/
                 upload_context = {

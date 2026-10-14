@@ -10,6 +10,7 @@ Translates TypeScript insert_post.ts logic to Python/SQLAlchemy.
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from configs.routes import assert_slug_not_reserved
 from db.models import Post, PostStatusEnum
 from db.repositories.base import BaseRepository
 from utils.snowflake import generate_id
@@ -148,6 +149,7 @@ class PostRepository(BaseRepository[Post]):
 
         For insert-or-update behavior, use upsert_post() instead.
         """
+        assert_slug_not_reserved(slug)
         if post_id is None:
             post_id = generate_id()
 
@@ -213,6 +215,7 @@ class PostRepository(BaseRepository[Post]):
         """
         from sqlalchemy import text
 
+        assert_slug_not_reserved(slug)
         if post_id is None:
             post_id = generate_id()
 

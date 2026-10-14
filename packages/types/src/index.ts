@@ -11,3 +11,5 @@ export * from './post';
 export * from './user';
 export * from './comment';
 export * from './log';
+export * from './routes';
+export * from './project';

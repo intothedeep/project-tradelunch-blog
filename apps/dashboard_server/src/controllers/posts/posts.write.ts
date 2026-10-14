@@ -17,6 +17,7 @@ import { pool } from '../../database';
 import { requireAuth } from '../../middlewares/requireAuth';
 import { validatePostInput } from '../../helpers/validatePostInput';
 import { slugify } from '../../helpers/slugify';
+import { isReservedSlug } from '@repo/types';
 import {
     createPost,
     updatePost,
@@ -75,6 +76,13 @@ const thumbnailCdnBase =
     CDN_ASSETS?.replace(/\/+$/, '') ||
     `${SUPABASE_URL}/storage/v1/object/public`;
 
+function sendReservedSlug(res: Response, slug: string): void {
+    res.status(400).json({
+        success: false,
+        message: `slug is reserved: ${slug}`,
+    });
+}
+
 router.post('', requireAuth, async (req, res) => {
     try {
         const parsed = validatePostInput(req.body);
@@ -85,6 +93,12 @@ router.post('', requireAuth, async (req, res) => {
 
         const input = parsed.value;
         const slug = input.slug?.trim() || slugify(input.title);
+        // Reserved names are static /@u/<name> folders; a post there is unreachable.
+        // Reject loudly, never rename (decision #76).
+        if (isReservedSlug(slug)) {
+            sendReservedSlug(res, slug);
+            return;
+        }
         const status: TPostStatus = input.status ?? 'draft';
         const userId = req.auth!.userId;
 
@@ -154,6 +168,10 @@ router.patch('/:postid', requireAuth, async (req, res) => {
         }
 
         const input = parsed.value;
+        if (input.slug !== undefined && isReservedSlug(input.slug)) {
+            sendReservedSlug(res, input.slug);
+            return;
+        }
         const userId = req.auth!.userId;
 
         // Update + thumbnail in one transaction. A non-owner/not-found PATCH
