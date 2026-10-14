@@ -130,3 +130,73 @@ app-page.js:1001 isSSG && revalidate 0 < 1 → throw E22 "Invalid revalidate con
 
 - C를 고르려면 Phase CF 줄(`http.server.ts:15`)을 바꿔야 한다. 오너 결정이다.
 - B는 공개 URL을 바꾸지 않지만 라우트 트리를 옮긴다. S-CC(B) 안의 tactic이라 팀 결정 범위로 본다. pm이 tactic 줄을 확인한다.
+
+## 7. A2: 점 경로까지 gate (2026-10-14, A 결과 뒤)
+
+A 결과(run 38538786010, cc-u4 6c55551): 11행 중 10행 PASS. `/xmlrpc.php`만 500(2회), 로그 E22 6건. 음성 대조(run 38538547016, efe7eed)는 운영을 재현했다. 남은 원인은 matcher `.*\\..*`다. 점 경로는 proxy에 오지 않고 `[handle]`로 간다.
+
+판정: **A2는 건전하다. B보다 A2를 먼저 한다.** 이유: diff가 작다. B의 prefetch 위험이 없다. 지금 점 경로는 Clerk를 안 거친다. A2도 Clerk 전에 점 경로를 끝내므로 그 성질이 그대로다.
+
+### 7.1 설계
+
+```
+요청 ─► matcher (_next, api, trpc, favicon/ 만 제외)
+          │
+          ▼
+proxy()  GET/HEAD
+  1. legacyRedirectPath  → 308   (지금과 같음. /blog/@u/x.png도 이제 여기 옴)
+  2. 마지막 segment에 '.' 있음?
+       ├─ PUBLIC_PATHS(빌드 때 public/에서 생성) 또는 메타데이터 경로 → NextResponse.next()  (Clerk 안 거침)
+       └─ 그 밖 → rewrite NOT_FOUND_PATH                                         (Clerk 안 거침, I/O 없음)
+  3. 점 없음 → clerk(req)  (A의 최상위 허용 목록 + S0 + 기존 @ gate)
+```
+
+matcher 첫 항목(정확한 값):
+
+```ts
+'/((?!_next|api|trpc|favicon/).*)',
+```
+
+- 둘째 항목 `'/(api|trpc)(.*)'`는 그대로 둔다.
+- 점 판정(순수 함수, `utils/notFoundGate.ts`): `/\.[^/]*$/.test(pathname)`. 곧 마지막 segment에 점이 있다.
+- 메타데이터 경로: `/robots.txt`, `/sitemap.xml` (`app/robots.ts`, `app/sitemap.ts`). `opengraph-image`는 점이 없어 해당 없다.
+- `PUBLIC_PATHS`: prebuild 단계가 `public/` 파일 목록(`favicon/` 제외)으로 생성한다. 손으로 쓰지 않는다. 소스에서 확인한 것: `ads.txt`, `next.svg`, `vercel.svg`, `circles.svg`, `turborepo.svg`. root layout이 부르는 `/og-image.png`도 있어야 한다. 바이너리 파일 목록은 Grep으로 보지 못했다(미확인). 그래서 생성식이다.
+
+### 7.2 확인한 기존 경로
+
+| 경로 | 지금 | A2 뒤 | 판단 |
+| --- | --- | --- | --- |
+| `/blog/@u/x.png` (`getPost.api.ts:40` 주석) | matcher 밖 → 라우트 없음 → 404 | `legacyRedirectPath` → 308 `/@u/x.png` → 404 | 깨지지 않는다. 308 한 번이 더 생긴다 |
+| `/@u/x.png` (글 본문의 상대 이미지) | `[handle]/[slug]` → 500 위험 | 점 경로 → 바로 404, API 조회 없음 | 좋아진다 |
+| `/favicon/*` | 제외 | 제외 | 같다 |
+| `/_next/static/*`, `/_next/image` | 제외 | 제외 | 같다 |
+| `/.well-known/*` | 500 위험 | 404 | 필요한 파일이 생기면 `public/`에 둔다. 그러면 생성 목록에 들어간다 |
+
+가정 1건: 실제 글 slug에 점이 없다. 점이 있으면 그 글이 404가 된다. 확인 방법: main session이 `SELECT count(*) FROM posts WHERE slug LIKE '%.%' AND deleted_at IS NULL` = 0을 본다. 0이 아니면 2의 `@` 경로를 Clerk 쪽 기존 post gate로 보낸다.
+
+### 7.3 비용
+
+- 지금보다 proxy가 더 받는 요청: `favicon/` 밖의 public 파일과 robots, sitemap, 스캐너 점 경로.
+- 그 요청은 순수 문자열 검사 하나로 끝난다. Clerk, API, 렌더가 없다.
+- public 파일은 Cloudflare가 캐시하므로 origin에 오는 수는 적다. 스캐너 점 경로는 지금 요청마다 전체 렌더(+500)다. A2 뒤에는 정적 404다. 순 비용은 줄어든다.
+
+### 7.4 standalone 검사에 더할 행
+
+§5 표와 음성 대조는 그대로 둔다. 아래 행을 더한다.
+
+| 경로 | 기대 | 비고 |
+| --- | --- | --- |
+| `/favicon/favicon.ico` | 200 | matcher 제외 경로 |
+| `/favicon/site.webmanifest` | 200 | 같음 |
+| `/og-image.png` | 200, `Set-Cookie` 없음 | 생성 목록 |
+| `/ads.txt`, `/next.svg` | 200, `Set-Cookie` 없음 | 생성 목록 |
+| `/robots.txt`, `/sitemap.xml` | 200 | 메타데이터 경로. sitemap은 API 없이 500이면 "404 아님"만 본다 |
+| 빌드 산출 `/_next/static/chunks/<실제 파일 하나>` | 200 | 잡이 `ls`로 고른다 |
+| `/xmlrpc.php`, `/wp-login.php`, `/.env` | 404 | A의 FAIL 행 |
+| `/@taeklim/x.png` | 404 | 점 경로, `@` |
+| `/blog/@taeklim/x.png` | 308 → `/@taeklim/x.png`, 따라가면 404 | legacy 경로 |
+| `/@taeklim/<실제 slug>/opengraph-image` | 200 | 점 없음, 회귀 |
+
+정적 검사(같은 잡, 파일 목록만): 생성된 `PUBLIC_PATHS`가 `public/` 파일 목록(`favicon/` 제외)과 같다.
+
+판정: A와 같다. §5 표와 이 표의 모든 행이 기대와 같다. 로그의 `Invalid revalidate configuration`이 0건이다. 정적 검사가 같다. 하나라도 다르면 FAIL이다. 그러면 B로 간다(recovery 1/2 안).
