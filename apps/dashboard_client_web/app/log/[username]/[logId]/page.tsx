@@ -4,12 +4,15 @@
 //   Canonical check: if the URL username doesn't match the focus author's username,
 //   redirect to the canonical URL (/log/[authorUsername]/[logId]).
 //   404 when the logId does not exist.
-// Constraints: Server Component. force-dynamic (thread content is always fresh).
-
-export const dynamic = 'force-dynamic';
+// Constraints: Server Component. The fetch runs behind loading.tsx (thread
+//   content is always fresh).
 
 import { notFound, redirect } from 'next/navigation';
-import { stripUsernameAt, toUsernameSegment } from '@/utils/blog-author';
+import {
+    HOME_FEED_AUTHOR,
+    stripUsernameAt,
+    toUsernameSegment,
+} from '@/utils/blog-author';
 import { getLogThread } from '@/apis/get-log-thread.api';
 import { LogFocusView } from '@/components/log/LogFocusView.server';
 import { ApiError } from '@/utils/apiError.util';
@@ -17,6 +20,11 @@ import { ApiError } from '@/utils/apiError.util';
 type Props = {
     params: Promise<{ username: string; logId: string }>;
 };
+
+// cacheComponents (CC-U4): one sample so the shell prerenders with known params.
+export function generateStaticParams() {
+    return [{ username: toUsernameSegment(HOME_FEED_AUTHOR), logId: '1' }];
+}
 
 export default async function LogFocusPage({ params }: Props) {
     const { username: rawUsername, logId } = await params;

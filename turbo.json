@@ -6,7 +6,9 @@
         "NODE_ENV",
         "PORT",
         "HOST_NAME",
-        "DASHBOARD_DATA_SOURCE"
+        "DASHBOARD_DATA_SOURCE",
+        "CC_SAMPLE_SLUG",
+        "CC_SAMPLE_PROJECT"
     ],
     "tasks": {
         "build": {
