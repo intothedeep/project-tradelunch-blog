@@ -1,0 +1,157 @@
+% chapters/03-dynamic-prefetch.tex -- group A (S1): 동적 렌더링과 prefetch. Items A1-A8.
+% ONLY sources: perf.sources.md S1, perf.audit.md §0-§2 group A. Items are copied.
+\chapter{동적 렌더링(dynamic rendering)과 prefetch}\label{ch:dynamic}
+
+% src: perf.audit.md §2 group A, §3 (A: PASS 0, PARTIAL 2, FAIL 5, N/A 1)
+\paragraph{결과.}
+묶음 A는 8개 중 통과가 0개다. 부분 통과 2개, 실패 5개, 해당 없음 1개다.
+root layout의 \texttt{getLocale()}과 shell의 \texttt{cookies()}가 route 전체를 동적으로 만든다.
+그래서 모든 클릭이 왕복이다. 익명 독자의 HTML은 Cloudflare가 막아 준다.
+
+\begin{inbrief}
+  \item[Why] 이동 속도는 클릭 전에 RSC 구멍이 채워졌는지로 정해진다(S1).
+  \item[When] 요청 시점 API가 route 어디에든 있을 때다.
+  \item[Where] root layout, shell 컴포넌트, \texttt{next.config.ts}, 각 route의 \texttt{page.tsx}다.
+  \item[How] 요청 시점 API를 지우거나 Suspense 잎으로 옮기고, 마지막에 \texttt{cacheComponents}를 켠다.
+\end{inbrief}
+
+\section{원리: 동적 route의 이동}\label{sec:dy-principle}
+
+\paragraph{문제와 원인.}
+\begin{itemize}[nosep]
+  \item 요청 시점 API(request-time API) 하나가 route 전체를 동적으로 만든다. 위치는 상관없다.
+  \item 동적 route는 page payload를 prefetch하지 않는다. \texttt{loading.js}까지만 받는다.
+  \item client router cache가 0초라 같은 page로 돌아가도 다시 받는다.
+\end{itemize}
+% src: perf.sources.md S1 bullets 2-3
+
+\paragraph{무엇을 알려고 쓰나.}
+같은 클릭이 동적 route와 prefetch된 shell에서 어떻게 다른가.
+\Cref{fig:dy-flow}가 두 흐름을 나란히 보인다.
+
+\begin{figure}[H]
+  \centering
+  \resizebox{\linewidth}{!}{%
+  \begin{tikzpicture}[font=\scriptsize]
+    \node[font=\small\bfseries, anchor=west] at (-1.4,1.3) {동적 route (지금 우리 앱)};
+    \node[flowbox, minimum width=2.6cm] (b1) at (0,0) {클릭};
+    \node[badbox, minimum width=3.2cm] (b2) at (3.6,0) {prefetch 없음\\\texttt{loading.js}까지만};
+    \node[badbox, minimum width=3.2cm] (b3) at (7.6,0) {서버 왕복\\캐시 0초};
+    \node[flowbox, minimum width=3.2cm] (b4) at (11.6,0) {RSC 구멍이 와야\\화면이 그려짐};
+    \draw[flowarrow] (b1) -- (b2);
+    \draw[flowarrow] (b2) -- (b3);
+    \draw[flowarrow] (b3) -- (b4);
+
+    \node[font=\small\bfseries, anchor=west] at (-1.4,-1.7) {prefetch된 shell (\texttt{cacheComponents} 뒤)};
+    \node[flowbox, minimum width=2.6cm] (a1) at (0,-3.0) {클릭};
+    \node[flownew, minimum width=3.2cm] (a2) at (3.6,-3.0) {static shell을\\prefetch하고 cache};
+    \node[goodbox, minimum width=3.2cm] (a3) at (7.6,-3.0) {shell이 즉시 보임};
+    \node[flowbox, minimum width=3.2cm] (a4) at (11.6,-3.0) {Suspense 구멍은\\나중 chunk로 채움};
+    \draw[flowarrow] (a1) -- (a2);
+    \draw[flowarrow] (a2) -- (a3);
+    \draw[flowarrow] (a3) -- (a4);
+  \end{tikzpicture}}
+  \par\smallskip{\centering\scriptsize \flowkey{badbox} 문제가 생기는 단계 \quad \flowkey{goodbox} 정상 \quad \flowkey{flownew} 바뀐 단계\par}
+  \caption{동적 route와 prefetch된 shell의 클릭 뒤 흐름. 위는 클릭마다 왕복이 생긴다.}
+  \label{fig:dy-flow}
+  % src: perf.sources.md S1 (dynamic route: no page-payload prefetch, router cache 0 s, round trip per navigation; fix: cacheComponents + Suspense)
+\end{figure}
+
+\paragraph{처방.}
+\begin{enumerate}[nosep]
+  \item \texttt{cacheComponents: true}를 켠다.
+  \item 동적 읽기를 \texttt{<Suspense>} 잎(leaf)으로 감싼다.
+  \item \texttt{params}는 잎에서만 읽는다.
+  \item 자주 여는 동적 segment는 \texttt{generateStaticParams}로 만든다.
+  \item \texttt{experimental.staleTimes}를 일부러 정한다.
+\end{enumerate}
+% src: perf.sources.md S1 bullet 4
+
+\paragraph{우리 앱의 route 지도.}
+\Cref{tab:dy-routes}가 route마다 무엇이 동적으로 만들고 클릭 때 무엇이 막는지 보인다.
+
+\begin{table}[H]
+  \caption{route별로 동적으로 만드는 것과 클릭 때 막는 것.}
+  \label{tab:dy-routes}
+  \centering\footnotesize
+  \begin{tabularx}{\linewidth}{@{}L{2.4cm} Y Y@{}}
+    \toprule
+    route & 동적으로 만드는 것 & 클릭 때 막는 것 \\
+    \midrule
+    \texttt{/} & root \texttt{getLocale}, \texttt{cookies()} 2곳, \texttt{force-dynamic}, \texttt{getFeed}의 \texttt{auth()} & 없음. feed는 Suspense 안 \\
+    \midrule
+    \texttt{/tags/[tag]} & 위 + \texttt{force-dynamic} & page 맨 위 \texttt{getPostsByTag} (\texttt{loading.tsx}가 가림) \\
+    \midrule
+    \texttt{/@u/posts} & 위 + \texttt{searchParams} & \texttt{getTagFilterItems} 다음에 feed 시작 \\
+    \midrule
+    \texttt{/@u/<slug>} & 위 + 잎 \texttt{auth()} & layout의 tree 읽기가 \texttt{loading.tsx} 위에 있다 \\
+    \bottomrule
+  \end{tabularx}
+  % src: perf.audit.md §1 route table
+\end{table}
+
+\section{체크리스트 A1--A8}\label{sec:dy-checklist}
+
+\begin{checkitem}{\ckopen}{A1}{root layout에 요청 시점 API가 없다}{FAIL\ckdot{}영향 M (HTML은 edge가 막는다. 이동은 매번 왕복)}
+  % src: perf.audit.md A1
+  \item[What] root layout은 \code{headers()}나 \code{cookies()}를 읽지 않는다.
+  \item[Why] S1. root가 동적이면 모든 route가 동적이다. 모든 클릭이 왕복이다.
+  \item[How] \code{rg -n "getLocale\(|getMessages\(" app/layout.tsx}가 2건을 낸다(\code{app/layout.tsx:106}, \code{:107}). 처방: locale은 오늘 항상 \code{en}이다(\code{proxy.ts:17-28}). \code{setRequestLocale('en')} 또는 고정 locale을 쓴다. \code{projects.design.md} \S7.4 1행과 겹친다.
+  \item[When] Phase CC, 1순위.
+\end{checkitem}
+
+\begin{checkitem}{\ckopen}{A2}{shell이 \texttt{cookies()}를 읽지 않는다}{FAIL\ckdot{}영향 M}
+  % src: perf.audit.md A2
+  \item[What] layout shell은 cookie로 모양을 정하지 않는다.
+  \item[Why] S1. \code{cookies()} 하나가 route 전체를 동적으로 만든다.
+  \item[How] \code{rg -n "await cookies\(\)" components}가 2건을 낸다(\code{components/shell/BlogShell.server.tsx:44}, \code{components/rail/LeftRailContainer.server.tsx:19}). 같은 값을 두 번 읽는다. 처방: 서버 읽기 둘을 지운다. atom은 \code{false}로 seed한다. cookie는 mount 뒤 \code{useEffect}에서 읽는다(\code{hooks/useSavedTags.hook.ts:6-7} 방식). 주의: \code{store/layout.atom.ts:41}은 module 초기화 때 \code{document.cookie}를 읽는다. seed 없이 두면 첫 렌더에서 hydration 불일치(hydration mismatch)가 난다. 대가: 첫 화면에서 rail 폭이 한 번 바뀐다. D1도 같이 풀린다.
+  \item[When] Phase CC 2순위. D1 때문에 지금 해도 된다.
+\end{checkitem}
+
+\begin{checkitem}{\ckopen}{A3}{\texttt{auth()}는 Suspense 안 잎에서만 읽는다}{PARTIAL\ckdot{}영향 L (렌더 경로 6건 중 1건이 밖)}
+  % src: perf.audit.md A3
+  \item[What] token 읽기는 Suspense 경계 안 잎 컴포넌트에만 둔다.
+  \item[Why] S1. \texttt{cacheComponents}를 켤 때 static shell을 지킨다.
+  \item[How] \code{rg -n "await auth\(\)" app components apis}가 7건을 낸다. 1건은 action이다(\code{postPublish.action.ts:19}). 렌더 경로 6건 중 Suspense 안이 5건이다: \code{PostJsonLd.server.tsx:18}, \code{PostContentToc.server.tsx:15}, \code{PostContentCard.server.tsx:30}, \code{ProjectsTreeWrapper.server.tsx:17}, \code{getPosts.fetch.server.ts:52}(RecentPostsList 안). Suspense 밖은 \code{app/[handle]/posts/page.tsx:85}의 \code{CategorySidebarWrapper}다(auth는 \code{:31}). 처방: \code{:85}를 \code{<Suspense>}로 감싼다.
+  \item[When] 지금(작다). CC 전 준비.
+\end{checkitem}
+
+\begin{checkitem}{\ckopen}{A4}{\texttt{force-dynamic} 잔재가 없다}{FAIL\ckdot{}영향 L (6건)}
+  % src: perf.audit.md A4
+  \item[What] blog route에 \code{export const dynamic = 'force-dynamic'}이 없다.
+  \item[Why] S1. CC와 함께 쓸 수 없다. route segment config가 막는다.
+  \item[How] \code{rg -n "dynamic = 'force-dynamic'" app}가 6건을 낸다. blog는 \code{app/(feed)/page.tsx:26}, \code{app/(feed)/tags/[tag]/page.tsx:12}다. log는 \code{app/log/page.tsx:7}, \code{app/log/[username]/page.tsx:12}, \code{app/log/[username]/[logId]/page.tsx:9}다. 기타는 \code{app/me/page.tsx:6}다. 처방: blog 2건을 지운다. 오늘은 root가 이미 동적이라 효과가 없다.
+  \item[When] Phase CC.
+\end{checkitem}
+
+\begin{checkitem}{\ckopen}{A5}{\texttt{cacheComponents}가 켜져 있다}{FAIL (계획된 보류)\ckdot{}영향 M (0건)}
+  % src: perf.audit.md A5
+  \item[What] \code{next.config.ts}에 \code{cacheComponents: true}가 있다.
+  \item[Why] S1의 핵심 처방이다. static shell을 prefetch하고 cache한다.
+  \item[How] \code{rg -n "cacheComponents|experimental" next.config.ts}가 0건이다. 처방: A1, A2, A4와 fetch의 \code{'use cache'}를 끝낸 뒤 켠다(\code{projects.design.md} \S7.4 표).
+  \item[When] Phase CC 마지막. \decision{77}이 별도 phase로 정했다.
+\end{checkitem}
+
+\begin{checkitem}{\ckopen}{A6}{\texttt{experimental.staleTimes}를 일부러 정했다}{FAIL\ckdot{}영향 M (Cloudflare 50 / 10 s 요청 수도 준다, 결정 \#68)}
+  % src: perf.audit.md A6
+  \item[What] 동적 page의 router cache 보존 시간을 정한다.
+  \item[Why] S1. 기본 0초면 같은 page로 돌아가도 다시 받는다.
+  \item[How] \code{rg -n "staleTimes" next.config.ts}가 0건이다. 처방: \code{experimental: { staleTimes: { dynamic: 30 } }}. 위험: 좋아요 수가 30초 늦을 수 있다. \code{projects.design.md:508}이 CC 첫 행으로 두었다.
+  \item[When] 지금(설정 한 줄). 또는 CC 첫 행.
+\end{checkitem}
+
+\begin{checkitem}{\ckopen}{A7}{클릭 직후 skeleton이 보인다 (layout이 \texttt{loading.tsx} 위에서 막지 않는다)}{PARTIAL\ckdot{}영향 M (글 상세는 가장 많이 여는 page)}
+  % src: perf.audit.md A7
+  \item[What] layout은 데이터를 await하지 않는다. \code{params}는 잎에서 읽는다.
+  \item[Why] S1. 이동은 RSC 구멍이 올 때까지 멈춘다. 같은 segment의 layout은 \code{loading.tsx} 밖에 있다.
+  \item[How] \code{app/[handle]/[slug]/layout.tsx:24}가 \code{getProjectsTree}를 await한다. \code{[slug]/loading.tsx}는 page만 감싼다. 처방: rail 고르기를 Suspense 잎(rightRail 안)으로 옮긴다. \code{showRecentVisited}도 잎에서 정한다. 설계는 이것을 허용된 예외로 두었다(\code{projects.design.md} \S7.3).
+  \item[When] Phase CC (예외를 거둔다).
+\end{checkitem}
+
+\begin{checkitem}{\ckna}{A8}{N/A: hot segment에 \texttt{generateStaticParams}}{N/A\ckdot{}영향 L (0건 + edge 규칙)}
+  % src: perf.audit.md A8
+  \item[What] 자주 여는 동적 segment를 빌드 때 만든다.
+  \item[Why] S1. 하지만 여기서는 Cloudflare가 HTML을 1일 cache한다. 배포 뒤 purge한다(\code{deploy/traffic/README.md:71-85}, \code{:418}).
+  \item[How] \code{rg -n generateStaticParams app}가 0건이다. edge cache가 같은 일을 한다. CC 뒤 다시 본다.
+  \item[When] 나중 (CC 뒤 재평가).
+\end{checkitem}

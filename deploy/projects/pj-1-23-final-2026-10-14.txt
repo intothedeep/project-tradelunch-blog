@@ -7,3 +7,4 @@ pages 200, rail=1, [MOCK]=0: /@taeklim/{resume,about,projects,projects/cnn-from-
 # after owner added CF "web cache" Status code TTL 308 -> 1 day (300-307 and 400-526 no store), 2026-10-14
 legacy 308 2nd request: /blog/@taeklim/rust-config, /blog, /about, /resume, /blog/%40taeklim/rust-config -> cf-cache-status: HIT (all 5)
 PJ-1-03 AC4 draft id 247: deleted_at set by owner via /me (soft delete)
+traffic-check.sh after 8dc5dca (2026-10-14): == 0 FAIL

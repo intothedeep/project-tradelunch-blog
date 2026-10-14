@@ -1,0 +1,175 @@
+% chapters/07-plan.tex -- 언제 고치나(When 묶음)와 확인하지 못한 것.
+% ONLY source: perf.audit.md (each item's When line, §4, §5). Qualified When lines are copied, not resolved.
+\chapter{언제 고치나}\label{ch:plan}
+
+% src: perf.audit.md §2 When lines, §4
+\paragraph{결과.}
+25개 항목의 When을 네 묶음으로 모았다.
+지금 8개, Phase CC 8개, 나중 4개, 유지 6개다.
+C2는 두 갈래라 지금 묶음과 Phase CC 묶음에 모두 나온다. 그래서 합은 26이고 항목은 25개다.
+확인하지 못한 것 7개는 \Cref{sec:pl-open}에 열린 질문으로 둔다.
+
+\begin{inbrief}
+  \item[Why] 항목 25개를 한꺼번에 고치지 않고 때에 맞게 나누려고 한다.
+  \item[When] 이 책을 읽고 Phase CC의 계획을 세울 때다.
+  \item[Where] 각 항목의 When 줄이 근거다. 새 판단을 더하지 않았다.
+  \item[How] When 줄의 첫 단어로 묶는다. 조건이 붙은 줄은 원문을 그대로 적는다.
+\end{inbrief}
+
+\section{묶음 요약}\label{sec:pl-buckets}
+
+\paragraph{무엇을 알려고 쓰나.}
+지금 할 일, Phase CC로 미룰 일, 나중 일, 건드리지 않을 일이 각각 무엇인가.
+
+\begin{table}[H]
+  \caption{When 묶음. 항목 번호와 개수.}
+  \label{tab:pl-buckets}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{2.4cm} Y r@{}}
+    \toprule
+    묶음 & 항목 & 개수 \\
+    \midrule
+    지금 & A3, A6, B2, C1, C2 (\texttt{/@u/posts}), C3, C7, D1 & 8 \\
+    \midrule
+    Phase CC & A1, A2, A4, A5, A7, C2 (\texttt{[slug]}), C4, D5 & 8 \\
+    \midrule
+    나중 & A8, B4, D4, D6 & 4 \\
+    \midrule
+    유지 & B1, B3, C5, C6, D2, D3 & 6 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{지금}\label{sec:pl-now}
+
+\begin{table}[H]
+  \caption{지금 묶음. When 원문을 그대로 적었다.}
+  \label{tab:pl-now}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{1.2cm} Y L{2.2cm} Y@{}}
+    \toprule
+    항목 & 제목 & 상태\ckdot{}영향 & When 원문 \\
+    \midrule
+    A3 & \texttt{auth()}는 Suspense 안 잎에서만 읽는다 & PARTIAL\ckdot{}L & 지금(작다). CC 전 준비. \\
+    \midrule
+    A6 & \texttt{experimental.staleTimes}를 일부러 정했다 & FAIL\ckdot{}M & 지금(설정 한 줄). 또는 CC 첫 행. \\
+    \midrule
+    B2 & 죽은 읽기 action이 없다 & FAIL\ckdot{}L & 지금. \\
+    \midrule
+    C1 & 한 요청 안의 같은 읽기는 한 번만 나간다 & PARTIAL\ckdot{}H & 지금. \\
+    \midrule
+    C2 & page와 layout에 순차 await가 없다 & FAIL\ckdot{}H & \texttt{/@u/posts}는 지금. \texttt{[slug]}는 Phase CC(A7과 같이). \\
+    \midrule
+    C3 & 댓글은 본문 스트리밍을 막지 않는다 & FAIL\ckdot{}H & 지금. \\
+    \midrule
+    C7 & Suspense 경계와 fallback이 알맞다 & PARTIAL\ckdot{}M & 지금(C3와 같은 손질). \\
+    \midrule
+    D1 & edge가 cache하는 HTML은 cookie에 따라 바뀌지 않는다 & FAIL\ckdot{}M & 지금 (A2와 함께). CC 2순위와 겹친다. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+% src: perf.audit.md When lines of A3, A6, B2, C1, C2, C3, C7, D1
+
+\section{Phase CC}\label{sec:pl-cc}
+
+\paragraph{무엇을 알려고 쓰나.}
+\texttt{cacheComponents}를 켜기 전에 끝낼 일의 순서는 무엇인가.
+audit §3은 CC 설계가 나오면 이 묶음의 행을 맞추라고 적었다.
+이 책은 \texttt{cc.design.md}에 기대지 않았다.
+
+\begin{table}[H]
+  \caption{Phase CC 묶음. When 원문을 그대로 적었다.}
+  \label{tab:pl-cc}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{1.2cm} Y L{2.2cm} Y@{}}
+    \toprule
+    항목 & 제목 & 상태\ckdot{}영향 & When 원문 \\
+    \midrule
+    A1 & root layout에 요청 시점 API가 없다 & FAIL\ckdot{}M & Phase CC, 1순위. \\
+    \midrule
+    A2 & shell이 \texttt{cookies()}를 읽지 않는다 & FAIL\ckdot{}M & Phase CC 2순위. D1 때문에 지금 해도 된다. \\
+    \midrule
+    A4 & \texttt{force-dynamic} 잔재가 없다 & FAIL\ckdot{}L & Phase CC. \\
+    \midrule
+    A5 & \texttt{cacheComponents}가 켜져 있다 & FAIL (계획된 보류)\ckdot{}M & Phase CC 마지막. \decision{77}이 별도 phase로 정했다. \\
+    \midrule
+    A7 & 클릭 직후 skeleton이 보인다 & PARTIAL\ckdot{}M & Phase CC (예외를 거둔다). \\
+    \midrule
+    C2 & page와 layout에 순차 await가 없다 (\texttt{[slug]}) & FAIL \ckdot{}H & \texttt{[slug]}는 Phase CC(A7과 같이). \\
+    \midrule
+    C4 & 미리 시작(preload without await)을 쓴다 & FAIL\ckdot{}L & Phase CC (A7과 같이). \\
+    \midrule
+    D5 & hydration이 올바르다 & PARTIAL\ckdot{}L & A2를 할 때 같이 사라진다. 따로는 나중. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+% src: perf.audit.md When lines of A1, A2, A4, A5, A7, C4, D5; §3 last bullets
+
+\section{나중과 유지}\label{sec:pl-later}
+
+\begin{table}[H]
+  \caption{나중 묶음과 유지 묶음. When 원문을 그대로 적었다.}
+  \label{tab:pl-later}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{1.2cm} Y L{2.2cm} Y@{}}
+    \toprule
+    항목 & 제목 & 상태\ckdot{}영향 & When 원문 \\
+    \midrule
+    A8 & 해당 없음: hot segment에 \texttt{generateStaticParams} & N/A\ckdot{}L & 나중 (CC 뒤 재평가). \\
+    \midrule
+    B4 & load-more BFF가 edge cache와 rate limit을 고려한다 & PARTIAL\ckdot{}M & 나중(traffic 설계와 함께). 선택은 소유자. \\
+    \midrule
+    D4 & 색인할 링크는 \texttt{<a href>}다 & PARTIAL\ckdot{}L & 나중. \\
+    \midrule
+    D6 & 영역 사이 이동이 shell을 다시 만들지 않는다 & FAIL\ckdot{}M & 나중 (CC 뒤, 구조 변경). \\
+    \midrule
+    B1 & 읽기는 action으로 하지 않는다 & PASS & 유지. \\
+    \midrule
+    B3 & action을 \texttt{queryFn}으로 쓰지 않는다 & PASS & 유지. \\
+    \midrule
+    C5 & 색인할 내용은 server에서 렌더한다 & PASS & 유지. \\
+    \midrule
+    C6 & TanStack query가 이중 요청을 만들지 않는다 & PASS & 유지. CC 뒤에도 이 방식이 맞다. \\
+    \midrule
+    D2 & viewport prefetch가 결정 \#70 한도 안이다 & PASS & 유지. CC 뒤에도 다시 켜지 않는다. \\
+    \midrule
+    D3 & RSC 이동 응답이 edge에서 key를 나눈다 & PASS & 유지. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+% src: perf.audit.md When lines of A8, B4, D4, D6, B1, B3, C5, C6, D2, D3
+
+\section{열린 질문: 확인하지 못한 것}\label{sec:pl-open}
+
+\paragraph{무엇을 알려고 쓰나.}
+감사가 코드를 읽고도 확정하지 못한 것은 무엇이고, 어느 항목이 거기에 기대는가.
+
+\begin{table}[H]
+  \caption{확인하지 못한 것 7개. 기대는 항목은 오른쪽 열이다.}
+  \label{tab:pl-open}
+  \centering\footnotesize
+  \begin{tabularx}{\linewidth}{@{}r Y L{2.2cm}@{}}
+    \toprule
+    번호 & 확인하지 못한 것 & 기대는 항목 \\
+    \midrule
+    1 & next-intl v4 \texttt{getLocale()}이 이 설정에서 \texttt{headers()}를 읽는지 직접 보지 않았다. 프로젝트 자체 진단(\texttt{projects.design.md} \S7.4 1행)을 따랐다. & A1 \\
+    \midrule
+    2 & \texttt{@clerk/nextjs} v7 root \texttt{ClerkProvider}가 그 자체로 동적 읽기인지 확인하지 못했다. & A1 \\
+    \midrule
+    3 & \texttt{/api/posts/load-more}의 실제 \texttt{cf-cache-status}, 결정 \#70 배포 뒤 \texttt{\_rsc} 요청 수를 재지 않았다. README는 첫 측정이 옛 HTML이었다고 적는다(\texttt{decisions.plan.md} \#70 Update). & B4 \\
+    \midrule
+    4 & D1을 실제로 재현하지 않았다. 접힘 cookie로 MISS를 만들고 익명으로 HIT를 확인해야 한다. & D1 \\
+    \midrule
+    5 & \texttt{signal}이 fetch memoization을 끈다는 점은 Next 문서 기억에 기댄다. 버전 16.2 문서로 다시 확인해야 한다. memoization이 살아 있다면 C1의 같은 URL 중복은 이미 한 번으로 줄어 있다. 그때 C1의 영향은 H에서 L로 내려간다. \texttt{cache()}로 감싸는 처방은 어느 쪽이든 안전하다. & C1 \\
+    \midrule
+    6 & 각 중복 fetch의 실제 지연을 재지 않았다. SSR 호출이 \texttt{blog-api.}(Cloudflare 경유)로 가면 익명 GET은 edge HIT라 싸다. signed-in 요청은 Express까지 간다. & C1 \\
+    \midrule
+    7 & \texttt{React.cache} 범위가 \texttt{generateMetadata}와 layout, page를 한 요청으로 묶는지 이 버전에서 확인하지 못했다. 묶지 않으면 C2의 \texttt{[slug]} 줄은 3번이고 C4의 영향은 M이다. & C2, C4 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+% src: perf.audit.md §5 items 1-7
+
+\paragraph{누가 재나.}
+main session이 \texttt{curl}로 잴 수 있는 것은 3번(load-more의 \texttt{cf-cache-status})과 4번(D1 재현)이다.
+% src: perf.audit.md §5 last line

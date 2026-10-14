@@ -1,0 +1,139 @@
+% chapters/01-overview.tex -- 개요: 상태표, 상위 8개 수정, 이 책을 읽는 법.
+% ONLY sources: perf.audit.md (cited "audit"), perf.sources.md (S1-S3). Numbers are copied.
+\chapter{개요}\label{ch:overview}
+
+% src: perf.audit.md header, §3
+\paragraph{결과.}
+우리 앱 \texttt{apps/dashboard\_client\_web}을 세 편의 글이 말하는 규칙 25개로 점검했다.
+결과는 통과(PASS) 6개, 부분 통과(PARTIAL) 7개, 실패(FAIL) 11개, 해당 없음(N/A) 1개다.
+읽기 경로, 검색 노출 본문, TanStack Query(탠스택 쿼리) 값 심기는 강하다.
+요청 안 중복, 워터폴(waterfall), cookie 기반 shell(셸)은 약하다.
+\Cref{tab:ov-status}가 묶음별 개수를 보인다.
+
+\begin{inbrief}
+  \item[Why] 페이지 이동이 느린 원인을 세 글의 규칙으로 하나씩 확인하려고 한다.
+  \item[When] Phase CC(\texttt{cacheComponents} 전환)를 열기 전이다.
+  \item[Where] Next.js 16 App Router 블로그 앱의 layout, page, fetch 함수, 설정 파일이다.
+  \item[How] 규칙을 항목 25개로 나누고 항목마다 What, Why, How, When 네 줄로 적었다.
+\end{inbrief}
+
+\section{상태표: 묶음별 개수}\label{sec:ov-status}
+
+\paragraph{무엇을 알려고 쓰나.}
+네 묶음 중 어느 곳이 약한지 한눈에 본다.
+
+% src: perf.audit.md §3 summary table
+\begin{table}[H]
+  \caption{묶음별 감사 결과. 25개 항목을 상태로 센다.}
+  \label{tab:ov-status}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}Y r r r r r@{}}
+    \toprule
+    묶음 & PASS & PARTIAL & FAIL & N/A & 계 \\
+    \midrule
+    A. 동적 렌더링(dynamic rendering)과 prefetch (S1) & 0 & 2 & 5 & 1 & 8 \\
+    \midrule
+    B. Server Actions와 읽기(read) (S2) & 2 & 1 & 1 & 0 & 4 \\
+    \midrule
+    C. Suspense, 스트리밍(streaming), 워터폴(waterfall) (S3) & 2 & 2 & 3 & 0 & 7 \\
+    \midrule
+    D. 이 앱 공통 & 2 & 2 & 2 & 0 & 6 \\
+    \midrule
+    \textbf{계} & \textbf{6} & \textbf{7} & \textbf{11} & \textbf{1} & \textbf{25} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\paragraph{읽는 법.}
+\begin{itemize}[nosep]
+  \item 강한 곳: 읽기 경로(B1, B3), 검색 노출(SEO) 본문(C5), TanStack Query 값 심기(C6).
+  \item 강한 곳: 결정 \#70의 prefetch(미리 받기) 제한(D2), Cloudflare edge(엣지) \texttt{\_rsc} cache(D3).
+  \item 약한 곳: 요청 안 중복과 워터폴(C1--C3), cookie 기반 shell(A2, D1).
+  \item 약한 곳: cacheComponents(캐시 컴포넌트) 준비(A1, A4, A5).
+\end{itemize}
+% src: perf.audit.md §3 bullets
+
+\section{상위 8개 수정}\label{sec:ov-top8}
+
+\paragraph{무엇을 알려고 쓰나.}
+무엇부터 고치면 영향 대비 노력이 가장 좋은가.
+노력 S는 한 시간 안, M은 하루 안이다.
+% src: perf.audit.md §4
+
+\begin{table}[H]
+  \caption{상위 8개 수정(top 8 fixes). 영향 대비 노력 순이다.}
+  \label{tab:ov-top8}
+  \centering\footnotesize
+  \begin{tabularx}{\linewidth}{@{}r L{1.5cm} Y c c L{1.7cm} L{2.3cm}@{}}
+    \toprule
+    순위 & 항목 & 수정 & 영향 & 노력 & 언제 & \texttt{projects.\allowbreak design.md} \S7.4와 겹침 \\
+    \midrule
+    1 & C3 & \texttt{PostContentCard.server.tsx:124}의 \texttt{<Comments>}를 Suspense 경계(boundary)로 감싼다 & H & S & 지금 & 없음 \\
+    \midrule
+    2 & C1 & \texttt{getUserProfile}, \texttt{getCategoriesByUsername}, \texttt{getPopularTags}, \texttt{getUserPopularTags}를 \texttt{cache()}로 감싼다 & H & S & 지금 & ``모든 fetch'' 행의 앞 단계 \\
+    \midrule
+    3 & C2 & \texttt{/@u/posts}의 \texttt{getTagFilterItems} await를 Suspense 잎(leaf)으로 옮긴다 & H & S & 지금 & 없음 \\
+    \midrule
+    4 & A6 & \texttt{experimental.staleTimes.dynamic = 30} & M & S & 지금 또는 CC 첫 행 & 있음 (\texttt{:508}) \\
+    \midrule
+    5 & A2 + D1 & shell의 \texttt{cookies()} 2곳을 지운다. \texttt{false}로 심고 mount 뒤 읽는다 & M & M & 지금 (D1 정확성) & 있음 (2행) \\
+    \midrule
+    6 & A7 + C4 & \texttt{[slug]} layout의 tree 읽기를 rail 잎으로 옮긴다. signed-in 글 읽기를 미리 시작(preload)한다 & M & M & Phase CC & 있음 (\S7.3 예외 철회) \\
+    \midrule
+    7 & A1 + A4 + A5 & 고정 locale(로캘), blog \texttt{force-dynamic} 2건 삭제, 그다음 \texttt{cacheComponents} & M & M & Phase CC & 있음 (1, 4, 5, 6행) \\
+    \midrule
+    8 & B4 & load-more(더 불러오기)를 edge cache에 태우거나 \texttt{blog-api.}를 직접 부른다. token 차이도 정리한다 & M & M & 나중 (소유자 선택) & 없음 (traffic 설계 쪽) \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{itemize}[nosep]
+  \item 바로 뒤: B2(\texttt{loadMorePosts}를 \texttt{x\_}로, 노력 S, 지금).
+  \item 그 뒤: D6(shell 공유, 나중), D4(tree 링크, 나중).
+\end{itemize}
+% src: perf.audit.md §4 bullets
+
+\section{이 책을 읽는 법}\label{sec:ov-howto}
+
+\paragraph{무엇을 알려고 쓰나.}
+장마다 무엇이 있고, 항목 한 칸을 어떻게 읽는가.
+
+\begin{table}[H]
+  \caption{장의 구성. 02장은 세 글, 03--06장은 묶음 A--D, 07장은 계획이다.}
+  \label{tab:ov-chapters}
+  \centering\small
+  \begin{tabularx}{\linewidth}{@{}L{2.4cm} Y L{2.2cm}@{}}
+    \toprule
+    장 & 내용 & 항목 \\
+    \midrule
+    \Cref{ch:sources} & 세 글(S1--S3)의 핵심과 서로의 관계 & 없음 \\
+    \midrule
+    \Cref{ch:dynamic} & S1: 동적 route와 prefetch & A1--A8 (8개) \\
+    \midrule
+    \Cref{ch:actions} & S2: Server Actions는 변경 전용 & B1--B4 (4개) \\
+    \midrule
+    \Cref{ch:suspense} & S3: Suspense, 스트리밍, 워터폴 & C1--C7 (7개) \\
+    \midrule
+    \Cref{ch:cross} & 이 앱 공통: edge cache, 결정 \#70, SEO, hydration & D1--D6 (6개) \\
+    \midrule
+    \Cref{ch:plan} & 언제 고치나(지금, Phase CC, 나중)와 열린 질문 & 25개 전체 \\
+    \midrule
+    \Cref{ch:checklist} & 체크리스트 한 쪽 요약 & 25개 전체 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\paragraph{항목 한 칸.}
+\begin{enumerate}[nosep]
+  \item 첫 줄: 상자, 항목 번호, 제목. 통과는 \ckdone{}, 실패와 부분 통과는 \ckopen{}, 해당 없음은 \ckna{}로 표시한다.
+  \item 둘째 줄: 상태와 영향(impact). 영향 H, M, L은 Cloudflare 뒤 익명 블로그 독자 기준이다.
+  \item What: 무엇을 점검하는가.
+  \item Why: 어느 글의 어떤 규칙인가.
+  \item How: 확인한 방법과 근거 \texttt{file:line}, 그리고 처방.
+  \item When: 언제 고치는가.
+\end{enumerate}
+% src: perf.audit.md §2 header (표기, 영향 H/M/L)
+
+\paragraph{근거의 한계.}
+이 책은 코드를 읽어 얻은 감사 결과를 옮긴다.
+실행으로 재지 않은 것은 \Cref{sec:pl-open}에 열린 질문으로 모았다.

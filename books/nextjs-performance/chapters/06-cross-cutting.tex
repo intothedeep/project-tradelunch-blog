@@ -1,0 +1,116 @@
+% chapters/06-cross-cutting.tex -- group D: 이 앱 공통 (Cloudflare edge cache, 결정 #70, SEO, hydration). Items D1-D6.
+% ONLY sources: perf.audit.md §0-§2 group D, git log subject of commit fd0e7a5 (per-request Jotai store).
+% D1 is not reproduced by measurement (audit §5 item 4).
+\chapter{이 앱 공통}\label{ch:cross}
+
+% src: perf.audit.md §2 group D, §3 (D: PASS 2, PARTIAL 2, FAIL 2)
+\paragraph{결과.}
+묶음 D는 6개 중 2개가 통과다. 부분 통과 2개, 실패 2개다.
+결정 \#70의 prefetch 제한(D2)과 Cloudflare의 \texttt{\_rsc} cache(D3)는 잘 되어 있다.
+가장 눈에 띄는 실패는 D1이다. cookie로 정한 shell 폭이 edge가 cache하는 HTML에 들어간다.
+실제 재현은 아직 없다(\Cref{sec:pl-open}의 4번).
+
+\begin{inbrief}
+  \item[Why] 이 앱은 Cloudflare 뒤에 있어서 세 글의 규칙 말고도 edge cache와 맞아야 한다.
+  \item[When] 익명 독자의 HTML을 Cloudflare가 1일 cache할 때다.
+  \item[Where] shell 컴포넌트, Cloudflare 규칙(\texttt{deploy/traffic/README.md}), 링크와 hydration 코드다.
+  \item[How] cache되는 HTML에 개인 값을 넣지 않는다. prefetch는 끈다. 링크는 \texttt{<a href>}로 둔다.
+\end{inbrief}
+
+\section{원리: edge cache는 cookie를 보지 않는다}\label{sec:cr-principle}
+
+\paragraph{문제와 원인.}
+\begin{itemize}[nosep]
+  \item Cloudflare cache key는 cookie를 보지 않는다.
+  \item \texttt{railCollapsed}는 bypass 규칙에 없다(\code{deploy/traffic/README.md:50-59}).
+  \item 그래서 첫 MISS 방문자의 접힘 상태가 하루 동안 모든 익명 독자에게 간다.
+\end{itemize}
+% src: perf.audit.md D1 Why
+
+\paragraph{무엇을 알려고 쓰나.}
+한 사람의 cookie가 왜 다른 독자의 화면에 닿는가.
+\Cref{fig:cr-leak}이 흐름을 보인다. 이 흐름은 코드를 읽어 얻었고 재현하지 않았다.
+
+\begin{figure}[H]
+  \centering
+  \resizebox{\linewidth}{!}{%
+  \begin{tikzpicture}[font=\scriptsize]
+    \node[flowbox, minimum width=3.0cm] (v1) at (0,0) {첫 방문자\\\texttt{railCollapsed} cookie};
+    \node[vmbox, minimum width=3.4cm] (srv) at (4.6,0) {Next server\\\texttt{cookies()}로 폭을 정해\\HTML을 만듦};
+    \node[cfbox, minimum width=3.4cm] (edge) at (9.2,0) {Cloudflare\\\cfs{MISS}, 이 HTML을 1일 cache\\(cookie는 key에 없음)};
+    \node[badbox, minimum width=3.4cm] (v2) at (13.8,0) {익명 독자 모두\\\cfs{HIT}, 남의 접힘 상태};
+    \draw[flowarrow] (v1) -- (srv);
+    \draw[flowarrow] (srv) -- (edge);
+    \draw[flowarrow] (edge) -- (v2);
+    \node[lbl] at (11.5,-1.2) {하루 동안};
+  \end{tikzpicture}}
+  \par\smallskip{\centering\scriptsize \flowkey{vmbox} Next server \quad \flowkey{cfbox} Cloudflare \quad \flowkey{badbox} 문제\par}
+  \caption{D1의 흐름. 첫 MISS 방문자의 cookie가 cache된 HTML을 거쳐 모든 익명 독자에게 간다.}
+  \label{fig:cr-leak}
+  % src: perf.audit.md D1 (Why, How), §5 item 4 (not reproduced)
+\end{figure}
+
+\paragraph{처방.}
+\begin{enumerate}[nosep]
+  \item shell의 \texttt{cookies()} 읽기를 지운다(A2와 같다).
+  \item atom은 \texttt{false}로 seed하고, cookie는 mount 뒤 client에서 읽는다.
+  \item 대가는 첫 화면에서 rail 폭이 한 번 바뀔 수 있다는 점이다.
+\end{enumerate}
+% src: perf.audit.md D1 How, A2 How
+
+\paragraph{오늘의 관련 수정.}
+\begin{itemize}[nosep]
+  \item 커밋 \commit{fd0e7a5}(\texttt{fix(web): per-request Jotai store; silence next-themes client script})가 jotai store를 요청마다 만들게 했다.
+  \item 이 수정은 D5의 ``맞는 것'' 목록에 들어간다. D1의 처방은 이 수정이 아니라 A2다.
+\end{itemize}
+% src: git log subject of fd0e7a5, perf.audit.md D5 How
+
+\section{체크리스트 D1--D6}\label{sec:cr-checklist}
+
+\begin{checkitem}{\ckopen}{D1}{edge가 cache하는 HTML은 cookie에 따라 바뀌지 않는다}{FAIL\ckdot{}영향 M (실제 재현은 확인 못함, \Cref{sec:pl-open})}
+  % src: perf.audit.md D1, §5 item 4
+  \item[What] Cloudflare가 1일 cache하는 익명 HTML에 개인 cookie 값이 들어가지 않는다.
+  \item[Why] Cloudflare cache key는 cookie를 보지 않는다. \code{railCollapsed}는 bypass 규칙에 없다(\code{deploy/traffic/README.md:50-59}). 첫 MISS 방문자의 접힘 상태가 하루 동안 모든 익명 독자에게 간다.
+  \item[How] \code{BlogShell.server.tsx:44-45}와 \code{LeftRailContainer.server.tsx:19-20}이 cookie로 HTML 폭을 정한다. 처방: A2와 같다(client에서 읽는다). 첫 화면 폭이 한 번 바뀔 수 있다.
+  \item[When] 지금 (A2와 함께). CC 2순위와 겹친다.
+\end{checkitem}
+
+\begin{checkitem}{\ckdone}{D2}{화면 진입 prefetch(viewport prefetch)가 결정 \#70 한도 안이다}{PASS\ckdot{}영향 없음}
+  % src: perf.audit.md D2
+  \item[What] feed 카드, 태그 칩, 댓글 링크는 viewport prefetch를 하지 않는다.
+  \item[Why] \decision{70}. 메인 page 스크롤에서 요청 79개가 나갔고, Cloudflare 50 / 10 s(\decision{68})에 걸려 429가 났다.
+  \item[How] \code{rg -n "prefetch=" app components}가 13건을 낸다(\code{prefetch={false}} 12건, \code{HoverPrefetchLink} 내부 1건). \code{rg -c "<HoverPrefetchLink"}는 7건, 6 파일이다. 메뉴 링크(\code{PrimaryNav.client.tsx:97})는 \decision{70}이 일부러 남겼다. 카테고리와 projects tree는 \code{router.push}라 prefetch가 없다(D4).
+  \item[When] 유지. CC 뒤에도 viewport prefetch를 다시 켜지 않는다(\code{projects.design.md:515}).
+\end{checkitem}
+
+\begin{checkitem}{\ckdone}{D3}{RSC 이동 응답(\texttt{\_rsc})이 edge에서 HTML과 key를 나눈다}{PASS\ckdot{}영향 없음}
+  % src: perf.audit.md D3
+  \item[What] \code{?_rsc=} 응답은 HTML과 다른 key로 cache된다. 배포 뒤 purge한다.
+  \item[Why] S1의 ``왕복''을 edge가 받는다. 익명 독자의 이동은 VM에 오지 않는다.
+  \item[How] \code{deploy/traffic/README.md:58}(\code{_rsc} 없는 \code{rsc} 요청 bypass), \code{:115}(측정: \code{?_rsc=} \code{text/x-component} \cfs{HIT}), \code{:418-420}(배포마다 purge). 위험: purge를 잊으면 옛 JS를 가리키는 HTML이 남는다(2026/10/13 사례).
+  \item[When] 유지.
+\end{checkitem}
+
+\begin{checkitem}{\ckopen}{D4}{색인할 링크는 \texttt{<a href>}다}{PARTIAL\ckdot{}영향 L (5건)}
+  % src: perf.audit.md D4
+  \item[What] 카테고리 tree와 projects tree의 글 링크를 크롤러가 따라갈 수 있다.
+  \item[Why] S3의 SEO 논점. \code{router.push}는 HTML에 \code{href}를 남기지 않는다.
+  \item[How] \code{components/blog/CategorySidebar.client.tsx:61,67,79,84}와 \code{app/[handle]/components/ProjectsTree.client.tsx:34}가 \code{router.push}다. 완화: \code{app/sitemap.ts:67}이 글 URL을 모두 낸다. 처방: 글 node만 \code{<Link prefetch={false}>}로 바꾼다(\decision{70} 유지).
+  \item[When] 나중.
+\end{checkitem}
+
+\begin{checkitem}{\ckopen}{D5}{hydration이 올바르다}{PARTIAL\ckdot{}영향 L}
+  % src: perf.audit.md D5; git log subject of fd0e7a5
+  \item[What] server HTML과 첫 client 렌더가 같다. 한 atom을 두 곳에서 seed하지 않는다.
+  \item[Why] S3. 불일치는 다시 렌더를 부르고 화면이 깜빡인다.
+  \item[How] 맞는 것: 요청마다 jotai store(\commit{fd0e7a5}), \code{<html suppressHydrationWarning>}(\code{app/layout.tsx:113}), localStorage는 effect에서 읽는다(\code{hooks/useSavedTags.hook.ts:6-7}). 틀린 것: about, resume layout은 \code{LeftRailAside}를 값 없이 seed한다(\code{about/layout.tsx:19}, 기본 \code{false}). 그 안 \code{LeftRail}은 cookie 값으로 같은 atom을 다시 seed한다(\code{LeftRailContainer.server.tsx:24}). \code{useHydrateAtoms}는 첫 값만 쓴다. 그래서 두 page에서 접힘 cookie가 무시된다. 두 layout의 주석(``cookie 읽지 않음'', \code{about/layout.tsx:9})도 코드와 다르다.
+  \item[When] A2를 할 때 같이 사라진다. 따로는 나중.
+\end{checkitem}
+
+\begin{checkitem}{\ckopen}{D6}{영역 사이 이동이 shell을 다시 만들지 않는다}{FAIL\ckdot{}영향 M (6건)}
+  % src: perf.audit.md D6
+  \item[What] 왼쪽 rail은 한 layout에 한 번 놓인다. 이동 때 다시 mount하지 않는다.
+  \item[Why] S1. 형제 layout 사이 이동은 공유 layout이 없어서 rail RSC를 매번 다시 받는다. \code{TagCloud}의 \code{getPopularTags}도 매번 다시 나간다.
+  \item[How] \code{rg -n "<LeftRailContainer" app}가 6건을 낸다(\code{(feed)/layout.tsx:17}, \code{[slug]/layout.tsx:31}, \code{posts/layout.tsx:28}, \code{projects/layout.tsx:21}, \code{about/layout.tsx:20}, \code{resume/layout.tsx:18}). 공통 조상은 root layout뿐이다. 처방 후보: rail을 root 아래 route group layout 하나로 올리고, 오른쪽 rail은 parallel route(\code{@right})로 나눈다.
+  \item[When] 나중 (CC 뒤, 구조 변경).
+\end{checkitem}

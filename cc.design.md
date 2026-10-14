@@ -1,0 +1,616 @@
+# Phase CC: 앱 전체 cacheComponents와 RSC prefetch 성능 설계 (DRAFT, system-architect, 2026-10-13, rev2 2026-10-14)
+
+> 상태: 설계 초안 rev2. 코드 없음. 전략 선택은 오너가 한다.
+> rev1 → rev2: 성능 감사 `perf.audit.md`(25항목, 출처 `perf.sources.md`)를 합쳤다. 새 단위 QW1(빠른 수정), QW2(rail 폭 hotfix), U7(load-more). §5.3 지표 표, §7 단위 표, §10 질문을 새로 썼다. 새 절: §12 감사 항목 추적표, §13 `perf.audit.md` 정정.
+> 위치 근거: 저장소 선례 `projects.design.md`, `traffic.design.md`와 같은 루트 `*.design.md`다.
+> `00.plan.md` 절, `00.tasks.md` 행, `decisions.plan.md` 행은 product-manager(pm)가 쓴다. 이 문서는 고치지 않는다.
+> 이 문서는 `projects.design.md` §7.2–§7.5를 이어받는다. 거기 적힌 내용은 다시 쓰지 않는다. 틀린 줄은 §11에서 정정한다.
+
+## 0. Mission block (인용)
+
+`00.plan.md` Phase PJ mission block에서 그대로 옮긴다. CC는 그 블록의 M5다.
+
+- Mission: 채용 담당자가 프로젝트 결과를 한눈에 보게 한다. (오너 승인 2026-10-13, #79)
+- Vision: 방문자가 `/@u/...` 한 체계에서 글, 프로젝트, 소개를 로그인 없이 읽는다. 옛 URL은 모두 새 URL로 연결된다. (오너 승인 2026-10-13, #79)
+- Constraints: 스키마 변경 없음, 계약 = `@repo/types` `TProjectCard`, `TProjectPost`, `RESERVED_HANDLE_SEGMENTS` · BIGINT id는 문자열 · soft-delete만 · 새 `Link`는 `prefetch={false}` (#70) · 테스트 러너 금지, 검증 = 고의 파손(deliberate breakage) · 빌드는 GH Actions에서만 (Phase GCP) · 로컬 실행 = `~/.claude/CLAUDE.md` "No local execution" · mock은 `mocks/projects/`에 격리, 운영(prod)은 언제나 `real` · 예약 slug 6개 (#76) · 옛 URL은 308 (#71).
+- M5: CC (앱 전체 `cacheComponents`), stub. 열림 조건 = #70 커밋이 main에 있음 + P1 gate PASS. 설계와 행은 그때 쓴다. 첫 행 = `staleTimes` (`projects.design.md` §7.4).
+
+- CC의 goal, strategy, milestone 줄은 아래 초안뿐이다. 오너 승인 뒤 pm이 `00.plan.md` 블록에 쓴다(`rules/docs.md` §0.1). 이 문서가 블록을 대신하지 않는다.
+
+초안 (DRAFT, architect, 오너 승인 대기, `00.plan.md`에 아직 없음):
+
+| 줄 | 초안 |
+| --- | --- |
+| G-CC | 로그인 상태 W1 이동 시간 p50을 기준선보다 판정선 이상 줄인다. 가드(§5.3)는 모두 통과한다. 판정선 숫자는 기준선 3회 뒤 채운다. 날짜는 오너 |
+| S-CC → G-CC | B 단계 이전(§6). 다른 후보 A, C |
+| M-CC1 → S-CC | MVP1: U0, QW1, QW2, U1, U2, U3. exit = W1–W4가 운영에서 돈다, 가드 통과, 각 단위 주 지표 판정이 `00.runs.md`에 있음. cycle 0/2. recovery 0/2 |
+| M-CC2 → S-CC | MVP2: U4. exit = flag on 빌드 잡 통과, 배포 뒤 G-CC 판정. cycle 0/2. recovery 0/2 |
+| M-CC3 → S-CC | MVP3: U5, U6, U7. exit = 글 수정 → `/api/revalidate` → purge 뒤 익명 창에 새 값, U5 주 지표 판정. cycle 0/2. recovery 0/2 |
+| Tactic | 단위마다 kill = §7 표의 되돌림 조건 |
+- 오너 지시(2026-10-13, dispatch 경유): P1이 닫히면 P2 전에 CC를 한다. 기준 글은 velog 글이다. 바꾸기 전에 기준선(baseline)을 잰다.
+- 오너 지시(2026-10-14, dispatch 경유): 첫 CC 작업 단위 = 공유 왼쪽 rail(shared left rail) 한 개. §4.
+
+## 1. 결론
+
+```
+오늘                                         CC 뒤 (MVP3)
+─────────────────────────────────────        ─────────────────────────────────────────
+모든 route = dynamic                          route = static shell + Suspense 잎(leaf)
+  원인: layout의 cookies(), 잎 밖 fetch,        cookies() 없음. rail 상태는 client(§4.3)
+        force-dynamic 6곳, Suspense 없는 params params는 sample(generateStaticParams)로 검증
+rail = 형제 layout 6곳이 각각 렌더             rail = (shell) layout 한 곳. 이동 때 다시 안 받음
+client router cache = 0초                     staleTimes / cacheLife.stale로 재사용
+prefetch = 빈 껍데기 또는 없음                 hover prefetch가 static shell을 받는다
+Next 데이터 캐시 = 없음 (no-store 전부)        'use cache' = 공개 저빈도 데이터만 (tree, projects, tags)
+무효화 = cf-purge.sh 한 층                    무효화 = /api/revalidate(expire 0) → cf-purge.sh 두 층
+```
+
+- 할 수 있다. 막힘은 많지만 대부분 "잎으로 옮기기"다. 표는 §3이다.
+- `getLocale()`은 막힘이 아니다. 설치된 next-intl 4.13.0 소스로 확인했다(§2). `projects.design.md` §7.4 첫 행을 정정한다.
+- 기존 버그 하나를 찾았다. 익명 HTML은 엣지(edge)에 1일 남는다. `railCollapsed` 쿠키는 bypass 규칙에 없다. 그래서 첫 MISS 방문자의 rail 폭이 모두에게 간다. §4.3이 이것도 고친다.
+- 권고 전략(strategy): B (§6). 순서: 기준선 → 빠른 수정(QW1) → rail 폭 hotfix(QW2) → 공유 rail → staleTimes → 잎 정리(flag off) → flag on → `'use cache'` 조각 → 무효화 → load-more.
+- 감사(`perf.audit.md`)의 FAIL 11, PARTIAL 7은 모두 단위에 매겼다(§12). 감사의 틀린 줄 4개는 §13에서 정정한다.
+- 서버 fetch는 오늘 요청 안에서 한 번도 중복 제거(memoization)되지 않는다. `composeSignal`이 언제나 signal을 붙이기 때문이다(§2). 그래서 QW1의 `cache()`가 효과가 크다.
+
+## 2. 라이브러리 지원 확인
+
+방법: 설치본 `node_modules` 소스와 Next가 함께 싣는 문서(`node_modules/next/dist/docs/`)를 읽었다. 웹 changelog는 열지 않았다.
+
+| 라이브러리 | 설치 버전 | 근거 | cacheComponents 판정 |
+| --- | --- | --- | --- |
+| next | 16.2.9 | `docs/.../cacheComponents.md`: 16.0.0에서 도입, stable 설정. `staleTimes`는 아직 experimental | 지원. 문서 확인 |
+| next-intl | 4.13.0 | `server/react-server/getConfig.js` 25–33행: `requestLocale`은 lazy getter다. `i18n/request.ts`는 `locale`만 읽는다. `getLocale`, `getTranslations`, `getMessages`는 `getConfig`만 부른다 | `headers()`를 읽지 않는다. 소스 확인, 빌드 미확인 |
+| @clerk/nextjs | 7.5.9 | `app-router/server/ClerkProvider.js` 16, 24행: `dynamic` prop이 없으면 요청을 읽지 않는다. `keyless-provider.js` 11행: keyless는 dev에서만 | root `ClerkProvider`는 static과 맞는다. `auth()`는 runtime API라 Suspense 잎에만. 소스 확인, Clerk 문서 미확인 |
+| next-themes | 0.4.6 | client 컴포넌트. 서버 API 없음 | 영향 없음. 미확인(소스 안 읽음) |
+| jotai | 2.20.1 | `JotaiProvider.client.tsx`: client `Provider`. 서버 API 없음 | 영향 없음. Activity 주의(§9) |
+| next (fetch 중복 제거) | 16.2.9 | `node_modules/next/dist/server/lib/dedupe-fetch.js` 88–96행: `options.signal`이 있으면 중복 제거 없이 원래 fetch를 부른다. `apis/http.core.ts:35-37` `composeSignal`은 언제나 `AbortSignal.timeout`을 돌려준다. `http.server.ts:80`이 그것을 넘긴다 | 모든 서버 fetch가 요청마다 따로 나간다. 소스 확인. 감사 §5-5의 열린 질문을 닫는다 |
+
+Next 문서에서 이 설계가 기대는 규칙 (모두 `node_modules/next/dist/docs/01-app/` 아래):
+
+| 규칙 | 출처 |
+| --- | --- |
+| `cookies`, `headers`, `searchParams`, `params`는 runtime API다. Suspense 밖이면 빌드 오류 | `01-getting-started/08-caching.md` 134–141, 292행 |
+| `params`는 `generateStaticParams`가 sample을 하나 이상 주면 runtime이 아니다. 빈 배열은 빌드 오류 | 같은 파일 139행, `04-functions/generate-static-params.md` 310행 |
+| sample 밖의 param은 첫 요청 때 검증하고 디스크에 저장한다 | `03-file-conventions/dynamic-routes.md` 153, 260행 |
+| `dynamicParams`는 쓸 수 없다 | `route-segment-config/dynamicParams.md` 22행 |
+| `force-dynamic`은 필요 없다. 지운다. `revalidate`는 `cacheLife`로 바꾼다 | `02-guides/migrating-to-cache-components.md` |
+| `'use cache'` 안에서 `cookies()`, `headers()` 금지. 기본 저장소는 in-memory LRU | `01-directives/use-cache.md` 196–207행 |
+| `new Date()`, `Math.random()`은 `connection()` + Suspense 또는 `'use cache'` | `08-caching.md` 200–233행 |
+| `generateMetadata`의 runtime 읽기와 uncached fetch는 요청 때로 미룬다 | `04-functions/generate-metadata.md` 1256행 |
+| flag가 켜지면 client 재사용 시간은 `cacheLife(...).stale`이 정한다. `staleTimes.static`이 default profile의 stale을 바꾼다 | `04-functions/cacheLife.md` 247–257행 |
+| `revalidateTag(tag, 'max')`는 stale-while-revalidate다. 외부 호출(webhook)은 `{ expire: 0 }` | `04-functions/revalidateTag.md` 20–24, 136행 |
+| flag가 켜지면 이전 route를 `<Activity hidden>`으로 남긴다. 상태 유지, effect는 다시 돈다 | `05-config/.../cacheComponents.md` 36–48행 |
+| `instrumentation-client.ts`의 `onRouterTransitionStart` | `03-file-conventions/instrumentation-client.md` |
+
+## 3. dynamic 읽기 목록 (inventory)
+
+### 3.1 옮기는 규칙
+
+| 자리 | Suspense 안인가 | 처리 |
+| --- | --- | --- |
+| `loading.tsx`가 있는 segment의 `page.tsx` | 예. `loading.tsx`가 page를 감싼다 | 그대로 둬도 빌드는 된다. shell은 skeleton뿐이다. 나중에 잎으로 더 내린다 |
+| `layout.tsx` | 아니다. 자기 `loading.tsx`는 layout을 감싸지 않는다 | 데이터 읽기는 Suspense 잎으로. `params`는 sample로 |
+| `loading.tsx` 없는 page | 아니다 | `loading.tsx` 추가 또는 Suspense 잎 |
+| `generateMetadata` | 요청 때로 미뤄진다 | 그대로. page에 dynamic 잎이 있으면 오류 없음 |
+| QW1, QW2, U1–U3, U7 | | flag와 무관하다. 파일별 `git revert`로 되돌린다 |
+| U4 | | 한 묶음이다. `'use cache'`(D26, D27)는 flag가 있어야 돈다. `force-dynamic` 삭제는 flag가 있어야 안전하다. 그래서 flag 한 줄만 끄면 빌드가 깨진다. 되돌림 = U4 커밋 `git revert` + 재배포 + purge |
+
+### 3.2 목록
+
+route 기호: `F` = `/`, `T` = `/tags/<tag>`, `P` = `/@u/posts`, `J` = `/@u/projects*`, `S` = `/@u/<slug>`, `A` = `/@u/about`, `R` = `/@u/resume`, `V` = `/@u/saved`, `L` = `/log*`, `M` = `/me*`, `W` = `/write*`.
+
+| # | 파일:줄 | API | dynamic으로 만드는 route | 옮기는 법 | 단위 |
+| --- | --- | --- | --- | --- | --- |
+| D1 | `app/layout.tsx:106-107` | `getLocale()`, `getMessages()` | 없음 (§2: `headers()`를 읽지 않음) | 그대로. `i18n/request.ts`가 `requestLocale`을 읽지 않는다는 주석만 남긴다 | U4 확인 |
+| D2 | `components/shell/BlogShell.server.tsx:44` | `cookies()` `railCollapsed` | F T P J S | 쿠키 읽기를 지운다 (§4.3 R-A). BlogShell 나누기는 U1b | QW2 |
+| D3 | `components/rail/LeftRailContainer.server.tsx:19` | `cookies()` | F T P J S A R | 같음 | QW2 |
+| D4 | `app/(feed)/page.tsx:26` | `force-dynamic` | F | 지운다 | U4 |
+| D5 | `app/(feed)/tags/[tag]/page.tsx:12, 19` | `force-dynamic`, `params` | T | `force-dynamic` 삭제. params는 `loading.tsx` 안이라 그대로 | U4 |
+| D6 | `app/log/page.tsx:7`, `log/[username]/page.tsx:12, 27`, `[logId]/page.tsx:9, 22` | `force-dynamic`, `params` | L | 삭제. `loading.tsx` 추가. P2 이동(logs) 때 함께 | U4 |
+| D7 | `app/me/page.tsx:6` | `force-dynamic` | M | 삭제. 데이터 읽기를 Suspense 잎으로 | U4 |
+| D8 | `app/me/saved/page.tsx:10` | `currentUser()` | M | Suspense 잎 안에서 redirect | U3 |
+| D9 | `app/[handle]/layout.tsx:13` | `params` (`@` 검사 + `notFound()`) | 모든 `/@u/*` | 잎으로 옮기지 않는다. 잎이면 404 화면이 status 200으로 나간다. 그리고 엣지가 그 200을 1일 저장한다. sample로 푼다: `generateStaticParams` → `[{ handle: '@<HOME_FEED_AUTHOR>' }]` | U4 |
+| D10 | `app/[handle]/posts/layout.tsx:23`, `projects/layout.tsx:16` | `params` | P J | D9 sample이 덮는다 | U4 |
+| D11 | `app/[handle]/[slug]/layout.tsx:22-27` | `params` + `getProjectsTree` uncached fetch (rail 고르기) | S | rail 고르기를 Suspense 잎 `RightRailSwitch`로. layout은 shell만 | U3 |
+| D12 | `app/[handle]/posts/layout.tsx:35`, `[slug]/layout.tsx:44` → `MobileContextHeader.server.tsx:19` | uncached fetch `getUserProfile` | P S | Suspense로 감싼다 (fallback = 칩 skeleton) | U3 |
+| D13 | `app/[handle]/posts/page.tsx:19, 68` | `searchParams` | P | `loading.tsx` 안이라 빌드는 된다. 필터 칸만 잎으로 내리는 일은 나중 | U4 확인 |
+| D14 | `app/[handle]/posts/page.tsx:85` → `CategorySidebarWrapper.server.tsx:31` | `auth()` | P | page가 `loading.tsx` 안이다. 그대로. 잎 Suspense는 나중 | U4 확인 |
+| D15 | `app/[handle]/[slug]/page.tsx:27, 67` | `params`, uncached fetch (metadata, tree) | S | page는 `loading.tsx` 안. `[slug]` sample 1개 추가(§10 Q5) | U4 |
+| D16 | `components/blog/PostContentCard.server.tsx:30` | `auth()` | S | 이미 Suspense 안. 그대로 | 없음 |
+| D17 | `app/[handle]/components/PostJsonLd.server.tsx:18` | `auth()` | S | 이미 Suspense 안. 그대로 | 없음 |
+| D18 | `components/blog/PostContentToc.server.tsx:15` | `auth()` | S | 이미 Suspense 안 | 없음 |
+| D19 | `apis/getPosts.fetch.server.ts:52` | `auth()` | F P | `BlogMainPage` Suspense 안. 그대로 | 없음 |
+| D20 | `app/[handle]/components/ProjectsTreeWrapper.server.tsx:17` | `auth()` | J S | `ProjectsRail`의 Suspense 안 | 없음 |
+| D21 | `app/[handle]/projects/page.tsx:12, 24`, `[project]/page.tsx:12, 23` | `params` | J | `loading.tsx` 안. `[project]` sample 1개(§10 Q5) | U4 |
+| D22 | `app/[handle]/about/page.tsx:28`, `resume/page.tsx:132` | `params` | A R | D9 sample이 덮는다 | U4 |
+| D23 | `app/[handle]/resume/page.tsx:117` | `new Date().toLocaleDateString()` | R | client 잎으로 옮긴다(mount 뒤 표시) | U3 |
+| D24 | `app/[handle]/saved/page.tsx:16` | `params` | V | D9 sample. 소유자 검사는 이미 client gate | U4 |
+| D25 | `app/write/[postId]/page.tsx:12` | `params` | W | `loading.tsx` 추가 | U4 |
+| D26 | `app/sitemap.ts:25, 30` | `revalidate`, `new Date()` | `/sitemap.xml` | 1안: 데이터 fetch 함수만 `'use cache'` + `cacheLife('days')`. 2안: metadata route의 `export const revalidate`가 flag 아래에서도 허용되면 그대로. U4 빌드로 확정 | U4 |
+| D27 | `app/[handle]/[slug]/opengraph-image.tsx:23` | `revalidate = 86400` | OG 이미지 | `ImageResponse`는 `Response`라 `'use cache'` 반환값이 될 수 없다(직렬화 규칙, `use-cache.md` 103–110행). 제목 fetch(`getPostBySlug(slug, null)` 감싼 함수)만 `'use cache'` + `cacheTag`. 이미지는 캐시 밖에서 만든다. MISS마다 CPU는 남지만 엣지가 OG를 1일 저장한다(`deploy/traffic/README.md` §2 b). D26의 2안도 함께 본다. U4 빌드로 확정 | U4 |
+| D28 | `apis/http.server.ts:78` | 모든 fetch `cache: 'no-store'` | 전부 | flag on 뒤에는 "uncached data"다. Suspense 잎이면 문제 없다. `'use cache'` fetcher용 경로는 U5에서 정한다 | U5 |
+| D29 | `components/rail/TagCloud.server.tsx:32-33` | uncached fetch | 공유 rail | 이미 Suspense 안. U5에서 `'use cache'` 후보 1번 | U5 |
+| D30 | `components/log/LogCardBody.tsx:32` | `Date.now()` (렌더 중) | L | 이미 dynamic 잎 안이면 그대로. U4 빌드 오류가 나면 client mount 뒤로 | U4 확인 |
+
+- 빌드가 실제로 잡는 목록이 진실이다. 이 표는 빌드 전에 고칠 순서를 정하는 용도다.
+- 빌드는 GH Actions에서만 돈다. 그래서 단위마다 "빌드만, 배포 없음" 잡을 하나 둔다(§7 U3).
+
+## 4. U1 공유 왼쪽 rail (shared left rail)
+
+### 4.1 무엇을 알려고 하나
+
+- 형제 layout 6곳이 rail을 따로 렌더한다. 그래서 형제 route 사이 이동마다 rail이 다시 mount되고 TagCloud를 다시 받는다.
+- 모든 RSC payload에 rail이 다시 실린다. 기준선 §5가 그 바이트를 잰다.
+
+| layout | rail 렌더 방식 | 오늘 쿠키 읽기 |
+| --- | --- | --- |
+| `app/(feed)/layout.tsx` | `BlogShell leftRail=<LeftRailContainer/>` | 예 (D2, D3) |
+| `app/[handle]/posts/layout.tsx` | 같음 | 예 |
+| `app/[handle]/[slug]/layout.tsx` | 같음. `showRecentVisited={!isProjectPost}` | 예 |
+| `app/[handle]/projects/layout.tsx` | 같음. `showRecentVisited={false}` | 예 |
+| `app/[handle]/about/layout.tsx` | `LeftRailAside` + `LeftRailContainer`, BlogShell 없음 | D3만 |
+| `app/[handle]/resume/layout.tsx` | 같음 | D3만 |
+
+rail이 없는 route (grep 확인, `LeftRailContainer|BlogShell|LeftRailAside` 사용처 15파일): `log/*`, `me/*`, `write/*`, `admin/*`, `onboarding`, `sign-in`, `sign-up`, `[handle]/saved`, `[handle]/page.tsx`(redirect만), `not-found.tsx`.
+
+### 4.2 폴더 이동 (URL 불변)
+
+```
+오늘                                   U1 뒤
+app/                                   app/
+├── layout.tsx  (html, providers)      ├── layout.tsx            불변
+├── (feed)/                            ├── (shell)/
+│   ├── layout.tsx  BlogShell+rail     │   ├── layout.tsx        새: RailFrame (rail 1번)
+│   ├── page.tsx, loading.tsx          │   ├── (feed)/
+│   └── tags/[tag]/                    │   │   ├── layout.tsx    ContentFrame + HomeRightRail
+├── [handle]/                          │   │   └── page.tsx, loading.tsx, tags/[tag]/
+│   ├── layout.tsx  '@' 검사           │   └── [handle]/
+│   ├── posts/ layout BlogShell+rail   │       ├── layout.tsx    '@' 검사 불변
+│   ├── projects/ layout 같음          │       ├── posts/ layout ContentFrame + UserContextRail
+│   ├── [slug]/ layout 같음            │       ├── projects/ layout ContentFrame + ProjectsRail
+│   ├── about/ resume/ layout rail     │       ├── [slug]/ layout ContentFrame + RightRailSwitch(잎)
+│   ├── saved/ (rail 없음)             │       ├── about/ resume/ layout <main> 전폭만
+│   └── components/                    │       ├── saved/       rail 숨김 (§4.4)
+├── log/ me/ write/ admin/ ...         │       └── components/
+                                       ├── log/ me/ write/ admin/ ...   불변, rail 없음
+```
+
+- 이동: `git mv app/(feed) app/(shell)/(feed)`, `git mv app/[handle] app/(shell)/[handle]`. route group이라 URL은 그대로다.
+- import 경로가 깨진다: `@/app/[handle]` 문자열이 16파일 19곳(2026-10-13 grep). `components/rail/HomeRightRail.server.tsx`, `components/blog/sidebar-blog.server.tsx`도 포함한다.
+- 권고: 이동 전에 `app/[handle]/components/`를 `components/projects/`로 먼저 옮긴다. 그러면 `app/` 경로를 import하는 곳이 사라진다. 커밋을 둘로 나눈다(옮기기, 그다음 group 이동).
+- 커밋은 `git mv`만 담는다. 내용 변경과 섞지 않는다. 그래야 rename으로 추적된다.
+
+### 4.3 BlogShell 나누기와 rail 접힘 상태
+
+```
+(shell)/layout.tsx  (server, 요청 읽기 없음)
+└─ RailFrame (server)              div.flex.min-h-screen.flex-col.font-mono > div.flex.w-full.flex-1
+   ├─ LeftRailAside (client)        폭 = CSS가 <html data-rail>로 정함
+   │  └─ LeftRail (client)          PrimaryNav · tagCloud 칸 · RecentVisited(경로 규칙 §4.4)
+   │     └─ tagCloud = <Suspense><TagCloud/></Suspense>   (server 조각을 prop으로 전달)
+   └─ {children}                    아래 형제 중 하나
+        ├─ ContentFrame (server)    main(max-w-3xl, mobileTopContext) + aside(rightRail) + userContextSheet
+        └─ <main> 전폭             about, resume
+```
+
+- `BlogShell` = `ContentFrame`으로 이름과 역할이 바뀐다. 시그니처에서 `leftRail`이 빠진다. `topbar`는 오늘 쓰는 곳이 없다. 그대로 둔다.
+- `LeftRailContainer`는 `cookies()`를 잃고 동기 server 컴포넌트가 된다.
+
+rail 접힘 상태: 세 안
+
+| 안 | 내용 | hydration | 엣지 캐시 | 판정 |
+| --- | --- | --- | --- | --- |
+| **R-A (권고)** | root layout `<head>`의 차단 inline script가 쿠키를 읽어 `<html data-rail="collapsed">`를 쓴다. 폭과 접힘 때 숨길 블록은 CSS가 정한다. React는 `useSyncExternalStore`로 읽고 server snapshot = 펼침 | server와 첫 client 렌더가 같은 펼침 markup이다. 불일치 없음. `<html suppressHydrationWarning>`은 이미 있다 | HTML에 상태가 없다. 버그가 사라진다 | 채택 |
+| R-B | `cookies()`를 Suspense 잎으로 | 맞음 | 첫 MISS 방문자 상태가 1일 동안 모두에게 간다(오늘 버그 그대로) | 버림 |
+| R-C | mount 뒤에만 rail 렌더 | 맞음 | 맞음 | 첫 화면에서 폭이 바뀐다(layout shift). 버림 |
+
+- rev2: R-A는 U1b가 아니라 QW2(hotfix)로 먼저 나간다(§7, §10 Q10). 폴더 이동 없이 rail 컴포넌트 4개와 root layout만 바뀐다. 그래서 U1b는 구조 이동만 남는다.
+- 감사 A2의 처방(false로 seed, mount 뒤 `useEffect`로 쿠키 읽기)은 쓰지 않는다. 접힘 사용자에게 첫 화면 폭이 한 번 바뀐다. R-A는 paint 전에 CSS가 폭을 정해서 그 깜빡임이 없다.
+- next-themes가 같은 방식이다(차단 script + class). 테마와 같은 시점에 적용된다.
+- 쿠키 `railCollapsed`는 이름과 값(`1`, `0`)을 그대로 둔다. 기존 사용자의 상태가 유지된다. 서버는 더 읽지 않는다.
+- `useHydrateAtoms([[isLeftRailCollapsedAtom, initialCollapsed]])` 두 곳(`LeftRailAside.client.tsx:27`, `LeftRail.client.tsx:35`)을 지운다. 오늘 고친 per-request JotaiProvider(공유 store 버그)는 그대로 둔다. 서버 seed가 없으니 그 버그의 원인 자체가 없어진다.
+- script는 server root layout에 둔다. client 컴포넌트가 `<script>`를 렌더하면 React 19가 경고한다(오늘 `fd0e7a5` 커밋의 next-themes 경고와 같은 종류, 추정).
+- 확인(고의 파손, deliberate breakage): 쿠키 `railCollapsed=1`로 `/`를 연다. 콘솔 hydration 오류 0, 첫 paint 폭 = 접힘. script를 지운 빌드에서는 폭이 바뀌는 것을 본다.
+
+### 4.4 경로 규칙: per-route prop 대신 `usePathname()`
+
+| 경로 | RecentVisited | rail 자체 | 근거 |
+| --- | --- | --- | --- |
+| `/@u/projects`, `/@u/projects/<p>` | 숨김 | 보임 | #79 |
+| `/@u/<slug>` 중 프로젝트 글 | 숨김 | 보임 | #79. 경로만으로는 알 수 없다(아래) |
+| `/@u/saved` | 해당 없음 | **숨김** (오늘 rail 없음) | 오늘 동작 유지. §10 Q2 |
+| 그 밖 | 보임 | 보임 | 오늘과 같음 |
+
+- 규칙은 순수 함수 하나: `utils/rail-visibility.ts` `railVisibility(pathname) → { showRail, showRecent }`. `RESERVED_HANDLE_SEGMENTS`(`@repo/types`)를 import해 경로 이름을 고정한다.
+- 한계: slug가 프로젝트 글인지는 tree가 정한다. URL에는 없다. 그래서 `usePathname()`만으로 #79를 지킬 수 없다.
+- 권고: `[slug]` 잎(`RightRailSwitch`)이 프로젝트 글일 때 `<RailContextPublisher hideRecent />`를 렌더한다. `TocPublisher`와 같은 effect + cleanup 방식이다. Activity에서도 안전하다(숨겨지면 cleanup).
+- RecentVisited는 localStorage를 mount 뒤에 읽는다. 그래서 같은 commit에서 숨김 신호가 오면 깜빡임이 보이지 않는다(추정. U1 확인 항목).
+- 대안: 프로젝트 글 상세에서는 RecentVisited를 보인다(#79 일부 완화). §10 Q1.
+
+### 4.5 위험 (U1 한정)
+
+| 위험 | 내용 | 대응 |
+| --- | --- | --- |
+| `[handle]` `@` 검사와 중첩 | `/foo`도 `(shell)` layout을 지난 뒤 `[handle]` layout에서 `notFound()`다 | `notFound()`는 부모의 not-found 경계로 간다. `(shell)/not-found.tsx`를 만들지 않는다. 그러면 root `not-found.tsx`가 root layout의 children을 바꾼다. 404는 오늘처럼 rail 없이 나간다 |
+| 404 요청이 rail 데이터를 부름 | 봇의 임의 경로마다 `(shell)` layout의 TagCloud가 돌 수 있다(layout은 병렬 렌더) | U5에서 TagCloud를 `'use cache'`로. 그 전에는 기준선의 404 MISS 비율을 본다 |
+| `loading.tsx` 자리 | `(shell)/loading.tsx`를 두면 `(feed)`와 `[handle]` 전체를 감싼다 | 만들지 않는다. 기존 `loading.tsx` 6개는 segment 안에 그대로. rail은 로딩 중에도 보인다 |
+| `about`, `resume` 폭 | ContentFrame의 `max-w-3xl`이 맞지 않는다 | 그 둘의 layout은 `<main className="flex min-w-0 flex-1 flex-col">`만 렌더 |
+| `/@u/saved`에 rail이 생김 | `[handle]` 전체가 group 안으로 간다 | `railVisibility`가 숨긴다(§4.4) |
+| 프로젝트 글 판단이 잎으로 감 | 잎이 늦으면 오른쪽 rail이 skeleton을 먼저 보인다 | fallback = 오른쪽 rail skeleton. 기준선과 비교 |
+| `UserContextSheet.client.tsx`, `BlogShell.test.tsx` | BlogShell을 import한다 | sheet는 이미 연결 해제된 파일. test는 쓰지 않는 파일(테스트 중단). 둘 다 이름만 고친다 |
+
+## 5. 기준선(baseline) 측정 계획
+
+### 5.1 무엇을 알려고 하나
+
+- CC 단위마다 이동이 빨라지는가, RSC 요청과 바이트가 줄어드는가를 안다.
+- 동시에 #68의 50 / 10 s 한도를 넘지 않는가, 엣지 HIT와 비공개 BYPASS가 그대로인가를 지킨다.
+
+### 5.2 측정 경로 (walk)
+
+| ID | 순서 (앱 안 클릭, URL 입력 아님) | 무엇을 보나 |
+| --- | --- | --- |
+| W1 | `/` → 왼쪽 메뉴 "My blog" `/@taeklim/posts` → 메뉴 "Projects" `/@taeklim/projects` → 카드 `/@taeklim/projects/<P>` → 글 `/@taeklim/<S>` → 메뉴 Home `/` | 이동 시간, `_rsc` 수, payload 바이트 (오너 요청 경로 포함) |
+| W2 | W1 끝에서 브라우저 뒤로 ×3 | client router cache 재사용(staleTimes) |
+| W3 | `/`에서 load-more 2회까지 스크롤 | #70 가드. 10초 창의 최대 요청 수 |
+| W4 | 카드 1장에 마우스 올리기 1회, 메뉴 링크 6개가 보이는 첫 화면 | 링크 1개당 prefetch 요청 수 (segment prefetch) |
+
+- `<P>`, `<S>`는 실행 전에 고정해 `manifest.json`에 적는다. 같은 값을 모든 실행에 쓴다.
+- 팔(arm) 둘: 익명(시크릿 창), 로그인(오너). 로그인은 엣지를 BYPASS하므로 오리진 효과가 그대로 보인다.
+
+### 5.3 지표 (실행 전에 적는다, `rules/measurement.md` §1)
+
+판정은 단위마다 주 지표 하나로 한다. 나머지는 기록만 한다.
+
+주 대비는 모든 단위가 같다: 직전 단위 뒤 3회 중앙값 vs 이 단위 뒤 3회 중앙값. 첫 비교의 기준은 U0b 기준선이다.
+
+| 단위 | 주 지표 | 판정선 (통과) | 실패 조건 |
+| --- | --- | --- | --- |
+| QW1 빠른 수정 | 서버 fetch 수 / MISS 렌더 1회. 페이지 3개 합: `/`, `/@taeklim/posts`, `/@taeklim/<S>`. 각각 `?cb=` 새 값. `ssr_fetch` 로그 줄(U0a)을 그 요청 시간 창에서 센다 | 줄어든 수 ≥ max(범위 × 2, 2) | 미달이면 "중복 제거 효과 없음"으로 적는다. 가드가 통과하면 코드는 남긴다(C3, C2는 스트리밍 순서 수정이라 정확성 이득) |
+| QW2 rail 폭 hotfix | 정확성 판정(이진). (1) 익명 MISS `/?cb=X`의 HTML이 `Cookie: railCollapsed=1` 유무와 무관하게 rail 폭 class가 같다. (2) 쿠키 1인 브라우저의 첫 paint 폭 = 접힘(오너, Performance filmstrip). (3) hydration 오류 0 | 셋 모두 참 | 하나라도 거짓이면 되돌림 |
+| U1 공유 rail | W1 익명, `text/x-component` 응답 본문 바이트 합 | 줄어든 양 ≥ max(범위 × 2, 기준선 HAR rail 조각 크기 × 0.5) | 미달이면 "바이트 효과 없음"으로 적는다. 가드가 통과하면 U1은 남긴다(구조 정리) |
+| U2 staleTimes | W2 익명, 뒤로 3회 동안의 `_rsc` 요청 수 | 줄어든 수 ≥ max(범위 × 2, 1) | 0 감소면 되돌림(설정 한 줄) |
+| U3 잎 정리 | W1 로그인, 5단계(글 상세) 이동 시간 p50 (`[nav]` 로그) | 줄어든 양 ≥ max(범위 × 2, 기준 p50의 10 %) | 미달이면 "효과 없음"으로 적는다. 가드가 통과하면 남긴다(U4의 필수 준비) |
+| U4 flag on | W1 로그인, 이동 시간 p50 (5단계 전체) | 줄어든 양 ≥ max(범위 × 2, 기준 p50의 10 %) | 미달이면 U4 되돌림과 `recover` |
+| U5 'use cache' | MISS TTFB p50, `/`, `/@taeklim/projects`, `/@taeklim/<S>`, `?cb=` | 줄어든 양 ≥ max(범위 × 2, 50 ms) | 미달이면 그 fetcher의 지시문 되돌림 |
+| U6 무효화 | 정확성 판정(이진). 글 1개 제목 수정 → 스크립트 1회 → 60초 안에 익명 창과 로그인 창 모두 새 제목 | 참 | 거짓이면 되돌림 |
+| U7 load-more | W3 동안 `my.`에 온 `/api/posts/load-more` 요청 수 (`proxy.ts` 요청 로그) | (b)안: 0. (a)안: 두 번째 같은 스크롤에서 `cf-cache-status: HIT` 비율 ≥ 90 % | 미달이면 되돌림 |
+
+- QW1 지표를 Next 쪽에서 세는 이유: SSR 호출은 `blog-api.`(Cloudflare 경유)로 간다. 익명 GET은 엣지 HIT라 Express 로그에 남지 않을 수 있다(감사 §5-6).
+- `React.cache`가 `generateMetadata`, layout, page를 한 요청으로 묶는지는 확인하지 못했다(감사 §5-7). QW1 지표가 이것을 같이 잰다: `/@taeklim/<S>`의 `/posts/slug/` 줄이 1이면 묶는다.
+- 판정선의 범위 값은 기준선 3회를 잰 뒤 채운다. 그 전에 공식은 바꾸지 않는다. pm이 공식을 `decisions.plan.md` 행으로 먼저 남긴다(write-first).
+- 10 %, 50 ms, 1, 0.5는 잡음이 0일 때의 바닥값이다. 바이트처럼 결정적인 지표에만 쓰인다.
+
+가드 (모든 단위, 하나라도 깨지면 그 단위 되돌림):
+
+| ID | 가드 | 통과 |
+| --- | --- | --- |
+| G-a | W1+W3+W4 동안 10초 창 최대 요청 수 (`/_next/` 제외, Cloudflare 규칙과 같은 범위) | 기준선 + 20 % 이하. 30을 넘으면 그 자체로 오너 경보(되돌림 조건은 아님) |
+| G-b | W4 링크 1개당 prefetch 요청 수 | 기준선보다 늘지 않음 |
+| G-c | `./_scripts/cloudflare/traffic-check.sh` | 0 FAIL |
+| G-d | 공개 표본 응답 `set-cookie` | 0줄 |
+| G-e | `/nope`, `/@nope/x` status (layout 단계 `@` 검사) | 404. 200이면 엣지가 1일 저장한다. flag 아래에서 200이 되면 처방 = `@` 검사를 `proxy.ts`로 옮겨 not-found로 rewrite (shell이 먼저 나가지 않게) |
+| G-e2 | `/@taeklim/nope` status (slug 단계) | 기록만. 오늘도 `[slug]/loading.tsx` 때문에 첫 flush 뒤 `notFound()`라 200 + noindex일 가능성이 높다. 기준선이 확정한다. 발행 뒤 purge가 그 200을 지운다 |
+| G-f | W1 콘솔 hydration 오류 | 0, rail 펼침과 접힘 두 상태 모두 |
+| G-g | 비공개 글 고의 파손: 익명 창에서 오너의 비공개 글 URL | 404 화면, 본문 없음 |
+| G-h | 같은 URL의 prefetch와 이동이 서로 다른 `_rsc` 값 | 다름 (Cloudflare는 `Vary`로 key를 나누지 않는다) |
+| G-i | VM 메모리 (`./_scripts/gcp/vm-metrics.sh 1`) | 최대 < 80 %. 오늘 35–57 % (`deploy/traffic/README.md` §4b) |
+| G-j | 서버 fetch 수 / MISS 렌더 (QW1 지표) | QW1 뒤 단위에서 늘지 않음 |
+| G-k | 익명 HTML이 `railCollapsed` 쿠키와 무관 (QW2 판정 (1)) | QW2 뒤 모든 단위에서 참 |
+| G-l | 감사 PASS 항목 회귀 없음: B1, B3 (`rg -n "Promise\.all"` 0건, action은 mutation 전용), C5 (본문, feed 첫 10개, 댓글이 HTML에 있음), C6 (`initialData` seed 유지), D2 (`prefetch=` 수 불변 또는 감소), D3 (`?_rsc=` `text/x-component` HIT) | 모두 유지 |
+
+기록만 하는 지표: 단계별 payload 바이트, 단계별 `_rsc` 수, 익명 이동 시간, HIT 표본 TTFB, Cloudflare Percent cached 7일(대시보드), rail 조각 크기.
+
+### 5.4 측정 도구와 실행 주체
+
+| 지표 | 도구 | 누가 | 로컬 실행 규칙 |
+| --- | --- | --- | --- |
+| W1–W4 요청, 바이트, prefetch 헤더 | Chrome DevTools Network, "Preserve log", "Disable cache" **끔**, HAR 내보내기(내용 포함) | 오너 (브라우저 손 조작) | 손 조작이라 해당 없음 |
+| 이동 시간 | `instrumentation-client.ts`의 `onRouterTransitionStart` + pathname commit 표시 → `console.info('[nav]', from, to, ms)`. `localStorage.navTiming === '1'`일 때만 | 오너가 콘솔 로그를 저장 | 코드다. U0에서 기준선 **전에** 배포한다(§10 Q3) |
+| HAR 요약 표 | `deploy/traffic/review/cc/har_summary.py` (developer가 씀) | main session | 저장된 HAR만 읽는다. `OMP_NUM_THREADS=1 timeout 300 uv run python ...` = "Allowed locally" |
+| MISS/HIT TTFB, 상태, 헤더 | `curl` (아래) | main session | `traffic-check.sh`와 같은 종류의 GET 몇십 개. 앞선 선례대로 |
+| 서버 렌더 시간 | 없음. `proxy.ts` 요청 로그에 시간이 없다 | | MISS TTFB를 대리 지표로 쓴다. 로그에 `durationMs`를 넣을지는 §10 Q4 |
+| 서버 fetch 수와 시간 | `apis/http.server.ts` `serverRequest`가 호출마다 JSON 한 줄: `{ message: 'ssr_fetch', path, status, ms }` (U0a). Cloud Logging으로 간다(#58과 같은 경로) | main session (`deploy/logging/README.md` 질의 방식) | 코드다. U0a에서 기준선 전에 배포. 기록 코드는 하나, 실행마다 바꾸지 않는다(`rules/measurement.md` §2.4) |
+| 메모리 | `./_scripts/gcp/vm-metrics.sh 1` | main session | 읽기 전용 API 호출 |
+| HIT 비율 | Cloudflare → Analytics → Caching, 7일 | 오너 | |
+
+curl 단계 (main session, Mac, 저장소 루트):
+
+```sh
+T=$(date -u +%Y%m%dT%H%M%SZ); D=deploy/traffic/review/cc/runs/${T}_baseline; mkdir -p $D
+W=https://my.prettylog.com; U=taeklim; P='<project>'; S='<slug>'
+# sleep 1 per request: #68 blocks an IP above 50 / 10 s, and a 429 corrupts the run
+h(){ sleep 1; curl -s -o "$1.body" -D "$1.head" -w '%{http_code} %{time_starttransfer} %{size_download}\n' "${@:2}"; }
+
+# 1. MISS 렌더 (?cb= 로 엣지 key를 새로). 경로마다 3회
+for p in / /@$U/posts /@$U/projects /@$U/projects/$P /@$U/$S; do
+  for i in 1 2 3; do n=$(echo "$p" | tr '/@' '__')_miss$i
+    echo "$p $(h $D/$n "$W$p?cb=cc$T$i")" >> $D/ttfb.txt; done; done
+
+# 2. 같은 URL 다시 (HIT)
+for p in / /@$U/posts /@$U/projects; do n=$(echo "$p" | tr '/@' '__')_hit
+  echo "$p $(h $D/$n "$W$p?cb=cc${T}1")" >> $D/ttfb.txt; done
+
+# 3. RSC 전체 payload 크기 (rail 반복 확인). prefetch 헤더 있음/없음
+for p in /@$U/posts /@$U/projects /@$U/$S; do n=$(echo "$p" | tr '/@' '__')
+  echo "$p full $(h $D/${n}_rsc -H 'rsc: 1' "$W$p?_rsc=cc$T")" >> $D/rsc.txt
+  echo "$p pref $(h $D/${n}_pref -H 'rsc: 1' -H 'next-router-prefetch: 1' "$W$p?_rsc=ccp$T")" >> $D/rsc.txt; done
+
+# 4. 가드
+for p in /nope /@nope/x /@$U/nope; do echo "$p $(h $D/404 "$W$p?cb=cc$T")" >> $D/guards.txt; done
+h $D/rail0 "$W/?cb=ccr$T"; h $D/rail1 -H 'Cookie: railCollapsed=1' "$W/?cb=ccr$T"   # 오늘: 같은 HTML (버그 확인)
+grep -ic '^set-cookie' $D/*.head >> $D/guards.txt
+sleep 15   # let the 10 s window drain before traffic-check.sh's ~20 GETs
+./_scripts/cloudflare/traffic-check.sh > $D/traffic-check.txt
+./_scripts/gcp/vm-metrics.sh 1 > $D/vm.txt
+git rev-parse HEAD > $D/web_sha.txt   # 배포된 커밋과 같은지 deploy 기록으로 확인
+```
+
+- 1단계의 `?cb=` 응답은 엣지에 1일 남는다. 표본은 15개뿐이라 무시해도 된다. 다음 실행은 새 `$T`를 쓴다.
+- 3단계의 rail 조각 크기: payload 안에서 TagCloud의 태그 이름과 `rail.collapse` 문구가 나오는 구간 바이트. `har_summary.py`가 같은 규칙으로 센다.
+- curl은 `rsc: 1`만 보낸다. 브라우저가 보내는 `Next-Router-State-Tree`가 없다. 그래서 curl 바이트는 "전체 트리" 크기다. 브라우저 HAR 바이트와 섞어 비교하지 않는다.
+
+실행 폴더 (`rules/measurement.md` §2):
+
+```
+deploy/traffic/review/cc/
+├── 00.runs.md                    결과 대장. 한 행 = 한 실행
+├── criteria.md                   §5.3 표 사본 + 범위 값. 첫 비교 전에 커밋
+├── har_summary.py                CODE_VERSION 상수, sha를 manifest에 적음
+└── runs/<T>_<tag>/               tag = baseline1..3, u1, u2, ...
+    ├── manifest.json             web_sha, 단위, 팔, <P>, <S>, 브라우저 버전, rail 상태
+    ├── w1-anon.har  w1-auth.har  w2 … w4
+    ├── nav.log                   [nav] 콘솔 줄
+    └── ttfb.txt rsc.txt guards.txt traffic-check.txt vm.txt *.head
+```
+
+### 5.5 운영(prod)과 local.prettylog.com의 역할
+
+| 어디 | 무엇을 | 숫자를 판정에 쓰나 |
+| --- | --- | --- |
+| 운영 `my.prettylog.com` | §5.3 모든 지표와 가드 | 예. 유일한 판정 근거 |
+| `local.prettylog.com` (dev 서버, 운영 API) | U4 전 확인: dev가 "Suspense 밖 uncached data" 오류를 보이는가, hydration 오류, rail 상태, `_rsc` key 분리 | 아니다. dev는 on-demand 컴파일이고 prefetch가 운영과 다르다 |
+| GH Actions 빌드 잡 | 빌드 통과. flag on에서 빌드 오류 목록 | 통과/실패만 |
+
+- dev 서버 실행은 실행마다 오너 허락이 필요하다(`~/.claude/CLAUDE.md` "No local execution", Q-L 선례).
+- 로컬 `next build`는 하지 않는다. 빌드는 GH Actions에서만이다(Phase GCP Constraints).
+- 잡음: 기준선을 3회 잰다. 같은 시간대, 같은 브라우저, 같은 `<P>`, `<S>`. 첫 1회 전에 W1을 한 번 돌려 엣지를 데운다(그 실행은 버린다).
+
+## 6. 전략 (strategy) A/B/C
+
+모두 초안 G-CC(hand-back: "로그인 W1 이동 시간 p50을 기준선보다 판정선 이상 줄인다, 가드 전부 통과")를 섬긴다.
+
+| 안 | 내용 | 장점 | 단점 |
+| --- | --- | --- | --- |
+| A 안정(stable) | flag 없음. 공유 rail + client rail 상태 + `staleTimes` + 잎 정리까지만 | 위험이 가장 작다. 빌드 방식 불변 | static shell prefetch가 없다. velog 글의 핵심 처방을 못 쓴다. 이동 시간 효과가 작을 수 있다 |
+| **B 단계(scalable), 권고** | A + flag on(모든 데이터는 Suspense 잎, 캐시 없음) + `'use cache'`는 공개 저빈도 데이터 3개만 + `/api/revalidate` | MVP 사다리와 맞다. 단위마다 되돌리기가 작다 | flag on 단위의 빌드 오류 수정이 한 번에 몰린다(U3 사전 정리로 줄인다) |
+| C 최신(cutting-edge) | B + 모든 글 `generateStaticParams` + `'use cache: remote'`(Redis 등 공유 저장소) + viewport prefetch 다시 켜기 | 첫 방문까지 빠르다 | 빌드가 운영 API를 대량 호출한다. VM 1대라 remote cache 이득이 없다. #70과 #68에 어긋난다. 버림 |
+
+## 7. 작업 단위 (design units, 크기와 순서만, 일정 없음)
+
+```
+U0a 계측 ─► U0b 기준선 ─► QW1 빠른 수정 ─► QW2 rail 폭 hotfix ─► U1a ─► U1b 공유 rail ─► U2 staleTimes ─► U3 잎 정리
+ MVP1 (flag off) ──────────────────────────────────────────────────────────────────────────────────────────────┘
+   ─► U4 flag on ─► U5 'use cache' 3개 ─► U6 무효화 ─► U7 load-more (U0b 뒤 어디든 가능, 기본 자리는 끝)
+      MVP2 ───────┘ MVP3 ─────────────────────────────────────┘
+```
+
+각 단위의 주 지표와 판정선은 §5.3, 가드 정의는 §5.3 가드 표다. "전부" = G-a부터 G-l까지.
+
+| # | 단위 (무엇을 바꾸나) | 단계 | 크기 | 선행 | 주 지표 (§5.3) | 가드 | 배포 + purge | 닫는 감사 항목 | 되돌림 조건 (kill) → 방법 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| U0a | `[nav]` 계측 `instrumentation-client.ts`, `ssr_fetch` 로그 줄(`http.server.ts`), `har_summary.py`, `criteria.md` | MVP1 | S | P1 gate PASS (§10 Q12) | 없음 (계측) | G-c, G-d, G-f | 예 + purge | 감사 §5-3, §5-4, §5-6의 측정 수단 | 계측이 동작을 바꿈(콘솔과 로그 외 부작용) → 파일 revert |
+| U0b | 기준선 3회 + 범위 값 + D-행. D1 재현(curl 쿠키 유무), load-more `cf-cache-status`, 404 status 포함 | MVP1 | S | U0a | 없음 (기준) | 측정만 | 아니오 | 감사 §5-3, §5-4 (재지 않은 것) | 3회 범위가 지표 중앙값의 50 % 넘음 → 측정 방법 재설계 |
+| QW1 | (1) C3: `PostContentCard.server.tsx:124` `<Comments>`를 Suspense + 댓글 skeleton. (2) C1: `getUserProfile`, `getCategoriesByUsername`, `getPopularTags`, `getUserPopularTags`를 `cache()`, 위치 인자 원시값, token은 `null`로 정규화. (3) C2: `posts/page.tsx:74` `getTagFilterItems`를 async 잎 `FilterChipRowLeaf`로 옮겨 Suspense. (4) A3: `posts/page.tsx:85` `CategorySidebarWrapper`를 Suspense. (5) B2: `app/actions/post.action.ts` → `x_post.action.ts` | MVP1 | S | U0b | 서버 fetch 수 / MISS 렌더 | 전부 | 예 + purge | C1, C2(`/@u/posts` 절반), C3, A3, B2, C7(일부) | G-a..G-l 하나라도 실패 → `git revert` + 재배포 + purge |
+| QW2 | R-A(§4.3): root layout 차단 script + `<html data-rail>` + CSS 폭. `BlogShell.server.tsx:44`, `LeftRailContainer.server.tsx:19`의 `cookies()` 삭제. `useHydrateAtoms` 2곳 삭제. about, resume layout 주석 정정 | MVP1 | S | QW1 (같은 배포로 묶지 않는다, 판정을 섞지 않으려고) | 정확성 판정 (이진) | 전부 + G-k | 예 + purge (필수, 옛 폭이 엣지에 1일 남음) | A2, D1, D5 | 판정 하나라도 거짓 → `git revert` + 재배포 + purge |
+| U1a | `app/[handle]/components/` → `components/projects/`, import 19곳 정리 | MVP1 | S | QW2 | 없음 (동작 불변) | G-c, G-e, smoke §7.3 | 예 + purge | 없음 (U1b 준비) | 빌드 실패 또는 smoke 변화 → `git revert` |
+| U1b | `(shell)` group, RailFrame/ContentFrame, `railVisibility`, `RailContextPublisher` (§4) | MVP1 | M | U1a | W1 익명 RSC 바이트 | 전부 + smoke §7.3 | 예 + purge | D6 | 가드 실패 또는 smoke 하나라도 status나 `location` 변화 → `git revert` + 재배포 + purge |
+| U2 | `experimental.staleTimes = { dynamic: 30 }`. `static`은 두지 않는다(기본 300초, flag 뒤 default `cacheLife.stale`, `cacheLife.md` 257행) | MVP1 | S | U1b | W2 `_rsc` 수 | 전부 | 예 + purge | A6 | 판정 실패 또는 오너가 30초 지연 거부(Q6) → 설정 줄 삭제 |
+| U3 | flag off로 잎 정리: D11 `[slug]` rail 고르기 → Suspense 잎 `RightRailSwitch`(A7). 로그인 글 읽기 preload: page 맨 위 `void getPostBySlug(slug, token)`(C4, token 읽기는 잎 안). D12 `MobileContextHeader` Suspense, D8, D23. "빌드만" GH Actions 잡 + flag on 시험 빌드(배포 없음) | MVP1 | M | U2 | W1 로그인 5단계 이동 p50 | 전부 | 예 + purge | A7, C4, C2(`[slug]` 절반), C7(나머지) | 가드 실패 → `git revert` |
+| U4 | `cacheComponents: true`, D4–D7 `force-dynamic` 삭제, D9, D15, D21 sample, D25 `loading.tsx`, D26, D27 처리, D1 확인 | MVP2 | M | U3 | W1 로그인 이동 p50 | 전부 | 예 + purge | A1(확인), A4, A5, A8(sample로 재평가) | 판정 실패, G-e 실패, 또는 빌드가 스키마나 URL 변경 없이 통과 못함 → U4 커밋 `git revert` + 재배포 + purge (§3.1) |
+| U5 | `'use cache'` + `cacheTag` 3개: TagCloud(`tags`), tree(`tree:<u>`), projects(`projects:<u>`). token = null 경로만 | MVP3 | M | U4 | MISS TTFB p50 | 전부 (특히 G-i) | 예 + purge | 없음 (감사 밖, CC 계획) | 판정 실패, G-i, revalidate 뒤 옛 tree → 그 fetcher 지시문 삭제 |
+| U6 | `POST /api/revalidate` + `cf-purge.sh`가 먼저 부름 + Server Action은 `updateTag` (§8.3) | MVP3 | S | U5 | 정확성 판정 (이진) | 전부 | 예 + purge | 없음 (U5의 안전장치) | 판정 거짓 → 스크립트 revert. `cacheLife`가 최대 지연 상한 |
+| U7 | B4 load-more. 기본 (b)안: `RecentPostsList.client.tsx:62`, `TagPostsList.client.tsx:60`이 `blog-api.` 피드 GET을 직접 부른다. 로그인이면 Clerk client token을 `Authorization`에 실어 draft도 받는다(첫 page와 같은 규칙). `app/api/posts/load-more/route.ts`는 `x_` 접두로 은퇴. (a)안은 §10 Q11 | MVP3 (CC와 독립) | M | U0b | W3 동안 `my.` load-more 요청 수 | 전부 + Express L-b 한도(`log` 모드 경고 수) | 예 + purge | B4 | 판정 실패, 로그인 draft가 2쪽부터 안 보임 → `git revert` |
+
+- 깜빡임 없는 hotfix(QW2)를 U1b에서 떼어 낸 이유: D1은 지금 모든 익명 독자에게 보이는 정확성 버그다. U1b는 폴더 이동이라 크고 늦다. QW2는 rail 파일 4개와 root layout만 바꾼다. §10 Q10 기본값.
+- QW1과 QW2는 flag와 무관하다. P1 gate 전에 낼지는 §10 Q12.
+- D4(tree 링크를 `<a href>`로)는 미룬다. 이유는 §12.
+
+- 단위 하나 = 배포 하나 = purge 하나다(웹 배포 뒤 purge, `deploy/traffic/README.md` "Purge after a new post"). §10 Q7.
+- 글 본문(`getPostBySlug`)과 피드는 U5에 넣지 않는다. 변경이 잦고 비공개 글 token 경로가 섞인다. 다음 capability로 따로 연다(사다리 "Repeat").
+- U4의 sample: `[handle]` = `@<HOME_FEED_AUTHOR>`, `[slug]`와 `[project]`는 §10 Q5.
+
+### 7.1 MVP 사다리 대응
+
+`.claude/CLAUDE.md` "System build phasing"을 인용한다. 다시 쓰지 않는다.
+
+| 단계 | 이 phase의 "스키마(계약)" | real | 끝-끝 순환 |
+| --- | --- | --- | --- |
+| MVP1 모양 | §3.1 배치 규칙 + §7.2 캐시 지도 + `/api/revalidate` 요청 모양 + `ssr_fetch` 로그 줄 모양 + 빌드 잡 | U0, QW1, QW2, U1, U2, U3. flag off | W1–W4가 운영에서 돈다. 가드 통과 |
+| MVP2 조각 하나 | 같은 계약 | U4: flag on. 데이터는 모두 Suspense 잎, 캐시 없음 | 같은 순환. 주 지표 판정 |
+| MVP3 핵심 이전 | 같은 계약 | U5 `'use cache'` 3개 + U6 무효화 + U7 load-more | 같은 순환. 수정 → revalidate → purge → 새 값 |
+
+- mock은 없다. 기다리는 backend가 없어서다(사다리 "real data exists and no backend is needed").
+- 계약 변경이 필요하면(예: 새 tag 이름, 새 route) 그 단위는 MVP1로 돌아간다.
+
+### 7.2 캐시 지도 (cache map, MVP1 계약)
+
+| route | static shell에 드는 것 | `'use cache'` (U5, tag, life) | 요청마다 (Suspense 잎) |
+| --- | --- | --- | --- |
+| 모두 | root layout, nav, RailFrame, PrimaryNav | TagCloud (`tags`, hours) | rail 접힘(client), RecentVisited(client) |
+| `/` | ContentFrame, skeleton | 없음 | 피드 첫 페이지(`auth`), HomeRightRail 잎 |
+| `/@u/posts` | ContentFrame, skeleton | tree (`tree:<u>`) | 피드, 필터(`searchParams`), 프로필 |
+| `/@u/projects*` | ContentFrame, 제목 skeleton | 카드, 목록 (`projects:<u>`), tree | `ProjectsTreeWrapper`(`auth`) |
+| `/@u/<slug>` | ContentFrame, 본문 skeleton | tree (rail 고르기) | 본문, JSON-LD, TOC(`auth`), 댓글 |
+| `/@u/about`, `/@u/resume` | 전부 (코드에 박힌 내용) | 없음 | 인쇄 날짜(client) |
+| `/sitemap.xml`, OG | | 데이터 fetch만 (`days`). OG 이미지 렌더는 캐시 밖 | 이미지 렌더 (엣지가 1일 저장) |
+
+- `'use cache'` 안에서는 token을 쓰지 않는다. token이 있는 호출은 언제나 잎이고 캐시하지 않는다. 비공개 글이 캐시에 들어갈 길이 없다.
+
+### 7.3 smoke 표본 (URL 불변 확인, 15개)
+
+기준선에서 status와 `location`을 저장한다. 단위마다 같은 값이어야 한다.
+
+| # | URL | 기대 (기준선이 확정) |
+| --- | --- | --- |
+| 1–5 | `/`, `/@taeklim/posts`, `/@taeklim/projects`, `/@taeklim/projects/<P>`, `/@taeklim/<S>` | 200 |
+| 6–7 | `/nope`, `/@nope/x` | 404 |
+| 8 | `/@taeklim/nope` | 기록 (G-e2) |
+| 9–12 | `/blog`, `/blog/@taeklim`, `/about`, `/resume` | 308 + `location` |
+| 13 | `/@taeklim` | 308 → `/@taeklim/posts` |
+| 14 | `/me/saved` (익명) | 로그인으로 redirect |
+| 15 | `/sitemap.xml` | 200, 글 URL 수 동일 |
+
+## 8. Cloudflare 엣지 HTML 캐시, #70 prefetch 정책과의 관계
+
+### 8.1 층별로 무엇이 바뀌나
+
+```
+브라우저 ─(HTML, _rsc)─► Cloudflare my. ─MISS─► Next (VM) ─fetch─► Cloudflare blog-api. ─MISS─► Express ─► Supabase
+  client router cache        HTML·_rsc 1일          'use cache' (U5)        s-maxage                    
+  staleTimes / cacheLife.stale                       static shell (U4)
+```
+
+| 층 | 익명 | 로그인(`__session`, BYPASS) |
+| --- | --- | --- |
+| 브라우저 router cache | U2와 U4가 `_rsc` 재요청을 줄인다. 요청 수 한도에 도움 | 같음 |
+| Cloudflare HTML·`_rsc` | 변화 없음. 응답은 shell + 스트림이 한 HTTP 응답이다. 엣지는 전체를 저장한다 | 해당 없음 (BYPASS) |
+| Next 오리진 | MISS 렌더가 싸진다(shell 재사용, U5 캐시) | 효과가 가장 크다. 모든 요청이 오리진에 온다 |
+
+- 익명 HTML의 결정은 그대로다: 1일, 배포 뒤 purge.
+- 완전히 static이 되는 route(about, resume)는 Next가 `s-maxage`를 보낼 수 있다. 엣지 규칙은 "Ignore cache-control"이라 그대로다. 브라우저 TTL은 "Respect origin"이다. `traffic-check.sh`의 "HTML browser cache-control" 줄이 이것을 본다(G-c).
+
+### 8.2 prefetch 요청이 늘어나나
+
+- 늘 수 있다. Next 16은 segment 단위로 prefetch한다(`Next-Router-Segment-Prefetch`). 링크 하나가 요청 여러 개가 된다. 오늘 `resume ×4`가 그 예다(`deploy/traffic/review/prefetch-source.md` §2).
+- flag on 뒤에는 static shell이 생긴다. 그래서 prefetch가 받을 segment가 늘 수 있다.
+- 줄이는 힘도 있다: 공유 rail로 rail segment를 한 번만 받는다. staleTimes와 cacheLife.stale로 재요청이 준다.
+- 그래서 판정은 측정으로 한다: G-a(10초 창 ≤ 30), G-b(링크당 prefetch 수 불변).
+- #70 정책은 그대로다. viewport prefetch를 다시 켜지 않는다. 새 `Link`는 `prefetch={false}` 또는 hover(`HoverPrefetchLink`).
+- 메뉴 링크(`PrimaryNav`)는 오늘 viewport prefetch다(#70 e: "처음 한 번뿐"). G-b가 깨지면 첫 처방은 메뉴 링크를 hover로 바꾸는 것이다.
+- 어림(검증 전): 메뉴 6개 × segment 2–4 = 첫 화면 12–24 요청. 50 / 10 s 아래지만 W3 스크롤과 겹치면 가깝다. 그래서 G-a 선을 30으로 둔다.
+
+### 8.3 무효화 순서
+
+```
+글 발행/수정 ──► Express/blog_agent DB 쓰기
+                 │
+                 ├─(1) POST my./api/revalidate {tags}  revalidateTag(tag, { expire: 0 })  ← 'max'(SWR)면 첫 요청이 옛 값을 내고 엣지가 그것을 1일 저장한다
+                 └─(2) cf-purge.sh  (두 host 함께, 오늘 규칙)
+```
+
+- 순서가 중요하다. (2)를 먼저 하면 엣지가 옛 Next 캐시로 다시 찬다.
+- `/api/revalidate` 계약: `POST`, 헤더 `x-origin-key`(#64와 같은 비밀), 본문 `{ "tags": string[] }`, 응답 `{ success, data: { revalidated: string[] } }`. 허용 tag는 §7.2의 이름만.
+- 이 route는 `/api/`라 엣지 "web cache" 규칙 밖이다. rate limit 규칙에는 들어간다(1회 호출이라 무관).
+- 오늘 발행 뒤 purge는 오너가 손으로 한다. U6는 `cf-purge.sh`가 (1)을 먼저 부르게 바꾼다. 잊어도 `cacheLife`(hours)가 최대 지연을 막는다.
+- 앱 안 Server Action(`app/actions/postPublish.action.ts`)은 `updateTag`를 직접 부를 수 있다. blog_agent는 DB에 바로 쓴다. 그래서 스크립트 경로가 필요하다.
+
+## 9. 위험
+
+| 위험 | 영향 | 대응 |
+| --- | --- | --- |
+| 수정 뒤 옛 내용 | U5 뒤 tree, projects, tags가 cacheLife 동안 옛 값 | §8.3 순서. `expire: 0`. cacheLife = hours 상한 |
+| 엣지 1일 + Next 캐시 이중 | purge만 하면 옛 Next 값으로 다시 찬다 | (1) → (2) 순서를 스크립트에 고정 |
+| 빌드가 운영 API를 부름 | `'use cache'` 데이터와 `generateStaticParams`가 GH runner에서 `blog-api.`를 호출한다. `(feed)/page.tsx` 주석이 일부러 피한 일이다 | U4는 데이터 없이 통과하게 설계(모두 Suspense 잎). U5의 static 데이터만 빌드에서 부른다. §10 Q8 |
+| sample 밖 param이 디스크에 저장됨 | 첫 성공 요청마다 저장. 봇이 임의 slug를 두드림 | 404는 성공이 아니라 저장되지 않는다(추정, U4 확인: 배포 후 `.next` 크기 1주 관찰) |
+| VM 메모리 1 GB | `'use cache'` in-memory LRU가 메모리를 쓴다 | U5는 데이터 3개만. G-i. 메모리 알림 90 %가 이미 있다 |
+| Clerk | `auth()`가 Suspense 밖에 남으면 빌드 오류. root `ClerkProvider`에 `dynamic`을 붙이면 전부 dynamic | `dynamic` prop 금지를 규칙으로 적는다. D16–D20은 이미 잎 |
+| hydration | rail 상태 불일치(오늘 고친 shared-store 버그와 같은 종류) | R-A는 서버 seed를 없앤다. G-f 두 상태 확인 |
+| Activity (flag on) | 숨겨진 route가 mount된 채 남는다. effect가 뒤로 가기 때 다시 돈다 | `TocPublisher`는 cleanup이 있어 안전. `RecordRecentView` effect는 뒤로 가기마다 다시 기록한다. 최근 본 글 순서만 바뀐다. 수용, U4 확인 항목. 열린 dropdown(PostActions)은 닫는 cleanup을 확인 |
+| `getLocale` 정정이 틀림 | next-intl이 다른 경로로 `headers()`를 읽음 | U3 빌드 잡(flag on 시험 빌드)이 잡는다. 그때 `setRequestLocale('en')`을 root layout에 추가 |
+| `_rsc` key 섞임 | prefetch(shell)와 이동(전체)이 같은 key면 엣지가 shell을 이동에 낸다 | G-h. 깨지면 U4 되돌림 |
+| `force-dynamic` 삭제 후 flag off | flag 없이 지우면 Next가 빌드 때 prerender를 시도할 수 있다 | D4–D7 삭제는 U4(flag on)에서만 한다 |
+| 다른 세션과 충돌 | `components/rail/*`, `app/[handle]/*`는 Phase PJ 파일이다 | CC는 P1 gate PASS 뒤에만 연다(M5 조건). P2 행과 같은 파일이면 pm이 순서를 정한다 |
+| 404의 rail 비용 | §4.5 | U5 TagCloud 캐시 |
+| QW1 `cache()`의 token 정규화 | 감사 C1은 token을 `null`로 맞추라고 한다. `CategorySidebarWrapper`는 소유자 token으로 비공개 카테고리를 읽는다. 강제로 `null`이면 소유자가 자기 비공개 카테고리를 못 본다 | token은 인자로 남긴다. 같은 인자일 때만 합쳐진다. `null`은 원래 익명 호출인 곳에서만. 익명 요청에서는 모두 `null`이라 그대로 합쳐진다 |
+| QW1 `cache()` 범위 | `React.cache`가 `generateMetadata`와 page를 한 요청으로 묶지 않으면 효과가 작다 | QW1 지표가 직접 잰다(§5.3 주석) |
+| QW2 배포 뒤 옛 폭 | 엣지에 옛 HTML(쿠키 폭)이 1일 남는다 | 배포 직후 purge 필수 |
+| U7 (b)안 | 브라우저가 `blog-api.`를 직접 부른다. Express L-b 한도(IP당 읽기 120 / 60 s, 지금 `log` 모드, #62, #67)를 독자 IP가 받는다 | W3 스크롤은 그 한도의 몇 %다. `rate_limit` 경고 수를 U7 가드로 본다. CORS는 이미 `Origin: my.` HIT(`deploy/traffic/README.md` §3) |
+
+## 10. 열린 질문 (owner)
+
+| # | 질문 | 설계 기본값 |
+| --- | --- | --- |
+rev1 Q1–Q10과 감사의 열린 항목(B4 선택, D4, §5)을 합쳤다. 중복은 하나로 줄였다. 출처 칸이 어디서 왔는지 적는다.
+
+| # | 질문 | 설계 기본값 | 출처 |
+| --- | --- | --- | --- |
+| Q1 | 프로젝트 글 상세에서 RecentVisited 숨김(#79)을 지킬까. 지키려면 잎 신호(`RailContextPublisher`)가 필요하다. `usePathname()`만으로는 알 수 없다 | 지킨다. 잎 신호 | rev1 |
+| Q2 | `/@u/saved`는 오늘 rail이 없다. group 안으로 오면 rail을 보일까 | 숨긴다 (오늘과 같음) | rev1 |
+| Q3 | 기준선 전에 계측 코드 2개를 배포해도 되나: `[nav]`(`instrumentation-client.ts`, 기본 꺼짐), `ssr_fetch` 로그 줄(`http.server.ts`) | 된다. `[nav]`가 없으면 U3, U4 주 지표 = HAR의 prefetch 아닌 `_rsc` 요청 시간. `ssr_fetch`가 없으면 QW1 주 지표를 쓸 수 없고 QW1은 기록만 한다 | rev1 + 감사 §5-6 |
+| Q4 | 서버 렌더 시간: `proxy.ts` 요청 로그에 `durationMs`를 넣을까. MISS TTFB를 대리 지표로 둘까 | TTFB 대리. `ssr_fetch`의 `ms`가 fetch 쪽 시간을 준다 | rev1 |
+| Q5 | `generateStaticParams` sample: `[slug]`, `[project]`를 env 상수, 빌드 때 API 조회, placeholder 중 무엇으로 | env 상수 (`CC_SAMPLE_SLUG`, `CC_SAMPLE_PROJECT`) | rev1 + 감사 A8 |
+| Q6 | `staleTimes.dynamic = 30`: 좋아요, 댓글 수가 뒤로 가기 때 최대 30초 늦어도 되나 | 된다 | rev1 + 감사 A6 |
+| Q7 | 단위마다 웹 배포 1회 + purge 1회 (U0a, QW1, QW2, U1a, U1b, U2, U3, U4, U5, U6, U7 = 11회) | 된다 | rev1 |
+| Q8 | U5에서 빌드(GH Actions)가 운영 `blog-api.`를 호출해도 되나 (tags, tree, projects 3개) | 된다. `x-origin-key` secret을 빌드 잡에 준다 | rev1 |
+| Q9 | 로그인 팔(arm) 측정을 오너가 3회씩 해 줄 수 있나 (HAR + 콘솔 로그) | 예. 안 되면 U3, U4 주 지표를 익명 이동 시간으로 바꾸고 D-행에 적는다 | rev1 |
+| Q10 | 엣지 rail 폭 버그(D1): U1b에 넣을까, 별도 hotfix로 먼저 낼까 | **별도 hotfix QW2** (rev1 기본값 "U1b 포함"을 바꿈). 지금 모든 익명 독자에게 보이는 버그다. 폴더 이동과 묶으면 늦고 판정이 섞인다 | rev1 + 감사 A2, D1 |
+| Q11 | load-more(B4): (a) Next `/api/posts/load-more`에 익명 `s-maxage=60` + Cloudflare 규칙 추가, (b) 브라우저가 `blog-api.` 피드 GET을 직접 부름 | (b). Cloudflare 규칙을 새로 만들지 않는다. 익명은 이미 엣지 HIT. 로그인은 token을 실어 첫 page와 같은 draft 규칙이 된다. VM 한 hop이 빠진다 | 감사 B4 |
+| Q12 | QW1, QW2(flag 무관)를 P1 gate PASS 전에 내도 되나. 오너 지시는 "P1 뒤 CC"다 | 기준선(U0) 뒤에 바로 낸다. 단 Phase PJ가 같은 파일(`posts/page.tsx`, rail 파일)을 고치는 중이면 pm이 순서를 정한다. 기준선이 P1 gate 뒤라면 그 순서를 따른다 | 감사 §4 "지금" 항목 |
+| Q13 | D4(카테고리, projects tree의 글 node를 `<Link prefetch={false}>`로)를 CC 밖으로 미뤄도 되나 | 미룬다. 성능 항목이 아니다(SEO). `app/sitemap.ts:67`이 글 URL을 모두 낸다. #70 파일과 겹친다 | 감사 D4 |
+
+## 11. `projects.design.md` §7.4 정정
+
+| 그 문서의 줄 | 정정 | 근거 |
+| --- | --- | --- |
+| "root layout `getLocale()` (headers)" 막힘, 처방 `setRequestLocale('en')` | 막힘이 아니다. `i18n/request.ts`가 `requestLocale`을 읽지 않는다. 그래서 `headers()`가 불리지 않는다. 처방 불필요. U4 빌드로 최종 확인 | `node_modules/next-intl/dist/esm/development/server/react-server/getConfig.js` 25–33행 |
+| "첫 행 = `staleTimes`" | 첫 행 = 기준선(U0), 그다음 QW1, QW2, 공유 rail(U1, 오너 2026-10-14). `staleTimes`는 U2 | 오너 지시, rev2 |
+| "`staleTimes.dynamic = 30`" 단독 효과 | flag on 뒤에는 `cacheLife(...).stale`이 client 재사용을 정한다. `staleTimes`는 flag 전의 이득이다 | `cacheLife.md` 247–257행 |
+
+## 12. 감사 항목 추적표 (traceability)
+
+무엇을 알려고: `perf.audit.md`의 25항목이 모두 어느 단위에서 닫히는가. 빠진 항목이 없는가.
+
+| 감사 상태 | 수 | 단위로 감 | 미룸 | 유지(가드) |
+| --- | --- | --- | --- | --- |
+| FAIL | 11 | 10 | 0 | 0 (A1은 정정으로 PASS 예정, U4 확인) |
+| PARTIAL | 7 | 6 | 1 (D4) | 0 |
+| PASS | 6 | | | 6 (G-l) |
+| N/A | 1 | 1 (A8, U4 재평가) | | |
+
+| 항목 | 감사 상태 | 내용 (짧게) | 닫는 단위 | 비고 |
+| --- | --- | --- | --- | --- |
+| A1 | FAIL | root layout `getLocale` | U4 확인 | §13 정정: 소스상 `headers()`를 읽지 않는다. 고칠 코드 없음 |
+| A2 | FAIL | shell `cookies()` 2곳 | QW2 | 처방은 R-A (감사의 `useEffect` 안 대신, §4.3) |
+| A3 | PARTIAL | `posts/page.tsx:85` `auth()` Suspense 밖 | QW1 | |
+| A4 | FAIL | `force-dynamic` 6곳 | U4 | flag와 같은 커밋에서만 삭제(§9) |
+| A5 | FAIL | `cacheComponents` 없음 | U4 | |
+| A6 | FAIL | `staleTimes` 없음 | U2 | `dynamic: 30`만 |
+| A7 | PARTIAL | `[slug]/layout.tsx:24` tree await | U3 | D11 `RightRailSwitch` |
+| A8 | N/A | `generateStaticParams` | U4 재평가 | flag 아래에서는 layout이 `params`를 await하려면 sample이 필요하다(§13) |
+| B1 | PASS | 읽기 action 없음, 병렬 action 없음 | 유지 (G-l) | |
+| B2 | FAIL | 죽은 읽기 action `loadMorePosts` | QW1 | `x_` 이름 바꾸기 |
+| B3 | PASS | action을 `queryFn`에 안 씀 | 유지 (G-l) | |
+| B4 | PARTIAL | load-more가 엣지 밖, token 차이 | U7 | Q11 기본 (b) |
+| C1 | PARTIAL | 요청 안 중복 fetch | QW1 | signal이 중복 제거를 끈다는 것을 소스로 확인(§2). 영향 H 유지 |
+| C2 | FAIL | 순차 await | QW1 (`/@u/posts`), U3 (`[slug]`) | |
+| C3 | FAIL | 댓글이 본문 스트리밍을 막음 | QW1 | |
+| C4 | FAIL | preload 없음 | U3 | 로그인 경로만 |
+| C5 | PASS | 색인 내용 server 렌더 | 유지 (G-l) | |
+| C6 | PASS | TanStack seed | 유지 (G-l) | |
+| C7 | PARTIAL | Suspense 경계 빠짐 | QW1 (`:85`, `:124`), U3 (`MobileContextHeader`) | about, resume `loading.tsx`는 불필요: U4 뒤 완전 static (D22 sample) |
+| D1 | FAIL | 엣지 HTML이 rail 쿠키로 바뀜 | QW2 | G-k로 회귀 감시 |
+| D2 | PASS | viewport prefetch #70 한도 안 | 유지 (G-l, G-b) | |
+| D3 | PASS | `_rsc` key 분리 | 유지 (G-l, G-h) | |
+| D4 | PARTIAL | tree 링크가 `router.push` | 미룸 | 성능 밖(SEO). sitemap이 덮는다. #70 파일. Q13 |
+| D5 | PARTIAL | about, resume atom 이중 seed | QW2 | `useHydrateAtoms` 삭제로 사라진다 |
+| D6 | FAIL | rail이 형제 layout 6곳 | U1b | 오른쪽 rail은 parallel route 대신 child layout의 ContentFrame(§13) |
+
+- FAIL 11개 중 단위로 가는 것은 10개다. A1은 정정 항목이다(U4 빌드가 확인).
+- PARTIAL 7개 중 6개가 단위로 가고 D4 하나만 미룬다.
+
+## 13. `perf.audit.md` 정정 (그 파일은 고치지 않는다)
+
+| 감사의 줄 | 정정 | 근거 |
+| --- | --- | --- |
+| A1, §1 route 지도 첫 줄, §5-1: `getLocale()`이 모든 route를 동적으로 만든다 | 만들지 않는다. `getConfig`의 `requestLocale`은 lazy getter이고 `i18n/request.ts`는 그것을 읽지 않는다. 처방(`setRequestLocale`) 불필요. U4 빌드가 최종 확인 | `node_modules/next-intl/dist/esm/development/server/react-server/getConfig.js` 25–33행, 같은 폴더 `getLocale.js`, `getTranslations.js` |
+| §5-2: `ClerkProvider`가 동적 읽기인지 모름 | `dynamic` prop이 없으면 요청을 읽지 않는다. keyless는 dev만 | `@clerk/nextjs/dist/esm/app-router/server/ClerkProvider.js` 16, 24행, `keyless-provider.js` 11행, `utils/feature-flags.js` 4행 |
+| C1, §5-5: signal이 fetch 중복 제거를 끈다는 것은 기억에 기댐 | 설치본에서 확인했다. signal이 있으면 원래 fetch를 그대로 부른다. `composeSignal`은 언제나 signal을 돌려준다. 그래서 오늘 같은 URL도 요청 안에서 매번 나간다. C1 영향 H 유지 | `node_modules/next/dist/server/lib/dedupe-fetch.js` 88–96행, `apis/http.core.ts:35-37` |
+| C1 처방 "token은 `null`로 맞춘다" | 원래 token을 쓰는 호출(`CategorySidebarWrapper`)까지 `null`로 바꾸면 소유자가 비공개 카테고리를 못 본다. token은 인자로 남긴다 | §9 QW1 행 |
+| A2 처방 "false로 seed, mount 뒤 읽기, 폭이 한 번 바뀜" | R-A를 쓴다. paint 전 script + CSS라 폭이 바뀌지 않는다 | §4.3 |
+| A4 "blog 2건을 지운다" | flag 없이 지우지 않는다. flag 켜는 U4 커밋에서 6건 모두 | §9 `force-dynamic` 행 |
+| A5 "`'use cache'`를 끝낸 뒤 켠다" | 순서를 바꾼다. flag 먼저(U4, 데이터는 모두 Suspense 잎, 캐시 없음), `'use cache'`는 그 뒤(U5). `'use cache'`는 flag가 있어야 돈다 | `cacheComponents.md` 22–27행 |
+| A8 "N/A, CC 뒤 재평가" | flag 아래에서는 N/A가 아니다. layout이 `params`를 Suspense 밖에서 읽으려면 sample이 하나 이상 필요하다. 빈 배열은 빌드 오류 | `generate-static-params.md` 310행, `dynamic-routes.md` 151–153행 |
+| D6 처방 "오른쪽 rail은 parallel route(`@right`)" | 쓰지 않는다. child layout이 ContentFrame으로 오른쪽 rail을 넘긴다. parallel route는 `default.tsx`와 slot 규칙이 더 든다(KISS) | §4.3 |
+| D6 "나중 (CC 뒤)" | 오너가 첫 CC 단위로 당겼다(2026-10-14). U1b | 오너 지시 |
+| §3 "`cc.design.md`가 없다" | 있다. 이 문서다. 감사 §4의 "Phase CC" 행은 §12 추적표가 대신한다 | 이 문서 |

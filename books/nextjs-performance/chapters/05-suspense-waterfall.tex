@@ -1,0 +1,144 @@
+% chapters/05-suspense-waterfall.tex -- group C (S3): Suspense, 스트리밍, 워터폴. Items C1-C7.
+% ONLY sources: perf.sources.md S3, perf.audit.md §0-§2 group C. Items are copied.
+\chapter{Suspense, 스트리밍(streaming), 워터폴(waterfall)}\label{ch:suspense}
+
+% src: perf.audit.md §2 group C, §3 (C: PASS 2, PARTIAL 2, FAIL 3)
+\paragraph{결과.}
+묶음 C는 7개 중 2개가 통과다. 부분 통과 2개, 실패 3개다.
+색인할 내용은 server에서 렌더하고 TanStack Query는 값을 심어 쓴다. 여기는 강하다.
+약한 곳은 요청 안 중복(C1), 순차 await(C2), 댓글이 본문 스트리밍을 막는 것(C3)이다.
+영향 H가 이 셋에 몰려 있다.
+
+\begin{inbrief}
+  \item[Why] 중첩 await는 시간이 더해지고, 경계가 없으면 가장 느린 잎이 구역 전체를 막는다(S3).
+  \item[When] 한 page가 읽기를 여러 개 하고, 읽기가 부모와 자식에 나뉘어 있을 때다.
+  \item[Where] page, layout, 글 카드, 댓글, rail 컴포넌트와 \texttt{apis/}의 fetch 함수다.
+  \item[How] fetcher를 \texttt{cache()}로 감싼다. 부모가 \texttt{void getX()}로 먼저 시작한다. 느린 잎마다 Suspense 경계를 둔다.
+\end{inbrief}
+
+\section{원리: 워터폴과 미리 시작}\label{sec:su-principle}
+
+\paragraph{문제와 원인.}
+\begin{itemize}[nosep]
+  \item 자식 컴포넌트의 fetch는 부모의 await가 끝난 뒤에 시작한다.
+  \item 그래서 300 ms 읽기 둘이 줄을 서면 300 ms + 300 ms = 600 ms다.
+  \item 경계가 없으면 응답의 첫 chunk가 가장 느린 읽기를 기다린다.
+\end{itemize}
+% src: perf.sources.md S3 bullets 1-2
+
+\paragraph{무엇을 알려고 쓰나.}
+같은 읽기 둘이 순차일 때와 미리 시작할 때 시간이 어떻게 다른가.
+\Cref{fig:su-flow}가 두 흐름을 나란히 보인다.
+
+\begin{figure}[H]
+  \centering
+  \resizebox{\linewidth}{!}{%
+  \begin{tikzpicture}[font=\scriptsize, x=1.0cm, y=1.0cm]
+    % time axis: 1 cm = 100 ms
+    \node[font=\small\bfseries, anchor=west] at (-3.4,1.6) {순차 await (워터폴)};
+    \node[anchor=east] at (-0.2,0.7) {부모 읽기};
+    \node[anchor=east] at (-0.2,-0.2) {자식 읽기};
+    \draw[fill=badcol!15, draw=badcol] (0,0.45) rectangle (3,0.95);
+    \node at (1.5,0.7) {300 ms};
+    \draw[fill=badcol!15, draw=badcol] (3,-0.45) rectangle (6,0.05);
+    \node at (4.5,-0.2) {300 ms};
+    \draw[flowarrow] (3,0.45) -- (3,0.05);
+    \node[anchor=west] at (6.3,0.2) {\textbf{600 ms}};
+
+    \node[font=\small\bfseries, anchor=west] at (-3.4,-1.6) {미리 시작 (\texttt{void getX()} + \texttt{React.cache})};
+    \node[anchor=east] at (-0.2,-2.5) {부모가 시작};
+    \node[anchor=east] at (-0.2,-3.4) {자식이 같은 promise를 await};
+    \draw[fill=goodcol!15, draw=goodcol] (0,-2.75) rectangle (3,-2.25);
+    \node at (1.5,-2.5) {300 ms};
+    \draw[fill=black!5, draw=black!45, dashed] (0,-3.65) rectangle (3,-3.15);
+    \node at (1.5,-3.4) {기다림};
+    \node[anchor=west] at (3.3,-3.0) {\textbf{약 300 ms}};
+
+    \draw[->, black!60] (0,-4.2) -- (6.2,-4.2) node[right] {시간};
+    \foreach \x/\t in {0/0, 3/300, 6/600} {
+      \draw (\x,-4.1) -- (\x,-4.3) node[below] {\t\,ms};
+    }
+  \end{tikzpicture}}
+  \caption{중첩 읽기 둘의 시간. 순차면 600 ms, 미리 시작하면 약 300 ms다.}
+  \label{fig:su-flow}
+  % src: perf.sources.md S3 (300 ms + 300 ms = 600 ms; preload without await with React.cache ~300 ms)
+\end{figure}
+
+\paragraph{처방.}
+\begin{enumerate}[nosep]
+  \item \texttt{cache()}를 module 최상위에서 한 번 감싼다. 범위는 요청 하나이고 server 전용이다.
+  \item 부모에서 \texttt{void getComments(id)}로 먼저 시작한다.
+  \item 자식은 같은 promise를 기다린다. 시간은 약 300 ms다.
+  \item 색인할 내용은 Suspense와 server fetch로 낸다. client \texttt{useQuery}만 쓰면 크롤러가 loading 상태를 받는다.
+  \item TanStack 값은 server 쪽 \texttt{prefetchQuery}와 \texttt{HydrationBoundary}로 client에 보낸다. 이 방식이 없으면 요청이 두 번 나고 hydration 불일치가 생긴다.
+\end{enumerate}
+% src: perf.sources.md S3 bullets 3-5
+
+\section{체크리스트 C1--C7}\label{sec:su-checklist}
+
+\begin{checkitem}{\ckopen}{C1}{한 요청 안의 같은 읽기는 한 번만 나간다 (\texttt{React.cache})}{PARTIAL\ckdot{}영향 H (Express와 Supabase 부하, signed-in은 edge를 못 탄다)}
+  % src: perf.audit.md C1, §5 item 5
+  \item[What] 여러 컴포넌트가 쓰는 fetcher는 \code{cache()}로 감싼다.
+  \item[Why] S3. 요청당 중복을 막는다. 여기서는 fetch 자동 memoization도 기대할 수 없다. 모든 fetch가 \code{signal}을 넘긴다(\code{apis/http.core.ts:35-37}, \code{http.server.ts:80}, \code{http.client.ts:58}). Next 문서는 signal을 memoization 해제 수단으로 적는다(\Cref{sec:pl-open}의 5번).
+  \item[How] \code{rg -n "cache\(" apis}가 4개만 감쌌다고 나온다(\code{getPostBySlug}, \code{getProjectsTree}, \code{getProjects}, \code{getProjectPosts}). 안 감싼 것과 중복은 다음과 같다.
+    \begin{itemize}[nosep]
+      \item \code{getUserProfile}(\code{apis/getUserProfile.api.ts:19}): \code{/@u/posts}에서 3번이다(\code{posts/page.tsx:40}, \code{UserProfileCard.server.tsx:19}, \code{MobileContextHeader.server.tsx:19}).
+      \item \code{getCategoriesByUsername}(\code{apis/getCategories.api.ts:9}): \code{/@u/<slug>} 익명에서 2번이다(\code{getProjectsTree} 안, \code{CategorySidebarWrapper.server.tsx:38}). \code{/}에서도 2번이다(\code{ProjectsTreeWrapper}, \code{CategorySidebarWrapper}).
+      \item \code{getPopularTags}(\code{apis/getPopularTags.api.ts:17}): \code{/}에서 2번이다(left rail \code{TagCloud}, \code{HomeRightRail.server.tsx:39}의 fallback \code{TagCloud}).
+    \end{itemize}
+    처방: 위 세 fetcher와 \code{getUserPopularTags}를 \code{cache()}로 감싼다. \code{getComments}는 요청 안 중복이 없다(server 1회). 감싸도 CC 준비용일 뿐이다. 인자는 위치 인자 원시값(primitive)으로, token은 \code{null}로 맞춘다(\code{getPost.api.ts:8-17}의 규칙).
+  \item[When] 지금.
+\end{checkitem}
+
+\begin{checkitem}{\ckopen}{C2}{page와 layout에 순차 await(waterfall)가 없다}{FAIL\ckdot{}영향 H}
+  % src: perf.audit.md C2, §5 item 7
+  \item[What] 서로 무관한 읽기가 앞 읽기를 기다리지 않는다.
+  \item[Why] S3. 중첩 await는 시간이 더해진다.
+  \item[How] 두 route에서 줄이 선다.
+    \begin{itemize}[nosep]
+      \item \code{/@u/<slug>}: 순서는 tree \code{[slug]/layout.tsx:24}와 \code{page.tsx:71}, post \code{PostContentCard.server.tsx:36}, comments \code{Comments.server.tsx:23}이다. 익명은 \code{generateMetadata}(\code{page.tsx:32})가 같은 \code{(slug, null)} post 읽기를 먼저 시작한다. 그러면 실제 줄은 tree, comments 2번이다(\Cref{sec:pl-open}의 7번). signed-in은 token key가 달라 3번이 줄 선다.
+      \item \code{/@u/posts}: \code{getTagFilterItems}(\code{posts/page.tsx:74}) 다음에 feed(\code{BlogMainPage})가 시작한다. 2번이 줄 선다.
+    \end{itemize}
+    처방: \code{posts/page.tsx:74}는 \code{FilterChipRow}를 async 잎으로 만들어 Suspense에 둔다. \code{[slug]}는 A7과 C4.
+  \item[When] \code{/@u/posts}는 지금. \code{[slug]}는 Phase CC(A7과 같이).
+\end{checkitem}
+
+\begin{checkitem}{\ckopen}{C3}{부차 내용(댓글)은 본문 스트리밍을 막지 않는다}{FAIL\ckdot{}영향 H (독자가 본문을 늦게 본다)}
+  % src: perf.audit.md C3
+  \item[What] 댓글은 자기 Suspense 경계를 가진다.
+  \item[Why] S3. 경계가 없으면 글 카드 전체가 댓글 fetch를 기다린다.
+  \item[How] \code{components/blog/PostContentCard.server.tsx:124}의 \code{<Comments>}에 Suspense가 없다. 바깥 경계는 \code{PostContent.server.tsx:25}(카드 전체)다. 처방: \code{<Suspense fallback={...}><Comments .../></Suspense>} 형태이고 fallback은 댓글 skeleton이다. 댓글은 server에서 이미 seed되니 SEO는 그대로다(같은 응답 안 뒤 chunk).
+  \item[When] 지금.
+\end{checkitem}
+
+\begin{checkitem}{\ckopen}{C4}{미리 시작(preload without await)을 쓴다}{FAIL\ckdot{}영향 L (signed-in만)}
+  % src: perf.audit.md C4, §5 item 7
+  \item[What] 부모가 \code{void getX()}로 fetch를 먼저 시작하고, 자식이 같은 promise를 기다린다.
+  \item[Why] S3. 600 ms를 300 ms로 줄이는 처방이다.
+  \item[How] \code{rg -n}으로 \code{"^\s*void get|preload\("}를 \code{app components}에서 찾으면 0건이다. 익명은 \code{generateMetadata}(\code{page.tsx:32})가 이미 사실상 preload다(\Cref{sec:pl-open}의 7번). 남는 경우는 signed-in이다. 처방: layout이나 page 맨 위에서 token을 한 번 읽고 \code{void getPostBySlug(slug, token)}을 시작한다. 또는 C1의 tree 읽기를 잎으로 옮겨(A7) 줄 자체를 없앤다.
+  \item[When] Phase CC (A7과 같이).
+\end{checkitem}
+
+\begin{checkitem}{\ckdone}{C5}{색인할 내용은 server에서 렌더한다}{PASS\ckdot{}영향 없음}
+  % src: perf.audit.md C5
+  \item[What] 글 본문, feed 첫 page, 댓글 첫 page가 HTML에 있다.
+  \item[Why] S3. client fetch만 쓰면 크롤러가 빈 상태를 본다.
+  \item[How] 본문은 \code{MarkdownRenderer.server}(\code{PostContentCard.server.tsx:121})다. feed 첫 10개는 \code{RecentPostsList.server.tsx:32}다. 댓글 50개는 \code{Comments.server.tsx:23}다. 2쪽 이후 feed는 client만이다. 하지만 \code{app/sitemap.ts:67}이 모든 글 URL을 낸다.
+  \item[When] 유지.
+\end{checkitem}
+
+\begin{checkitem}{\ckdone}{C6}{TanStack query가 이중 요청이나 hydration 불일치를 만들지 않는다}{PASS\ckdot{}영향 없음}
+  % src: perf.audit.md C6
+  \item[What] server 값이 props \code{initialData}로 client cache에 들어간다. 익명에게는 client query가 돌지 않는다.
+  \item[Why] S3. seed 없이 쓰면 요청이 두 번 난다.
+  \item[How] \code{rg -n "HydrationBoundary|prefetchQuery"}가 0건이다. 대신 \code{initialData} seed가 6곳이다(\code{hooks/useComments.query.client.ts:35}, log hook 3개 등). 기본 \code{staleTime} 60초(\code{ReactQueryProvider.client.tsx:18})라 mount 직후 다시 받지 않는다. 개인 query(\code{useMe}, \code{useViewerLikes}, \code{useFavorites})는 \code{enabled: isSignedIn}이다(\code{useMe.query.client.ts:23}, \code{useViewerLikes.query.client.ts:29}).
+  \item[When] 유지. CC 뒤에도 이 방식이 맞다.
+\end{checkitem}
+
+\begin{checkitem}{\ckopen}{C7}{Suspense 경계와 fallback이 알맞다}{PARTIAL\ckdot{}영향 M}
+  % src: perf.audit.md C7
+  \item[What] 느린 async 잎마다 경계와 같은 크기의 skeleton이 있다.
+  \item[Why] S3. 경계가 없으면 가장 느린 잎이 그 구역 전체를 막는다.
+  \item[How] rail은 잘 감쌌다(\code{UserContextRail.server.tsx:28,41,50}, \code{HomeRightRail.server.tsx:21,29}, \code{LeftRailContainer.server.tsx:27}). 빠진 곳은 다음과 같다: \code{posts/page.tsx:85}(A3), \code{PostContentCard.server.tsx:124}(C3), \code{MobileContextHeader}(\code{posts/layout.tsx:35}, \code{[slug]/layout.tsx:44}, Suspense 없이 \code{getUserProfile}을 await). about과 resume에는 \code{loading.tsx}가 없다.
+  \item[When] 지금(C3와 같은 손질).
+\end{checkitem}

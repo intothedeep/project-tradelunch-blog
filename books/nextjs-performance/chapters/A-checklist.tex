@@ -1,0 +1,74 @@
+% chapters/A-checklist.tex -- 부록: 25개 항목 한눈에. Copied from perf.audit.md §2 headers and When lines.
+\chapter{체크리스트 한눈에}\label{ch:checklist}
+
+% src: perf.audit.md §2, §3
+\paragraph{결과.}
+25개 항목 중 \ckdone{} 통과 6개, \ckopen{} 부분 통과와 실패 18개, \ckna{} 해당 없음 1개다.
+\Cref{tab:ck-all}에 항목 번호, 제목, 상태, 영향, 언제를 모았다.
+
+\paragraph{무엇을 알려고 쓰나.}
+어느 항목이 열려 있고, 언제 고치는가.
+
+{\small
+\begin{longtable}{@{}c L{0.9cm} L{6.2cm} L{2.0cm} c L{3.0cm}@{}}
+  \caption{체크리스트 25개. 영향은 H, M, L이고 통과는 영향 없음이다.}\label{tab:ck-all}\\
+  \toprule
+  상자 & 번호 & 제목 & 상태 & 영향 & 언제 \\
+  \midrule
+  \endfirsthead
+  \toprule
+  상자 & 번호 & 제목 & 상태 & 영향 & 언제 \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  \ckopen & A1 & root layout에 요청 시점 API가 없다 & FAIL & M & Phase CC, 1순위 \\
+  \midrule
+  \ckopen & A2 & shell이 \texttt{cookies()}를 읽지 않는다 & FAIL & M & Phase CC 2순위 \\
+  \midrule
+  \ckopen & A3 & \texttt{auth()}는 Suspense 안 잎에서만 읽는다 & PARTIAL & L & 지금 \\
+  \midrule
+  \ckopen & A4 & \texttt{force-dynamic} 잔재가 없다 & FAIL & L & Phase CC \\
+  \midrule
+  \ckopen & A5 & \texttt{cacheComponents}가 켜져 있다 & FAIL (보류) & M & Phase CC 마지막 \\
+  \midrule
+  \ckopen & A6 & \texttt{experimental.staleTimes}를 정했다 & FAIL & M & 지금 또는 CC 첫 행 \\
+  \midrule
+  \ckopen & A7 & 클릭 직후 skeleton이 보인다 & PARTIAL & M & Phase CC \\
+  \midrule
+  \ckna & A8 & hot segment에 \texttt{generateStaticParams} & N/A & L & 나중 \\
+  \midrule
+  \ckdone & B1 & 읽기는 action으로 하지 않는다 & PASS & 없음 & 유지 \\
+  \midrule
+  \ckopen & B2 & 죽은 읽기 action이 없다 & FAIL & L & 지금 \\
+  \midrule
+  \ckdone & B3 & action을 \texttt{queryFn}으로 쓰지 않는다 & PASS & 없음 & 유지 \\
+  \midrule
+  \ckopen & B4 & load-more가 edge cache와 rate limit을 고려한다 & PARTIAL & M & 나중 \\
+  \midrule
+  \ckopen & C1 & 같은 읽기는 한 요청에 한 번만 나간다 & PARTIAL & H & 지금 \\
+  \midrule
+  \ckopen & C2 & page와 layout에 순차 await가 없다 & FAIL & H & \texttt{/@u/posts} 지금, \texttt{[slug]} CC \\
+  \midrule
+  \ckopen & C3 & 댓글이 본문 스트리밍을 막지 않는다 & FAIL & H & 지금 \\
+  \midrule
+  \ckopen & C4 & 미리 시작(preload)을 쓴다 & FAIL & L & Phase CC \\
+  \midrule
+  \ckdone & C5 & 색인할 내용은 server에서 렌더한다 & PASS & 없음 & 유지 \\
+  \midrule
+  \ckdone & C6 & TanStack query가 이중 요청을 만들지 않는다 & PASS & 없음 & 유지 \\
+  \midrule
+  \ckopen & C7 & Suspense 경계와 fallback이 알맞다 & PARTIAL & M & 지금 \\
+  \midrule
+  \ckopen & D1 & edge가 cache하는 HTML이 cookie로 바뀌지 않는다 & FAIL & M & 지금 (A2와 함께) \\
+  \midrule
+  \ckdone & D2 & viewport prefetch가 결정 \#70 한도 안이다 & PASS & 없음 & 유지 \\
+  \midrule
+  \ckdone & D3 & RSC 이동 응답이 edge에서 key를 나눈다 & PASS & 없음 & 유지 \\
+  \midrule
+  \ckopen & D4 & 색인할 링크는 \texttt{<a href>}다 & PARTIAL & L & 나중 \\
+  \midrule
+  \ckopen & D5 & hydration이 올바르다 & PARTIAL & L & A2와 함께 \\
+  \midrule
+  \ckopen & D6 & 영역 사이 이동이 shell을 다시 만들지 않는다 & FAIL & M & 나중 \\
+\end{longtable}}

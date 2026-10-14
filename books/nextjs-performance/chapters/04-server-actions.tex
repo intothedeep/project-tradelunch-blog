@@ -1,0 +1,101 @@
+% chapters/04-server-actions.tex -- group B (S2): Server Actions와 데이터 읽기. Items B1-B4.
+% ONLY sources: perf.sources.md S2, perf.audit.md §0-§2 group B. Items are copied.
+\chapter{Server Actions와 데이터 읽기}\label{ch:actions}
+
+% src: perf.audit.md §2 group B, §3 (B: PASS 2, PARTIAL 1, FAIL 1)
+\paragraph{결과.}
+묶음 B는 4개 중 2개가 통과다. 부분 통과 1개, 실패 1개다.
+쓰이는 action 4개는 모두 변경(PATCH, DELETE)이다. 읽기 action은 정의만 남은 죽은 코드 1개뿐이다.
+남은 문제는 무한 스크롤의 load-more가 edge cache 밖이라는 점이다.
+
+\begin{inbrief}
+  \item[Why] Server Action은 줄을 서므로 읽기에 쓰면 시간이 더해진다(S2).
+  \item[When] 한 화면이 읽기를 여러 개 하거나 첫 렌더에서 읽을 때다.
+  \item[Where] \texttt{app/actions/}, TanStack Query hook, \texttt{app/api/}의 Route Handler다.
+  \item[How] 변경만 action으로 한다. 읽기는 Server Component나 Route Handler로 한다.
+\end{inbrief}
+
+\section{원리: action은 줄을 선다}\label{sec:ac-principle}
+
+\paragraph{문제와 원인.}
+\begin{itemize}[nosep]
+  \item Server Action은 client마다 하나씩 줄을 선다.
+  \item 1초짜리 action 셋을 \texttt{Promise.all}로 불러도 약 3초다.
+  \item 첫 렌더 중에는 부를 수 없다. \texttt{queryFn}으로 쓰면 \texttt{useSuspenseQuery}가 실패한다.
+\end{itemize}
+% src: perf.sources.md S2 bullets 1, 3
+
+\paragraph{무엇을 알려고 쓰나.}
+같은 읽기 셋을 action으로 하면 왜 3초이고, Server Component나 Route Handler로 하면 왜 줄어드는가.
+\Cref{fig:ac-flow}가 두 흐름을 나란히 보인다.
+
+\begin{figure}[H]
+  \centering
+  \resizebox{\linewidth}{!}{%
+  \begin{tikzpicture}[font=\scriptsize]
+    \node[font=\small\bfseries, anchor=west] at (-1.0,1.2) {읽기를 Server Action으로 (\texttt{Promise.all}로 불러도)};
+    \node[badbox, minimum width=2.4cm] (b1) at (0,0) {action 1\\1초};
+    \node[badbox, minimum width=2.4cm] (b2) at (3.4,0) {action 2\\1초};
+    \node[badbox, minimum width=2.4cm] (b3) at (6.8,0) {action 3\\1초};
+    \node[flowbox, minimum width=2.4cm] (b4) at (10.2,0) {합계 약 3초};
+    \draw[flowarrow] (b1) -- (b2);
+    \draw[flowarrow] (b2) -- (b3);
+    \draw[flowarrow] (b3) -- (b4);
+
+    \node[font=\small\bfseries, anchor=west] at (-1.0,-1.7) {읽기를 Server Component나 Route Handler로};
+    \node[goodbox, minimum width=2.4cm] (a1) at (0,-3.0) {읽기 1};
+    \node[goodbox, minimum width=2.4cm] (a2) at (3.4,-3.0) {읽기 2};
+    \node[goodbox, minimum width=2.4cm] (a3) at (6.8,-3.0) {읽기 3};
+    \node[flownew, minimum width=2.4cm] (a4) at (10.2,-3.0) {줄 서지 않음};
+    \draw[flowarrow] (a1) -- (a4);
+    \draw[flowarrow] (a2) -- (a4);
+    \draw[flowarrow] (a3) -- (a4);
+  \end{tikzpicture}}
+  \par\smallskip{\centering\scriptsize \flowkey{badbox} 줄 서는 action \quad \flowkey{goodbox} 줄 서지 않는 읽기 \quad \flowkey{flownew} 바뀐 단계\par}
+  \caption{읽기 셋의 두 방식. 위는 action이 줄을 서서 약 3초다.}
+  \label{fig:ac-flow}
+  % src: perf.sources.md S2 (three 1 s actions via Promise.all ≈ 3 s; reads through Server Components / Route Handlers). The "not queued" box is the book's drawing of the S2 design rule.
+\end{figure}
+
+\paragraph{처방.}
+\begin{enumerate}[nosep]
+  \item Server Action은 변경(mutation) 전용으로 쓴다.
+  \item 읽기는 Server Component나 Route Handler로 한다.
+  \item backend 호출은 Next server를 거치는 BFF(backend for frontend)로 한다.
+  \item BFF는 Next server와 같은 곳에 있어 왕복이 약 3 ms다. 브라우저에서 backend로 가면 왕복마다 약 100 ms다.
+\end{enumerate}
+% src: perf.sources.md S2 bullets 4-5
+
+\section{체크리스트 B1--B4}\label{sec:ac-checklist}
+
+\begin{checkitem}{\ckdone}{B1}{읽기는 Server Action으로 하지 않는다. action을 병렬로 부르지 않는다}{PASS\ckdot{}영향 없음}
+  % src: perf.audit.md B1
+  \item[What] 읽기는 RSC나 Route Handler로 한다. action은 변경 전용이다.
+  \item[Why] S2. action은 줄을 선다. 첫 렌더에 부를 수 없다.
+  \item[How] \code{rg -l "'use server'"}가 2 파일을 낸다. 쓰이는 action 4개는 모두 PATCH나 DELETE다(\code{app/actions/postPublish.action.ts:30,45,58,74}). \code{rg -n "Promise\.all" app components hooks apis}는 0건이다.
+  \item[When] 유지.
+\end{checkitem}
+
+\begin{checkitem}{\ckopen}{B2}{죽은 읽기 action이 없다}{FAIL\ckdot{}영향 L (1건)}
+  % src: perf.audit.md B2
+  \item[What] 쓰이지 않는 \code{'use server'} 읽기 함수가 없다.
+  \item[Why] S2. 읽기 action은 잘못된 본보기다. 다시 쓰이면 순차 실행이 된다.
+  \item[How] \code{rg -n loadMorePosts}가 1건을 낸다. 정의뿐이다(\code{app/actions/post.action.ts:6}). 처방: \code{x_post.action.ts}로 이름을 바꾼다(soft-delete).
+  \item[When] 지금.
+\end{checkitem}
+
+\begin{checkitem}{\ckdone}{B3}{action을 \texttt{queryFn}으로 쓰지 않는다}{PASS\ckdot{}영향 없음}
+  % src: perf.audit.md B3
+  \item[What] TanStack \code{queryFn}은 fetch 함수다. action은 \code{mutationFn}에만 쓴다.
+  \item[Why] S2. \code{queryFn}의 action은 Suspense query에서 깨진다.
+  \item[How] action을 import하는 hook이 4개다. \code{hooks/useDeletePost.query.client.ts:25}, \code{useDeleteAdminPostAction.query.client.ts:19}, \code{useSetAdminPostStatus.query.client.ts:27}은 모두 mutation이다. \code{useEditorHandlers.hook.ts:182}는 event handler다.
+  \item[When] 유지.
+\end{checkitem}
+
+\begin{checkitem}{\ckopen}{B4}{load-more BFF가 edge cache와 rate limit을 고려한다}{PARTIAL\ckdot{}영향 M (edge 상태는 확인 못함, \Cref{sec:pl-open})}
+  % src: perf.audit.md B4
+  \item[What] 무한 스크롤 읽기가 cache되거나, 요청 수 한도에 걸리지 않는다.
+  \item[Why] S2는 Next server를 거치는 BFF를 권한다. 하지만 여기서 \code{/api/}는 edge cache 밖이다. 스크롤 한 page가 VM 요청 하나이고 50 / 10 s에 센다(\decision{68}, \decision{70}의 429).
+  \item[How] client \code{components/blog/RecentPostsList.client.tsx:62}와 \code{TagPostsList.client.tsx:60}이 \code{/api/posts/load-more}를 부른다. Cloudflare 규칙은 \code{deploy/traffic/README.md:76}의 \code{not starts_with(..., "/api/")}다. \code{app/api/posts/load-more/route.ts:49,56}은 \code{Cache-Control}을 붙이지 않는다. 더해 이 route는 token 없이 읽는다(\code{:52}). 첫 page(\code{getFeed}, token 있음)와 다르다. 소유자의 draft가 2쪽부터 빠진다. 처방 후보: (a) 익명 응답에 \code{Cache-Control: public, s-maxage=60}과 Cloudflare 규칙을 더한다. (b) 브라우저가 \code{blog-api.} GET을 직접 부른다(이미 edge \cfs{HIT}).
+  \item[When] 나중(traffic 설계와 함께). (a)와 (b)의 선택은 소유자.
+\end{checkitem}

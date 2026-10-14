@@ -1,0 +1,30 @@
+% main.tex -- Next.js 성능: 세 글로 본 우리 앱 점검 (2026/10/14)
+% Build (clean first, latex.md §12): latexmk -C && latexmk -xelatex main.tex
+% Sources: perf.sources.md (S1-S3), perf.audit.md (25 items). Copied, never derived.
+\documentclass[11pt,a4paper,oneside]{book}
+\input{preamble}
+
+\title{Next.js 성능\\[0.4em]\large 세 글로 본 우리 앱 점검}
+\author{Taek Lim \and Claude 정리}
+\date{2026/10/14}
+
+\begin{document}
+\frontmatter
+\maketitle
+\tableofcontents
+\listoffigures
+\listoftables
+\mainmatter
+
+\InputIfFileExists{chapters/01-overview}{}{}
+\InputIfFileExists{chapters/02-sources}{}{}
+\InputIfFileExists{chapters/03-dynamic-prefetch}{}{}
+\InputIfFileExists{chapters/04-server-actions}{}{}
+\InputIfFileExists{chapters/05-suspense-waterfall}{}{}
+\InputIfFileExists{chapters/06-cross-cutting}{}{}
+\InputIfFileExists{chapters/07-plan}{}{}
+
+\appendix
+\InputIfFileExists{chapters/A-checklist}{}{}
+
+\end{document}

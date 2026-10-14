@@ -1,5 +1,7 @@
 # Phase PJ 단계 보고 (Projects)
 
+요약: MVP1(mock, 로컬), MVP2(real, 운영), MVP3(최종 배포 `adcfc06`)를 아래 세 절에 적었다. P1 gate는 PASS다 (`pj.p1-gate.review.md` Cycle 2/2). 절: [MVP1](#mvp1-2026-10-13), [MVP2](#mvp2-2026-10-14), [MVP3](#mvp3-2026-10-14).
+
 ## MVP1 (2026-10-13)
 
 단일 출처: `deploy/projects/mvp1-local-run-2026-10-13.txt` (오너가 허용한 로컬 실행 1회, Q-L, #79).
@@ -431,3 +433,116 @@ MVP1에서 제목이 `[MOCK]`으로 시작하던 카드는 MVP2 원본에 제목
 ### 판정
 
 PJ-1-16, PJ-1-19, PJ-1-18의 AC 중 원본에 값이 있는 항목은 모두 pass다. 원본에 값이 없는 항목은 "일부 pass" 또는 "pending"으로 두었다. 이 절의 결과로 gate 통과를 선언하지 않는다. gate 판정은 reviewer의 몫이다.
+
+## MVP3 (2026-10-14)
+
+단일 출처: `deploy/projects/pj-1-23-final-2026-10-14.txt` (운영 원본 출력. web `adcfc06`, 전체 purge 뒤), `deploy/projects/pj-1-03-guard-2026-10-14.txt` (blog-api `ab4c3c0`), `pj.p1-gate.review.md` Cycle 2/2, `00.tasks.md` 행 PJ-1-23, PJ-1-26, PJ-1-27, PJ-1-32.
+이 절은 MVP3의 첫 순환이며, 세 번째 end-to-end 순환(cycle)이다.
+판정(verdict)은 gate 검토의 값을 그대로 옮긴다: PASS (`pj.p1-gate.review.md` Cycle 2/2, 2026-10-14).
+
+### 요약
+
+M1 exit의 마지막 항목인 Express 예약 slug 400이 운영에서 시연되었다. 옛 URL 5개 형태의 308이 엣지에서 2회째 HIT가 되었다. 페이지는 200이고 `[MOCK]`은 0개였다. `traffic-check`는 0 FAIL이었다. gate 검토에서 M3 exit 4항목이 모두 닫혔다.
+
+| 단계 | 상태 | 한 줄 결과 |
+| --- | --- | --- |
+| 1. 예약 slug guard (PJ-1-03) | ran | `Posts` 400, `Projects` 400, 예약 slug 행 0, 정상 slug 성공 |
+| 2. 최종 배포와 purge (PJ-1-23) | ran | `adcfc06` 배포, 전체 purge 1회 |
+| 3. 308 엣지 캐시 (PJ-1-26) | ran | 5개 형태 모두 2회째 HIT (Cloudflare 308 TTL 추가 뒤) |
+| 4. 페이지와 rail | ran | 페이지 모두 200, `rail=1`, `[MOCK]` 0 |
+| 5. `/blog/@` 주석 (PJ-1-27) | ran | `rg` 결과 0 |
+| 6. `/me` 이동 (PJ-1-32) | ran | 익명 404, 오너 `/@taeklim/me` 렌더 확인 |
+| 7. traffic-check | ran | 0 FAIL (`8dc5dca` 뒤) |
+| 8. sitemap (gate 검토 측정) | ran | `/blog/@` 0, `/@taeklim/` 23 |
+
+### 흐름 (ASCII 그림 1장)
+
+```
+옛 URL /blog/@taeklim/rust-config, /blog, /about, /resume, ...
+   |  proxy.ts (Clerk 앞): 308 + cache-control: public, s-maxage=86400
+   v
+Cloudflare "web cache" (Status code TTL 308 = 1 day)
+   1회째 MISS --> 2회째 HIT
+   |
+   v
+새 URL /@taeklim/rust-config, /@taeklim/about, ...
+```
+
+### 단계 1. 예약 slug guard
+
+- What: Express가 예약 slug를 400으로 막는지 본다.
+- Why: PJ-1-03 AC2–AC4 (M1 exit의 남은 항목).
+- Input data: 오너의 Clerk 토큰(60 s)으로 운영 `POST /v1/api/posts` 요청 3개와 DB 질의 1개.
+- Output data: 응답 3줄, 행 수 1개 (원본 `pj-1-03-guard-2026-10-14.txt`).
+- Result: 아래 표.
+- 좋은 점: slug 직접 입력과 제목에서 만든 slug 모두 막힌다. 나쁜 점: 시험 draft id 247이 남아 오너가 `/me`에서 지웠다 (soft delete).
+- Status: ran.
+
+| 검사 | 결과 |
+| --- | --- |
+| AC2 `slug="Posts"` | 400 `slug is reserved: Posts` |
+| AC2 `title="Projects"` (slug 없음) | 400 `slug is reserved: projects` |
+| AC3 예약 slug 행 (`lower(slug) in ('posts','projects')`, 최근 15분) | 0 |
+| AC4 `slug="pj-guard-check"` | 성공, post id 247, status draft |
+
+### 단계 2. 최종 배포와 purge
+
+- What: 웹 `adcfc06`을 배포하고 Cloudflare 전체 purge를 1회 한다.
+- Why: PJ-1-23.
+- Input data: 배포 run `38512101910`.
+- Output data: 측정값 (단계 3–4).
+- Result: 배포와 purge 완료. PJ-1-23 행은 `done 2026-10-14`.
+- Status: ran.
+
+### 단계 3. 308 엣지 캐시
+
+- What: 옛 URL의 308 응답이 엣지에 남는지 본다.
+- Why: PJ-1-26 AC3, PJ-1-23 AC1.
+- Input data: 옛 URL 5개 형태, 각 2회 요청.
+- Output data: 응답 헤더 (원본 2–8행).
+- Result: 아래 표.
+- 좋은 점: 5개 형태 모두 `cache-control: public, s-maxage=86400`이고 `set-cookie`가 없다. 나쁜 점: 코드 변경만으로는 2회째가 EXPIRED였다. Cloudflare "web cache"의 Status code TTL이 "200 only"였기 때문이다. 오너가 308을 1 day로 추가한 뒤 HIT가 되었다.
+- Status: ran.
+
+| URL | 1회째 | 2회째 (TTL 추가 전) | 2회째 (TTL 추가 뒤) |
+| --- | --- | --- | --- |
+| `/blog/@taeklim/rust-config` | 308, MISS | EXPIRED | HIT |
+| `/blog` | 308, MISS | EXPIRED | HIT |
+| `/about` | 308, MISS | EXPIRED | HIT |
+| `/resume` | 308, MISS | EXPIRED | HIT |
+| `/blog/%40taeklim/rust-config` | 308, MISS | EXPIRED | HIT |
+
+### 단계 4. 페이지와 rail
+
+- What: 배포 뒤 페이지 상태, rail 개수, `[MOCK]` 개수를 본다.
+- Why: PJ-1-23, M2 exit 재확인.
+- Input data: 운영 URL 9개: `/@taeklim/{resume,about,projects,projects/cnn-from-scratch,<cnn post>,posts}`, `/`, `/tags/rust`.
+- Output data: 상태, `rail`, `[MOCK]` 개수 (원본 5행).
+- Result: 모두 200, `rail=1`, `[MOCK]=0`. 2회째 요청은 `/@taeklim/projects`와 `/@taeklim/resume`이 HIT.
+- Status: ran.
+
+### 단계 5–8. 나머지 항목
+
+| 단계 | What | 값 | 출처 |
+| --- | --- | --- | --- |
+| 5. `/blog/@` 주석 (PJ-1-27) | 주석 3건을 정리했다 | `rg` 결과 0 | `00.tasks.md` PJ-1-27, gate 검토 C2-2 |
+| 6. `/me` 이동 (PJ-1-32) | `/@u/me`와 `/@u/saved`는 본인만 | 오너가 `/@taeklim/me` 렌더 확인, 익명은 404 | `00.tasks.md` PJ-1-32 |
+| 7. traffic-check | 점검 스크립트 | 0 FAIL (`8dc5dca` 뒤, 2026-10-14) | 원본 마지막 줄 |
+| 8. sitemap | gate 검토가 직접 GET | `/blog/@` 0, `/@taeklim/` 23 | gate 검토 C2-3a AC2 |
+
+### AC 대응 (판정)
+
+| AC | 결과 줄 | 판정 |
+| --- | --- | --- |
+| PJ-1-03 AC2–AC4 | 단계 1 | PASS (gate 검토 C2-3 #1) |
+| PJ-1-23 AC1 | 단계 3, `/@taeklim/projects` 2회째 HIT | PASS |
+| PJ-1-23 AC2 | sitemap `/blog/@` 0, `/@taeklim/` 23 | PASS |
+| PJ-1-23 AC3 | traffic-check 0 FAIL (`8dc5dca` 뒤) | 원본에 줄이 생겼다. gate 검토 시점에는 "근거 없음 (비차단)" |
+| PJ-1-23 AC4 | 이 절과 맨 위 요약 줄 | 이 편집으로 채움 |
+| PJ-1-26 AC1–AC3 | 단계 3 | PASS |
+| PJ-1-27 | `rg` 0 | PASS |
+| PJ-1-32 | 단계 5–8 표 6행 | done (`00.tasks.md`) |
+
+### 판정
+
+gate 검토 Cycle 2/2의 판정은 PASS다. M1, M2, M3 exit가 모두 닫혔다 (`pj.p1-gate.review.md` C2-1). 비차단 ISSUE는 2건이다 (PJ-1-23 AC4 보고 절, AC3 traffic-check 값). 이 절이 앞의 것을 채운다.

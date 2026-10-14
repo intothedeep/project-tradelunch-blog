@@ -1,0 +1,15 @@
+# latexmk / XeLaTeX intermediates (latex.md §12)
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.xdv
+*.synctex.gz
+*.bbl
+*.blg
+# PDF is a build output; the repo CLAUDE.md does not say to commit it
+*.pdf

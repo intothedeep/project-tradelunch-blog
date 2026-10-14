@@ -81,7 +81,7 @@ Expression (Edit expression):
 | --- | --- |
 | Cache eligibility | Eligible for cache |
 | Edge TTL | Ignore cache-control header and use this TTL: 1 day |
-| Status code TTL (if shown) | 200 only: 1 day |
+| Status code TTL (if shown) | 200: 1 day (Edge TTL); 308: 1 day; 300–307 and 400–526: no store (owner, 2026-10-14) |
 | Browser TTL | Respect origin |
 | Cache key | keep the full query string (default) |
 
