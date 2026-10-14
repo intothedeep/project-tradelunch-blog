@@ -6,12 +6,14 @@
 //   Y-TD: LogTodoTabs rendered below the stream — gated owner-side (the
 //   component reads auth via useAuth so it renders nothing for non-owners).
 //   Y-M2: FollowButtonGate renders follow button for non-owner signed-in viewers.
-// Constraints: Server Component. username is @-stripped. force-dynamic because
-//   the stream is always fresh (newest-first).
+// Constraints: Server Component. username is @-stripped. The fetch runs
+//   behind loading.tsx (the stream is always fresh, newest-first).
 
-export const dynamic = 'force-dynamic';
-
-import { stripUsernameAt } from '@/utils/blog-author';
+import {
+    HOME_FEED_AUTHOR,
+    stripUsernameAt,
+    toUsernameSegment,
+} from '@/utils/blog-author';
 import { getLogStream } from '@/apis/get-log-stream.api';
 import { LogStream } from '@/components/log/LogStream.client';
 import { LogComposer } from '@/components/log/LogComposer.client';
@@ -22,6 +24,11 @@ import type { TLogStreamResponse } from '@repo/types';
 type Props = {
     params: Promise<{ username: string }>;
 };
+
+// cacheComponents (CC-U4): one sample so the shell prerenders with known params.
+export function generateStaticParams() {
+    return [{ username: toUsernameSegment(HOME_FEED_AUTHOR) }];
+}
 
 export default async function LogStreamPage({ params }: Props) {
     const { username: raw } = await params;

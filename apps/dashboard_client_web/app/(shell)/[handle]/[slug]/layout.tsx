@@ -9,6 +9,7 @@ import { RailCardSkeleton } from '@/components/rail/RailSkeleton';
 import { MobileContextHeader } from '@/components/rail/mobile/MobileContextHeader.server';
 import { ProjectPostGate } from '@/components/projects/ProjectPostGate.server';
 import { RightRailSwitch } from '@/components/projects/RightRailSwitch.server';
+import { CC_SAMPLE_SLUG } from '@/env.schema';
 import { stripUsernameAt } from '@/utils/blog-author';
 
 // Post-detail chrome, moved from the old `blog/[username]/layout.tsx` (the
@@ -25,6 +26,12 @@ import { stripUsernameAt } from '@/utils/blog-author';
 // Preloads (`void`, never awaited) start the reads the leaves need next: the
 // anonymous tree runs beside the post read, the first comment page right after
 // it. cache() hands the in-flight promises to the leaves.
+// cacheComponents (CC-U4): sample slug for the shell prerender (env.schema).
+// The `handle` sample comes from the parent layout.
+export function generateStaticParams() {
+    return [{ slug: CC_SAMPLE_SLUG }];
+}
+
 type Props = {
     children: React.ReactNode;
     params: Promise<{ handle: string; slug: string }>;

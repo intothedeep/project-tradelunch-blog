@@ -18,6 +18,15 @@ const isProtectedRoute = createRouteMatcher([
     // expression must still cover both (deploy/traffic/README.md).
 ]);
 
+// `/@u/me` and `/@u/saved` are the viewer's own pages. Under cacheComponents the
+// owner check (OwnerOnly) runs in a Suspense leaf, which can only answer 200 plus
+// a 404 view. A request with no session is answered here instead, before any
+// render, so the status is a real 404. It is rewritten to a one-segment path
+// without `@`, which the `[handle]` layout already 404s (same as `/nope`).
+// A signed-in non-owner is still decided by OwnerOnly (needs the username).
+const OWNER_ONLY_PATH = /^\/(?:@|%40)[^/]+\/(?:me|saved)\/?$/i;
+const NOT_FOUND_PATH = '/__not-found';
+
 // CF2-0a (2026-09-22): the `locale` cookie and its Accept-Language detection
 // were removed from here. They were WRITE-ONLY — `'locale'` appeared nowhere
 // else in the app, and i18n/request.ts resolves from the getRequestConfig
@@ -76,6 +85,14 @@ const clerk = clerkMiddleware(async (auth, req) => {
     }
     if (isProtectedRoute(req)) {
         await auth.protect();
+    }
+    if (OWNER_ONLY_PATH.test(req.nextUrl.pathname)) {
+        const { userId } = await auth();
+        if (!userId) {
+            const url = req.nextUrl.clone();
+            url.pathname = NOT_FOUND_PATH;
+            return NextResponse.rewrite(url);
+        }
     }
 });
 
