@@ -48,6 +48,12 @@ const nextConfig: NextConfig = {
     // Do not advertise the framework (measured 2026-10-13: `x-powered-by: Next.js`).
     poweredByHeader: false,
     transpilePackages: ['@repo/types'],
+    // CC-U2 (cc.design §16): re-clicking a page within 30 s reuses the client
+    // router cache instead of a new `_rsc` round trip. Back/forward ignores
+    // this (bfcache). Kill: delete this block + redeploy + purge.
+    experimental: {
+        staleTimes: { dynamic: 30 },
+    },
     // Self-hosted PM2 deploy (GCP): standalone server.js + traced node_modules.
     // The trace root must be the monorepo root: with pnpm node-linker=isolated
     // the real packages live in the root .pnpm store, outside this app dir.
