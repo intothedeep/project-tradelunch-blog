@@ -103,6 +103,11 @@ async function gateNotFound(auth: ClerkMiddlewareAuth, req: NextRequest) {
     // Signed-in RSC navigations are checked like anonymous ones (decision #103,
     // #98 option b): the Suspense leaf can only answer 200 plus a not-found view.
     const isRsc = req.headers.get('rsc') === '1';
+    // Signed-in prefetches skip the check (#106): one menu render prefetches many
+    // gated paths at once, and each check is an Express call. The click itself is
+    // still checked. Anonymous prefetches stay checked: their `_rsc` responses can
+    // be edge-cached, signed-in ones are DYNAMIC.
+    if (signedIn && req.headers.has('next-router-prefetch')) return null;
 
     const started = Date.now();
     const token = signedIn ? await getToken() : null;
