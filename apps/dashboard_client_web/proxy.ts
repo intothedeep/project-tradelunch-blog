@@ -25,6 +25,9 @@ const SERVED_FILES = new Set<string>([
     ...PUBLIC_PATHS,
     '/robots.txt',
     '/sitemap.xml',
+    // App metadata files (`app/favicon.ico`, `app/icon.png`): routes, not in public/.
+    '/favicon.ico',
+    '/icon.png',
 ]);
 
 // Routes that require an authenticated user.
@@ -184,12 +187,14 @@ export default function proxy(req: NextRequest, event: NextFetchEvent) {
 
 export const config = {
     matcher: [
-        // Page routes (skip _next, api, trpc, favicon/). Dotted paths now reach the
+        // Page routes (skip _next, api, trpc). favicon/ is matched: its files are in
+        // PUBLIC_PATHS, a missing one 404s here instead of reaching [handle].
+        // Dotted paths reach the
         // proxy, which passes real files and 404s the rest (A2). Kept at this reach even
         // though locale detection is gone: narrowing it to protected routes
         // breaks the root ClerkProvider and any public RSC calling `auth()`,
         // which throw when the middleware has not run (CF2-0b, rejected).
-        '/((?!_next|api|trpc|favicon/).*)',
+        '/((?!_next|api|trpc).*)',
         // Clerk's recommended matcher: always run on API/trpc routes.
         '/(api|trpc)(.*)',
     ],

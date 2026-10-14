@@ -2,6 +2,13 @@
 export const PUBLIC_PATHS: readonly string[] = [
     '/ads.txt',
     '/circles.svg',
+    '/favicon/android-chrome-192x192.png',
+    '/favicon/android-chrome-512x512.png',
+    '/favicon/apple-touch-icon.png',
+    '/favicon/favicon-16x16.png',
+    '/favicon/favicon-32x32.png',
+    '/favicon/favicon.ico',
+    '/favicon/site.webmanifest',
     '/next.svg',
     '/og-image.png',
     '/resume_taek_lim_1226.pdf',

@@ -1,5 +1,8 @@
 import { RESERVED_HANDLE_SEGMENTS } from '@repo/types';
-import { KNOWN_TOP_LEVEL_SEGMENTS } from './knownTopLevelSegments';
+import {
+    TOP_LEVEL_ROUTE_SHAPES,
+    type TRouteShape,
+} from './knownTopLevelSegments';
 
 // Pure path classifier for the proxy 404 gate (cc.design.md §18). Pathname in,
 // the kind of page it names out; no I/O. `null` = nothing to check.
@@ -17,7 +20,10 @@ const USER_SEGMENTS = ['posts', 'projects', 'logs'];
 const OWNER_ONLY_SEGMENTS = ['me', 'saved'];
 // About and Resume are hard-coded owner content: any other handle is a 404.
 const OWNER_CONTENT_SEGMENTS = ['about', 'resume'];
-const KNOWN_TOP_LEVEL = new Set<string>(KNOWN_TOP_LEVEL_SEGMENTS);
+// A Map, not an object lookup: `constructor` or `__proto__` must not match.
+const ROUTE_SHAPES = new Map<string, TRouteShape>(
+    Object.entries(TOP_LEVEL_ROUTE_SHAPES)
+);
 // Reserved segments with their own page need no existence check.
 const RESERVED = new Set<string>(RESERVED_HANDLE_SEGMENTS);
 
@@ -30,6 +36,14 @@ function decodeSegments(pathname: string): string[] | null {
     } catch {
         return null;
     }
+}
+
+function hasRoute(segs: string[]): boolean {
+    const shape = ROUTE_SHAPES.get(segs[0] as string);
+    if (!shape) return false;
+    if (segs.length < shape.minDepth || segs.length > shape.maxDepth)
+        return false;
+    return !shape.second || shape.second.includes(segs[1] as string);
 }
 
 export function classifyGatePath(pathname: string): TGatePath | null {
@@ -64,10 +78,10 @@ export function isUnknownPath(
     if (!segs || segs.length === 0) return false;
     const [first, second] = segs as [string, string?];
     // `/log` is not a route (owner removed the global feed, #113 update): it is
-    // absent from KNOWN_TOP_LEVEL_SEGMENTS, so the rule below answers every
+    // absent from TOP_LEVEL_ROUTE_SHAPES, so the rule below answers every
     // `/log…` path with a proxy 404 (`/log/@u…` would otherwise reach the ISR
     // not-found render, which answers 500 under cacheComponents).
-    if (!first.startsWith('@')) return !KNOWN_TOP_LEVEL.has(first);
+    if (!first.startsWith('@')) return !hasRoute(segs);
     if (segs.length !== 2 || !second) return false;
     const rawHandle = pathname.split('/').filter(Boolean)[0] as string;
     return OWNER_CONTENT_SEGMENTS.includes(second) && !isOwner(rawHandle);
