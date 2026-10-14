@@ -9,6 +9,7 @@ import { Router } from 'express';
 import { registerFeedRoutes } from './posts.feed';
 import { registerUserFeedRoutes } from './posts.user-feed';
 import { registerUserCategoriesRoutes } from './posts.user-categories';
+import { registerUserProjectsRoutes } from './posts.user-projects';
 import { registerUserMetaRoutes } from './posts.user-meta';
 import { registerDetailRoutes } from './posts.detail';
 
@@ -16,5 +17,6 @@ export const router = Router();
 registerFeedRoutes(router);
 registerUserFeedRoutes(router);
 registerUserCategoriesRoutes(router);
+registerUserProjectsRoutes(router);
 registerUserMetaRoutes(router);
 registerDetailRoutes(router); // LAST: /:postid catch-all
