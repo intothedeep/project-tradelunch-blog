@@ -1,0 +1,52 @@
+import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
+import { FolderKanban } from 'lucide-react';
+import { getProjects } from '@/apis/getProjects.api';
+import { ProjectCardGrid } from '@/components/projects/ProjectCardGrid.server';
+import { ProjectsMobileMenu } from '@/components/projects/ProjectsMobileMenu.server';
+import { stripUsernameAt } from '@/utils/blog-author';
+import { projectsPath } from '@/utils/routes';
+
+type Props = { params: Promise<{ handle: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+    const { handle } = await params;
+    const username = stripUsernameAt(decodeURIComponent(handle));
+    const t = await getTranslations('blog.projects');
+
+    return {
+        title: t('title'),
+        description: t('subtitle', { username }),
+        alternates: { canonical: projectsPath(username) },
+    };
+}
+
+export default async function ProjectsPage({ params }: Props) {
+    const { handle } = await params;
+    const username = stripUsernameAt(decodeURIComponent(handle));
+    const t = await getTranslations('blog.projects');
+    const projects = await getProjects(username);
+
+    return (
+        <section className="flex flex-col gap-4">
+            <ProjectsMobileMenu username={username} />
+            <header className="border border-primary bg-card p-4">
+                <h1 className="flex items-center gap-2 font-mono text-xl font-bold text-primary">
+                    <FolderKanban className="h-5 w-5 shrink-0" />{' '}
+                    {t('title').toUpperCase()}
+                </h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    {t('subtitle', { username })}
+                </p>
+            </header>
+            {projects.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('empty')}</p>
+            ) : (
+                <ProjectCardGrid
+                    username={username}
+                    projects={projects}
+                />
+            )}
+        </section>
+    );
+}

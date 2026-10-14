@@ -5,7 +5,7 @@
 // Side effects: network reads delegated to the async children.
 
 import { Suspense } from 'react';
-import { ProjectsTreeWrapper } from '@/app/[handle]/components/ProjectsTreeWrapper.server';
+import { ProjectsTreeWrapper } from '@/components/projects/ProjectsTreeWrapper.server';
 import { CategorySidebarWrapper } from '@/components/blog/CategorySidebarWrapper.server';
 import { CategoryErrorBoundary } from '@/components/blog/CategoryErrorboundary.client';
 import { RailCardSkeleton } from '@/components/rail/RailSkeleton';
@@ -18,7 +18,10 @@ type Props = { username?: string };
 
 export const HomeRightRail = ({ username = HOME_FEED_AUTHOR }: Props) => {
     return (
-        <div className="flex flex-col gap-4">
+        <div
+            data-right-rail="shared"
+            className="flex flex-col gap-4"
+        >
             <CategoryErrorBoundary>
                 <Suspense fallback={<RailCardSkeleton />}>
                     <ProjectsTreeWrapper

@@ -4,7 +4,7 @@
 // nothing (never an empty shell, never breaks the shell). The category/tag chip
 // rows that previously lived here are SUPERSEDED by the Phase 2-filter mobile
 // FilterChipRows rendered by the author page itself (the old nav MobileChipRow +
-// getMobileChips are soft-retired as x_*). The BlogShell call site gates this
+// getMobileChips are soft-retired as x_*). The ContentFrame call site gates this
 // with `lg:hidden`.
 // Side effects: one isolated network read.
 

@@ -10,13 +10,8 @@ import { LeftRail } from '@/components/rail/LeftRail.client';
 import { TagCloud } from '@/components/rail/TagCloud.server';
 import { TagCloudSkeleton } from '@/components/rail/TagCloud.skeleton';
 
-export const LeftRailContainer = ({
-    showRecentVisited = true,
-}: {
-    showRecentVisited?: boolean;
-}) => (
+export const LeftRailContainer = () => (
     <LeftRail
-        showRecentVisited={showRecentVisited}
         tagCloud={
             <Suspense fallback={<TagCloudSkeleton />}>
                 <TagCloud />

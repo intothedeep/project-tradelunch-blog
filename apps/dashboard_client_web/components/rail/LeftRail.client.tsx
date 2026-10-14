@@ -12,24 +12,24 @@
 // the atom syncs after mount. The atom only drives behavior (toggle, aria-expanded).
 // Side effects: toggling the atom persists the cookie (client-only, in the atom).
 
-import { useAtom } from 'jotai';
+import { useAtom, useAtomValue } from 'jotai';
+import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { isLeftRailCollapsedAtom } from '@/store/layout.atom';
+import { hideRecentAtom } from '@/store/rail-context.atom';
+import { railVisibility } from '@/utils/rail-visibility';
 import { PrimaryNav } from '@/components/rail/PrimaryNav.client';
 import { RailSection } from '@/components/rail/RailSection.client';
 import { RecentVisited } from '@/components/rail/RecentVisited.client';
 import { SavedTags } from '@/components/rail/SavedTags.client';
 
-export const LeftRail = ({
-    tagCloud,
-    showRecentVisited = true,
-}: {
-    tagCloud?: React.ReactNode;
-    // false on the projects screens (#79); every other page keeps the widget.
-    showRecentVisited?: boolean;
-}) => {
+export const LeftRail = ({ tagCloud }: { tagCloud?: React.ReactNode }) => {
     const [isCollapsed, setIsCollapsed] = useAtom(isLeftRailCollapsedAtom);
+    // Recently viewed is hidden on the projects screens by path and on project
+    // posts by the leaf signal (#79).
+    const { showRecent } = railVisibility(usePathname());
+    const hideRecent = useAtomValue(hideRecentAtom);
     const t = useTranslations('blog');
 
     return (
@@ -70,7 +70,7 @@ export const LeftRail = ({
             {/* localStorage-backed widgets (H5.4) — expanded rail only; shared
                 identically across `/` and `/@[handle]/posts`. */}
             <div className="contents in-data-[rail=collapsed]:hidden">
-                {showRecentVisited ? <RecentVisited /> : null}
+                {showRecent && !hideRecent ? <RecentVisited /> : null}
                 <SavedTags />
             </div>
         </div>

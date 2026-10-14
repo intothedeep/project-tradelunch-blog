@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { Sidebar, SidebarContent, SidebarRail } from '@/components/ui/sidebar';
 import { CategoriesGroup } from '@/components/blog/sidebar-categories.server';
-import Loading from '@/app/[handle]/posts/loading';
+import Loading from '@/app/(shell)/[handle]/posts/loading';
 
 type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
     username: string;

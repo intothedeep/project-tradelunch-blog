@@ -12,6 +12,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { Bookmark } from 'lucide-react';
 import { RecentPostCard } from '@/components/blog/RecentPostCard.client';
 import { SavedSearchBox } from '@/components/me/SavedSearchBox.client';
 import { useSavedPosts } from '@/hooks/useSavedPosts.query.client';
@@ -51,7 +52,8 @@ export function SavedPostsList() {
                     id="saved-heading"
                     className="flex items-center gap-2 text-xl font-bold text-primary"
                 >
-                    <span>&gt;</span> {t('saved.heading').toUpperCase()}
+                    <Bookmark className="h-5 w-5 shrink-0" />{' '}
+                    {t('saved.heading').toUpperCase()}
                 </h1>
             </header>
 
