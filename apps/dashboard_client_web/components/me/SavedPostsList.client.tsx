@@ -43,90 +43,101 @@ export function SavedPostsList() {
     return (
         <section
             aria-labelledby="saved-heading"
-            className="mx-auto w-full max-w-3xl p-4 font-mono"
+            className="mx-auto flex w-full max-w-3xl flex-col gap-4 font-mono"
         >
-            <h1
-                id="saved-heading"
-                className="mb-4 text-lg"
-            >
-                {t('saved.heading')}
-            </h1>
-
-            <SavedSearchBox
-                value={term}
-                onChange={setTerm}
-            />
-
-            {isLoading && (
-                <ul
-                    className="flex flex-col gap-4"
-                    aria-busy="true"
+            {/* Title box and content box match the projects screens. */}
+            <header className="border border-primary bg-card p-4">
+                <h1
+                    id="saved-heading"
+                    className="flex items-center gap-2 text-xl font-bold text-primary"
                 >
-                    {[0, 1, 2].map((i) => (
-                        <li
-                            key={i}
-                            className="h-40 animate-pulse border-2 border-primary/20 bg-primary/5"
-                        />
-                    ))}
-                </ul>
-            )}
+                    <span>&gt;</span> {t('saved.heading').toUpperCase()}
+                </h1>
+            </header>
 
-            {!isLoading && isError && (
-                <p
-                    role="alert"
-                    className="text-sm text-destructive"
-                >
-                    {t('saved.loadError')}
-                </p>
-            )}
+            <div className="border border-primary bg-card p-4">
+                <SavedSearchBox
+                    value={term}
+                    onChange={setTerm}
+                />
 
-            {!isLoading && !isError && posts.length === 0 && !isSearching && (
-                <div className="flex flex-col items-start gap-3 border-2 border-primary/30 p-6 text-sm">
-                    <span className="text-muted-foreground">
-                        {t('saved.emptyTitle')}
-                    </span>
-                    <Link
-                        href="/"
-                        className={ctaButtonClass}
+                {isLoading && (
+                    <ul
+                        className="flex flex-col gap-4"
+                        aria-busy="true"
                     >
-                        {t('saved.emptyCta')}
-                    </Link>
-                </div>
-            )}
-
-            {!isLoading && !isError && posts.length === 0 && isSearching && (
-                <p
-                    role="status"
-                    aria-live="polite"
-                    className="text-sm text-muted-foreground"
-                >
-                    {t('saved.noResults', { query: debouncedTerm })}
-                </p>
-            )}
-
-            {!isLoading && !isError && posts.length > 0 && (
-                <>
-                    <ul className="flex flex-col gap-4">
-                        {posts.map((post) => (
-                            <li key={post.id}>
-                                <RecentPostCard post={post} />
-                            </li>
+                        {[0, 1, 2].map((i) => (
+                            <li
+                                key={i}
+                                className="h-40 animate-pulse border-2 border-primary/20 bg-primary/5"
+                            />
                         ))}
                     </ul>
+                )}
 
-                    {hasNextPage && (
-                        <button
-                            type="button"
-                            onClick={() => fetchNextPage()}
-                            disabled={isFetchingNextPage}
-                            aria-busy={isFetchingNextPage}
-                            className={cn(ctaButtonClass, 'mt-4 w-full')}
-                        >
-                            {t('saved.loadMore')}
-                        </button>
+                {!isLoading && isError && (
+                    <p
+                        role="alert"
+                        className="text-sm text-destructive"
+                    >
+                        {t('saved.loadError')}
+                    </p>
+                )}
+
+                {!isLoading &&
+                    !isError &&
+                    posts.length === 0 &&
+                    !isSearching && (
+                        <div className="flex flex-col items-start gap-3 border-2 border-primary/30 p-6 text-sm">
+                            <span className="text-muted-foreground">
+                                {t('saved.emptyTitle')}
+                            </span>
+                            <Link
+                                href="/"
+                                className={ctaButtonClass}
+                            >
+                                {t('saved.emptyCta')}
+                            </Link>
+                        </div>
                     )}
-                </>
-            )}
+
+                {!isLoading &&
+                    !isError &&
+                    posts.length === 0 &&
+                    isSearching && (
+                        <p
+                            role="status"
+                            aria-live="polite"
+                            className="text-sm text-muted-foreground"
+                        >
+                            {t('saved.noResults', { query: debouncedTerm })}
+                        </p>
+                    )}
+
+                {!isLoading && !isError && posts.length > 0 && (
+                    <>
+                        <ul className="flex flex-col gap-4">
+                            {posts.map((post) => (
+                                <li key={post.id}>
+                                    <RecentPostCard post={post} />
+                                </li>
+                            ))}
+                        </ul>
+
+                        {hasNextPage && (
+                            <button
+                                type="button"
+                                onClick={() => fetchNextPage()}
+                                disabled={isFetchingNextPage}
+                                aria-busy={isFetchingNextPage}
+                                className={cn(ctaButtonClass, 'mt-4 w-full')}
+                            >
+                                {t('saved.loadMore')}
+                            </button>
+                        )}
+                    </>
+                )}
+            </div>
         </section>
     );
 }

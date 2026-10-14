@@ -42,7 +42,9 @@
     "tags": {
         "emptyTitle": "No posts tagged \"{tag}\"",
         "browsePopular": "Browse popular tags",
-        "jumpPlaceholder": "Jump to a tag…"
+        "jumpPlaceholder": "Jump to a tag…",
+        "searchOpen": "Open search",
+        "searchClose": "Close search"
     },
     "feed": {
         "loadError": "Couldn't load more posts.",

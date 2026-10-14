@@ -127,7 +127,7 @@ export const CategorySidebar: React.FC<CategorySidebarProps> = ({
         <Card
             className={cn(
                 // 'max-w-2xl',
-                'bg-card border-primary',
+                'rounded-none bg-card border-primary',
                 className
             )}
         >

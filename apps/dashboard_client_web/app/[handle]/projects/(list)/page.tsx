@@ -29,9 +29,11 @@ export default async function ProjectsPage({ params }: Props) {
     return (
         <section className="flex flex-col gap-4">
             <ProjectsMobileMenu username={username} />
-            <header>
-                <h1 className="text-xl font-bold">{t('title')}</h1>
-                <p className="text-sm text-muted-foreground">
+            <header className="border border-primary bg-card p-4">
+                <h1 className="flex items-center gap-2 font-mono text-xl font-bold text-primary">
+                    <span>&gt;</span> {t('title').toUpperCase()}
+                </h1>
+                <p className="mt-1 text-sm text-muted-foreground">
                     {t('subtitle', { username })}
                 </p>
             </header>

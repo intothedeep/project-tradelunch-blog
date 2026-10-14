@@ -46,14 +46,16 @@ export const UserContextRail = async ({ username }: { username: string }) => {
                 </Suspense>
             </CategoryErrorBoundary>
 
-            <RailSection title={t('rail.popularTagsUser', { username })}>
-                <Suspense fallback={<TagCloudSkeleton />}>
-                    <TagCloud
-                        username={username}
-                        mode="filter"
-                    />
-                </Suspense>
-            </RailSection>
+            <div className="rounded-none border border-primary bg-card">
+                <RailSection title={t('rail.popularTagsUser', { username })}>
+                    <Suspense fallback={<TagCloudSkeleton />}>
+                        <TagCloud
+                            username={username}
+                            mode="filter"
+                        />
+                    </Suspense>
+                </RailSection>
+            </div>
         </div>
     );
 };

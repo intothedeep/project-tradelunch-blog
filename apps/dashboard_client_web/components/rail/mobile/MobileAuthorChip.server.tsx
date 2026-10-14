@@ -26,7 +26,7 @@ export const MobileAuthorChip = ({
     return (
         <Link
             href={postsPath(profile.username)}
-            className="inline-flex min-w-0 items-center gap-2 rounded-full border border-border px-2 py-1 transition-colors hover:bg-accent/50"
+            className="inline-flex min-w-0 items-center gap-2 rounded-none border border-border px-2 py-1 transition-colors hover:bg-accent/50"
         >
             {profile.avatarUrl ? (
                 <Image

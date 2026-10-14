@@ -1,4 +1,4 @@
-// Purpose: right rail of `/` — three bordered, square-cornered boxes: the site
+// Purpose: right rail of `/` and the projects screens (owner, 2026-10-14) — three bordered, square-cornered boxes: the site
 // owner's projects tree, the owner's category tree, and recently viewed (global
 // popular tags when there are no recents). Each data box reads in its own
 // Suspense leaf; auth() stays inside the wrappers.
@@ -14,13 +14,15 @@ import { TagCloud } from '@/components/rail/TagCloud.server';
 import { HOME_FEED_AUTHOR } from '@/utils/blog-author';
 import { postsPath } from '@/utils/routes';
 
-export const HomeRightRail = () => {
+type Props = { username?: string };
+
+export const HomeRightRail = ({ username = HOME_FEED_AUTHOR }: Props) => {
     return (
         <div className="flex flex-col gap-4">
             <CategoryErrorBoundary>
                 <Suspense fallback={<RailCardSkeleton />}>
                     <ProjectsTreeWrapper
-                        username={HOME_FEED_AUTHOR}
+                        username={username}
                         hideWhenEmpty
                     />
                 </Suspense>
@@ -28,9 +30,9 @@ export const HomeRightRail = () => {
             <CategoryErrorBoundary>
                 <Suspense fallback={<RailCardSkeleton rows={4} />}>
                     <CategorySidebarWrapper
-                        username={HOME_FEED_AUTHOR}
+                        username={username}
                         mode="filter"
-                        filterBasePath={postsPath(HOME_FEED_AUTHOR)}
+                        filterBasePath={postsPath(username)}
                         className="rounded-none"
                     />
                 </Suspense>

@@ -1,17 +1,64 @@
 'use client';
 
-// Purpose: the single global desktop top bar contents — logo, tag SearchBar, and
-// the shared theme/auth NavMenu. "Write" lives in the left-rail primary nav, so
-// it is not duplicated here. Mounted once by DesktopNavigation, so there is
-// exactly one bar on /, /blog/*, /tags/*.
+// Purpose: the single global desktop top bar contents — logo, tag search, and
+// the shared theme/auth NavMenu. Search is collapsed to an icon + ⌘K trigger;
+// activating it (click or ⌘K / Ctrl+K) swaps the whole bar for a full-width
+// input. "Write" lives in the left-rail primary nav, so it is not duplicated
+// here. Mounted once by DesktopNavigation, so there is exactly one bar on
+// /, /blog/*, /tags/*.
 
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { NavMenu } from '@/components/nav-menu.client';
 import { SearchBar } from '@/components/topbar/SearchBar.client';
+import { SearchTrigger } from '@/components/topbar/SearchTrigger.client';
+import {
+    isEditableTarget,
+    isSearchHotkey,
+} from '@/components/topbar/searchHotkey.util';
+
+const NAV_CLASS =
+    'hidden md:flex h-16 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-6';
 
 export const TopBar = () => {
+    const [searchOpen, setSearchOpen] = useState(false);
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const returnFocusRef = useRef(false);
+
+    const closeSearch = useCallback((returnFocus: boolean) => {
+        returnFocusRef.current = returnFocus;
+        setSearchOpen(false);
+    }, []);
+
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (!isSearchHotkey(event) || isEditableTarget(event.target))
+                return;
+            event.preventDefault();
+            setSearchOpen(true);
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    // The trigger remounts on close, so focus is restored after the commit.
+    useEffect(() => {
+        if (!searchOpen && returnFocusRef.current) {
+            returnFocusRef.current = false;
+            triggerRef.current?.focus();
+        }
+    }, [searchOpen]);
+
+    if (searchOpen) {
+        return (
+            <nav className={NAV_CLASS}>
+                <SearchBar onClose={closeSearch} />
+            </nav>
+        );
+    }
+
     return (
-        <nav className="hidden md:flex h-16 items-center justify-between border-b-2 border-primary bg-background/95 backdrop-blur px-6">
+        <nav className={NAV_CLASS}>
             {/* Left - Logo */}
             <Link
                 href="/"
@@ -25,9 +72,13 @@ export const TopBar = () => {
                 </span>
             </Link>
 
-            {/* Right - search, then theme + auth */}
+            {/* Right - search trigger, then theme + auth */}
             <div className="flex items-center gap-4">
-                <SearchBar />
+                <SearchTrigger
+                    ref={triggerRef}
+                    expanded={searchOpen}
+                    onOpen={() => setSearchOpen(true)}
+                />
                 <NavMenu />
             </div>
         </nav>

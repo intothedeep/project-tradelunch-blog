@@ -12,7 +12,6 @@
 
 import { useState } from 'react';
 import { useAtomValue } from 'jotai';
-import { useTranslations } from 'next-intl';
 import { ChevronDown } from 'lucide-react';
 import { tocItemsAtom } from '@/store/toc.atom';
 import { TableOfContents } from '@/components/blog/TableOfContents.client';
@@ -26,7 +25,6 @@ import { cn } from '@/lib/utils';
 export const MobileToc = () => {
     const items = useAtomValue(tocItemsAtom);
     const [isOpen, setIsOpen] = useState(false);
-    const t = useTranslations('blog');
 
     // Empty guard: no headings → render nothing (no trigger, no shell).
     if (!items || items.length === 0) {
@@ -39,8 +37,10 @@ export const MobileToc = () => {
             onOpenChange={setIsOpen}
             className="mb-3"
         >
-            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/50">
-                <span>{t('toc.heading')}</span>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-none border border-primary bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/50">
+                <span className="flex items-center gap-2 font-mono text-primary">
+                    <span>&gt;</span> TABLE OF CONTENTS
+                </span>
                 <ChevronDown
                     className={cn(
                         'h-4 w-4 shrink-0 transition-transform',
@@ -48,10 +48,10 @@ export const MobileToc = () => {
                     )}
                 />
             </CollapsibleTrigger>
-            <CollapsibleContent>
+            <CollapsibleContent className="border border-t-0 border-primary bg-card">
                 <TableOfContents
                     items={items}
-                    className="my-2"
+                    bare
                 />
             </CollapsibleContent>
         </Collapsible>

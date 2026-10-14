@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 interface TableOfContentsProps {
     items: TTocItem[];
     className?: string;
+    // List only: the caller draws the box and title (mobile dropdown).
+    bare?: boolean;
 }
 
 // Mapping for indentation based on heading depth
@@ -25,7 +27,11 @@ const depthIndent: Record<number, string> = {
  * Highlights active section based on URL hash.
  * Styled to match CategorySidebar design.
  */
-export const TableOfContents = ({ items, className }: TableOfContentsProps) => {
+export const TableOfContents = ({
+    items,
+    className,
+    bare = false,
+}: TableOfContentsProps) => {
     const [activeSlug, setActiveSlug] = useState<string>('');
 
     // Listen for hash changes and set initial hash
@@ -47,43 +53,50 @@ export const TableOfContents = ({ items, className }: TableOfContentsProps) => {
         return null;
     }
 
+    const list = (
+        <ul className="space-y-0.5">
+            {items.map((item, index) => {
+                const isActive = activeSlug === item.slug;
+                return (
+                    <li
+                        key={`${item.slug}-${index}`}
+                        className={cn(depthIndent[item.depth] || 'pl-0')}
+                    >
+                        <a
+                            href={`#${item.slug}`}
+                            className={cn(
+                                'block py-0.5 text-xs font-mono',
+                                'transition-colors duration-150',
+                                'hover:underline underline-offset-2',
+                                isActive
+                                    ? 'text-primary font-semibold'
+                                    : 'text-foreground hover:text-primary'
+                            )}
+                        >
+                            {item.text}
+                        </a>
+                    </li>
+                );
+            })}
+        </ul>
+    );
+
+    if (bare) return <div className={cn('px-2 py-2', className)}>{list}</div>;
+
     return (
-        <Card className={cn('bg-card border-primary my-4', className)}>
+        <Card
+            className={cn(
+                'rounded-none bg-card border-primary my-4',
+                className
+            )}
+        >
             <CardHeader className="p-3 sm:p-4 border-b border-primary/30">
                 <CardTitle className="text-primary flex items-center gap-2 text-sm sm:text-base font-mono">
                     <span>&gt;</span> TABLE OF CONTENTS
                 </CardTitle>
             </CardHeader>
 
-            <CardContent className="px-2 py-2">
-                <ul className="space-y-0.5">
-                    {items.map((item, index) => {
-                        const isActive = activeSlug === item.slug;
-                        return (
-                            <li
-                                key={`${item.slug}-${index}`}
-                                className={cn(
-                                    depthIndent[item.depth] || 'pl-0'
-                                )}
-                            >
-                                <a
-                                    href={`#${item.slug}`}
-                                    className={cn(
-                                        'block py-0.5 text-xs font-mono',
-                                        'transition-colors duration-150',
-                                        'hover:underline underline-offset-2',
-                                        isActive
-                                            ? 'text-primary font-semibold'
-                                            : 'text-foreground hover:text-primary'
-                                    )}
-                                >
-                                    {item.text}
-                                </a>
-                            </li>
-                        );
-                    })}
-                </ul>
-            </CardContent>
+            <CardContent className="px-2 py-2">{list}</CardContent>
         </Card>
     );
 };

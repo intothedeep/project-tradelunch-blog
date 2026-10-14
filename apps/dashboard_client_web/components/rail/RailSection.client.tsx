@@ -29,7 +29,7 @@ export const RailSection = ({
                 onClick={() => setIsOpen((prev) => !prev)}
                 aria-expanded={isOpen}
                 aria-controls={contentId}
-                className="flex items-center justify-between rounded-md px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-accent/50"
+                className="flex items-center justify-between rounded-none px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-accent/50"
             >
                 <span>{title}</span>
                 <ChevronDown

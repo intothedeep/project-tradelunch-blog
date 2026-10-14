@@ -26,7 +26,7 @@ export const UserProfileCard = async ({ username }: { username: string }) => {
     const initial = (display || '?').charAt(0).toUpperCase();
 
     return (
-        <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
+        <div className="flex flex-col gap-2 rounded-none border border-primary bg-card p-3">
             <div className="flex items-center gap-3">
                 {profile.avatarUrl ? (
                     <Image

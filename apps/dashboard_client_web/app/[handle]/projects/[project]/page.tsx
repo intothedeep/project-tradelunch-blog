@@ -30,7 +30,11 @@ export default async function ProjectPage({ params }: Props) {
     return (
         <section className="flex flex-col gap-4">
             <ProjectsMobileMenu username={username} />
-            <h1 className="text-3xl font-bold">{ref.project}</h1>
+            <header className="border border-primary bg-card p-4">
+                <h1 className="flex items-center gap-2 font-mono text-xl font-bold text-primary">
+                    <span>&gt;</span> {ref.project.toUpperCase()}
+                </h1>
+            </header>
             <ProjectPostList
                 username={username}
                 posts={posts}

@@ -26,8 +26,8 @@ export const ProjectPostList = ({ username, posts }: Props) => {
         );
 
     return (
-        <>
-            <div className="flex items-center justify-between gap-3 border-b border-border pb-3 text-sm">
+        <div className="flex flex-col gap-6 border border-primary bg-card p-4">
+            <div className="flex items-center justify-between gap-3 border-b border-primary/30 pb-3 text-sm">
                 <p className="text-muted-foreground">
                     {t('postCount', { count: posts.length })}
                 </p>
@@ -56,7 +56,7 @@ export const ProjectPostList = ({ username, posts }: Props) => {
                         key={post.id}
                         className="flex flex-col gap-3"
                     >
-                        <h2 className="text-xl font-bold sm:text-2xl">
+                        <h2 className="text-xl font-bold">
                             <HoverPrefetchLink
                                 href={postPath(username, post.slug)}
                                 className="hover:underline"
@@ -67,14 +67,14 @@ export const ProjectPostList = ({ username, posts }: Props) => {
                         <HoverPrefetchLink
                             href={postPath(username, post.slug)}
                             aria-label={post.title}
-                            className="flex flex-col gap-4 border border-border p-4 transition-colors hover:bg-secondary sm:flex-row"
+                            className="flex flex-col border border-primary bg-card transition-colors hover:bg-secondary sm:flex-row"
                         >
                             <ProjectThumbnail
                                 storedUri={post.stored_uri}
                                 alt={post.title}
                                 className="aspect-video w-full shrink-0 sm:w-48"
                             />
-                            <span className="flex min-w-0 flex-1 flex-col justify-between gap-3">
+                            <span className="flex min-w-0 flex-1 flex-col justify-between gap-3 p-4">
                                 <span className="line-clamp-3 text-sm text-muted-foreground">
                                     {post.description}
                                 </span>
@@ -86,7 +86,7 @@ export const ProjectPostList = ({ username, posts }: Props) => {
                     </li>
                 ))}
             </ol>
-        </>
+        </div>
     );
 };
 

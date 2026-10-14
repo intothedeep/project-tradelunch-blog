@@ -48,7 +48,12 @@ export const TableOfContents = ({ items, className }: TableOfContentsProps) => {
     }
 
     return (
-        <Card className={cn('bg-card border-primary my-4', className)}>
+        <Card
+            className={cn(
+                'rounded-none bg-card border-primary my-4',
+                className
+            )}
+        >
             <CardHeader className="p-3 sm:p-4 border-b border-primary/30">
                 <CardTitle className="text-primary flex items-center gap-2 text-sm sm:text-base font-mono">
                     <span>&gt;</span> TABLE OF CONTENTS

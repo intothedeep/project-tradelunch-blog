@@ -34,20 +34,23 @@ export const LeftRail = ({
 
     return (
         <div className="flex h-full flex-col gap-2 p-2">
-            <div className="flex justify-end in-data-[rail=collapsed]:justify-center">
-                <button
-                    type="button"
-                    onClick={() => setIsCollapsed(!isCollapsed)}
-                    aria-expanded={!isCollapsed}
-                    aria-label={
-                        isCollapsed ? t('rail.expand') : t('rail.collapse')
-                    }
-                    className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-                >
-                    <PanelLeftClose className="h-5 w-5 in-data-[rail=collapsed]:hidden" />
-                    <PanelLeftOpen className="hidden h-5 w-5 in-data-[rail=collapsed]:block" />
-                </button>
-            </div>
+            {/* Same row shape as a PrimaryNav item, so the toggle icon sits in
+                the menu icons' column whether the rail is open or collapsed. */}
+            <button
+                type="button"
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                aria-expanded={!isCollapsed}
+                aria-label={isCollapsed ? t('rail.expand') : t('rail.collapse')}
+                className="flex w-full items-center gap-3 rounded-none px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground in-data-[rail=collapsed]:justify-center"
+            >
+                <PanelLeftClose className="h-5 w-5 shrink-0 in-data-[rail=collapsed]:hidden" />
+                <PanelLeftOpen className="hidden h-5 w-5 shrink-0 in-data-[rail=collapsed]:block" />
+                {/* A rule instead of a label: the row reads as the rail header. */}
+                <span
+                    aria-hidden
+                    className="h-px flex-1 bg-border in-data-[rail=collapsed]:hidden"
+                />
+            </button>
 
             <PrimaryNav />
 

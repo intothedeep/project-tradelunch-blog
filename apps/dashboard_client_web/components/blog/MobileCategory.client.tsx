@@ -31,8 +31,10 @@ export const MobileCategory = ({ title, children }: Props) => {
             onOpenChange={setIsOpen}
             className="mb-3"
         >
-            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/50">
-                <span>{title}</span>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-none border border-primary bg-card px-3 py-2 text-sm font-medium transition-colors hover:bg-accent/50">
+                <span className="flex items-center gap-2 font-mono text-primary">
+                    <span>&gt;</span> {title.toUpperCase()}
+                </span>
                 <ChevronDown
                     className={cn(
                         'h-4 w-4 shrink-0 transition-transform',
@@ -40,7 +42,9 @@ export const MobileCategory = ({ title, children }: Props) => {
                     )}
                 />
             </CollapsibleTrigger>
-            <CollapsibleContent>{children}</CollapsibleContent>
+            <CollapsibleContent className="border border-t-0 border-primary bg-card px-2 pb-2">
+                {children}
+            </CollapsibleContent>
         </Collapsible>
     );
 };
