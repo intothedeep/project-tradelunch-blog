@@ -268,12 +268,17 @@ function SiteMenuBody({
             <ul className="space-y-2">
                 {links.map((link, index) => {
                     const label = link.labelKey ? t(link.labelKey) : link.title;
-                    const itemStyle: React.CSSProperties = {
-                        animationDelay: `${index * 50}ms`,
-                        animation: isOpen
-                            ? 'slideInUp 0.3s ease-out forwards'
-                            : 'none',
-                    };
+                    // Longhand only: React warns when the `animation` shorthand
+                    // and `animationDelay` change together on a rerender.
+                    const itemStyle: React.CSSProperties = isOpen
+                        ? {
+                              animationName: 'slideInUp',
+                              animationDuration: '0.3s',
+                              animationTimingFunction: 'ease-out',
+                              animationFillMode: 'forwards',
+                              animationDelay: `${index * 50}ms`,
+                          }
+                        : { animationName: 'none' };
 
                     if (link.disabled) {
                         return (
