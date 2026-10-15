@@ -1,7 +1,7 @@
 # Debugging casebook
 
-Fourteen real cases from 2026-10-13, each with symptom, cause, fix and evidence.
-Result: 12 fixed, 1 open (chapter 3, the missing thumbnail on the CDN), 1 needed no fix (chapter 13).
+Fifteen real cases from 2026-10-13 and 2026-10-14, each with symptom, cause, fix and evidence.
+Result: 12 fixed, 1 open (chapter 3, the missing thumbnail on the CDN), 1 needed no fix (chapter 13), 1 fixed but unmeasured in bytes (chapter 15).
 Chapter 14 holds two cases (14.1 fixed in `753c2c9`; 14.2 fixed in `11b3023`) plus a toolkit.
 
 ## What this book is
@@ -11,7 +11,7 @@ Purpose: teach the method behind the fixes, using cases from this repo.
 | Part | File |
 | --- | --- |
 | General method | [`00-method.md`](./00-method.md) |
-| Fourteen cases | `01-...md` to `14-...md` |
+| Fifteen cases | `01-...md` to `15-...md` |
 
 Sources are the repo runbooks and code named in each chapter.
 No secret value appears in the book. Key names appear, key values never.
@@ -34,6 +34,7 @@ No secret value appears in the book. Key names appear, key values never.
 | 12 | [`12-pnpm-exec-next-not-found.md`](./12-pnpm-exec-next-not-found.md) | `ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL` | `next` is not installed at the repo root | `pnpm --filter ... exec` | fixed |
 | 13 | [`13-stale-error-log-etimedout.md`](./13-stale-error-log-etimedout.md) | pm2 error log shows `ETIMEDOUT` after a release | The lines are old (last write 20:57:17 UTC, before the release). Cause of the old timeouts unknown | none needed | no fix needed |
 | 14 | [`14-blog-agent-publish.md`](./14-blog-agent-publish.md) | 14.1 publish fails `[Errno 51]` to an IPv6 address. 14.2 top image broken after a re-publish | 14.1 direct DB host is IPv6-only, no IPv6 route. 14.2 OG webp written into the post folder, then picked as thumbnail | 14.1 pooled `POSTGRES_URL` first + asyncpg cache off (`753c2c9`). 14.2 OG webp to `<post>/.generated/` (`11b3023`) | fixed |
+| 15 | [`15-traffic-overrun.md`](./15-traffic-overrun.md) | Vercel 402 (2026-09-22), then request bursts behind Cloudflare (2026-10-13) | 16 causes: cache leaks, no edge cache, prefetch bursts, duplicate fetches | `d094859`, `c21e53c`, Cache Rules, `34e2080`, `61d48bc`, `964c9f8` and others | fixed in part. Bytes, GB and money never measured |
 
 ## How to read a chapter
 
