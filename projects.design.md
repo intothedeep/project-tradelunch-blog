@@ -674,3 +674,316 @@ rev3: P2-1, P2-2는 P1으로 당겼다 (#80). P2-2는 #89가 바꿨다. P2에는
 | Q13 | `@` 없는 옛 URL(`/blog/taek`, `/log/taek`)도 받을까 | ~~받는다. U6 stub 대안~~ 옛 URL `/blog/taek`는 `legacyRedirect.ts`가 308로 받는다. `/log/…`는 404다 (#113 Update 2) |
 | Q14 | 다른 사람의 `/@u/saved`는 HTTP 404 상태여야 하는가 | ~~아니다. 404 화면 + noindex. 상태가 꼭 필요하면 서버 비교안~~ 닫힘: HTTP 404다 (#89) |
 | Q15 | `/about`, `/resume`을 308로 보낼까, 두 URL을 둘까 | 308. URL 하나. 닫힘 (#80) |
+
+## 12. 프로젝트 그룹 (rev4 DRAFT, 2026-10-17)
+
+> 상태: 설계 초안. 코드 없음. 옵션 선택은 오너가 한다. D-row는 main session이 쓴다.
+> 미션 블록은 §0 인용을 따른다. 그룹은 Mission(채용 담당자가 결과를 한눈에)을 섬긴다.
+
+오너 요구 (verbatim, 2026-10-17):
+
+> I would like to update project page layout. I would like to have sub categories for my utrgv work, Georgia Institute of Technology work, Company, my personal project.
+> 1. cnn-from scratch is a UTRGV work.
+> 2. I will add recobell, adriel works soon for my Jobs
+
+### 12.0 결과 요약
+
+| 결정 | 권고 |
+| --- | --- |
+| D1 데이터 모델 | A: 카테고리 한 단계 추가 `projects/<group>/<project>`. 스키마 변경 없음 |
+| D2 URL | 그룹 URL 없음. 한 페이지 안 구역(section)과 `#<group>` 앵커(anchor) |
+| D3 화면 | 그룹별 카드 구역. 순서는 그룹 카테고리 priority. 빈 그룹은 숨김 |
+| D4 이름 | slug = 카테고리 title `utrgv`, `gatech`, `company`, `personal`. 표시 이름은 i18n |
+| D5 캐시와 404 | 프로젝트 URL 불변, 308 없음. 데이터 이동 뒤 Cloudflare 전체 purge |
+
+rev3 전제 정정:
+
+- §1.3은 `categories_user_title_key UNIQUE (user_id, title)`를 근거로 든다.
+- migration `0010`이 이 제약을 지웠다. 지금 제약은 `UNIQUE NULLS NOT DISTINCT (user_id, parent_id, title)`다.
+- `0010`은 Phase M에서 운영(prod)에 적용됐다 (`00.tasks.md` 201행).
+- 그래서 다른 부모 아래면 같은 title 프로젝트가 둘 생길 수 있다. §12.3이 규칙을 정한다.
+
+### 12.1 D1 데이터 모델: 옵션 A/B/C
+
+모든 옵션은 Mission과 §0 Vision("옛 URL은 모두 새 URL로 연결된다")을 섬긴다.
+
+| 옵션 | 내용 | cnn 이동 비용 | 새 프로젝트 추가 | URL | 판정 |
+| --- | --- | --- | --- | --- | --- |
+| **A 안정(stable), 권고** | 그룹 = `projects`의 자식 카테고리. 프로젝트 = 그룹의 자식 | 카테고리 1행 `UPDATE` (parent_id, level). 글 행 무변경 | 폴더 경로만: `projects/company/recobell/<slug>/` | 불변 | 권고 |
+| B 확장(scalable) | 카테고리 무변경. `@repo/types`에 매핑 `{ 'cnn-from-scratch': 'utrgv' }` | 0 | 발행 + 코드 1줄 + 배포 | 불변 | 매핑을 잊으면 "그룹 없음"으로 빠진다 |
+| C 최신(cutting-edge) | `categories.project_group` 열 또는 새 표 | 열 1개 채움 | 발행 + 값 지정 화면 | 불변 | 스키마 변경. Constraints 위반. 버림 |
+
+A를 고른 이유:
+
+- 오너 발행 모델은 "폴더 경로 = 카테고리 계층"이다 (MEMORY "Blog publish oneshot flow").
+- A에서는 폴더가 그룹을 말한다. 코드와 배포가 필요 없다.
+- tree가 그룹을 그대로 그린다. 가짜 노드가 필요 없다.
+- `categories`에는 빈 텍스트 열이 없다. 그래서 B의 "DB 메타데이터" 형태는 C가 된다.
+- `group_id` 열은 재사용하지 않는다. blog_agent가 루트 id로 쓴다 (`category.py` 155행).
+
+### 12.2 D2 URL
+
+| 경로 | rev4 | 이유 |
+| --- | --- | --- |
+| `/@u/projects` | 그대로. 내용이 그룹 구역으로 바뀐다 | 오너 요청은 레이아웃 변경이다 |
+| `/@u/projects/<project>` | 그대로. 308 없음 | 기존 링크와 색인을 지킨다 |
+| `/@u/projects#utrgv` | 새 앵커. 서버 영향 없음 | tree의 그룹 클릭 목적지 |
+| `/@u/projects/<group>` | 만들지 않는다. 404 | `[project]` 칸과 이름 공간이 겹친다 |
+
+- 그룹 URL을 만들면 proxy gate가 깨진다. `classifyGatePath`는 3칸 `/projects/x`를 모두 프로젝트로 본다.
+- 그래서 예약 slug 목록은 바뀌지 않는다. 7개 그대로다 (§2.1).
+
+### 12.3 데이터 계약 (additive, 평면 유지)
+
+규칙 (§5.1 형식):
+
+| 칸 | 내용 |
+| --- | --- |
+| 무엇을 알려고 | 카테고리 한 개가 그룹인가, 프로젝트인가 |
+| 표 | 아래 판정 표 |
+| 어떻게 | 1 `projects` 루트를 찾는다. 2 직계 자식을 본다. 3 자식 카테고리가 있으면 그룹이다. 4 그룹의 자식은 프로젝트다. 5 자식 카테고리가 없고 글이 있는 직계 자식은 "그룹 없음(ungrouped)" 프로젝트다. 6 자식도 글도 없는 직계 자식은 숨긴다 |
+| 예 | 이동 전: `cnn-from-scratch` 자식 0, 글 8 → 그룹 없음. 그룹 4행 생성 직후: 자식 0, 글 0 → 숨김, 배지 1 그대로. 이동 후: `utrgv` 자식 1 → 그룹 |
+| 읽는 법 | 그룹 없음 구역이 보이면 폴더 경로를 잘못 쓴 것이다 |
+
+| 루트 기준 깊이 | 자식 카테고리 | 보이는 글 | 판정 |
+| --- | --- | --- | --- |
+| 1 | 1개 이상 | 상관없음 | 그룹 |
+| 1 | 0 | 1개 이상 | 그룹 없음 프로젝트 (과도기와 안전망) |
+| 1 | 0 | 0 | 숨김. 빈 그룹과 빈 직계 프로젝트는 구별할 수 없다 |
+| 2 (그룹 아래) | 상관없음 | 상관없음 | 프로젝트. 글 0개여도 보인다 (§11 Q5) |
+| 3 이상 | 상관없음 | 상관없음 | 프로젝트의 하위 카테고리. 글 수에 들어간다 (§11 Q4) |
+
+- §11 Q5는 깊이 2 프로젝트에만 그대로다. 깊이 1의 글 0개 잎(leaf)만 숨는다.
+- 같은 판정을 SQL과 웹 `classifyProjectNodes`가 똑같이 쓴다.
+
+- 비용: 직계 자식에 하위 카테고리만 두고 그룹이 아닌 프로젝트는 그룹으로 잘못 읽힌다. 규칙으로 금지한다.
+- 이득: 배포와 데이터 이동 사이에 깨지는 창(window)이 없다 (§12.6).
+
+타입 변경 (`packages/types/src/project.ts`, 추가만):
+
+```ts
+export interface TProjectRef {
+    project_id: string;
+    project: string;
+    group_id: string | null; // 그룹 카테고리 id, BIGINT 문자열. null = 그룹 없음
+    group: string | null;    // 그룹 카테고리 title = slug, 앵커 칸
+}
+```
+
+- `TProjectCard`가 `TProjectRef`를 확장하므로 카드에도 들어간다.
+- 응답은 평면 `{ projects: TProjectCard[] }` 그대로다. 묶기는 웹의 순수 함수가 한다.
+- 그래서 `ProjectsCountBadge`, `existence.proxy.ts`는 바뀌지 않는다.
+- 상수 `PROJECT_GROUP_SLUGS`는 두지 않는다. 그룹은 데이터다. 표시 이름만 i18n에 있다.
+
+SQL 변경 (`posts.user-projects.ts`: CTE 2개 + SELECT 2개 + 정렬):
+
+```sql
+lvl1 AS (            -- 루트의 직계 자식
+  SELECT c.id, c.title, c.priority, c.seq,
+         EXISTS (SELECT 1 FROM categories k
+                 WHERE k.parent_id = c.id AND k.deleted_at IS NULL) AS is_group
+  FROM categories c JOIN root r ON c.parent_id = r.id
+  WHERE c.deleted_at IS NULL
+),
+project AS (
+  SELECT c.id, c.title, c.priority, c.seq,
+         g.id AS group_id, g.title AS group_title,
+         g.priority AS g_priority, g.seq AS g_seq, false AS is_leaf1
+  FROM categories c JOIN lvl1 g ON c.parent_id = g.id AND g.is_group
+  WHERE c.deleted_at IS NULL
+  UNION ALL          -- 그룹 없음 후보. 정렬에서 맨 뒤. 글 0개는 마지막 WHERE가 숨긴다
+  SELECT id, title, priority, seq, NULL, NULL, 2147483647, NULL, true
+  FROM lvl1 WHERE NOT is_group
+)
+```
+
+- `project` CTE에 `is_leaf1 boolean` 칸을 더한다. 그룹 아래 행은 false, UNION 둘째 갈래는 true다.
+- 글 0개 깊이 1 잎 숨기기는 마지막 SELECT의 WHERE에 둔다. `ranked`가 `project`에 기대기 때문이다.
+- 그 WHERE: `NOT pr.is_leaf1 OR EXISTS (SELECT 1 FROM ranked k WHERE k.project_id = pr.id)`.
+- 두 SELECT에 `pr.group_id::text AS group_id, pr.group_title AS "group"`을 더한다. `group`은 SQL 예약어라 따옴표를 쓴다.
+- 카드 정렬: `ORDER BY g_priority, g_seq, pr.priority, pr.seq`. 그룹 순서를 SQL이 정한다.
+- 이름 충돌 규칙: 같은 title 프로젝트가 둘이면 위 정렬의 첫 행만 쓴다.
+- 구현: `project` 뒤에 `DISTINCT ON (title)` CTE 하나. 카드 목록과 글 목록이 같은 CTE를 쓴다.
+- 그러면 보이는 카드 = 열리는 URL이다. 가려진 쪽은 `req.log.warn`으로 남긴다.
+- `/@u/projects/utrgv`(그룹 title): `project`에 없다. 404다. gate도 404다.
+
+### 12.4 D3 화면
+
+데스크톱 (>= lg):
+
+```
+┌ left rail ┐┌──────────── main ─────────────────────┐┌── right rail ──────────┐
+│ Home      ││ ┌ PROJECTS ──────────────────────────┐ ││ > PROJECTS             │
+│ Projects 1││ │ Projects by @taeklim               │ ││ ▾ UTRGV                │
+│ My blog   ││ └────────────────────────────────────┘ ││   ▾ cnn-from-scratch 8 │
+│ ...       ││ ## UTRGV                       (1)     ││      · 글 1            │
+│           ││ University of Texas Rio Grande Valley  ││ ▸ Company              │
+│           ││ ┌──────────┐ ┌──────────┐              ││ > CATEGORIES ...       │
+│           ││ │ thumb    │ │          │              ││ > RECENTLY VIEWED ...  │
+│           ││ │ cnn-from-│ │          │              │└────────────────────────┘
+│           ││ │ 8 posts  │ │          │              │
+│           ││ └──────────┘ └──────────┘              │
+│           ││ ## Company                     (2)     │  recobell, adriel 뒤
+│           ││ ...                                    │
+└───────────┘└────────────────────────────────────────┘
+```
+
+모바일 (< lg):
+
+```
+┌────────────────────────────┐
+│ ▸ Projects (accordion)     │  ProjectsMobileMenu, 같은 그룹 tree
+├────────────────────────────┤
+│ PROJECTS  Projects by @u   │
+│ [UTRGV] [Company]          │  그룹 칩(chip) = #앵커 링크. 그룹 2개 이상일 때만
+│ ## UTRGV (1)               │
+│ ┌────────────────────────┐ │  카드 1열
+│ │ thumb · cnn-from-...   │ │
+│ └────────────────────────┘ │
+│ ## Company (2) ...         │
+└────────────────────────────┘
+```
+
+| 위치 | 변경 |
+| --- | --- |
+| 카드 페이지 `(list)/page.tsx` | `groupProjectCards(cards)` 순수 함수 → 구역마다 `<section id={group}>` + 제목 + `ProjectCardGrid` 재사용 |
+| 구역 제목 | 짧은 이름 + 프로젝트 수. 둘째 줄에 정식 이름 (i18n) |
+| 빈 그룹 | 숨긴다. 프로젝트 0개 그룹은 카드 행이 없다. 자식 없는 그룹 행은 §12.3이 숨긴다 |
+| 그룹 없음 구역 | 맨 뒤 "Other". 1개 이상일 때만 |
+| 프로젝트 상세 `[project]/page.tsx` | 제목 위에 breadcrumb `UTRGV ▸ cnn-from-scratch`. 그룹 칸은 `/@u/projects#utrgv` 링크 |
+| 오른쪽 rail tree (`ProjectsTree`) | 그룹 노드가 한 단계로 보인다. 그룹 title을 i18n 표시 이름으로 바꾼다 |
+| tree 클릭 | 그룹 → `/@u/projects#<group>`. 프로젝트, 글은 오늘과 같다 |
+| tree의 빈 그룹 | `sliceProjectsSubtree`에서 프로젝트 0개 그룹 노드를 뺀다 |
+| 모바일 메뉴, `RightRailSwitch`, `ProjectPostGate` | 코드 무변경. `projectOfSlug`가 고쳐지면 따라온다 |
+| 메뉴 배지 | 오늘처럼 프로젝트 수를 센다. 그룹은 세지 않는다 |
+
+- 오너 브리프의 "left aside tree"는 오늘 코드에서 오른쪽 rail에 있다 (`HomeRightRail.server.tsx`). 위치는 바꾸지 않는다.
+- 새 링크는 모두 `prefetch={false}`다 (§7.1). 앵커 링크는 같은 페이지라 요청이 없다.
+
+`utils/projects-tree.ts` 수정점 (순수 함수):
+
+- `projectOf`: 그룹 아래면 손자(grandchild)를 프로젝트로 돌려준다. §12.3 판정을 쓴다.
+- `selectedNodeIdOf`: `/projects/<p>`는 프로젝트 집합에서 title로 찾는다. 직계 자식만 보지 않는다.
+- `hrefOfNode`: 그룹 노드면 앵커 URL이다.
+- 새 순수 함수 `classifyProjectNodes(nodes)` → `{ groupIds, projectIds }`. 위 셋이 같이 쓴다.
+
+### 12.5 D4 그룹 이름과 표시
+
+| slug (카테고리 title) | priority | 짧은 이름 en | 정식 이름 en | ko |
+| --- | --- | --- | --- | --- |
+| `my-work` | 10 | My Work | 없음 | My Work |
+| `company` | 20 | Company | 없음 | Company |
+| `gatech` | 30 | GT MSCS | 없음 | GT MSCS |
+| `utrgv` | 40 | UTRGV MSCS | 없음 | UTRGV MSCS |
+
+- 오너 확정 (2026-10-17, #119): 위 순서와 이름. `personal`은 `my-work`로 바꿨다. 정식 이름 둘째 줄은 두지 않는다. 그래서 i18n 키는 `short`만 쓴다.
+
+- 키: `messages/{en,ko}/blog.json`의 `blog.projects.groups.<slug>.{short,full}`. 키 추가만 한다 (§10).
+- 키가 없는 그룹은 title을 대문자로 보인다. 그래서 새 그룹도 코드 없이 보인다.
+- blog_agent는 title을 소문자로 바꾼다 (`category.py` 128행). 그래서 slug는 소문자, 공백 없음이다.
+- 앵커 `id`도 이 slug다. 공백이 없어서 인코딩이 필요 없다.
+
+### 12.6 데이터 이동과 순서 (main session 또는 오너가 실행)
+
+함정: blog_agent는 계층을 `(user_id, parent_id, title)`로 upsert한다 (`category.py` 157–166행).
+
+- `projects/utrgv/cnn-from-scratch/...`를 이동 전에 발행하면 두 번째 `cnn-from-scratch`가 생긴다.
+- 그러면 글이 같은 이름 카테고리 둘로 갈린다. 그래서 이동이 먼저다.
+
+```
+1 배포: §12.3 SQL + 웹 구역 UI      cnn은 "Other" 구역에 보인다. 깨짐 없음
+2 SQL A: 그룹 4행 INSERT            글 0개 깊이 1 잎이라 숨김. 화면과 배지 변화 없음
+3 SQL B: cnn 1행 UPDATE             cnn이 UTRGV 구역으로 간다
+4 Cloudflare 전체 purge (cf-purge.sh) 웹 HTML + blog-api 응답 둘 다 (둘 다 s-maxage 1일)
+5 그 뒤에만 blog_agent로 projects/<group>/<project>/ 발행
+```
+
+SQL A (그룹 생성, id는 문자열 리터럴, 실행 전 같은 title 행이 없는지 SELECT로 확인):
+
+```sql
+INSERT INTO categories (id, group_id, parent_id, level, priority, title, user_id)
+SELECT g.id, r.id, r.id, 1, g.priority, g.title, r.user_id   -- group_id = 루트 id (blog_agent 자식과 같음)
+FROM categories r,
+     (VALUES ('<new id 1>'::int8, 10, 'my-work'), ('<new id 2>'::int8, 20, 'company'),
+             ('<new id 3>'::int8, 30, 'gatech'), ('<new id 4>'::int8, 40, 'utrgv'))  -- #119
+       AS g(id, priority, title)
+WHERE r.id = '368565571240857600' AND r.deleted_at IS NULL;
+```
+
+SQL B (이동, 행 삭제 없음):
+
+```sql
+UPDATE categories SET parent_id = (SELECT id FROM categories
+       WHERE parent_id = '368565571240857600' AND title = 'utrgv' AND deleted_at IS NULL),
+       level = 2, updated_at = CURRENT_TIMESTAMP
+WHERE id = '368565576462766080';
+```
+
+- `<new id>`는 blog_agent `generate_id()`와 같은 형식이다. developer가 실행 전 값을 만든다.
+- 되돌리기: SQL B의 `parent_id`를 루트 id로, `level`을 1로 되돌린다. 그룹 행은 `deleted_at` tombstone이다.
+- tree는 `parent_id` 중첩으로 들여쓴다 (`CategoryTree.client.tsx` 37–40행). `level`은 정합(consistency)용이다.
+- 부작용 1: 기존 8개 글의 이미지 key는 옛 접두사다. `stored_uri`는 그대로 열린다. 새 글만 새 접두사다.
+- 부작용 2: 8개 글은 `post_categories`에 `utrgv` 행이 없다. Express는 이 표를 읽지 않는다. 채움(backfill)은 선택이다.
+
+### 12.7 D5 캐시, 404, cacheComponents
+
+| 항목 | 영향 |
+| --- | --- |
+| 프로젝트 URL | 불변. 308, sitemap 변경 없음 |
+| proxy gate | 코드 무변경. `GET .../projects/:project`가 손자를 찾으면 found다 |
+| 그룹 title URL | `/@u/projects/utrgv`는 Express 404 → gate 404 (soft 404 없음) |
+| `getProjects` | React `cache()`뿐이다. `serverRequest`가 `revalidate` 없이 `no-store`다 (`http.server.ts` 81–83행). Next 쪽 revalidate 불필요 |
+| cacheComponents | 새 서버 코드는 auth와 cookies를 읽지 않는다. 묶기는 순수 함수다 |
+| server catch | 새 catch가 생기면 `unstable_rethrow`를 먼저 부른다 |
+| 엣지 | DML(데이터 이동)은 배포가 아니다. 그래서 §12.6 4단계 purge가 따로 필요하다 |
+| purge 대상 | `/`(오른쪽 rail tree), `/@*/projects*`, 8개 글 상세, `/@*/posts`, blog-api `/projects*`. 전체 purge가 가장 단순하다 |
+
+### 12.8 MVP 사다리 대응
+
+`.claude/CLAUDE.md` "System build phasing"을 인용한다.
+
+| 단계 | 진짜(real) | mock | 끝-끝 순환 |
+| --- | --- | --- | --- |
+| MVP1 모양 | 타입, `groupProjectCards`, `classifyProjectNodes`, 구역 UI, i18n | 카드 응답 (4그룹 + Other) | dev에서 카드 구역, 앵커, breadcrumb, 모바일 칩이 렌더된다 |
+| MVP2 진짜 조각 | §12.3 SQL. SQL A, B로 cnn → UTRGV | fallback으로 남김 | prod에서 UTRGV 구역에 cnn 카드 1개. 옛 URL `/@u/projects/cnn-from-scratch` 200 |
+| MVP3 핵심 이전 | blog_agent로 recobell, adriel을 `projects/company/...`에 발행 | `x_` 접두로 은퇴 | 코드 변경 없이 Company 구역이 생긴다 |
+
+- mock 위치: `apps/dashboard_client_web/mocks/projects/groups.cards.json`. id는 `9990000000000000101`부터, 제목은 `[MOCK] `.
+- 전환: 서버 전용 env `PROJECTS_DATA_SOURCE=mock|real`을 dev에만 다시 둔다 (§8 방식). prod는 `real`이다.
+- MVP2가 타입을 바꿔야 하면 MVP1로 돌아간다.
+
+### 12.9 설계 단위 (크기와 순서만, 일정 없음)
+
+| # | 단위 | 단계 | 크기 | 선행 |
+| --- | --- | --- | --- | --- |
+| G1 | `project.ts`에 `group_id`, `group` 추가 | MVP1 | S | 없음 |
+| G2 | mock fixture + dev 전환 | MVP1 | S | G1 |
+| G3 | `utils/project-groups.ts` `groupProjectCards` + `projects-tree.ts` `classifyProjectNodes`와 세 함수 수정 | MVP1 | S | G1 |
+| G4 | 카드 페이지 구역, 모바일 칩, 상세 breadcrumb | MVP1 | M | G2, G3 |
+| G5 | `ProjectsTree` 그룹 표시 이름, 빈 그룹 제외, 앵커 클릭 | MVP1 | S | G3 |
+| G6 | i18n `blog.projects.groups.*` en, ko | MVP1 | S | 없음 |
+| G7 | Express `PROJECT_CTES` 두 단계 + 정렬 + `DISTINCT ON` | MVP2 | M | G1 |
+| G8 | SQL A, B 작성과 실행, purge (§12.6 순서) | MVP2 | S | G7 배포 |
+| G9 | recobell, adriel 발행 확인 + mock 은퇴 | MVP3 | S | G8, 오너 글 |
+
+- 검증은 일부러 깨기(deliberate breakage)다. 예: 그룹 title URL 404, 같은 title 프로젝트 둘, 그룹 0개.
+
+### 12.10 위험
+
+| 위험 | 영향 | 대응 |
+| --- | --- | --- |
+| 이동 전 새 경로로 발행 | `cnn-from-scratch` 카테고리가 둘. `DISTINCT ON`은 그룹 쪽(새 빈 행)을 고른다. 글 8개짜리가 사라진다 | §12.6 순서. 5단계는 반드시 4단계 뒤 |
+| 다른 그룹에 같은 title 프로젝트 | 하나만 열린다 | `DISTINCT ON` + warn. Q-G2 |
+| 하위 카테고리만 가진 그룹 없음 프로젝트 | 그룹으로 잘못 읽힌다 | 규칙으로 금지 (§12.3) |
+| purge 누락 | 하루 동안 옛 화면 | §12.6 4단계를 체크리스트에 둔다 |
+| `blog.json` 공유 | 병합 충돌 | 키 추가만 |
+
+### 12.11 열린 질문 (오너)
+
+| # | 질문 | 설계 기본값 |
+| --- | --- | --- |
+| Q-G1 | 그룹 순서 | UTRGV, Georgia Tech, Company, Personal (priority 10–40) |
+| Q-G2 | 프로젝트 title을 그룹 사이에서도 유일하게 지킬까 | 지킨다 (관례). 쓰기 경로 거부는 나중 S 단위 |
+| Q-G3 | 빈 그룹(아직 글 없음)을 "준비 중"으로 보일까 | 숨긴다 |
+| Q-G4 | 그룹 표시 이름과 "Company" 정식 이름 | §12.5 표. Company 정식 이름 = "Work experience" |
+| Q-G5 | 그룹 URL `/@u/projects/<group>`이 필요한가 | 아니다. 앵커만 |
