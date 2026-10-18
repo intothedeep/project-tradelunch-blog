@@ -1,0 +1,16 @@
+# PS-3-06 prod check 2026-10-18T08:29:30Z, 8 posts published via publish_oneshot --no-llm (category projects>my-work(13)>prettylog(370125713790996480)), purged x2
+api cards: "project":"prettylog","group_id":"13","group":"my-work","post_count":8 "project":"cnn-from-scratch","group_id":"16","group":"utrgv","post_count":8 
+api /projects/prettylog posts: 8
+web /projects: ids=id="my-work" id="utrgv"  labels: MyWork=5 UTRGV=6
+web /projects/prettylog 200 breadcrumb-my-work=1
+post 200 tables=4 mermaid_src=4 imgs=1 prettylog-from-scratch-1-7-one-tunnel-four-cache-rules-70-requests-per-10-s
+post 200 tables=9 mermaid_src=0 imgs=3 prettylog-from-scratch-2-7-two-servers-1-gb-api-p95-626-ms-at-8-rps
+post 200 tables=15 mermaid_src=0 imgs=4 prettylog-from-scratch-3-7-640-of-640-load-test-requests-never-reached-the-vm
+post 200 tables=7 mermaid_src=2 imgs=2 prettylog-from-scratch-4-7-server-fetches-19-to-13-real-404s-from-a-proxy-gate
+post 200 tables=1 mermaid_src=4 imgs=1 prettylog-from-scratch-5-7-no-next-build-on-the-vm-7-workflows-3-kept-releases
+post 200 tables=7 mermaid_src=0 imgs=3 prettylog-from-scratch-6-7-82-logged-decisions-lines-written-before-each-run
+post 200 tables=35 mermaid_src=0 imgs=3 prettylog-from-scratch-7-7-16-traffic-causes-found-6-measured-2-got-worse
+post 200 tables=16 mermaid_src=2 imgs=3 prettylog-from-scratch-a-full-stack-blog-on-8-free-tiers-and-a-1-gb-vm
+web /projects/my-work 404
+web /projects/prettylog-x 404
+cnn /projects/cnn-from-scratch 200

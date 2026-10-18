@@ -33,13 +33,13 @@
 
 ## Tactic: 데이터와 그림 (설계 D1–D3) → M1
 
-- [ ] **PS-1-01 (ENG) CSV 모으기 + 발행 스크립트 확인 (D1)** → M1
+- [x] **PS-1-01 (ENG) CSV 모으기 + 발행 스크립트 확인 (D1)** → M1
   - **AC** `S/data/`에 CSV 13개 = PNG 12장의 파일 이름과 같은 stem (예: `fig_00_numbers.csv`) + `thumbs.csv` (8행: NN, slug, 글자, 숫자, source) · 모든 CSV에 `source` 칸, 모든 행이 비어 있지 않음 · `source`의 경로 부분이 저장소 루트에서 `test -e` 통과 (검사 명령과 결과를 `S/figures.md` "Checks"에 적는다) · 잰 적 없는 값은 값 칸 빈칸 + `status` = `not measured` (설계 §6) · `fig_07_timeline.csv` = 설계 §3.1 T1–T10 10행 · `fig_06_decisions.csv` = `decisions.plan.md`의 결정 1개당 1행. 세는 명령과 두 숫자(행 수, 가장 큰 번호)를 "Checks"에 적는다 (오늘 `^> - \*\*#[0-9]+ ` 줄은 81개, 가장 큰 번호는 #124. 둘이 다르다) · `apps/blog_agent/scripts/publish_oneshot.py`를 읽고 "Publish check" 절에 file:line과 함께 적는다: (a) 넘긴 md 1개만 읽는가, (b) 같은 폴더의 어떤 PNG를 올리는가, (c) `S`가 발행되지 않는가. (c)가 아니면 STOP하고 돌려준다 · 실행 없음.
-- [ ] **PS-1-02 (ENG) `fig_style.py` + 차트 스크립트 6개 (D2)** → M1
+- [x] **PS-1-02 (ENG) `fig_style.py` + 차트 스크립트 6개 (D2)** → M1
   - **AC** `S/fig_style.py` = 글꼴 대체 목록 (`rules/figures.md` §5), `layout="constrained"`, 범례는 축 밖 위 (§2) · 차트가 있는 글마다 `S/fig_NN.py` 1개 (00, 02, 03, 04, 06, 07) · 스크립트가 읽는 경로는 `S/data/*.csv`뿐, 쓰는 경로는 `P/NN-<slug>/fig_NN_*.png`뿐 (grep `open(`, `read_csv`, `savefig`) · 실행 = `apps/blog_agent`에서 `OMP_NUM_THREADS=1 timeout 300 uv run --with matplotlib python <script>` (pyproject 변경 없음), 6개 모두 exit 0 · PNG 12장, 이름 = 설계 §4.2 파일 칸 · F02a 범례 = "cap (config)" / "measured" · F00c 글자 "list price" · F03c 수정 뒤 막대 = "not measured" · 스크립트는 `source` 빈칸 행이 있으면 0이 아닌 값으로 끝난다 · 고의 파손: CSV 한 행의 `source`를 비우면 exit ≠ 0, 되돌린 뒤 exit 0, 결과를 "Checks"에 적는다.
-- [ ] **PS-1-03 (ENG) 썸네일 8장** → M1
+- [x] **PS-1-03 (ENG) 썸네일 8장** → M1
   - **AC** `S/thumbs.py`가 `S/data/thumbs.csv`만 읽는다 · 폴더 8개 = 설계 §3 폴더 칸 (`00-overview` … `07-debugging-timeline`), 폴더마다 `NN-<slug>.png` 정확히 1장 · `sips -g pixelWidth -g pixelHeight` = 1200 × 630 · 글자 = "Prettylog From Scratch · NN" + `thumbs.csv` 숫자 1개 · PS-1-02와 같은 실행 명령, exit 0.
-- [ ] **PS-1-04 (ENG) `S/figures.md` 그림 표 (D3)** → M1
+- [x] **PS-1-04 (ENG) `S/figures.md` 그림 표 (D3)** → M1
   - **AC** 표 칸 = F 번호, 파일 (또는 "mermaid in NN"), 핵심 숫자, 출처 파일과 행 · 행 26개 = PNG 12 + mermaid 6 + 썸네일 8 · `P` 아래 PNG 중 표에 없는 파일 0개 (`ls` 결과와 비교, 명령을 "Checks"에) · mermaid 행의 출처 = `README.md` 행 범위 (F00a 38–48, F01a 117–141, F01b 196–223, F04a 155–185, F05a 239–262) 또는 `projects.design.md` §12.1 (F05b).
 
 ## Tactic: 글 쓰기 (설계 D4–D6) → M2
@@ -61,39 +61,39 @@
 
 ### 행
 
-- [ ] **PS-2-00 (WRITER) 00 개요 (D4)** → M2
+- [x] **PS-2-00 (WRITER) 00 개요 (D4)** → M2
   - **AC** 공통 AC · 제목 줄 아래 첫 문장 = "Every number here comes from a saved file. The README is the single source of truth." · F00a mermaid + `fig_00_numbers.png`, `fig_00_cost.png` · 월 비용 문장에 `at list price (not a bill)` · 연재 지도 표 7행, 링크 = 자리표 `/@taeklim/TBD-NN` (PS-3-04가 바꾼다) · 연재 제목은 기본값이다. 오너가 첫 발행 전에 바꿀 수 있다 (#124 Q1).
-- [ ] **PS-2-01 (WRITER) 01 요청 경로 (request path)** → M2
+- [x] **PS-2-01 (WRITER) 01 요청 경로 (request path)** → M2
   - **AC** 공통 AC · F01a, F01b mermaid (README 117–141, 196–223행) · 한도 70 / 10 s, Cache Rules 4개가 Sources에 README 행으로 있다.
-- [ ] **PS-2-02 (WRITER) 02 1 GB VM** → M2
+- [x] **PS-2-02 (WRITER) 02 1 GB VM** → M2
   - **AC** 공통 AC · `fig_02_memory_caps.png`, `fig_02_load_test.png` · heap 160 / 256 MB 옆에 "cap" 또는 "config" · p95 626 ms @ 8 rps 출처 = `01.status.md` 55–56행 또는 `07-testing.tex` · 475 MiB 옆에 `one snapshot`.
-- [ ] **PS-2-03 (WRITER) 03 엣지 캐시 (edge cache)** → M2
+- [x] **PS-2-03 (WRITER) 03 엣지 캐시 (edge cache)** → M2
   - **AC** 공통 AC · `fig_03_*.png` 3장 · 640 / 640 출처 = `deploy/traffic/review/traffic-debug-evidence.md` [S-TDE-5], [S-TDE-7] · HIT 비율 문장 0개, URL별 "second GET HIT"만 · 스크롤 79 뒤 값 = `not measured`.
-- [ ] **PS-2-04 (WRITER) 04 Next.js 파이프라인 (pipeline)** → M2
+- [x] **PS-2-04 (WRITER) 04 Next.js 파이프라인 (pipeline)** → M2
   - **AC** 공통 AC · F04a mermaid (README 155–185행) + `fig_04_cc_units.png` · 19 → 13만 판정값, 13 → 12에는 "no recorded cause" · U1 = `byte metric broken, no verdict` · U4는 prefetch 수(×3)만, 시간 0개.
-- [ ] **PS-2-05 (WRITER) 05 빌드와 배포 (build and deploy)** → M2
+- [x] **PS-2-05 (WRITER) 05 빌드와 배포 (build and deploy)** → M2
   - **AC** 공통 AC · F05a mermaid (README 239–262행), F05b mermaid (`projects.design.md` §12.1) · workflow 7개, release 3개가 Sources에 README 행으로 있다.
-- [ ] **PS-2-06 (WRITER) 06 과정 (process)** → M2
+- [x] **PS-2-06 (WRITER) 06 과정 (process)** → M2
   - **AC** 공통 AC · `fig_06_decisions.png`, `fig_06_gates.png` · 제목의 결정 수 = PS-1-01 "Checks"의 행 수 (설계의 121 아님, 같을 때만 121) · 그 수의 Sources 행 = `S/figures.md` "Checks".
-- [ ] **PS-2-07 (WRITER) 07 디버깅 타임라인 (debugging timeline, D6)** → M2
+- [x] **PS-2-07 (WRITER) 07 디버깅 타임라인 (debugging timeline, D6)** → M2
   - **AC** 공통 AC · `fig_07_timeline.png`, `fig_07_measured.png` · 사건 T1–T10마다 4행 표 Why / What / How / Why it matters (매핑 = 설계 §3.1) · 날짜 출처 없는 사건 0개 · 결론 표 = `books/debugging/15-traffic-overrun.md` §1.1, B7, B9, B10 행 있음 · A1 528 → 12 ms 옆에 "render time" · `## What we never measured` 절에 설계 §6 행 · 제목 숫자 16 / 6 / 2 = `fig_07_measured.csv` 합계.
 
-- [ ] **PS-2-08 (REVIEW) reviewer 1회: 글 8개 전체, 발행 전 (설계 D7)** → M2
+- [x] **PS-2-08 (REVIEW) reviewer 1회: 글 8개 전체, 발행 전 (설계 D7)** → M2
   - **AC** PS-2-00…07 닫힌 뒤 1회 · 검사 = 공통 AC C1–C12 + 행별 AC + 그림 규칙 (`rules/figures.md` §7) + `S/figures.md` 출처 · 결과 파일 `ps.review.md` (PASS 또는 지적 목록, 지적마다 파일:행) · 지적은 sonnet-writer 또는 developer가 고친다. 고친 것은 main session이 검사 명령으로 확인한다. 두 번째 reviewer 실행은 없다 (#124).
 
 ## Tactic: 발행과 확인 (설계 D8) → M3
 
-- [ ] **PS-3-01 (MAIN) 발행 전 SELECT (읽기 전용)** → M3
+- [x] **PS-3-01 (MAIN) 발행 전 SELECT (읽기 전용)** → M3
   - **AC** M2 exit 닫힌 뒤 (PS-2-08 지적 고침) · `SELECT count(*) FROM categories WHERE title='prettylog' AND deleted_at IS NULL` = 0 · `my-work` 그룹 행 1개 (id 13–16 중, PG-2-04) · 출력 `deploy/projects/ps-precheck-<date>.txt`.
-- [ ] **PS-3-02 (MAIN/OWNER) 01 하나만 발행 + 렌더 확인** → M3
+- [x] **PS-3-02 (MAIN/OWNER) 01 하나만 발행 + 렌더 확인** → M3
   - **AC** 발행은 오너 사전 허락 (#124), main session이 실행 · `apps/blog_agent`에서 `uv run python scripts/publish_oneshot.py --no-llm ./posts/projects/my-work/prettylog/01-request-path/01-request-path.md` 1회 · 글 URL `?probe=$T` 200 · 오너 시각 확인: mermaid 2개가 그림으로 보인다 (코드 블록으로 남지 않음), 썸네일 보임 · 코드로 남으면 STOP. 고칠 행을 새로 연다 · slug를 `deploy/projects/ps-publish-<date>.txt`에 적는다.
-- [ ] **PS-3-03 (MAIN) 02 → 07 발행** → M3
+- [x] **PS-3-03 (MAIN) 02 → 07 발행** → M3
   - **AC** PS-3-02 PASS 뒤 · 글마다 1회, 순서 02 → 07 · 글마다 URL `?probe=$T` 200 · slug 6개를 같은 publish 파일에 더한다 · 발행 뒤 `prettylog` 카테고리 1행, 부모 = `my-work`.
-- [ ] **PS-3-04 (WRITER) 00 연재 지도 링크를 실제 slug로** → M3
+- [x] **PS-3-04 (WRITER) 00 연재 지도 링크를 실제 slug로** → M3
   - **AC** 원본 = `deploy/projects/ps-publish-<date>.txt` · 00 md의 `TBD-NN` 0개 · 지도 링크 7개 = `/@taeklim/<slug>`, slug가 publish 파일과 글자 단위로 같다.
-- [ ] **PS-3-05 (MAIN) 00 발행** → M3
+- [x] **PS-3-05 (MAIN) 00 발행** → M3
   - **AC** PS-3-04 뒤 · 1회 · URL 200 · 지도 링크 7개 모두 `?probe=$T` 200 · slug를 publish 파일에 더한다 (8개).
-- [ ] **PS-3-06 (MAIN) purge + 운영 확인 (설계 §5.3)** → M3
+- [x] **PS-3-06 (MAIN) purge + 운영 확인 (설계 §5.3)** → M3
   - **AC** `_scripts/cloudflare/cf-purge.sh` 1회 · `/@taeklim/projects` HTML에 `id="my-work"` 구역 카드 1개 (prettylog), `id="utrgv"` 카드 1개, `id="my-work"`가 앞 · 배지 2 · `/@taeklim/projects/prettylog` 200, 글 8개, 순서 00 → 07 · `/@taeklim/projects/cnn-from-scratch` 200 · `/@taeklim/projects/my-work` 404 · `sitemap.xml`에 새 URL 8개 · `_scripts/cloudflare/traffic-check.sh` FAIL 0 · 새 글 2개 + `/@taeklim/projects` 둘째 GET `cf-cache-status: HIT` · `prettylog` 카테고리 1행 · 출력 `deploy/projects/ps-prod-<date>.txt`.
 - [ ] **PS-3-07 (OWNER) 8쪽 시각 확인** → M3
   - **AC** 글 8개마다 한 줄: mermaid 그림으로 보임, 썸네일 보임, 오른쪽 rail에 TOC + tree · main session이 결과 줄을 `ps-prod-<date>.txt`에 더한다.
