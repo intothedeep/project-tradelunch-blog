@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>로컬 웹을 운영 데이터에 붙이기</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans+KR:wght@400;500&display=swap">
+<style>
+/* html-theme: the one theme for HTML output (rules/answering.md §3).
+   Light tokens: ported from the owner's earlier web project's globals.css
+   (shadcn neutral, achromatic, radius 0, whole-UI IBM Plex Mono).
+   Dark tokens: added 2026-10-02 in the same achromatic family; the source had no dark theme. */
+
+:root {
+    --radius: 0;
+
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.55 0 0);
+    --rule: oklch(0.9 0 0);          /* hairlines and chart grid; the source --border is too strong for grids */
+    --ring: oklch(0.45 0 0);
+
+    /* signal colours carry meaning, not decoration */
+    --signal-instruction: #d40000;   /* an instruction / something the reader must act on */
+    --signal-plan: #0432ff;          /* a plan / a pre-registered line */
+    --signal-flag-fill: #fff3a0;     /* a highlighted cell or row */
+    --signal-flag-line: #e6d24a;
+    --signal-dead-fill: #e4e4e2;     /* retired, skipped, out of scope */
+    --signal-dead-ink: oklch(0.53 0.01 260);
+
+    /* Plex Mono has no Hangul; Korean falls through to Plex Sans KR */
+    --font: "IBM Plex Mono", "IBM Plex Sans KR", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        color-scheme: dark;
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --card: oklch(0.185 0 0);
+        --card-foreground: oklch(0.985 0 0);
+        --primary: oklch(0.922 0 0);
+        --primary-foreground: oklch(0.205 0 0);
+        --secondary: oklch(0.269 0 0);
+        --muted: oklch(0.269 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --destructive: oklch(0.704 0.191 22.216);
+        --border: oklch(0.5 0 0);
+        --rule: oklch(0.3 0 0);
+        --ring: oklch(0.6 0 0);
+        --signal-instruction: #ff5a52;
+        --signal-plan: #6f8cff;
+        --signal-flag-fill: #4a4312;
+        --signal-flag-line: #c9b53a;
+        --signal-dead-fill: #2b2b2a;
+        --signal-dead-ink: oklch(0.68 0.01 260);
+    }
+}
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.185 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(0.5 0 0);
+    --rule: oklch(0.3 0 0);
+    --ring: oklch(0.6 0 0);
+    --signal-instruction: #ff5a52;
+    --signal-plan: #6f8cff;
+    --signal-flag-fill: #4a4312;
+    --signal-flag-line: #c9b53a;
+    --signal-dead-fill: #2b2b2a;
+    --signal-dead-ink: oklch(0.68 0.01 260);
+}
+
+* { box-sizing: border-box; border-radius: var(--radius); }
+body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font);
+    font-feature-settings: "cv11", "ss01";
+    font-size: 14px;
+    line-height: 1.6;
+    padding-inline: 16px;
+    padding-block: 32px 64px;
+}
+.wrap { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+h1 { font-size: 24px; line-height: 1.3; font-weight: 700; margin: 0; text-wrap: balance; }
+h2 { font-size: 17px; font-weight: 500; margin: 0; text-wrap: balance; }
+p { margin: 0; max-width: 72ch; }
+.muted { color: var(--muted-foreground); }
+.label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted-foreground); }
+.panel { background: var(--card); color: var(--card-foreground); border: 1px solid var(--border); padding: 16px; }
+.scroll-x { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 10px; border-bottom: 1px solid var(--rule); text-align: right; white-space: nowrap; }
+th { font-weight: 500; color: var(--muted-foreground); }
+th:first-child, td:first-child { text-align: left; }
+.flag { background: var(--signal-flag-fill); box-shadow: inset 2px 0 0 var(--signal-flag-line); }
+.instruction { color: var(--signal-instruction); }
+.plan { color: var(--signal-plan); }
+.dead { background: var(--signal-dead-fill); color: var(--signal-dead-ink); }
+button { font: inherit; padding: 4px 12px; border: 1px solid var(--border); background: var(--card); color: var(--foreground); cursor: pointer; }
+button[aria-pressed="true"] { background: var(--primary); color: var(--primary-foreground); }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+svg text { fill: var(--muted-foreground); font-family: var(--font); font-size: 11px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+.step { display: flex; flex-direction: column; gap: 14px; }
+.step.hero { border-width: 2px; }
+.eyebrow { font-size: 11px; letter-spacing: .08em; color: var(--muted-foreground); }
+.stepno { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted-foreground); }
+.toc { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 0; margin: 0; list-style: none; }
+.toc a { color: var(--foreground); }
+td.w, th.w { white-space: normal; text-align: left; }
+.codewrap { position: relative; }
+pre { margin: 0; padding: 12px 14px; background: var(--muted); border: 1px solid var(--rule); overflow-x: auto; font: inherit; font-size: 13px; line-height: 1.5; }
+code { font: inherit; background: var(--muted); padding: 0 4px; }
+pre code { background: none; padding: 0; }
+.copy { position: absolute; top: 6px; right: 6px; font-size: 11px; padding: 2px 8px; }
+ul { margin: 0; padding-left: 20px; }
+li + li { margin-top: 4px; }
+.caution { border-left: 4px solid var(--signal-instruction); }
+.caption { font-size: 12px; color: var(--muted-foreground); max-width: 80ch; }
+svg { max-width: 100%; height: auto; }
+svg .box { fill: var(--card); stroke: var(--border); stroke-width: 1.2; }
+svg .boxhi { fill: var(--signal-flag-fill); stroke: var(--signal-flag-line); stroke-width: 1.5; }
+svg .arrow { stroke: var(--border); stroke-width: 1.4; fill: none; }
+svg .t { fill: var(--foreground); font-size: 12px; }
+svg .tb { fill: var(--foreground); font-size: 12px; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:12px">
+  <div class="eyebrow">TIPS · 로컬 개발 · 운영 API 연결</div>
+  <h1>로컬 웹을 운영 데이터에 붙이기</h1>
+  <p>내 Mac의 웹이 운영 API를 불러서 운영 데이터를 보고, 로그인까지 시험하는 법이다. 6단계. 1단계만 매번 하고, 나머지는 읽는 자료다.</p>
+  <ol class="toc">
+    <li><a href="#run">1. 실행하기</a></li>
+    <li><a href="#flow">2. 어떻게 연결되나</a></li>
+    <li><a href="#setup">3. 한 번만 설정</a></li>
+    <li><a href="#caution">4. 주의</a></li>
+    <li><a href="#trouble">5. 막히면</a></li>
+    <li><a href="#undo">6. 되돌리기</a></li>
+  </ol>
+</header>
+
+<section id="run" class="panel step hero">
+  <div class="stepno">Step 1 of 6</div>
+  <h2>1. 실행하기 (매번)</h2>
+  <p>알려는 것: 개발 서버를 켜고 <code>https://local.prettylog.com</code>을 여는 법. 운영 Clerk 키는 앱의 env 파일에 이미 있다. 키를 입력하는 단계가 없다.</p>
+
+  <div class="label">저장소 루트(또는 worktree 루트)에서</div>
+  <div class="codewrap"><button class="copy" type="button">복사</button><pre><code>LOG_REQUESTS=false NEXT_PUBLIC_API_BASE=https://blog-api.prettylog.com \
+pnpm --filter dashboard_client_web exec next dev --turbopack -p 443 -H 0.0.0.0 --experimental-https \
+  --experimental-https-key "$HOME/.config/prettylog/certs/local-key.pem" \
+  --experimental-https-cert "$HOME/.config/prettylog/certs/local.pem"</code></pre></div>
+  <ul>
+    <li>브라우저에서 <code>https://local.prettylog.com</code>을 연다. 포트는 붙이지 않는다.</li>
+    <li>끌 때는 <code>Ctrl+C</code>를 누른다.</li>
+    <li><code>LOG_REQUESTS=false</code>는 요청 로그 한 줄씩을 끈다.</li>
+  </ul>
+
+  <table>
+    <thead><tr><th class="w">하고 싶은 일</th><th class="w">어떻게</th></tr></thead>
+    <tbody>
+      <tr><td class="w">운영 데이터로 보기와 로그인</td><td class="w">위 명령 그대로</td></tr>
+      <tr><td class="w">프로젝트 그룹 mock 화면 보기</td><td class="w">명령 맨 앞에 <code>PROJECTS_DATA_SOURCE=mock</code>을 붙인다</td></tr>
+      <tr><td class="w">포트 443을 누가 쓰는지 확인</td><td class="w"><code>lsof -iTCP:443 -sTCP:LISTEN</code></td></tr>
+    </tbody>
+  </table>
+
+  <div class="label">mock 프로젝트 그룹 (Phase PG M1)</div>
+  <div class="codewrap"><button class="copy" type="button">복사</button><pre><code>PROJECTS_DATA_SOURCE=mock LOG_REQUESTS=false NEXT_PUBLIC_API_BASE=https://blog-api.prettylog.com \
+pnpm --filter dashboard_client_web exec next dev --turbopack -p 443 -H 0.0.0.0 --experimental-https \
+  --experimental-https-key "$HOME/.config/prettylog/certs/local-key.pem" \
+  --experimental-https-cert "$HOME/.config/prettylog/certs/local.pem"</code></pre></div>
+  <ul>
+    <li>열기: <code>https://local.prettylog.com/@taeklim/projects</code></li>
+    <li>열기: <code>https://local.prettylog.com/@taeklim/projects/mock-utrgv-project</code></li>
+    <li>값이 정확히 <code>mock</code>일 때만 mock이다. 변수를 빼면 실제 데이터가 나온다.</li>
+    <li>서버 전용 변수다. <code>NEXT_PUBLIC_</code> 접두가 없다.</li>
+    <li>이 변수는 브랜치 <code>pg-m1</code>에 있다 (PG-1-03). main에 머지되기 전에는 그 브랜치에서만 동작한다.</li>
+  </ul>
+
+  <div class="label">git worktree에서 실행할 때: env 파일 연결 (worktree마다 한 번)</div>
+  <p>worktree는 저장소 <strong>바깥</strong>에 만든다 (예: <code>../project_tradelunch_pg</code>). worktree에는 env 파일과 <code>@repo/types</code>의 빌드 결과(<code>dist/</code>)가 없다. 그래서 아래 세 단계를 한 번 한다. 빌드를 빼면 페이지가 500이다 (<code>Can't resolve '@repo/types'</code>). env 파일은 메인 저장소의 파일을 심볼릭 링크(symlink)로 건다. <code>&lt;main&gt;</code>은 메인 저장소 경로, <code>&lt;worktree&gt;</code>는 worktree 경로다.</p>
+  <div class="codewrap"><button class="copy" type="button">복사</button><pre><code>pnpm install --offline --frozen-lockfile
+pnpm --filter @repo/types build
+for f in .env .env.local .env.production; do
+  ln -s &lt;main&gt;/apps/dashboard_client_web/$f &lt;worktree&gt;/apps/dashboard_client_web/$f
+done</code></pre></div>
+
+  <div class="label">포트 443은 서버 하나만 쓴다</div>
+  <ul>
+    <li>다른 서버가 443을 잡고 있으면 새 서버가 뜨지 않는다.</li>
+    <li><code>lsof -iTCP:443 -sTCP:LISTEN</code>으로 찾고, 그 서버를 <code>Ctrl+C</code>로 먼저 끈다.</li>
+  </ul>
+</section>
+
+<section id="flow" class="panel step">
+  <div class="stepno">Step 2 of 6</div>
+  <h2>2. 어떻게 연결되나</h2>
+  <p>알려는 것: 로컬 웹은 운영 DB에 직접 붙지 않는다. 운영 API(<code>https://blog-api.prettylog.com</code>)를 부르고, 그 API가 운영 Supabase DB를 읽는다. 로컬에서 도는 것은 Next 서버뿐이다.</p>
+  <div class="scroll-x">
+  <svg viewBox="0 0 760 330" role="img" aria-label="브라우저에서 local.prettylog.com, Mac의 Next 서버 443, blog-api, Supabase 순서의 흐름도" width="760">
+    <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--border)"/></marker></defs>
+    <rect class="box" x="20" y="10" width="330" height="48"/>
+    <text class="tb" x="34" y="30">브라우저</text><text class="t" x="34" y="48">https://local.prettylog.com</text>
+    <path class="arrow" d="M185 58 V92" marker-end="url(#ah)"/>
+    <text class="t" x="200" y="80">/etc/hosts가 127.0.0.1로 보낸다</text>
+    <rect class="boxhi" x="20" y="96" width="330" height="62"/>
+    <text class="tb" x="34" y="116">내 Mac: Next 개발 서버 (:443, HTTPS)</text><text class="t" x="34" y="136">로컬에서 도는 것은 이것뿐</text><text class="t" x="34" y="150">env 파일의 운영 Clerk 키로 로그인</text>
+    <path class="arrow" d="M185 158 V192" marker-end="url(#ah)"/>
+    <text class="t" x="200" y="180">SSR 호출, 브라우저 호출 (Clerk 운영 토큰)</text>
+    <rect class="box" x="20" y="196" width="330" height="48"/>
+    <text class="tb" x="34" y="216">https://blog-api.prettylog.com</text><text class="t" x="34" y="234">GCP VM의 Express API</text>
+    <path class="arrow" d="M185 244 V268" marker-end="url(#ah)"/>
+    <rect class="box" x="20" y="272" width="330" height="40"/>
+    <text class="tb" x="34" y="297">Supabase (운영 DB)</text>
+    <rect class="box" x="400" y="10" width="340" height="302"/>
+    <text class="tb" x="414" y="32">API가 요청을 받는 조건 둘</text>
+    <text class="t" x="414" y="58">1. 토큰이 Clerk 운영 인스턴스에서 나왔다</text>
+    <text class="t" x="414" y="76">   (VM의 CLERK_SECRET_KEY)</text>
+    <text class="t" x="414" y="100">2. 토큰의 azp(웹 origin)가 목록에 있다</text>
+    <text class="t" x="414" y="118">   (VM의 ALLOWED_ORIGINS)</text>
+    <text class="tb" x="414" y="154">그래서 localhost는 안 된다</text>
+    <text class="t" x="414" y="176">Clerk 운영 키는 prettylog.com과</text>
+    <text class="t" x="414" y="194">그 하위 도메인에서만 동작한다.</text>
+    <text class="t" x="414" y="216">그래서 로컬 웹을 이 이름으로 연다:</text>
+    <text class="tb" x="414" y="238">https://local.prettylog.com</text>
+    <text class="t" x="414" y="260">포트 443이라 URL에 포트가 없다.</text>
+    <text class="t" x="414" y="278">origin이 이 이름과 정확히 같아진다.</text>
+  </svg>
+  </div>
+  <p class="caption">로컬 웹이 운영 API를 부르는 길. 왜: 개발 키로 만든 토큰은 운영 API가 받지 않아 401이 난다.</p>
+
+  <table>
+    <thead><tr><th class="w">부품</th><th class="w">하는 일</th><th class="w">왜 필요한가</th></tr></thead>
+    <tbody>
+      <tr><td class="w">/etc/hosts</td><td class="w"><code>local.prettylog.com</code>을 <code>127.0.0.1</code>로 보낸다</td><td class="w">Clerk 운영 키는 <code>prettylog.com</code> 하위 도메인에서만 동작한다</td></tr>
+      <tr><td class="w">포트 443</td><td class="w">origin에서 포트를 없앤다</td><td class="w"><code>https://local.prettylog.com:3000</code>은 Clerk가 거부했다 (2026-10-13)</td></tr>
+      <tr><td class="w">-H 0.0.0.0</td><td class="w">모든 주소에서 받는다</td><td class="w">macOS는 1024 미만 포트를 <code>0.0.0.0</code>에서만 일반 사용자에게 열어 준다. <code>127.0.0.1:443</code>은 <code>EACCES</code>가 난다</td></tr>
+      <tr><td class="w">mkcert 인증서</td><td class="w">Mac 전용 인증기관(CA)이 <code>local.prettylog.com</code>용 인증서에 서명한다</td><td class="w">Clerk 쿠키는 <code>Secure</code>라 HTTPS가 필요하다. Next 기본 인증서는 <code>localhost</code>만 담는다</td></tr>
+      <tr><td class="w">allowedDevOrigins</td><td class="w"><code>next.config.ts</code>가 <code>local.prettylog.com</code>을 허용한다</td><td class="w">없으면 개발 서버가 그 호스트의 핫 리로드(HMR)를 막는다. 운영 빌드에는 영향이 없다</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="setup" class="panel step">
+  <div class="stepno">Step 3 of 6</div>
+  <h2>3. 한 번만 설정</h2>
+  <p>알려는 것: 1단계 명령이 돌기 전에 한 번 해 둘 일. 이미 했으면 건너뛴다.</p>
+  <table>
+    <thead><tr><th>#</th><th class="w">할 일</th><th class="w">어디서</th><th class="w">언제</th></tr></thead>
+    <tbody>
+      <tr><td>a</td><td class="w"><code>/etc/hosts</code>에 이름 추가</td><td class="w">Mac</td><td class="w">한 번</td></tr>
+      <tr><td>b</td><td class="w">운영 API에 origin 허용(<code>ALLOWED_ORIGINS</code>)</td><td class="w">GCP VM</td><td class="w">한 번</td></tr>
+      <tr><td>c</td><td class="w">인증서 만들기</td><td class="w">Mac</td><td class="w">한 번, 약 2년마다 다시</td></tr>
+    </tbody>
+  </table>
+
+  <div class="label">a. 이름을 내 Mac으로 보낸다 (Mac)</div>
+  <div class="codewrap"><button class="copy" type="button">복사</button><pre><code>echo '127.0.0.1 local.prettylog.com' | sudo tee -a /etc/hosts</code></pre></div>
+  <p>Cloudflare에 이 이름의 공개 DNS 레코드(또는 <code>*</code> 와일드카드)를 만들지 않는다.</p>
+
+  <div class="label">b. 운영 API가 이 origin을 받게 한다 (VM)</div>
+  <div class="codewrap"><button class="copy" type="button">복사</button><pre><code>grep '^ALLOWED_ORIGINS' ~/prettylog/shared/api.env
+# 값은 이래야 한다: ALLOWED_ORIGINS=https://my.prettylog.com,https://local.prettylog.com
+vi ~/prettylog/shared/api.env                       # 다르면 고친다
+pm2 restart ~/prettylog/ecosystem.config.cjs --only blog-api --update-env
+pm2 env $(pm2 id blog-api | tr -dc '0-9') | grep ALLOWED_ORIGINS   # 지금 도는 값</code></pre></div>
+  <ul>
+    <li>포트, 따옴표, 공백, 끝의 <code>/</code>를 쓰지 않는다.</li>
+    <li>ecosystem 경로는 전체로 쓴다. 짧게 쓰면 <code>~/prettylog</code> 밖에서 PM2가 못 찾는다.</li>
+    <li><code>--update-env</code>가 없으면 PM2가 <code>api.env</code>를 다시 읽지 않는다.</li>
+  </ul>
+  <p>Mac에서 확인한다. CORS preflight가 <code>204</code>를 주고 origin을 되돌려 줘야 한다.</p>
+  <div class="codewrap"><button class="copy" type="button">복사</button><pre><code>curl -s -o /dev/null -D - -X OPTIONS https://blog-api.prettylog.com/v1/api/users/me \
+  -H 'Origin: https://local.prettylog.com' -H 'Access-Control-Request-Method: GET' \
+  | grep -iE '^HTTP|access-control-allow-origin'
+# HTTP/2 204
+# access-control-allow-origin: https://local.prettylog.com</code></pre></div>
+  <p>헤더 없는 <code>500</code>이면 origin이 도는 값에 아직 없다.</p>
+
+  <div class="label">c. 인증서를 만든다 (Mac)</div>
+  <p>Next가 첫 <code>--experimental-https</code> 실행 때 mkcert를 <code>~/Library/Caches/mkcert/</code>에 받는다. 폴더가 비었으면 한 번 돌리고 끈다. 이때 Mac 비밀번호를 묻는다.</p>
+  <div class="codewrap"><button class="copy" type="button">복사</button><pre><code>cd ~/Documents/00_projects/project_tradelunch/apps/dashboard_client_web
+ls ~/Library/Caches/mkcert/ 2>/dev/null || pnpm exec next dev -p 3000 --experimental-https   # "Ready"가 뜨면 Ctrl+C</code></pre></div>
+  <p>그다음 호스트 이름이 들어간 인증서를 만든다.</p>
+  <div class="codewrap"><button class="copy" type="button">복사</button><pre><code>MKCERT=$(ls ~/Library/Caches/mkcert/mkcert-* | head -1)
+CERTS=~/.config/prettylog/certs
+mkdir -p $CERTS
+"$MKCERT" -key-file $CERTS/local-key.pem -cert-file $CERTS/local.pem \
+  local.prettylog.com localhost 127.0.0.1
+chmod 600 $CERTS/local-key.pem
+openssl x509 -in $CERTS/local.pem -noout -ext subjectAltName   # DNS:local.prettylog.com이 보여야 한다</code></pre></div>
+  <ul>
+    <li>인증서는 저장소 밖 <code>~/.config/prettylog/certs/</code>에 둔다. 실수로 커밋할 수 없고, 새로 clone해도 남는다.</li>
+    <li>수명은 약 2년이다. 만료되면 같은 명령으로 다시 만든다.</li>
+  </ul>
+</section>
+
+<section id="caution" class="panel step caution">
+  <div class="stepno">Step 4 of 6</div>
+  <h2 class="instruction">4. 주의: 쓰기는 운영 데이터를 바꾼다</h2>
+  <ul>
+    <li>로그인한 상태의 쓰기(댓글, 좋아요, 저장, 글쓰기)는 <b>운영 DB에 실제로 기록</b>된다.</li>
+    <li>시험 댓글은 공개된다. 끝나면 지운다(soft delete).</li>
+    <li><code>0.0.0.0</code>은 같은 네트워크의 다른 기기도 받는다. 시험이 끝나면 <code>Ctrl+C</code>로 끈다.</li>
+  </ul>
+  <div class="label">로그인 없이 읽기만 할 때 (설정 없음)</div>
+  <div class="codewrap"><button class="copy" type="button">복사</button><pre><code>LOG_REQUESTS=false NEXT_PUBLIC_API_BASE=https://blog-api.prettylog.com pnpm dev:web
+# 열기: http://localhost:3000</code></pre></div>
+  <p>이 모드는 개발 키를 쓰고 쓰기가 없다. 브라우저가 직접 부르는 호출(더 보기, 좋아요)은 CORS로 실패할 수 있다. 첫 화면(SSR)은 괜찮다.</p>
+</section>
+
+<section id="trouble" class="panel step">
+  <div class="stepno">Step 5 of 6</div>
+  <h2>5. 막히면</h2>
+  <p>알려는 것: 증상으로 원인과 기록을 찾는다. 기록은 <code>books/debugging</code>에 있다.</p>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th class="w">증상</th><th class="w">한 줄 원인</th><th class="w">기록</th></tr></thead>
+    <tbody>
+      <tr><td class="w">401 <code>unauthorized</code></td><td class="w">개발 키가 로드됨</td><td class="w"><a href="../books/debugging/04-clerk-dev-keys-401.md">04</a></td></tr>
+      <tr><td class="w">Clerk "Production Keys are only allowed for domain"</td><td class="w">URL에 포트가 있음</td><td class="w"><a href="../books/debugging/05-clerk-origin-port.md">05</a></td></tr>
+      <tr><td class="w"><code>listen EACCES ... 443</code></td><td class="w"><code>-H</code>에 호스트 이름을 줌</td><td class="w"><a href="../books/debugging/06-bind-eacces-443.md">06</a></td></tr>
+      <tr><td class="w">인증서 경고, HMR 차단</td><td class="w">Next 기본 인증서, <code>allowedDevOrigins</code> 누락</td><td class="w"><a href="../books/debugging/07-certificate-and-hmr.md">07</a></td></tr>
+      <tr><td class="w">CORS preflight <code>500</code>, PM2 <code>ecosystem not found</code></td><td class="w">origin이 실행 중인 값에 없음</td><td class="w"><a href="../books/debugging/08-cors-preflight-500.md">08</a></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="undo" class="panel step">
+  <div class="stepno">Step 6 of 6</div>
+  <h2>6. 되돌리기</h2>
+  <ul>
+    <li>VM의 <code>ALLOWED_ORIGINS</code>에서 <code>https://local.prettylog.com</code>을 빼고 <code>blog-api</code>를 재시작한다.</li>
+    <li><code>/etc/hosts</code>에서 그 줄을 지운다.</li>
+    <li>Cloudflare에 이 이름의 공개 DNS 레코드를 만들지 않는다.</li>
+    <li>Mac 전용 CA는 Keychain에 남는다. <code>"$MKCERT" -uninstall</code>로 지운다.</li>
+  </ul>
+  <p class="muted">전체 설명: <code>apps/dashboard_client_web/LOCAL_PROD_API.md</code></p>
+</section>
+
+</div>
+<script>
+document.querySelectorAll('.copy').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var t = b.parentElement.querySelector('code').innerText;
+    navigator.clipboard.writeText(t).then(function () { b.textContent = '복사됨'; setTimeout(function () { b.textContent = '복사'; }, 1200); });
+  });
+});
+</script>
+</body>
+</html>
