@@ -1,0 +1,67 @@
+[
+    {
+        "project_id": "9990000000000000101",
+        "project": "mock-my-work-project",
+        "group_id": "9990000000000000001",
+        "group": "my-work",
+        "post_count": 3,
+        "overview": {
+            "post_id": "9990000000000000201",
+            "slug": "mock-my-work-overview",
+            "title": "[MOCK] My Work overview",
+            "stored_uri": null
+        }
+    },
+    {
+        "project_id": "9990000000000000102",
+        "project": "mock-company-project",
+        "group_id": "9990000000000000002",
+        "group": "company",
+        "post_count": 2,
+        "overview": {
+            "post_id": "9990000000000000202",
+            "slug": "mock-company-overview",
+            "title": "[MOCK] Company overview",
+            "stored_uri": null
+        }
+    },
+    {
+        "project_id": "9990000000000000103",
+        "project": "mock-gatech-project",
+        "group_id": "9990000000000000003",
+        "group": "gatech",
+        "post_count": 4,
+        "overview": {
+            "post_id": "9990000000000000203",
+            "slug": "mock-gatech-overview",
+            "title": "[MOCK] GT MSCS overview",
+            "stored_uri": null
+        }
+    },
+    {
+        "project_id": "9990000000000000104",
+        "project": "mock-utrgv-project",
+        "group_id": "9990000000000000004",
+        "group": "utrgv",
+        "post_count": 8,
+        "overview": {
+            "post_id": "9990000000000000204",
+            "slug": "mock-utrgv-overview",
+            "title": "[MOCK] UTRGV MSCS overview",
+            "stored_uri": null
+        }
+    },
+    {
+        "project_id": "9990000000000000105",
+        "project": "mock-other-project",
+        "group_id": null,
+        "group": null,
+        "post_count": 1,
+        "overview": {
+            "post_id": "9990000000000000205",
+            "slug": "mock-other-overview",
+            "title": "[MOCK] Other overview",
+            "stored_uri": null
+        }
+    }
+]

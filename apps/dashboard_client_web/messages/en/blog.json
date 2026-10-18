@@ -95,6 +95,13 @@
         "empty": "No projects yet.",
         "treeTitle": "Projects",
         "sortAscending": "Ascending",
-        "sortDescending": "Descending"
+        "sortDescending": "Descending",
+        "ungrouped": "Other",
+        "groups": {
+            "my-work": { "short": "My Work" },
+            "company": { "short": "Company" },
+            "gatech": { "short": "GT MSCS" },
+            "utrgv": { "short": "UTRGV MSCS" }
+        }
     }
 }

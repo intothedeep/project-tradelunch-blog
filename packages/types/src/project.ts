@@ -5,6 +5,8 @@
 export interface TProjectRef {
     project_id: string; // categories.id
     project: string; // categories.title = URL segment
+    group_id: string | null; // group category id (BIGINT string); null = ungrouped
+    group: string | null; // group category title = slug = anchor
 }
 
 export interface TProjectCard extends TProjectRef {

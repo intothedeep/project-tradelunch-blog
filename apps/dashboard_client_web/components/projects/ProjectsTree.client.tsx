@@ -15,7 +15,11 @@ import {
     CategoryTree,
 } from '@/components/blog/CategoryTree.client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { hrefOfNode, selectedNodeIdOf } from '@/utils/projects-tree';
+import {
+    classifyProjectNodes,
+    hrefOfNode,
+    selectedNodeIdOf,
+} from '@/utils/projects-tree';
 
 type Props = {
     username: string;
@@ -28,10 +32,27 @@ export const ProjectsTree = ({ username, nodes, bare = false }: Props) => {
     const router = useRouter();
     const pathname = usePathname();
     const t = useTranslations('blog.projects');
-    const tree = useMemo(() => buildCategoryTree(nodes), [nodes]);
+    // The shared renderer prints node.title, so group titles are swapped for
+    // their i18n short name here; clicks resolve against the original nodes.
+    const tree = useMemo(() => {
+        const { groupIds } = classifyProjectNodes(nodes);
+        return buildCategoryTree(
+            nodes.map((node) =>
+                groupIds.has(node.id)
+                    ? {
+                          ...node,
+                          title: t.has(`groups.${node.title}.short`)
+                              ? t(`groups.${node.title}.short`)
+                              : node.title.toUpperCase(),
+                      }
+                    : node
+            )
+        );
+    }, [nodes, t]);
 
     const handleSelect = (id: string, node: TTreeNodeWithChildren) => {
-        router.push(hrefOfNode(nodes, node, username));
+        const original = nodes.find((n) => n.id === node.id) ?? node;
+        router.push(hrefOfNode(nodes, original, username));
     };
 
     const treeView = (

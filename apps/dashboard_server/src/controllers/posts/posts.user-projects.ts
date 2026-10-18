@@ -139,6 +139,9 @@ export function registerUserProjectsRoutes(router: Router): void {
                 const projects: TProjectCard[] = rows.map((row) => ({
                     project_id: row.project_id,
                     project: row.project,
+                    // Fixed null until PG-2-01 selects the real group columns.
+                    group_id: null,
+                    group: null,
                     post_count: row.post_count,
                     overview:
                         row.overview_post_id === null
@@ -184,6 +187,8 @@ export function registerUserProjectsRoutes(router: Router): void {
                 const ref: TProjectRef = {
                     project_id: rows[0].project_id,
                     project: rows[0].project,
+                    group_id: null,
+                    group: null,
                 };
                 const posts: TProjectPost[] = [];
                 for (const row of rows) {

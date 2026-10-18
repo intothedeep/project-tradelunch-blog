@@ -7,6 +7,7 @@
         "PORT",
         "HOST_NAME",
         "DASHBOARD_DATA_SOURCE",
+        "PROJECTS_DATA_SOURCE",
         "CC_SAMPLE_SLUG",
         "CC_SAMPLE_PROJECT"
     ],

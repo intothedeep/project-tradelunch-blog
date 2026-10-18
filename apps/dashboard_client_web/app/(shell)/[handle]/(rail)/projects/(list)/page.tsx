@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { Rocket } from 'lucide-react';
 import { getProjects } from '@/apis/getProjects.api';
 import { ProjectCardGrid } from '@/components/projects/ProjectCardGrid.server';
 import { ProjectsMobileMenu } from '@/components/projects/ProjectsMobileMenu.server';
 import { stripUsernameAt } from '@/utils/blog-author';
+import { groupProjectCards } from '@/utils/project-groups';
 import { projectsPath } from '@/utils/routes';
 
 type Props = { params: Promise<{ handle: string }> };
@@ -26,6 +28,16 @@ export default async function ProjectsPage({ params }: Props) {
     const username = stripUsernameAt(decodeURIComponent(handle));
     const t = await getTranslations('blog.projects');
     const projects = await getProjects(username);
+    const sections = groupProjectCards(projects).map((section) => ({
+        ...section,
+        anchor: section.group ?? 'ungrouped',
+        label:
+            section.group === null
+                ? t('ungrouped')
+                : t.has(`groups.${section.group}.short`)
+                  ? t(`groups.${section.group}.short`)
+                  : section.group.toUpperCase(),
+    }));
 
     return (
         <section className="flex flex-col gap-4">
@@ -42,10 +54,37 @@ export default async function ProjectsPage({ params }: Props) {
             {projects.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{t('empty')}</p>
             ) : (
-                <ProjectCardGrid
-                    username={username}
-                    projects={projects}
-                />
+                <>
+                    {sections.length >= 2 ? (
+                        <nav className="flex flex-wrap gap-2 lg:hidden">
+                            {sections.map((section) => (
+                                <Link
+                                    key={section.anchor}
+                                    href={`#${section.anchor}`}
+                                    prefetch={false}
+                                    className="border border-primary px-2 py-1 font-mono text-xs"
+                                >
+                                    {section.label}
+                                </Link>
+                            ))}
+                        </nav>
+                    ) : null}
+                    {sections.map((section) => (
+                        <section
+                            key={section.anchor}
+                            id={section.anchor}
+                            className="flex flex-col gap-3"
+                        >
+                            <h2 className="font-mono text-base font-bold text-primary">
+                                {section.label} ({section.projects.length})
+                            </h2>
+                            <ProjectCardGrid
+                                username={username}
+                                projects={section.projects}
+                            />
+                        </section>
+                    ))}
+                </>
             )}
         </section>
     );

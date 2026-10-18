@@ -1,0 +1,22 @@
+{
+    "project": {
+        "project_id": "9990000000000000104",
+        "project": "mock-utrgv-project",
+        "group_id": "9990000000000000004",
+        "group": "utrgv"
+    },
+    "posts": [
+        {
+            "id": "9990000000000000204",
+            "slug": "mock-utrgv-overview",
+            "title": "[MOCK] UTRGV MSCS overview",
+            "description": "[MOCK] fixture post for the breadcrumb",
+            "priority": 1,
+            "seq": "1",
+            "stored_uri": null,
+            "status": "public",
+            "created_at": "2026-01-01T00:00:00.000Z",
+            "updated_at": "2026-01-01T00:00:00.000Z"
+        }
+    ]
+}
