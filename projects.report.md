@@ -1006,6 +1006,7 @@ projects (level 0)                                  projects (level 0)
 - `cf-cache-status` MISS와 HIT 줄.
 - 메뉴 배지 값, 오른쪽 rail tree의 그룹 노드 수와 라벨 (오너 확인 대기).
 - PG-2-02의 CI, CC standalone check, GCP build 성공: main session 보고에서 옮겼고 저장 파일이 없다.
+- 보충 원본 (2026-10-18): `pg.m2-gate.review.md` §3.2가 MISS/HIT 줄과 배지를 다시 재서 적었다. 오너 확인 "good" (tree UTRGV MSCS, 배지 1, #121 뒤 기록).
 
 ### 판정
 
