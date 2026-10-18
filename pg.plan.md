@@ -15,7 +15,7 @@
 - Constraints: 스키마 변경 없음 · 계약 = `@repo/types` `TProjectRef`, `TProjectCard` (추가만) · BIGINT id는 문자열 · soft-delete만 · 새 `Link`는 `prefetch={false}` 또는 `HoverPrefetchLink` (#90) · 테스트 러너 금지, 검증 = 고의 파손(deliberate breakage)과 운영(prod) curl · 빌드는 GH Actions에서만 · 로컬 실행 = `~/.claude/CLAUDE.md` "No local execution" · mock은 `mocks/projects/`에 격리, 운영은 언제나 `real` · URL `/@u/projects/<project>` 불변, 308 없음, 그룹 URL 없음 (#119) · 운영 SQL은 main session 또는 오너만 실행한다. agent는 파일만 쓴다 · 데이터 이동은 아래 "고정 순서"를 지킨다.
 - G1 (DRAFT, owner 승인 대기): 프로젝트 화면이 소속별 구역으로 보인다. measure: `my.prettylog.com/@taeklim/projects` HTML에 `id="utrgv"`, `id="company"` 구역이 있고, 카드가 cnn, recobell, adriel 3개다. by <owner date>.
 - S1 → G1: A = 카테고리 한 단계 추가 `projects/<group>/<project>` (picked: A of A/B/C, owner 2026-10-17, #119); listed alternatives: B (코드 안 매핑), C (새 열).
-- M1 → S1: MVP1 모양 (mock); exit: 오너가 허용한 dev 실행 1회(Q-PG1)에서 `PROJECTS_DATA_SOURCE=mock`으로 `/@taeklim/projects`에 `[MOCK]` 카드가 그룹 구역 4개 + "Other" 순서로 렌더 · 구역 제목 = i18n `short` · 모바일 칩이 `#<group>` 앵커 · 상세 breadcrumb 링크 = `/@taeklim/projects#<group>` · env를 빼면 real 카드(cnn 1개, "Other" 구역) · `projects.report.md` "PG MVP1" 절 있음; cycle 1/2 (ISSUE 2026-10-18, pg.m1-gate.review.md); recovery 0/2
+- M1 → S1: MVP1 모양 (mock); exit: 오너가 허용한 dev 실행 1회(Q-PG1)에서 `PROJECTS_DATA_SOURCE=mock`으로 `/@taeklim/projects`에 `[MOCK]` 카드가 그룹 구역 4개 + "Other" 순서로 렌더 · 구역 제목 = i18n `short` · 모바일 칩이 `#<group>` 앵커 · 상세 breadcrumb 링크 = `/@taeklim/projects#<group>` · env를 빼면 real 카드(cnn 1개, "Other" 구역) · `projects.report.md` "PG MVP1" 절 있음; cycle 2/2 PASS (2026-10-18, pg.m1-gate.review.md); recovery 0/2
 - M2 → S1: MVP2 진짜 조각 (Express SQL + cnn 이동 + purge); exit: 고정 순서 1–4가 끝남 · 운영 `/@taeklim/projects`에 UTRGV MSCS 구역, cnn 카드 1개 · 메뉴 배지 1 · `/@taeklim/projects/cnn-from-scratch` 200 · `/@taeklim/projects/utrgv` 404 · `cc-standalone-check.yml` 실행 PASS · `projects.report.md` "PG MVP2" 절 있음; cycle 0/2; recovery 0/2
 - M3 → S1: MVP3 핵심 이전 (발행 + mock 은퇴); exit: 코드 커밋 없이 (PG-3-02 전까지) recobell, adriel이 Company 구역에 보임 · HTML에서 `id="company"`가 `id="utrgv"`보다 앞 · 배지 3 · `PROJECTS_DATA_SOURCE` 문자열 0 · mock 파일 `x_` · `projects.report.md` "PG MVP3" 절 있음; cycle 0/2; recovery 0/2
 - Gate: 각 milestone 끝에 reviewer 단독 (`.claude/CLAUDE.md` Workflow 4). task별 review 행은 없다. 다음 milestone은 앞 exit가 닫혀야 열린다.
@@ -36,21 +36,21 @@
 
 ## Tactic: MVP1 모양 (mock 카드, real tree) → M1
 
-- [ ] **PG-1-01 (ENG) 타입 `group_id`, `group` 추가 (G1)** → M1
+- [x] **PG-1-01 (ENG) 타입 `group_id`, `group` 추가 (G1)** → M1
   - **AC** `packages/types/src/project.ts` `TProjectRef`에 `group_id: string | null`, `group: string | null` · `posts.user-projects.ts`의 두 매핑(카드 `projects`, 상세 `ref`)이 두 칸을 채운다. 이 행에서는 `null` 고정, 진짜 값은 PG-2-01 · GH Actions `pnpm check-types` 초록 · 고의 파손: 매핑 한 곳에서 `group`을 빼면 check-types가 빨강.
-- [ ] **PG-1-02 (ENG) i18n 그룹 이름 (G6)** → M1
+- [x] **PG-1-02 (ENG) i18n 그룹 이름 (G6)** → M1
   - **AC** `messages/en/blog.json`, `messages/ko/blog.json`에 `blog.projects.groups.{my-work,company,gatech,utrgv}.short` = My Work / Company / GT MSCS / UTRGV MSCS (en, ko 같음, #119) · `blog.projects.ungrouped` = en "Other", ko "기타" · `.full` 키 0개 · 기존 키 변경 0 (diff가 추가 줄만).
-- [ ] **PG-1-03 (ENG) mock 카드 + dev 전환 (G2)** → M1
+- [x] **PG-1-03 (ENG) mock 카드 + dev 전환 (G2)** → M1
   - **AC** 새 `apps/dashboard_client_web/mocks/projects/groups.cards.json` = `TProjectCard[]`, 그룹 4개에 카드 1개 이상 + `group: null` 카드 1개, id는 `9990000000000000101`부터 문자열, `project`는 `mock-<group>-project` (URL 칸이라 괄호·공백 없음, #120), overview와 글 제목은 `[MOCK] `로 시작 · 새 `mocks/projects/groups.posts.json` = `[MOCK]` 프로젝트 1개의 `{ project: TProjectRef, posts }`, `group` = `utrgv` (breadcrumb용, PJ 선례 `mocks/x_projects/posts.json`) · 오늘 이 env는 없다(grep 0). `apis/getProjects.api.ts`와 `apis/getProjectPosts.api.ts`에만 서버 전용 `PROJECTS_DATA_SOURCE` 분기를 새로 둔다. 값이 정확히 `mock`일 때만 fixture, 그 밖은 real · `NEXT_PUBLIC_` 접두 없음 · 고의 파손: env 미설정 빌드에서 `/@taeklim/projects` HTML에 `[MOCK]` 0개.
-- [ ] **PG-1-04 (ENG) 순수 함수: 묶기와 노드 판정 (G3)** → M1
+- [x] **PG-1-04 (ENG) 순수 함수: 묶기와 노드 판정 (G3)** → M1
   - **AC** 새 `utils/project-groups.ts` `groupProjectCards(cards)` = 입력 순서를 지키며 `group`별 구역 배열, `group: null`은 맨 뒤 한 구역, 카드 0개 구역 없음 · `utils/projects-tree.ts`에 `classifyProjectNodes(nodes)` → `{ groupIds, projectIds }`, 판정 = §12.3 표 (깊이 1 + 자식 카테고리 있음 = 그룹) · `projectOf`가 그룹 아래 손자를 프로젝트로 돌려준다. 그래서 `projectOfSlug[slug]`는 프로젝트 title이고 그룹 title이 아니다 · `selectedNodeIdOf(nodes, '/@u/projects/cnn-from-scratch')`가 cnn이 그룹 아래여도 cnn id (오늘 코드는 `parent_id === root.id`라 null) · `hrefOfNode(그룹 노드)` = `projectsPath(u) + '#' + title` · `sliceProjectsSubtree`가 루트 직계 자식 중 자식 카테고리 0개이고 하위 글 0개인 노드를 뺀다 (§12.3 1/0/0 행. SQL A 직후 빈 그룹 4개가 여기에 든다) · 검증: 이 판정은 M2 운영 tree(PG-2-06)에서 다시 본다.
-- [ ] **PG-1-05 (ENG) 카드 구역, 모바일 칩, 상세 breadcrumb (G4)** → M1
+- [x] **PG-1-05 (ENG) 카드 구역, 모바일 칩, 상세 breadcrumb (G4)** → M1
   - **AC** `(list)/page.tsx`가 `groupProjectCards` 결과마다 `<section id={group}>` + 제목(i18n `short`, 키 없으면 title 대문자) + 프로젝트 수 + 기존 `ProjectCardGrid` · 둘째 줄 정식 이름 없음 (#119) · 그룹 없음 구역 = `ungrouped` 제목, 맨 뒤, 1개 이상일 때만 · 모바일 칩은 구역 2개 이상일 때만, `href="#<group>"` · `[project]/page.tsx` 제목 위 breadcrumb `<short> ▸ <project>`, 그룹 칸 링크 = `/@u/projects#<group>`, `prefetch={false}` · `group: null`이면 breadcrumb 없음 · `ProjectsCountBadge.server.tsx`, `apis/existence.proxy.ts`, `utils/notFoundGate.ts` diff 0.
-- [ ] **PG-1-06 (ENG) 오른쪽 rail tree 그룹 표시 (G5)** → M1
+- [x] **PG-1-06 (ENG) 오른쪽 rail tree 그룹 표시 (G5)** → M1
   - **AC** `ProjectsTree.client.tsx`에서 그룹 노드 글자 = i18n `short` (키 없으면 title 대문자) · 그룹 클릭 → `router.push('/@u/projects#<group>')` (PG-1-04 `hrefOfNode`) · 프로젝트와 글 클릭은 오늘과 같음 · `CategoryTree.client.tsx` 공용 renderer는 블로그 사이드바에 영향 0 (블로그 카테고리 tree 글자 불변) · 검증: real 데이터로만 보인다. 그래서 PG-2-06 AC에서 확인한다.
-- [ ] **PG-1-07 (MAIN/OWNER) M1 dev 실행 1회** → M1
+- [x] **PG-1-07 (MAIN/OWNER) M1 dev 실행 1회** → M1
   - **AC** 오너가 Q-PG1에 답한 실행 방식으로 1회 · M1 exit 항목마다 결과 한 줄 (스크린샷 또는 HTML 발췌 경로) · 실행은 main session이 한다. agent는 실행하지 않는다.
-- [ ] **PG-1-08 (ENG) 단계 보고 "PG MVP1"** → M1
+- [x] **PG-1-08 (ENG) 단계 보고 "PG MVP1"** → M1
   - **AC** `projects.report.md`에 `## PG MVP1 (<date>)` 절 · 단계마다 What, Why, Input, Output, Result, Status 칸 (`.claude/CLAUDE.md` "System build phasing") · 그림 1개 + 표 1개 · 숫자는 PG-1-07 저장 파일에서 읽는다.
 
 ## Tactic: Express SQL + 데이터 이동 (고정 순서 1–4) → M2

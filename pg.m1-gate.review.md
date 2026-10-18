@@ -228,3 +228,62 @@ M1 exit 절                                  판정     근거
 | F11 | 증거 | main session |
 
 F1 하나가 닫히면 M1 exit 6절이 모두 시연된다. 재검토 범위는 F1 한 줄 확인으로 좁힐 수 있다. 결정은 `recover` step 3의 몫이다.
+
+---
+
+# Cycle 2 (2026-10-18, HEAD `3999864`, cycle 2/2)
+
+- 범위: `ae0b718..3999864` 커밋 1개. 코드 2파일(`utils/project-groups.ts`, `projects/[project]/page.tsx`), 증거 파일 +6줄, `pg.plan.md`, `decisions.plan.md`.
+- 이 검토가 직접 보낸 요청: env 없는 dev 서버에 읽기 GET 4회. 정적 검사 3종 재실행. 파일 수정 0, 커밋 0.
+
+## C2.1 판정
+
+**판정: PASS.** M1 exit 6절이 모두 시연됐다. 남은 ISSUE는 G1 날짜(오너 몫, goal 줄)와 문구 2건이며 M1을 막지 않는다.
+
+```
+M1 exit  1-4, 6                          PASS   cycle 1 §3과 같음 (코드 변경이 mock 경로를 건드리지 않음)
+         5 env 빼면 real 카드             PASS   C2.2 (직접 GET)
+사다리    L1 PASS · L2 PASS · L3 PASS · L4 기록만 (변동 없음)
+계층      H1 ISSUE 유지 (G1 날짜, 오너) · H2 PASS (#120)
+정적 검사 web check-types / web lint / server check-types PASS
+```
+
+## C2.2 F1 재확인 (dev, `PROJECTS_DATA_SOURCE` 없음, 운영 API)
+
+| 요청 | HTTP | 값 |
+| --- | --- | --- |
+| `/@taeklim/projects` | 200 | `id="ungrouped"` 1, 다른 그룹 `id` 0, `<h2>` "Other", cnn 카드 링크 1, `[MOCK]` 0, 칩 0 (구역 1개), 배지 1, `TypeError` 0 |
+| `/@taeklim/projects/cnn-from-scratch` | 200 | `[MOCK]` 0, breadcrumb `▸` 0 (`group` 없음), H1 `CNN-FROM-SCRATCH` |
+| `/@taeklim/projects/utrgv` | **404** | 404 본문. real 모드에서는 proxy gate가 살아 있어 진짜 404다 (cycle 1 §3.3의 soft 404는 mock 모드만이라는 판단을 확인) |
+| `/@taeklim/projects/mock-utrgv-project` | 404 | mock 이름은 real 모드에서 없다. mock과 real이 섞이지 않는다 (L3) |
+
+증거 파일 `deploy/projects/pg-m1-evidence-2026-10-18.txt` 18-23행과 값이 같다.
+
+## C2.3 고침 코드 검토
+
+| 파일 | 변경 | 판정 |
+| --- | --- | --- |
+| `utils/project-groups.ts:19-21` | `card.group === null` → `== null` | PASS. 옛 운영 API(PG-2-01 전)는 `group` 칸을 주지 않아 `undefined`였고 `toUpperCase`에서 죽었다. 배포 사이(새 웹 + 옛 API)에도 같은 상태가 생기므로 고정 순서 1의 안전망이다. 타입 `string \| null`과 어긋나지 않는다 |
+| `projects/[project]/page.tsx:34-46` | `=== null` → `== null`, `!== null` → `!= null` | PASS. `!= null` 뒤 `ref.group`은 `string`으로 좁혀진다 (check-types PASS) |
+
+- 이 crash는 cycle 1 F1이 "두 부품은 있지만 끝-끝은 아니다"라고 쓴 바로 그 틈에서 나왔다. 끝-끝 시연 요구가 맞았다.
+- mock 경로(`groups.cards.json`은 `group: null` 명시)는 영향이 없다. cycle 1 §3.1, §3.2 결과는 그대로 유효하다.
+- 회귀 없음: 정적 검사 3종 PASS, 다른 파일 변경 0.
+
+## C2.4 F8, F7, 나머지
+
+| 항목 | 상태 | 비고 |
+| --- | --- | --- |
+| F8 D-row | PASS | `decisions.plan.md` #120: Decision, Why(M1 → S1 → G1), Rejected 2개, Decided by, Evidence, Supersedes 모두 있음 (`rules/docs.md` §8) |
+| F8 AC 수정 | PASS (1곳 남음) | PG-1-03 slug 문구, PG-3-02에 `existence.proxy.ts`, `turbo.json` 명시: 됨. **PG-1-05 AC의 "`existence.proxy.ts` diff 0"은 그대로다.** #120이 이탈을 받아들였으므로 모순은 문서 안에서 해소되지만 AC 글자는 코드와 다르다. nice-to-fix (pm, 한 줄) |
+| F2, F3 | PASS | #120과 PG-3-02 AC로 닫힘 |
+| F7 G1 날짜 | ISSUE 유지, M1을 막지 않음 | G1은 goal 줄이고 M1 exit 항목이 아니다. M1 행 8개는 모두 AC가 있고 선택이 없다 (`rules/core.md` "No mission block" 준용). 오너가 날짜를 주면 pm이 넣는다. M2 gate 전까지 열어 둔다 |
+| F9 보고 수치, F1 run 보고 줄 | 열림 | `projects.report.md`는 이 cycle에서 바뀌지 않았다. "PG MVP1" 절에 F1 run(crash와 고침, 값 4개)과 HEAD 기준 수치가 없다. PG-1-08 AC "숫자는 저장 파일에서"는 지키나 최신 줄이 빠졌다. nice-to-fix (`sonnet-writer`) |
+| F4, F5, F10, F11 | 열림 (선택) | 변동 없음 |
+| cycle 카운터 | 확인 | `pg.plan.md:18` `cycle 1/2 (ISSUE 2026-10-18, …)`. 이 PASS 뒤 갱신은 `recover` step 3 또는 pm의 몫 |
+
+## C2.5 다음 단계에 넘기는 것
+
+- M2 PG-2-02(배포)는 열 수 있다 (L4 조건 충족).
+- 배포 뒤 PG-2-02 AC의 `"group":null` 확인은 새 Express가 칸을 주는지의 확인이기도 하다. `== null` 안전망이 있어도 운영 응답에 `group` 칸이 있어야 PG-1-01 AC가 운영에서 참이다.
+- 열린 nice-to-fix: PG-1-05 AC 한 줄(pm), 보고 절 갱신(F9 + F1 run, `sonnet-writer`), F4, F5, F10, F11.
