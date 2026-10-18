@@ -18,6 +18,7 @@ import rehypeKatex from 'rehype-katex';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import 'katex/dist/katex.min.css';
+import { MermaidDiagram } from '@/components/blog/MermaidDiagram.client';
 
 const remarkPlugins = [
     remarkGfm, // tables, strikethrough, autolinks
@@ -72,8 +73,16 @@ const remarkComponents: Components = {
             {...stripNode(props)}
         />
     ),
-    pre: ({ node: _node, ...props }) => {
-        void _node;
+    pre: ({ node, ...props }) => {
+        // A mermaid block brings its own container; skip the dark code box.
+        const firstChild = node?.children[0];
+        if (
+            firstChild?.type === 'element' &&
+            Array.isArray(firstChild.properties?.className) &&
+            firstChild.properties.className.includes('language-mermaid')
+        ) {
+            return <>{props.children}</>;
+        }
         // The original `pre` content is rendered inside a styled <div>; the
         // incoming props are typed for <pre>, so coerce to <div> attributes.
         const divProps = props as React.ComponentPropsWithoutRef<'div'>;
@@ -96,6 +105,12 @@ const remarkComponents: Components = {
         void _node;
         void _style;
         const match = /language-(\w+)/.exec(className || '');
+
+        if (!inline && match?.[1] === 'mermaid') {
+            return (
+                <MermaidDiagram source={String(children).replace(/\n$/, '')} />
+            );
+        }
 
         return !inline && match ? (
             <SyntaxHighlighter
@@ -132,6 +147,42 @@ const remarkComponents: Components = {
     ol: (props) => (
         <ol
             className="list-decimal ml-6 mb-3"
+            {...stripNode(props)}
+        />
+    ),
+    // Wrapper scrolls horizontally so a wide table never widens the page on phones.
+    table: (props) => (
+        <div className="my-3 overflow-x-auto">
+            <table
+                className="w-full border-collapse border border-border text-sm"
+                {...stripNode(props)}
+            />
+        </div>
+    ),
+    thead: (props) => (
+        <thead
+            className="bg-muted"
+            {...stripNode(props)}
+        />
+    ),
+    tbody: (props) => <tbody {...stripNode(props)} />,
+    tr: (props) => (
+        <tr
+            className="border-b border-border"
+            {...stripNode(props)}
+        />
+    ),
+    // GFM column alignment arrives as props.style.textAlign (or `align`).
+    // The inline style outranks the default text-left class, so the column wins.
+    th: (props) => (
+        <th
+            className="border border-border px-3 py-2 text-left font-semibold"
+            {...stripNode(props)}
+        />
+    ),
+    td: (props) => (
+        <td
+            className="border border-border px-3 py-2 text-left"
             {...stripNode(props)}
         />
     ),
