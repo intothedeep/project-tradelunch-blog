@@ -3,7 +3,7 @@
 > Split from `PLAN.md` (rules/docs.md §1). The PLAN.md stub is the truth if
 > the two disagree; update both in the same edit.
 
-- 상태: M1 PASS, M2 PASS (2026-10-18, `pg.m2-gate.review.md`). 행 22개: M1 8/8, M2 9/9 닫힘, M3 5개 열림. M3는 오너 발행이다. prettylog 시리즈 뒤로 미뤘다 (#122).
+- 상태: M1 PASS, M2 PASS (2026-10-18, `pg.m2-gate.review.md`). 행 22개: M1 8/8, M2 9/9 닫힘, M3 5개 열림. M3는 오너 발행이다. prettylog 연재(Phase PS, `ps.plan.md`) M3 뒤로 미뤘다 (#122). G1, M3 exit, PG-3-01 AC는 배지 4로 바꿨다 (#124).
 - 설계: `projects.design.md` §12 (rev4 DRAFT). 오너 결정: `decisions.plan.md` #119.
 - 행은 여기에만 있다. `00.tasks.md`는 400줄을 넘어서 새 행을 받지 않는다.
 - #119가 §12와 다르면 #119를 따른다. 다른 곳은 "§12 정정 필요" 절에 적는다.
@@ -13,11 +13,11 @@
 - Mission: 채용 담당자가 프로젝트 결과를 한눈에 보게 한다. (오너 승인 2026-10-13, #79)
 - Vision: 방문자가 `/@u/...` 한 체계에서 글, 프로젝트, 소개를 로그인 없이 읽는다. 옛 URL은 모두 새 URL로 연결된다. (오너 승인 2026-10-13, #79)
 - Constraints: 스키마 변경 없음 · 계약 = `@repo/types` `TProjectRef`, `TProjectCard` (추가만) · BIGINT id는 문자열 · soft-delete만 · 새 `Link`는 `prefetch={false}` 또는 `HoverPrefetchLink` (#90) · 테스트 러너 금지, 검증 = 고의 파손(deliberate breakage)과 운영(prod) curl · 빌드는 GH Actions에서만 · 로컬 실행 = `~/.claude/CLAUDE.md` "No local execution" · mock은 `mocks/projects/`에 격리, 운영은 언제나 `real` · URL `/@u/projects/<project>` 불변, 308 없음, 그룹 URL 없음 (#119) · 운영 SQL은 main session 또는 오너만 실행한다. agent는 파일만 쓴다 · 데이터 이동은 아래 "고정 순서"를 지킨다.
-- G1: 프로젝트 화면이 소속별 구역으로 보인다. measure: `my.prettylog.com/@taeklim/projects` HTML에 `id="utrgv"`, `id="company"` 구역이 있고, 카드가 cnn, recobell, adriel 3개다. by 2026-10-20 (오너 "by Tuesday", 2026-10-18).
+- G1: 프로젝트 화면이 소속별 구역으로 보인다. measure: `my.prettylog.com/@taeklim/projects` HTML에 `id="my-work"`, `id="company"`, `id="utrgv"` 구역이 있고, 카드가 cnn, prettylog, recobell, adriel 4개, 메뉴 배지 4다. by: date TBD after PS plan, owner. 오너 "ok" 2026-10-18, #124.
 - S1 → G1: A = 카테고리 한 단계 추가 `projects/<group>/<project>` (picked: A of A/B/C, owner 2026-10-17, #119); listed alternatives: B (코드 안 매핑), C (새 열).
 - M1 → S1: MVP1 모양 (mock); exit: 오너가 허용한 dev 실행 1회(Q-PG1)에서 `PROJECTS_DATA_SOURCE=mock`으로 `/@taeklim/projects`에 `[MOCK]` 카드가 그룹 구역 4개 + "Other" 순서로 렌더 · 구역 제목 = i18n `short` · 모바일 칩이 `#<group>` 앵커 · 상세 breadcrumb 링크 = `/@taeklim/projects#<group>` · env를 빼면 real 카드(cnn 1개, "Other" 구역) · `projects.report.md` "PG MVP1" 절 있음; cycle 2/2 PASS (2026-10-18, pg.m1-gate.review.md); recovery 0/2
 - M2 → S1: MVP2 진짜 조각 (Express SQL + cnn 이동 + purge); exit: 고정 순서 1–4가 끝남 · 운영 `/@taeklim/projects`에 UTRGV MSCS 구역, cnn 카드 1개 · 메뉴 배지 1 · `/@taeklim/projects/cnn-from-scratch` 200 · `/@taeklim/projects/utrgv` 404 · `cc-standalone-check.yml` 실행 PASS · `projects.report.md` "PG MVP2" 절 있음; cycle 1/2 PASS (2026-10-18, pg.m2-gate.review.md); recovery 0/2
-- M3 → S1: MVP3 핵심 이전 (발행 + mock 은퇴); exit: 코드 커밋 없이 (PG-3-02 전까지) recobell, adriel이 Company 구역에 보임 · HTML에서 `id="company"`가 `id="utrgv"`보다 앞 · 배지 3 · `PROJECTS_DATA_SOURCE` 문자열 0 · mock 파일 `x_` · `projects.report.md` "PG MVP3" 절 있음; cycle 0/2; recovery 0/2
+- M3 → S1: MVP3 핵심 이전 (발행 + mock 은퇴); exit: 코드 커밋 없이 (PG-3-02 전까지) recobell, adriel이 Company 구역에 보임 · prettylog가 My Work 구역에 보임 · HTML에 `id="my-work"`, `id="company"` 있음, 순서 `id="my-work"` < `id="company"` < `id="utrgv"` · 배지 4 (#124) · `PROJECTS_DATA_SOURCE` 문자열 0 · mock 파일 `x_` · `projects.report.md` "PG MVP3" 절 있음; cycle 0/2; recovery 0/2
 - Gate: 각 milestone 끝에 reviewer 단독 (`.claude/CLAUDE.md` Workflow 4). task별 review 행은 없다. 다음 milestone은 앞 exit가 닫혀야 열린다.
 
 ## 고정 순서 (§12.6, 바꾸지 않는다)
@@ -77,11 +77,11 @@
 ## Tactic: 발행과 mock 은퇴 → M3
 
 - [ ] **PG-OWN-1 (OWNER) recobell 발행** → M3
-  - **AC** PG-2-06 뒤에만 · 폴더 `projects/company/recobell/<slug>/` + 같은 이름 썸네일 PNG (`publish_oneshot.py`) · 발행 뒤 `SELECT count(*) FROM categories WHERE title='recobell' AND deleted_at IS NULL` = 1, 부모 = `company` · 사이에 코드 커밋 0.
+  - **AC** PG-2-06 뒤에만 · Phase PS M3 exit가 닫힌 뒤에만 (`ps.plan.md`, #122) · 폴더 `projects/company/recobell/<slug>/` + 같은 이름 썸네일 PNG (`publish_oneshot.py`) · 발행 뒤 `SELECT count(*) FROM categories WHERE title='recobell' AND deleted_at IS NULL` = 1, 부모 = `company` · 사이에 코드 커밋 0.
 - [ ] **PG-OWN-2 (OWNER) adriel 발행** → M3
   - **AC** PG-OWN-1과 같은 형식, 폴더 `projects/company/adriel/<slug>/`, `title='adriel'` 행 1개.
 - [ ] **PG-3-01 (MAIN) purge + Company 구역 확인** → M3
-  - **AC** `cf-purge.sh` 1회 · `/@taeklim/projects` HTML에 `id="company"` 구역 카드 2개, `id="utrgv"` 카드 1개, `id="company"`가 앞 · `id="my-work"`, `id="gatech"` 0개 · 배지 3 · `/@taeklim/projects/recobell`, `/@taeklim/projects/adriel` 200 · 출력 `deploy/projects/pg-mvp3-<date>.txt`.
+  - **AC** `cf-purge.sh` 1회 · `/@taeklim/projects` HTML에 `id="my-work"` 구역 카드 1개 (prettylog), `id="company"` 구역 카드 2개, `id="utrgv"` 카드 1개 · HTML 안 위치 순서 `id="my-work"` < `id="company"` < `id="utrgv"` · `id="gatech"` 0개 · 배지 4 (#124) · `/@taeklim/projects/prettylog`, `/@taeklim/projects/recobell`, `/@taeklim/projects/adriel` 200 · 출력 `deploy/projects/pg-mvp3-<date>.txt`.
 - [ ] **PG-3-02 (ENG) mock 은퇴** → M3
   - **AC** `mocks/projects/groups.cards.json`, `groups.posts.json` → `x_` 접두 (soft-delete, `rm` 없음) · `getProjects.api.ts`, `getProjectPosts.api.ts`, `apis/existence.proxy.ts`의 `PROJECTS_DATA_SOURCE` 분기 제거, `turbo.json` `globalEnv`에서 `PROJECTS_DATA_SOURCE` 제거 (#120), 앱 소스 grep 0 · GH Actions build 초록.
 - [ ] **PG-3-03 (ENG) 단계 보고 "PG MVP3" + 요약** → M3
@@ -92,7 +92,7 @@
 | # | 질문 | 기본값 |
 | --- | --- | --- |
 | Q-PG1 | M1 dev 실행 방식 | PJ Q-L처럼 오너가 허용한 로컬 `next dev` 1회. 대안: GH Actions `workflow_dispatch` standalone + mock env |
-| Q-PG2 | G1 날짜 | 없음. 오너가 정한다 |
+| Q-PG2 | G1 날짜 | 2026-10-20은 풀렸다. Phase PS 계획 뒤 오너가 다시 정한다 (#124) |
 | Q-PG3 | SQL A의 id 4개 | `id` 열을 빼고 DB가 만든다 (`GENERATED BY DEFAULT`, 작은 수). 대안: `generate_id_str()` 1회 호출 = 로컬 실행이라 오너 허락 필요 |
 
 ## §12 정정 필요 (architect, rev5)
