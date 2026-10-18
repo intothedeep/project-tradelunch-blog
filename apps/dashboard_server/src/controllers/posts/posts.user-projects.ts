@@ -10,6 +10,8 @@
 //     posts.user-categories.ts, so a republished post counts and lists once.
 //   * Posts order by priority ASC, seq ASC (#73); overview = first of that order (#72).
 //   * BIGINT ids leave the DB as text and are bound as strings (no numeric coercion).
+//   * Two levels (§12.3): a project is a child of a group (a depth-1 category with
+//     child categories) or a childless depth-1 category with posts (ungrouped).
 //   * The project path segment is the category title (Express already URL-decodes it).
 
 import { Router } from 'express';
@@ -27,10 +29,29 @@ const PROJECT_CTES = `
         WHERE u.username = $1 AND u.deleted_at IS NULL
             AND c.title = $3 AND c.deleted_at IS NULL
     ),
-    project AS (
-        SELECT c.id, c.title, c.priority, c.seq
+    lvl1 AS (
+        SELECT c.id, c.title, c.priority, c.seq,
+            EXISTS (
+                SELECT 1 FROM categories k
+                WHERE k.parent_id = c.id AND k.deleted_at IS NULL
+            ) AS is_group
         FROM categories c JOIN root r ON c.parent_id = r.id
         WHERE c.deleted_at IS NULL
+    ),
+    project_raw AS (
+        SELECT c.id, c.title, c.priority, c.seq,
+            g.id AS group_id, g.title AS group_title,
+            g.priority AS g_priority, g.seq AS g_seq, false AS is_leaf1
+        FROM categories c JOIN lvl1 g ON c.parent_id = g.id AND g.is_group
+        WHERE c.deleted_at IS NULL
+        UNION ALL
+        SELECT id, title, priority, seq, NULL, NULL, 2147483647, NULL, true
+        FROM lvl1 WHERE NOT is_group
+    ),
+    project AS (
+        SELECT DISTINCT ON (title) *
+        FROM project_raw
+        ORDER BY title, g_priority, g_seq, priority, seq
     ),
     subtree AS (
         SELECT p.id AS project_id, p.id AS category_id FROM project p
@@ -60,6 +81,13 @@ const PROJECT_CTES = `
         WHERE l.rn = 1
     )`;
 
+// A depth-1 leaf (ungrouped candidate) with no visible post is an empty group or
+// an empty project: hidden, so a group title never resolves as a project (§12.3).
+const HIDE_EMPTY_LEAF = `
+    (NOT pr.is_leaf1 OR EXISTS (
+        SELECT 1 FROM ranked k WHERE k.project_id = pr.id
+    ))`;
+
 // ORDER BY id DESC LIMIT 1: two thumbnail rows must still give one card/row.
 const thumbnailJoin = (postAlias: string): string => `
     LEFT JOIN LATERAL (
@@ -72,29 +100,35 @@ const thumbnailJoin = (postAlias: string): string => `
 const CARDS_QUERY = `
     WITH RECURSIVE ${PROJECT_CTES}
     SELECT pr.id::text AS project_id, pr.title AS project,
+        pr.group_id::text AS group_id, pr.group_title AS "group",
+        (SELECT COUNT(*) FROM project_raw x
+            WHERE x.title = pr.title AND x.id <> pr.id)::int AS shadowed,
         (SELECT COUNT(*) FROM ranked k WHERE k.project_id = pr.id)::int AS post_count,
         ov.id::text AS overview_post_id, ov.slug AS overview_slug,
         ov.title AS overview_title, th.stored_uri
     FROM project pr
     LEFT JOIN ranked ov ON ov.project_id = pr.id AND ov.ord = 1
     ${thumbnailJoin('ov')}
-    ORDER BY pr.priority ASC, pr.seq ASC`;
+    WHERE ${HIDE_EMPTY_LEAF}
+    ORDER BY pr.g_priority ASC, pr.g_seq ASC, pr.priority ASC, pr.seq ASC`;
 
 // One row per post; a project with no visible posts yields one row with NULL post
 // columns, so "no rows" means "no such project" (404).
 const PROJECT_POSTS_QUERY = `
     WITH RECURSIVE ${PROJECT_CTES}
     SELECT pr.id::text AS project_id, pr.title AS project,
+        pr.group_id::text AS group_id, pr.group_title AS "group",
         r.id::text AS id, r.slug, r.title, r.description,
         r.priority::int AS priority, r.seq::text AS seq, th.stored_uri,
         r.status, r.created_at, r.updated_at
     FROM project pr
     LEFT JOIN ranked r ON r.project_id = pr.id
     ${thumbnailJoin('r')}
-    WHERE pr.title = $4
+    WHERE pr.title = $4 AND ${HIDE_EMPTY_LEAF}
     ORDER BY r.ord ASC`;
 
 type TCardRow = TProjectRef & {
+    shadowed: number;
     post_count: number;
     overview_post_id: string | null;
     overview_slug: string | null;
@@ -136,12 +170,19 @@ export function registerUserProjectsRoutes(router: Router): void {
                     PROJECTS_ROOT_CATEGORY_TITLE,
                 ]);
 
+                const hidden = rows.filter((row) => row.shadowed > 0);
+                if (hidden.length > 0) {
+                    req.log.warn(
+                        { projects: hidden.map((row) => row.project) },
+                        'Same-title projects: only the first by group order is shown'
+                    );
+                }
+
                 const projects: TProjectCard[] = rows.map((row) => ({
                     project_id: row.project_id,
                     project: row.project,
-                    // Fixed null until PG-2-01 selects the real group columns.
-                    group_id: null,
-                    group: null,
+                    group_id: row.group_id,
+                    group: row.group,
                     post_count: row.post_count,
                     overview:
                         row.overview_post_id === null
@@ -187,8 +228,8 @@ export function registerUserProjectsRoutes(router: Router): void {
                 const ref: TProjectRef = {
                     project_id: rows[0].project_id,
                     project: rows[0].project,
-                    group_id: null,
-                    group: null,
+                    group_id: rows[0].group_id,
+                    group: rows[0].group,
                 };
                 const posts: TProjectPost[] = [];
                 for (const row of rows) {
