@@ -718,3 +718,143 @@ cycle 1  ISSUE M-1  -->  #115 log gate (df0a482)  -->  cycle 2  PASS (M4 exit �
 
 - 새 가입 차단: #117. `/sign-up` 404, 로그인 화면의 "Sign up" 링크 숨김. 오너가 Clerk 쪽 차단을 확인했다.
 - 공유 aside: #118. 프로젝트 글 상세의 오른쪽 rail = TOC + `HomeRightRail` (부모와 공유). 일반 글은 그대로.
+
+## PG MVP1 (2026-10-18)
+
+단일 출처: `deploy/projects/pg-m1-evidence-2026-10-18.txt` (로컬 dev, branch `pg-m1` `4246056`, `PROJECTS_DATA_SOURCE=mock`, `https://local.prettylog.com`), `git log --oneline main..pg-m1`, `git diff --stat main...pg-m1`, `pg.plan.md` PG-1-01..08.
+이 절은 PG M1의 단계 보고다. 이 phase의 첫 end-to-end cycle이므로 판정(verdict)은 내리지 않는다.
+
+### 요약
+
+mock 데이터로 프로젝트 목록 화면을 한 번 띄웠다. 목록 HTML에 구역 id 5개(`my-work`, `company`, `gatech`, `utrgv`, `ungrouped`)가 있었다. 상세 화면 breadcrumb 구분 기호는 2개였다. 목록의 `[MOCK]` 글자는 10개, 상세는 5개였다. 정적 검사 3개가 통과했다 (web check-types, web lint, server check-types). 오너가 화면에서 그룹을 확인했다. rail tree의 그룹 표시는 M1에서 보지 않았다.
+
+| 단계 | 상태 | 한 줄 결과 |
+| --- | --- | --- |
+| PG-1-01 타입 | ran | `TProjectRef`에 `group_id`, `group` 추가. check-types 통과 |
+| PG-1-02 i18n | ran | en, ko `blog.json`에 그룹 이름 키 추가 |
+| PG-1-03 mock + 전환 | ran | mock 파일 2개, `PROJECTS_DATA_SOURCE=mock`일 때만 fixture |
+| PG-1-04 순수 함수 | ran (정적 검사만) | `groupProjectCards`, `classifyProjectNodes` 추가. 단독 실행 기록 없음 |
+| PG-1-05 구역, 칩, breadcrumb | ran | 목록 구역 id 5개, 상세 breadcrumb 구분 2개 |
+| PG-1-06 tree 라벨 | skipped in M1, checked in PG-2-06 | tree는 real 데이터만 읽는다 |
+| PG-1-07 오너 dev 확인 | ran | 오너 "I see groups and mock is ok?" |
+
+### 데이터 흐름 (ASCII 그림 1장)
+
+```
+mocks/projects/groups.cards.json
+        |  PROJECTS_DATA_SOURCE=mock 일 때만
+        v
+getProjects()  --->  groupProjectCards(cards)  --->  <section id=group> x 5
+ (real이면 Express)     (group별, null은 맨 뒤)        my-work, company, gatech, utrgv, ungrouped
+                                                       + 모바일 칩 (구역 2개 이상)
+
+mocks/projects/groups.posts.json --> getProjectPosts() --> 상세 breadcrumb "<short> ▸ <project>"
+```
+
+### 단계별 보고
+
+#### PG-1-01 타입
+
+- What: 프로젝트 타입에 그룹 두 칸을 더한다.
+- Why: G1. 카드와 상세가 같은 칸을 쓴다.
+- Input data: `packages/types/src/project.ts`, `posts.user-projects.ts`의 매핑 두 곳.
+- Output data: 타입 파일 +2줄. 이 행에서 값은 `null` 고정.
+- Result: web check-types, server check-types 통과.
+- 좋은 점: 정적 검사 통과. 나쁜 점: AC의 고의 파손(매핑에서 `group` 제거)을 한 기록이 증거 파일에 없다.
+- Status: ran.
+
+#### PG-1-02 i18n
+
+- What: 그룹 이름 글자(`short`)와 `ungrouped` 글자를 넣는다.
+- Why: G6.
+- Input data: `messages/en/blog.json`, `messages/ko/blog.json`.
+- Output data: 각 파일 +9줄 (git diff 줄 수, 추가 줄만인지는 이 원본에 없다).
+- Result: 키 값은 파일에 있다. 증거 파일에는 값이 없다.
+- 좋은 점: en, ko 같은 구조. 나쁜 점: "기존 키 변경 0"을 확인한 기록이 없다.
+- Status: ran.
+
+#### PG-1-03 mock + 전환
+
+- What: mock 카드와 mock 글 fixture를 만들고 env 분기를 둔다.
+- Why: G2. 운영 데이터 없이 화면을 본다.
+- Input data: 새 JSON 2개 (`groups.cards.json` 67줄, `groups.posts.json` 22줄), 분기 파일 2개 (`getProjects.api.ts`, `getProjectPosts.api.ts`), `turbo.json` +1줄.
+- Output data: 목록 HTML `[MOCK]` 10개, 상세 HTML `[MOCK]` 5개.
+- Result: `GET /@taeklim/projects` 200, `GET /@taeklim/projects/mock-utrgv-project` 200.
+- 좋은 점: mock일 때 `[MOCK]` 글자가 화면에 보여 구별된다. 나쁜 점: AC의 "env 미설정 빌드에서 `[MOCK]` 0개"는 이 원본에 없다.
+- Status: ran.
+
+#### PG-1-04 순수 함수
+
+- What: 카드를 그룹별로 묶고, tree 노드를 그룹과 프로젝트로 가른다.
+- Why: G3.
+- Input data: `utils/project-groups.ts` (신규 34줄), `utils/projects-tree.ts` (+85줄 변경).
+- Output data: `groupProjectCards`, `classifyProjectNodes`, `hrefOfNode` 등.
+- Result: 구역 5개가 mock 화면에 나왔다. 노드 판정은 mock 화면에 쓰이지 않는다.
+- 좋은 점: 구역 순서가 입력 순서와 `ungrouped` 맨 뒤를 지킨다. 나쁜 점: 노드 판정(`classifyProjectNodes`, `selectedNodeIdOf`)의 실행 증거가 없다. PG-2-06에서 본다.
+- Status: ran (정적 검사와 구역 화면만).
+
+#### PG-1-05 구역, 칩, breadcrumb
+
+- What: 목록을 그룹 구역으로 나누고, 상세 제목 위에 breadcrumb을 둔다.
+- Why: G4.
+- Input data: mock 카드, mock 상세 fixture.
+- Output data: `(list)/page.tsx` +47줄, `[project]/page.tsx` +22줄.
+- Result: 목록 구역 id 5개. 목록 breadcrumb 구분 0개. 상세 breadcrumb 구분 2개. 상세 구역 id 0개.
+- 좋은 점: 구역 id가 `<section id>` 규칙대로 나온다. 나쁜 점: AC는 `apis/existence.proxy.ts` diff 0인데 `main...pg-m1` 비교에서 이 파일에 +8줄이 있다. AC PARTIALLY MET: main session이 mock 모드에서만 project gate를 건너뛰게 했다 (mock 프로젝트는 운영 API에 없어서 상세가 404였다). 운영(env 없음)에서는 동작이 같다. M3 PG-3-02 mock 은퇴 때 이 분기도 뺀다.
+- Status: ran.
+
+#### PG-1-06 tree 라벨
+
+- What: 오른쪽 rail tree의 그룹 노드 글자와 클릭 이동을 바꾼다.
+- Why: G5.
+- Input data: `ProjectsTree.client.tsx` (+27줄).
+- Output data: 코드 변경만.
+- Result: 화면 확인 없음. tree는 real 데이터만 읽는다 (mock 전환이 닿지 않는다).
+- 좋은 점: 코드는 들어갔다. 나쁜 점: 그룹 노드 표시를 아직 한 번도 보지 못했다.
+- Status: skipped in M1, checked in PG-2-06.
+
+#### PG-1-07 오너 dev 확인
+
+- What: 오너가 로컬 mock 화면을 본다.
+- Why: M1 exit.
+- Input data: `https://local.prettylog.com`, mock 데이터.
+- Output data: 오너 답 "I see groups and mock is ok?" (2026-10-18). 콘솔에 중복 key `/`가 있었다. 원인은 `app/not-found.tsx:31`이고 main에도 있던 것이다. `4246056`에서 고쳤다.
+- Result: 오너가 그룹을 본다. 스크린샷 파일은 이 원본에 없다.
+- 좋은 점: 그룹이 보인다. 나쁜 점: 스크린샷이 없고, 오너 문장은 질문 형태다.
+- Status: ran (오너 확인).
+
+### 정적 검사와 코드 규모
+
+| 항목 | 값 |
+| --- | --- |
+| web check-types | 통과 |
+| web lint | 통과 |
+| server check-types | 통과 |
+| 커밋 (`main..pg-m1`) | 2개 (`736bb46` M1, `4246056` PG-2-01 + not-found 고침) |
+| 변경 (`main...pg-m1`) | 16개 파일, 369 추가, 31 삭제 |
+
+### PG-2-01 코드를 일찍 넣은 일
+
+- PG-2-01(Express 두 단계 SQL)이 `4246056`으로 이 branch에 먼저 커밋됐다. 이 코드는 M2 작업이다.
+- 데이터를 옮기기 전에 로컬 Express(PORT 4011)로 운영 DB를 읽기 전용 GET으로 확인했다.
+
+| 요청 | 결과 |
+| --- | --- |
+| `GET /projects` | 카드 1개, `cnn-from-scratch`, `group=null`, `group_id=null`, `post_count=8` |
+| `GET /projects/cnn-from-scratch` | 200 |
+| `GET /projects/utrgv` | 404 |
+| `GET /projects/nope` | 404 |
+
+- 운영 배포와 데이터 이동은 하지 않았다. 결과는 M2의 PG-2-02 기준값 후보이고 거기서 다시 잰다.
+
+### 원본에 없는 값
+
+- PG-1-01 고의 파손 기록, PG-1-02 "기존 키 변경 0", PG-1-03 "env 미설정 `[MOCK]` 0개".
+- `classifyProjectNodes`, `selectedNodeIdOf`, `sliceProjectsSubtree` 실행 결과.
+- 오너 확인의 스크린샷.
+- 모바일 칩 출력 (구역 2개 이상일 때 칩). 증거 파일에 칩 줄이 없다.
+- `existence.proxy.ts` +8줄: 803행에 이유를 적었다 (main session, 2026-10-18).
+
+### 판정
+
+판정하지 않는다. 첫 end-to-end cycle이다 (`.claude/CLAUDE.md` "System build phasing"). 위 "원본에 없는 값"과 tree 그룹 표시(PG-2-06)가 다음 cycle의 확인 항목이다.

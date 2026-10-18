@@ -1,0 +1,17 @@
+# PG M1 evidence (2026-10-18, local dev, branch pg-m1 4246056, PROJECTS_DATA_SOURCE=mock, https://local.prettylog.com)
+GET /@taeklim/projects -> 200
+  section ids: id="my-work" id="company" id="gatech" id="utrgv" id="ungrouped" 
+  breadcrumb sep count: 0
+  [MOCK] strings: 10
+GET /@taeklim/projects/mock-utrgv-project -> 200
+  section ids: 
+  breadcrumb sep count: 2
+  [MOCK] strings: 5
+
+# Local Express (PORT 4011, pg-m1 4246056) vs prod DB, read-only GET, before data move
+GET /projects -> one card cnn-from-scratch group=null group_id=null post_count=8
+GET /projects/cnn-from-scratch -> 200
+GET /projects/utrgv -> 404
+GET /projects/nope -> 404
+
+# Owner visual check 2026-10-18: 'I see groups and mock is ok?' ; console dup key '/' = app/not-found.tsx:31 (pre-existing on main), fixed in 4246056
