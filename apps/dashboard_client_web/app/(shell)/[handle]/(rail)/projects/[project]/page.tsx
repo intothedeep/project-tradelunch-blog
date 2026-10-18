@@ -31,8 +31,9 @@ export default async function ProjectPage({ params }: Props) {
         decodeURIComponent(project)
     );
     const t = await getTranslations('blog.projects');
+    // `== null`: an API older than PG-2-01 omits `group` (undefined).
     const groupLabel =
-        ref.group === null
+        ref.group == null
             ? null
             : t.has(`groups.${ref.group}.short`)
               ? t(`groups.${ref.group}.short`)
@@ -42,7 +43,7 @@ export default async function ProjectPage({ params }: Props) {
         <section className="flex flex-col gap-4">
             <ProjectsMobileMenu username={username} />
             <header className="border border-primary bg-tone-projects p-4">
-                {ref.group !== null ? (
+                {ref.group != null ? (
                     <p className="mb-1 font-mono text-xs text-muted-foreground">
                         <Link
                             href={groupAnchorPath(username, ref.group)}

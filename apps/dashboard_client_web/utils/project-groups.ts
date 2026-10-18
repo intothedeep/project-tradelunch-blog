@@ -16,7 +16,9 @@ export function groupProjectCards(cards: TProjectCard[]): TProjectSection[] {
     const byGroup = new Map<string, TProjectCard[]>();
     const ungrouped: TProjectCard[] = [];
     for (const card of cards) {
-        if (card.group === null) {
+        // `== null`, not `=== null`: an API older than PG-2-01 omits the field
+        // (undefined), and a deploy can briefly pair new web with old API.
+        if (card.group == null) {
             ungrouped.push(card);
             continue;
         }

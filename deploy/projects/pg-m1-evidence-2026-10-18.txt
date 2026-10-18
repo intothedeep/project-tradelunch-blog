@@ -15,3 +15,9 @@ GET /projects/utrgv -> 404
 GET /projects/nope -> 404
 
 # Owner visual check 2026-10-18: 'I see groups and mock is ok?' ; console dup key '/' = app/not-found.tsx:31 (pre-existing on main), fixed in 4246056
+
+# F1 run (gate cycle 1 finding): dev WITHOUT PROJECTS_DATA_SOURCE, web → prod API (old Express, no group field), 2026-10-18
+first try (HEAD ae0b718): GET /@taeklim/projects -> 200 but render error "TypeError: Cannot read properties of undefined (reading 'toUpperCase')" (group undefined, code checked === null)
+fix: utils/project-groups.ts + projects/[project]/page.tsx use == null / != null
+after fix: GET /@taeklim/projects -> 200 MOCK=0 ids=id="ungrouped" cnn card links=1 ; GET /@taeklim/projects/cnn-from-scratch -> 200 MOCK=0 breadcrumb sep=0 ; new TypeErrors=0
+static: web check-types clean, web lint clean
