@@ -830,8 +830,8 @@ mocks/projects/groups.posts.json --> getProjectPosts() --> 상세 breadcrumb "<s
 | web check-types | 통과 |
 | web lint | 통과 |
 | server check-types | 통과 |
-| 커밋 (`main..pg-m1`) | 2개 (`736bb46` M1, `4246056` PG-2-01 + not-found 고침) |
-| 변경 (`main...pg-m1`) | 16개 파일, 369 추가, 31 삭제 |
+| 커밋 (`main..pg-m1`) | 2개 (`736bb46` M1, `4246056` PG-2-01 + not-found 고침). 보고 작성 시점 값. HEAD `3999864`에서는 4개 (`ae0b718`, `3999864` 추가) |
+| 변경 (`main...pg-m1`) | 16개 파일, 369 추가, 31 삭제 (보고 작성 시점). HEAD `3999864`에서는 21개 파일, 770 추가, 34 삭제 (`git diff --shortstat 4c4a73e^1...3999864`, 문서 파일 포함) |
 
 ### PG-2-01 코드를 일찍 넣은 일
 
@@ -855,6 +855,158 @@ mocks/projects/groups.posts.json --> getProjectPosts() --> 상세 breadcrumb "<s
 - 모바일 칩 출력 (구역 2개 이상일 때 칩). 증거 파일에 칩 줄이 없다.
 - `existence.proxy.ts` +8줄: 803행에 이유를 적었다 (main session, 2026-10-18).
 
+### 실제 데이터 run (gate cycle 1 F1, 2026-10-18)
+
+- env 없이 dev 웹을 운영 API(옛 Express, `group` 칸 없음)에 붙이니 목록이 `TypeError ... reading 'toUpperCase'`로 깨졌다. `group`이 `undefined`인데 코드는 `=== null`만 검사했다.
+- `== null`, `!= null`로 고쳤다. 고친 뒤 목록 200, `[MOCK]` 0개, 구역 id `ungrouped` 1개, cnn 카드 링크 1개. 새 TypeError 0. 원본: `deploy/projects/pg-m1-evidence-2026-10-18.txt` 끝 6줄.
+- 위 "원본에 없는 값"의 "env 미설정 `[MOCK]` 0개"(PG-1-03)는 이 run으로 채워졌다.
+
 ### 판정
 
 판정하지 않는다. 첫 end-to-end cycle이다 (`.claude/CLAUDE.md` "System build phasing"). 위 "원본에 없는 값"과 tree 그룹 표시(PG-2-06)가 다음 cycle의 확인 항목이다.
+
+## PG MVP2 (2026-10-18)
+
+단일 출처: `deploy/projects/pg-m1-evidence-2026-10-18.txt` (운영 이동 전 기준값), `deploy/projects/pg-2-03.sql`, `deploy/projects/pg-2-prod-2026-10-18.txt`, `deploy/projects/pg-2-07-check-2026-10-18.txt`, `deploy/projects/pg-mvp2-dup-2026-10-18.txt`, `pg.plan.md` PG-2-01..09.
+이 절은 PG M2의 단계 보고다. 비교 대상은 앞 cycle인 "PG MVP1" 절이다 (`.claude/CLAUDE.md` "System build phasing").
+
+### 요약
+
+운영 DB에서 카테고리 그룹 4개(id 13–16)를 만들고 cnn-from-scratch를 `utrgv` 아래로 옮겼다. 두 SQL은 한 트랜잭션이었다. 옮긴 뒤 운영 API 카드는 1개이고 `group` = `utrgv`다. 글 수는 8로 이동 전과 같다. 빈 그룹 URL 4개는 모두 404다. 웹 목록에 `id="utrgv"`가 있고 `UTRGV MSCS` 글자가 4번 나온다. CI 행 4개가 PASS다. 같은 title 고의 파손은 위험(§12.10)을 확인했다. 오너가 볼 항목 2개(tree 그룹 라벨, 메뉴 배지)는 대기 중이다.
+
+| 단계 | 상태 | 한 줄 결과 | M1과 비교 |
+| --- | --- | --- | --- |
+| PG-2-01 SQL | ran | Express 두 단계 SQL (`4246056`). 운영 DB 읽기 4회 | M1에서 일찍 들어간 코드를 M2 행으로 닫음 |
+| PG-2-02 배포 | ran (저장 파일 없음) | `4c4a73e` 배포. CI, CC standalone check, GCP build 성공 | M1은 배포 없음 |
+| PG-2-03 SQL 파일 | ran | `pg-2-03.sql` 1개, 한 트랜잭션에 A+B | M1은 SQL 없음 |
+| PG-2-04, 05 SQL A+B | ran | 그룹 id 13–16, cnn은 `utrgv` 아래 level 2 | M1 mock은 `group` 고정값 |
+| PG-2-06 purge, 운영 확인 | ran (일부 대기) | API와 웹 값은 아래 표. tree 라벨과 배지는 오너 확인 대기 | M1은 tree를 못 봄 (skipped) |
+| PG-2-07 CI 행 | ran | 행 4개 PASS, 고의 파손 1개 FAIL (기대대로) | M1은 CI 행 없음 |
+| PG-2-08 파손 | ran | 빈 `my-work` 중복이 이김. 운영 행 23 → 23 | M1은 고의 파손 기록 없음 |
+
+### 그림 1: 카테고리 tree 이동 전과 후
+
+```
+이동 전 (pg-m1-evidence: 카드 1개, group=null)     이동 후 (pg-2-prod: group=utrgv, group_id=16)
+
+projects (level 0)                                  projects (level 0)
+ `-- cnn-from-scratch (level 1, 글 8)                |-- my-work   (level 1, priority 10, 빈 그룹)
+                                                    |-- company   (level 1, priority 20, 빈 그룹)
+                                                    |-- gatech    (level 1, priority 30, 빈 그룹)
+                                                    `-- utrgv     (level 1, priority 40)
+                                                         `-- cnn-from-scratch (level 2, 글 8)
+```
+
+- 이동 후 줄은 `pg-2-prod-2026-10-18.txt`의 tree 제목 목록(level, priority)이다.
+- 빈 그룹 3개는 DB에 있다. 카드와 상세 URL에서는 숨는다 (아래 표).
+
+### 이동 전후 값 (표 1장)
+
+| 항목 | 이동 전 | 이동 후 | 원본 |
+| --- | --- | --- | --- |
+| API 카드 수 | 1 (`cnn-from-scratch`) | 1 (`cnn-from-scratch`) | evidence, prod |
+| `group` / `group_id` | `null` / `null` | `utrgv` / `16` | evidence, prod |
+| cnn `post_count` | 8 | 8 | evidence, prod |
+| API `/projects/cnn-from-scratch` | 200 | 200 | evidence, prod |
+| API `/projects/{my-work,company,gatech,utrgv}` | `utrgv` 404 (나머지 3개는 이동 전 요청 없음) | 4개 모두 404 | evidence, prod |
+| 웹 목록 | (M1 real run: `id="ungrouped"` 1) | `id="utrgv"`, `UTRGV MSCS` 글자 4, `[MOCK]` 0 | evidence, prod |
+| 웹 cnn 상세 breadcrumb | 0 (`group` 없음) | 1 | evidence, prod |
+| 웹 `/projects/{my-work,company,gatech,utrgv}` | 이동 전 요청 없음 | 4개 모두 404 | prod |
+| 웹 글 상세 1개 | 이동 전 요청 없음 | 200 | prod |
+| `categories` 행 수 (PG-2-08 전후) | 23 | 23 | dup |
+
+### 단계별 보고
+
+#### PG-2-01 Express 두 단계 SQL
+
+- What: 카드와 상세 쿼리가 그룹 칸(`group_id`, `group`)을 row 값으로 돌려준다.
+- Why: G1. 그룹 구역은 API가 그룹 이름을 줘야 그려진다.
+- Input data: `posts.user-projects.ts`. 운영 DB 읽기 전용 GET 4회 (이동 전).
+- Output data: 코드 `4246056`. 확인 값은 위 표 "이동 전" 열.
+- Result: 이동 전 카드 1개, `group=null`, `post_count=8`. `/projects/utrgv` 404.
+- 좋은 점: 이동 전 응답 모양이 이동 후와 같은 칸이다. 나쁜 점: 이 확인은 로컬 Express가 운영 DB를 읽은 것이다. 운영 서버 응답이 아니다 (PG-2-02의 몫).
+- Status: ran. M1 보고는 "일찍 들어간 코드"로 적었고 여기서 M2 행으로 닫는다.
+
+#### PG-2-02 배포
+
+- What: PG-2-01과 M1 웹 코드를 운영에 올린다.
+- Why: 고정 순서 1. 데이터를 옮기기 전에 코드가 먼저 있어야 한다.
+- Input data: `4c4a73e` (branch `pg-m1` 병합).
+- Output data: CI 성공, CC standalone check 성공, GCP build 성공 (main session 보고). 저장 파일에 이 줄이 없다.
+- Result: 위 세 성공 외의 숫자는 이 원본에 없다.
+- 좋은 점: 웹 코드의 `== null` 안전망이 새 웹과 옛 API가 겹치는 구간을 덮는다 (gate cycle 2 C2.3). 나쁜 점: `pg.plan.md` AC가 요구한 `pg-mvp2-step1-<date>.txt`가 `deploy/projects/`에 없다. 배포 직후 `"group":null` 응답 원문이 저장되지 않았다.
+- Status: ran. 원본 파일 없음.
+
+#### PG-2-03 SQL 파일
+
+- What: 데이터 이동 SQL을 파일로 쓴다.
+- Why: 고정 순서 2–3. 실행 전에 오너가 읽을 수 있어야 한다.
+- Input data: 루트 id `368565571240857600`, cnn id `368565576462766080` (둘 다 `pg-2-03.sql` 값).
+- Output data: `deploy/projects/pg-2-03.sql` 1개. 사전 검사, SQL A, SQL B, 사후 SELECT, 되돌리기 주석.
+- Result: SQL A = 그룹 4개(`my-work` 10, `company` 20, `gatech` 30, `utrgv` 40). SQL B = cnn의 `parent_id`를 `utrgv`로, `level` 2로. `DELETE` 0개.
+- 좋은 점: 한 트랜잭션이고 사전 검사가 `RAISE EXCEPTION`으로 막는다. 나쁜 점: AC는 파일명 `deploy/projects/pg-sql.md`와 4블록인데 실제는 `pg-2-03.sql` 한 파일이다. 내용은 같다.
+- Status: ran.
+
+#### PG-2-04, 05 SQL A와 B
+
+- What: 그룹 4개를 만들고 cnn을 옮긴다.
+- Why: 고정 순서 2–3. G1의 구역을 데이터로 만든다.
+- Input data: 운영 `categories` 23행 (PG-2-08 전 값).
+- Output data: 그룹 id 13–16, cnn은 `utrgv` 아래 level 2. 한 트랜잭션에서 A와 B를 실행했다.
+- Result: 이동 후 API 카드 1개, `group=utrgv`, `group_id=16`, `post_count=8`.
+- 좋은 점: 글 수가 8로 이동 전과 같다. 나쁜 점: AC는 A 뒤 단계 출력(`step2`)과 B 뒤 단계 출력(`step3`)을 따로 요구하는데, 한 트랜잭션이라 중간 상태 기록이 없다.
+- Status: ran. 단계 파일 2개 없음.
+
+#### PG-2-06 purge와 운영 확인
+
+- What: Cloudflare 전체 purge 뒤 운영 API와 웹을 읽는다.
+- Why: 고정 순서 4. M2 exit의 운영 값.
+- Input data: `pg-2-prod-2026-10-18.txt` (2026-10-18T06:15:22Z, 배포 `4c4a73e`).
+- Output data: API 7줄, tree 제목 목록, 웹 7줄.
+- Result: 위 표 참조. 웹 목록 200, `id="utrgv"`, `UTRGV MSCS` 4, `[MOCK]` 0. cnn 상세 breadcrumb 1. 그룹 URL 4개 404. 글 상세 200.
+- 좋은 점: 빈 그룹 URL 4개가 API와 웹 모두 404다. 나쁜 점: 이 파일에 `cf-cache-status` MISS/HIT 줄, 메뉴 배지 값, tree 그룹 노드 수가 없다. 파일의 tree 목록은 API 응답이라 빈 그룹 3개가 들어 있고, 웹이 그것을 숨기는지는 이 파일로 알 수 없다.
+- Status: ran. 대기: 오너가 tree 그룹 라벨 `UTRGV MSCS` 1개, 빈 그룹 노드 0개, 메뉴 배지 1을 화면에서 본다. Claude는 이 값을 확인하지 않았다.
+
+#### PG-2-07 CI 행
+
+- What: `cc-standalone-check.yml`의 기대 목록에 그룹 URL을 추가한다.
+- Why: 운영 404와 200을 매 push마다 증명한다.
+- Input data: main push run `39103426635` (`9dde8d6`).
+- Output data: 행 4개. 파손용 branch `pg-break-2-07`, run `39103434210`.
+- Result: `/@taeklim/projects/utrgv` 404 PASS, `/@taeklim/projects/company` 404 PASS, `/@taeklim/projects` 200 PASS, `/@taeklim/projects/cnn-from-scratch` 200 PASS. 파손 run은 `utrgv`를 200 목록에 두어 그 행이 FAIL (기대대로).
+- 좋은 점: 파손 run이 실제로 FAIL해서 행이 증명력을 가진다. 나쁜 점: 파손 branch가 origin에 남아 있다. 오너가 지운다.
+- Status: ran.
+
+#### PG-2-08 같은 title 고의 파손
+
+- What: `my-work` 아래에 `cnn-from-scratch` 카테고리를 임시로 넣고 카드 쿼리를 돌린 뒤 ROLLBACK한다.
+- Why: 위험 §12.10 1행. 같은 title이 두 그룹에 있으면 누가 이기는지 본다.
+- Input data: 운영 DB, pooled `POSTGRES_URL` (non-pooling 호스트는 IPv6 전용), 한 세션.
+- Output data: `pg-mvp2-dup-2026-10-18.txt`.
+- Result: 결과 행은 `cnn-from-scratch`, `group=my-work`, `post_count=0`, `shadowed=1` 하나다. `categories` 행 수 23 → 23.
+- 발견: 글이 0개인 `my-work` 쪽 중복이 `DISTINCT ON (title)`에서 이긴다. 그룹 priority가 10으로 `utrgv` 40보다 앞이기 때문이다. 진짜 cnn(글 8개)이 가려지고 빈 카드가 보인다. 위험 §12.10은 확인됐다. 운영 데이터는 바뀌지 않았다.
+- 좋은 점: 위험이 운영에서 일어나기 전에 실제 쿼리로 확인됐다. 나쁜 점: 쓰기 경로가 이 중복을 막지 않는다. 방어는 고정 순서뿐이다 (gate review §10.2).
+- Status: ran.
+
+### M2 exit 대조
+
+| exit 항목 (`pg.plan.md` M2) | 상태 | 근거 |
+| --- | --- | --- |
+| 고정 순서 1–4 끝남 | 닫힘 | PG-2-02, 04, 05, 06 |
+| 운영 목록에 `UTRGV MSCS` 구역, cnn 카드 1개 | 부분 | 웹 `UTRGV MSCS` 글자 4, `id="utrgv"` 있음. 카드 1개는 API 값 (웹 카드 수는 이 파일에 없음) |
+| 메뉴 배지 1 | 오너 확인 대기 | 저장 파일에 값 없음 |
+| `/@taeklim/projects/cnn-from-scratch` 200 | 닫힘 | prod, CI |
+| `/@taeklim/projects/utrgv` 404 | 닫힘 | prod, CI |
+| `cc-standalone-check.yml` 실행 PASS | 닫힘 | run `39103426635` |
+| 이 절 | 있음 | 이 절 |
+
+### 원본에 없는 값
+
+- `pg-mvp2-step1-<date>.txt`, `step2`, `step3`, `step4` 파일 (AC가 요구한 단계별 출력).
+- `cf-cache-status` MISS와 HIT 줄.
+- 메뉴 배지 값, 오른쪽 rail tree의 그룹 노드 수와 라벨 (오너 확인 대기).
+- PG-2-02의 CI, CC standalone check, GCP build 성공: main session 보고에서 옮겼고 저장 파일이 없다.
+
+### 판정
+
+판정하지 않는다. 이 절은 단계 보고다. M2 gate 판정은 reviewer의 몫이다 (`.claude/CLAUDE.md` Workflow 4).
