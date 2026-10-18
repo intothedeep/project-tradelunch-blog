@@ -13,7 +13,7 @@
 - Mission: 채용 담당자가 프로젝트 결과를 한눈에 보게 한다. (오너 승인 2026-10-13, #79)
 - Vision: 방문자가 `/@u/...` 한 체계에서 글, 프로젝트, 소개를 로그인 없이 읽는다. 옛 URL은 모두 새 URL로 연결된다. (오너 승인 2026-10-13, #79)
 - Constraints: 스키마 변경 없음 · 계약 = `@repo/types` `TProjectRef`, `TProjectCard` (추가만) · BIGINT id는 문자열 · soft-delete만 · 새 `Link`는 `prefetch={false}` 또는 `HoverPrefetchLink` (#90) · 테스트 러너 금지, 검증 = 고의 파손(deliberate breakage)과 운영(prod) curl · 빌드는 GH Actions에서만 · 로컬 실행 = `~/.claude/CLAUDE.md` "No local execution" · mock은 `mocks/projects/`에 격리, 운영은 언제나 `real` · URL `/@u/projects/<project>` 불변, 308 없음, 그룹 URL 없음 (#119) · 운영 SQL은 main session 또는 오너만 실행한다. agent는 파일만 쓴다 · 데이터 이동은 아래 "고정 순서"를 지킨다.
-- G1 (DRAFT, owner 승인 대기): 프로젝트 화면이 소속별 구역으로 보인다. measure: `my.prettylog.com/@taeklim/projects` HTML에 `id="utrgv"`, `id="company"` 구역이 있고, 카드가 cnn, recobell, adriel 3개다. by <owner date>.
+- G1: 프로젝트 화면이 소속별 구역으로 보인다. measure: `my.prettylog.com/@taeklim/projects` HTML에 `id="utrgv"`, `id="company"` 구역이 있고, 카드가 cnn, recobell, adriel 3개다. by 2026-10-20 (오너 "by Tuesday", 2026-10-18).
 - S1 → G1: A = 카테고리 한 단계 추가 `projects/<group>/<project>` (picked: A of A/B/C, owner 2026-10-17, #119); listed alternatives: B (코드 안 매핑), C (새 열).
 - M1 → S1: MVP1 모양 (mock); exit: 오너가 허용한 dev 실행 1회(Q-PG1)에서 `PROJECTS_DATA_SOURCE=mock`으로 `/@taeklim/projects`에 `[MOCK]` 카드가 그룹 구역 4개 + "Other" 순서로 렌더 · 구역 제목 = i18n `short` · 모바일 칩이 `#<group>` 앵커 · 상세 breadcrumb 링크 = `/@taeklim/projects#<group>` · env를 빼면 real 카드(cnn 1개, "Other" 구역) · `projects.report.md` "PG MVP1" 절 있음; cycle 2/2 PASS (2026-10-18, pg.m1-gate.review.md); recovery 0/2
 - M2 → S1: MVP2 진짜 조각 (Express SQL + cnn 이동 + purge); exit: 고정 순서 1–4가 끝남 · 운영 `/@taeklim/projects`에 UTRGV MSCS 구역, cnn 카드 1개 · 메뉴 배지 1 · `/@taeklim/projects/cnn-from-scratch` 200 · `/@taeklim/projects/utrgv` 404 · `cc-standalone-check.yml` 실행 PASS · `projects.report.md` "PG MVP2" 절 있음; cycle 0/2; recovery 0/2
@@ -55,17 +55,17 @@
 
 ## Tactic: Express SQL + 데이터 이동 (고정 순서 1–4) → M2
 
-- [ ] **PG-2-01 (ENG) Express `PROJECT_CTES` 두 단계 (G7)** → M2
+- [x] **PG-2-01 (ENG) Express `PROJECT_CTES` 두 단계 (G7)** → M2
   - **AC** `posts.user-projects.ts`에 `lvl1` CTE + `is_group`, `project` CTE에 `group_id`, `group_title`, `g_priority`, `g_seq`, `is_leaf1` (§12.3) · `DISTINCT ON (title)` CTE 1개를 카드와 상세 쿼리가 같이 쓴다 · 두 SELECT에 `pr.group_id::text AS group_id`, `pr.group_title AS "group"` · 카드 `ORDER BY g_priority, g_seq, pr.priority, pr.seq` · 글 0개 깊이 1 잎은 마지막 WHERE `NOT pr.is_leaf1 OR EXISTS (...)`가 숨긴다. 이 WHERE는 `CARDS_QUERY`와 `PROJECT_POSTS_QUERY` 둘 다에 둔다 (상세에 없으면 빈 그룹 URL이 200) · 가려진 같은 title은 `req.log.warn` 1줄 · PG-1-01의 `null` 고정을 row 값으로 바꾼다 · GH Actions `pnpm --filter dashboard_server build` 초록.
-- [ ] **PG-2-02 (MAIN) 배포: 고정 순서 1** → M2
+- [x] **PG-2-02 (MAIN) 배포: 고정 순서 1** → M2
   - **AC** 운영에 PG-2-01 + M1 웹 코드 커밋이 있다 · `blog-api.prettylog.com/v1/api/posts/users/taeklim/projects?probe=$T` → 카드 1개, `project` = `cnn-from-scratch`, `"group":null` · `.../projects/utrgv?probe=$T` → 404 · `my.prettylog.com/@taeklim/projects?probe=$T` 200, cnn이 "Other" 구역 · 응답 원문을 `deploy/projects/pg-mvp2-step1-<date>.txt`에 저장 (cnn `post_count` 기준값).
-- [ ] **PG-2-03 (ENG) SQL 파일 작성 (실행 안 함)** → M2
+- [x] **PG-2-03 (ENG) SQL 파일 작성 (실행 안 함)** → M2
   - **AC** 새 `deploy/projects/pg-sql.md`에 사전 SELECT, SQL A, SQL B, 되돌리기 4블록 · 사전 SELECT = 루트(`title='projects'`, 사용자 taeklim) id, cnn id, 루트 아래 `my-work|company|gatech|utrgv` 행 0개를 확인 · SQL A 값 = `my-work` 10, `company` 20, `gatech` 30, `utrgv` 40 (#119, §12.6의 옛 값 아님) · 열 목록에 `seq` 없음 (`GENERATED ALWAYS`, `tradelunch.schema.sql` 117행), `group_id` = 루트 id, `level` 1 · id 4개는 `<new id n>` 자리표시. 채우는 방식은 Q-PG3 (agent는 id를 만들지 않는다) · SQL B = cnn `parent_id` → `utrgv` id, `level` 2, `updated_at` · 되돌리기 = SQL B 역방향 + 그룹 행 `deleted_at` tombstone, `DELETE` 0개.
-- [ ] **PG-2-04 (MAIN/OWNER) SQL A 실행: 고정 순서 2** → M2
+- [x] **PG-2-04 (MAIN/OWNER) SQL A 실행: 고정 순서 2** → M2
   - **AC** PG-2-02가 닫힌 뒤에만 · 사전 SELECT 결과를 저장한 뒤 실행 · 실행 뒤 `.../projects?probe=$T` 카드 수 = 1 (배지 1) · `.../projects/{my-work,company,gatech,utrgv}?probe=$T` 4개 모두 404 (새 SQL은 자식 없는 깊이 1 잎을 숨긴다) · 출력 `deploy/projects/pg-mvp2-step2-<date>.txt`.
-- [ ] **PG-2-05 (MAIN/OWNER) SQL B 실행: 고정 순서 3** → M2
+- [x] **PG-2-05 (MAIN/OWNER) SQL B 실행: 고정 순서 3** → M2
   - **AC** PG-2-04 뒤 · `.../projects?probe=$T` 카드 1개, cnn `"group":"utrgv"`, `group_id` = SQL A의 utrgv id 문자열 · cnn `post_count` = step1 파일 값 · `.../projects/cnn-from-scratch?probe=$T` 200, 글 수 같음 · `.../projects/utrgv?probe=$T` 404 · 출력 `deploy/projects/pg-mvp2-step3-<date>.txt`.
-- [ ] **PG-2-06 (MAIN) Cloudflare 전체 purge + 운영 확인: 고정 순서 4** → M2
+- [x] **PG-2-06 (MAIN) Cloudflare 전체 purge + 운영 확인: 고정 순서 4** → M2
   - **AC** `_scripts/cloudflare/cf-purge.sh` (인자 없음 = 전체) 1회 · 다음 GET `/@taeklim/projects` `cf-cache-status: MISS`, 둘째 `HIT` · HTML에 `id="utrgv"`, 글자 `UTRGV MSCS`, cnn 카드 1개, `id="my-work"|"company"|"gatech"` 0개 · 메뉴 배지 글자 1 · 오른쪽 rail tree에 그룹 노드 `UTRGV MSCS` 1개, 빈 그룹 노드 0개 (PG-1-04, PG-1-06 확인) · cnn 글 상세 1개가 200, HTML에 `/projects/cnn-from-scratch` 링크 있음, `/projects/utrgv` 링크 0개 · cnn 프로젝트 상세 HTML에 `UTRGV MSCS ▸ cnn-from-scratch`, 링크 `/@taeklim/projects#utrgv` · `/@taeklim/projects/{my-work,company,gatech,utrgv}` 4개 404, `/@taeklim/projects/cnn-from-scratch` 200 · 출력 `deploy/projects/pg-mvp2-step4-<date>.txt`.
 - [ ] **PG-2-07 (ENG) `cc-standalone-check.yml` 기대 목록 추가** → M2
   - **AC** PG-2-04 뒤에 머지 (그 전에는 404가 그냥 참이라 증명이 없다) · 84행 404 목록에 `/@taeklim/projects/utrgv` · 85행 200 목록에 `/@taeklim/projects`, `/@taeklim/projects/cnn-from-scratch` · main push 실행 1회 PASS, 표 3행 PASS · 고의 파손: branch `workflow_dispatch`에서 `utrgv`를 200 목록에 두면 그 행 FAIL, 확인 뒤 되돌림.

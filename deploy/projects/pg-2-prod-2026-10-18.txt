@@ -1,0 +1,15 @@
+# PG-2-04..06 prod check 2026-10-18T06:15:22Z after SQL A+B (groups ids 13-16) + purge, deploy 4c4a73e
+api cards: "project":"cnn-from-scratch","group_id":"16","group":"utrgv","post_count":8
+api /projects/cnn-from-scratch 200
+api /projects/my-work 404
+api /projects/company 404
+api /projects/gatech 404
+api /projects/utrgv 404
+api tree titles: "level":0,"priority":50,"title":"projects" "level":1,"priority":10,"title":"my-work" "level":1,"priority":20,"title":"company" "level":1,"priority":30,"title":"gatech" "level":1,"priority":40,"title":"utrgv" "level":2,"priority":100,"title":"cnn-from-scratch" "level":0,"priority":100,"title":"technology" "level":1,"priority":100,"title":"ai" "level":2,"priority":100,"title":"machine-learning" "level":0,"priority":100,"title":"rust" "level":0,"priority":100,"title":"finance" "level":1,"priority":100,"title":"research" "level":0,"priority":100,"title":"java" "level":1,"priority":100,"title":"spring" "level":2,"priority":100,"title":"jdbc" "level":0,"priority":100,"title":"web" "level":1,"priority":100,"title":"cache" "level":1,"priority":100,"title":"how-to-build-quick-app" "level":1,"priority":100,"title":"seo" "level":1,"priority":100,"title":"auth-architecture" "level":0,"priority":100,"title":"dsa" "level":0,"priority":100,"title":"linux" 
+web list 200 ids=id="utrgv"  utrgv-label=4 MOCK=0
+web cnn 200 breadcrumb=1
+web /projects/my-work 404
+web /projects/company 404
+web /projects/gatech 404
+web /projects/utrgv 404
+web post detail 200
