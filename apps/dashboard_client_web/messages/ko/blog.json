@@ -95,6 +95,13 @@
         "empty": "아직 프로젝트가 없습니다.",
         "treeTitle": "프로젝트",
         "sortAscending": "오름차순",
-        "sortDescending": "내림차순"
+        "sortDescending": "내림차순",
+        "ungrouped": "기타",
+        "groups": {
+            "my-work": { "short": "My Work" },
+            "company": { "short": "Company" },
+            "gatech": { "short": "GT MSCS" },
+            "utrgv": { "short": "UTRGV MSCS" }
+        }
     }
 }

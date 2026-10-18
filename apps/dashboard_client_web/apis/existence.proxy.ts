@@ -102,5 +102,13 @@ export async function checkExists(
 ): Promise<TExistence> {
     if (gate.kind === 'ownerOnly') return checkOwnerOnly(gate.username, token);
     if (gate.kind === 'log') return checkLog(gate, token);
+    // Dev-only switch: mock project names do not exist in the real API, so the
+    // gate would 404 them. 'unknown' lets the request through (fail-open).
+    if (
+        gate.kind === 'project' &&
+        process.env.PROJECTS_DATA_SOURCE === 'mock'
+    ) {
+        return 'unknown';
+    }
     return toExistence(await fetchApi(buildPath(gate), token));
 }

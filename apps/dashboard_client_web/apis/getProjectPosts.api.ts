@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import type { TProjectPost, TProjectRef } from '@repo/types';
 import { serverRequest } from '@/apis/http.server';
 import { ApiError } from '@/utils/apiError.util';
+import mockPosts from '@/mocks/projects/groups.posts.json';
 
 type TProjectPosts = { project: TProjectRef; posts: TProjectPost[] };
 
@@ -14,6 +15,11 @@ type TProjectPosts = { project: TProjectRef; posts: TProjectPost[] };
 export const getProjectPosts = cache(
     async (username: string, project: string): Promise<TProjectPosts> => {
         try {
+            // Server-only env; exactly 'mock' selects the fixture (breadcrumb demo).
+            if (process.env.PROJECTS_DATA_SOURCE === 'mock') {
+                if (project !== mockPosts.project.project) notFound();
+                return mockPosts as TProjectPosts;
+            }
             const env = await serverRequest<{
                 success: boolean;
                 data: TProjectPosts;

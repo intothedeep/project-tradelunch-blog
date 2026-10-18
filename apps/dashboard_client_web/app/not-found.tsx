@@ -28,7 +28,7 @@ export default function NotFound() {
                 <p className="mt-3 text-muted-foreground"># try one of these</p>
                 <ul className="mt-1 space-y-1">
                     {SUGGESTIONS.map((s) => (
-                        <li key={s.href}>
+                        <li key={s.cmd}>
                             <Link
                                 href={s.href}
                                 prefetch={false}
