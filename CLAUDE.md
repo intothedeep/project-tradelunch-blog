@@ -108,6 +108,35 @@ i18n uses `next-intl` (config `i18n.ts`, messages in `messages/{en,ko}/`).
 
 Post/comment/log ids are **BIGINT beyond 2^53 — keep them strings end-to-end; never `Number()`/`parseInt` them.**
 
+### Projects: categories as groups (Phase PG, #119, 2026-10-17)
+
+The Projects pages read the author's category tree. There is no projects table.
+State: target layout. Until PG-2-05 runs, `cnn-from-scratch` still sits directly under `projects`.
+
+```
+projects/                 root category (title 'projects', PROJECTS_ROOT_CATEGORY_TITLE)
+├── my-work/              group   priority 10   label "My Work"
+├── company/              group   priority 20   label "Company"     (recobell, adriel)
+├── gatech/               group   priority 30   label "GT MSCS"
+└── utrgv/                group   priority 40   label "UTRGV MSCS"
+    └── cnn-from-scratch/ project (URL segment)
+        └── <posts>
+```
+
+| Level | Meaning | URL |
+| --- | --- | --- |
+| root `projects` | the Projects page | `/@u/projects` |
+| group (child of root) | a section on that page | anchor `/@u/projects#<group>` only, no own URL (path = 404) |
+| project (child of a group) | one project | `/@u/projects/<project>` (unchanged by grouping) |
+| post | project post | `/@u/<slug>` |
+
+- Publish path = category path: `projects/<group>/<project>/<post>.md` (`publish_oneshot.py`).
+- A new group = a new category under `projects`. Order = its `priority`. Label = i18n `blog.projects.groups.<group>.short` (missing key → title in upper case).
+- Project titles stay unique across groups by convention. The DB only enforces `(user_id, parent_id, title)` (migration `0010`).
+- Empty groups are hidden. A project directly under `projects` (no group) shows in an "Other" section.
+- Moving a project between groups is a data change, not a deploy: purge Cloudflare (web + api) afterwards.
+- Design: `projects.design.md` §12. Plan: `pg.plan.md`.
+
 ### dashboard_server (Express)
 
 Layered MVC under `src/`:

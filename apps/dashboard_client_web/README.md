@@ -195,14 +195,13 @@ echo '127.0.0.1 local.prettylog.com' | sudo tee -a /etc/hosts
 cd ~/Documents/00_projects/project_tradelunch
 pnpm --filter dashboard_client_web exec next dev -p 3000 --experimental-https
 
-# 3. Mac: a certificate that names local.prettylog.com (gitignored: certificates/)
-cd apps/dashboard_client_web
+# 3. Mac: a certificate that names local.prettylog.com (outside the repo since 2026-10-13: ~/.config/prettylog/certs/)
+CERTS=~/.config/prettylog/certs
 MKCERT=$(ls ~/Library/Caches/mkcert/mkcert-* | head -1)
-mkdir -p certificates
-"$MKCERT" -key-file certificates/local-key.pem -cert-file certificates/local.pem \
+mkdir -p "$CERTS"
+"$MKCERT" -key-file "$CERTS/local-key.pem" -cert-file "$CERTS/local.pem" \
   local.prettylog.com localhost 127.0.0.1
-openssl x509 -in certificates/local.pem -noout -ext subjectAltName   # shows DNS:local.prettylog.com
-cd ../..
+openssl x509 -in "$CERTS/local.pem" -noout -ext subjectAltName   # shows DNS:local.prettylog.com
 
 # 4. VM: allow the origin on the prod API (no port, no quotes, no trailing /)
 grep '^ALLOWED_ORIGINS' ~/prettylog/shared/api.env
@@ -229,7 +228,7 @@ read -s 'PK?pk_live: ' && echo && read -s 'SK?sk_live: ' && echo
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$PK CLERK_SECRET_KEY=$SK \
 NEXT_PUBLIC_API_BASE=https://blog-api.prettylog.com \
 pnpm --filter dashboard_client_web exec next dev --turbopack -p 443 -H 0.0.0.0 --experimental-https \
---experimental-https-key certificates/local-key.pem --experimental-https-cert certificates/local.pem
+--experimental-https-key "$HOME/.config/prettylog/certs/local-key.pem" --experimental-https-cert "$HOME/.config/prettylog/certs/local.pem"
 
 #    Quiet: put LOG_REQUESTS=false in front (with the other variables) to drop the
 #    per-request JSON lines (proxy.ts, decision #58). Default: on, like blog-api.
