@@ -1,0 +1,10 @@
+# PG-2-07 cc-standalone-check, 2026-10-18
+main push run 39103426635 (9dde8d6): success
+| `/@taeklim/projects/utrgv` | 404 | 404/61591B | 404/61591B | PASS |
+| `/@taeklim/projects/company` | 404 | 404/61593B | 404/61593B | PASS |
+| `/@taeklim/projects` | 200 | 200/199257B | 200/199257B | PASS |
+| `/@taeklim/projects/cnn-from-scratch` | 200 | 200/214327B | 200/214327B | PASS |
+
+deliberate breakage: branch pg-break-2-07 (utrgv put in 200 list), workflow_dispatch run 39103434210: failure (expected)
+| `/@taeklim/projects/utrgv` | 200 | 404/61591B | 404/61591B | FAIL |
+breakage branch not merged; left on origin for the owner to delete

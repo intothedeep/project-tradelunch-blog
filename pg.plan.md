@@ -67,9 +67,9 @@
   - **AC** PG-2-04 뒤 · `.../projects?probe=$T` 카드 1개, cnn `"group":"utrgv"`, `group_id` = SQL A의 utrgv id 문자열 · cnn `post_count` = step1 파일 값 · `.../projects/cnn-from-scratch?probe=$T` 200, 글 수 같음 · `.../projects/utrgv?probe=$T` 404 · 출력 `deploy/projects/pg-mvp2-step3-<date>.txt`.
 - [x] **PG-2-06 (MAIN) Cloudflare 전체 purge + 운영 확인: 고정 순서 4** → M2
   - **AC** `_scripts/cloudflare/cf-purge.sh` (인자 없음 = 전체) 1회 · 다음 GET `/@taeklim/projects` `cf-cache-status: MISS`, 둘째 `HIT` · HTML에 `id="utrgv"`, 글자 `UTRGV MSCS`, cnn 카드 1개, `id="my-work"|"company"|"gatech"` 0개 · 메뉴 배지 글자 1 · 오른쪽 rail tree에 그룹 노드 `UTRGV MSCS` 1개, 빈 그룹 노드 0개 (PG-1-04, PG-1-06 확인) · cnn 글 상세 1개가 200, HTML에 `/projects/cnn-from-scratch` 링크 있음, `/projects/utrgv` 링크 0개 · cnn 프로젝트 상세 HTML에 `UTRGV MSCS ▸ cnn-from-scratch`, 링크 `/@taeklim/projects#utrgv` · `/@taeklim/projects/{my-work,company,gatech,utrgv}` 4개 404, `/@taeklim/projects/cnn-from-scratch` 200 · 출력 `deploy/projects/pg-mvp2-step4-<date>.txt`.
-- [ ] **PG-2-07 (ENG) `cc-standalone-check.yml` 기대 목록 추가** → M2
+- [x] **PG-2-07 (ENG) `cc-standalone-check.yml` 기대 목록 추가** → M2
   - **AC** PG-2-04 뒤에 머지 (그 전에는 404가 그냥 참이라 증명이 없다) · 84행 404 목록에 `/@taeklim/projects/utrgv` · 85행 200 목록에 `/@taeklim/projects`, `/@taeklim/projects/cnn-from-scratch` · main push 실행 1회 PASS, 표 3행 PASS · 고의 파손: branch `workflow_dispatch`에서 `utrgv`를 200 목록에 두면 그 행 FAIL, 확인 뒤 되돌림.
-- [ ] **PG-2-08 (MAIN) 같은 title 고의 파손 (ROLLBACK 트랜잭션)** → M2
+- [x] **PG-2-08 (MAIN) 같은 title 고의 파손 (ROLLBACK 트랜잭션)** → M2 (2026-10-18: 빈 `my-work` 쪽이 이김, §12.10 위험 확인, `deploy/projects/pg-mvp2-dup-2026-10-18.txt`)
   - **AC** PG-2-04 뒤 (`my-work` 행이 있어야 한다) · `POSTGRES_URL_NON_POOLING`(5432) 한 세션에서 `BEGIN` → `my-work` 아래 `cnn-from-scratch` 카테고리 1행 INSERT → 카드 쿼리(PG-2-01 SQL 그대로) 실행 → 결과 `cnn-from-scratch` 행 1개 → `ROLLBACK` · 운영 행 변화 0 (전후 `SELECT count(*) FROM categories`) · 결과 행이 어느 쪽인지 기록 (§12.10: `my-work` 쪽 = 빈 행이 이긴다는 위험 확인) · 출력 `deploy/projects/pg-mvp2-dup-<date>.txt`.
 - [ ] **PG-2-09 (ENG) 단계 보고 "PG MVP2"** → M2
   - **AC** `projects.report.md` `## PG MVP2 (<date>)` 절 · PG-1-08과 같은 칸 · step1–4 저장 파일 숫자만 쓴다 · M1과 단계별 비교 한 줄씩.

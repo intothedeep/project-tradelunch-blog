@@ -1,0 +1,22 @@
+# PG-2-08 same-title deliberate breakage, 2026-10-18T06:16:54Z, prod DB pooled (POSTGRES_URL; non-pooling host is IPv6-only), one session, ROLLBACK
+# step: INSERT category 'cnn-from-scratch' under my-work (id 13), run CARDS_QUERY of 4c4a73e (posts.user-projects.ts) with taeklim/-1/projects, ROLLBACK
+ categories_before 
+-------------------
+                23
+(1 row)
+
+BEGIN
+INSERT 0 1
+     project      |  group  | post_count | shadowed 
+------------------+---------+------------+----------
+ cnn-from-scratch | my-work |          0 |        1
+(1 row)
+
+ROLLBACK
+ categories_after 
+------------------
+               23
+(1 row)
+
+
+# reading: the EMPTY my-work duplicate wins DISTINCT ON (title) (group priority 10 < utrgv 40). Real cnn (8 posts) is hidden; an empty card is shown. shadowed=1 -> Express logs one warn. Risk §12.10 row 1 CONFIRMED. Prod rows unchanged (23 -> 23).
