@@ -14,3 +14,5 @@ post 200 tables=16 mermaid_src=2 imgs=3 prettylog-from-scratch-a-full-stack-blog
 web /projects/my-work 404
 web /projects/prettylog-x 404
 cnn /projects/cnn-from-scratch 200
+
+# PS-3-07 owner visual (2026-10-18): mermaid renders as diagrams; 8 posts ok; title A ok (#126)

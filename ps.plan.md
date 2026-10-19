@@ -95,14 +95,14 @@
   - **AC** PS-3-04 뒤 · 1회 · URL 200 · 지도 링크 7개 모두 `?probe=$T` 200 · slug를 publish 파일에 더한다 (8개).
 - [x] **PS-3-06 (MAIN) purge + 운영 확인 (설계 §5.3)** → M3
   - **AC** `_scripts/cloudflare/cf-purge.sh` 1회 · `/@taeklim/projects` HTML에 `id="my-work"` 구역 카드 1개 (prettylog), `id="utrgv"` 카드 1개, `id="my-work"`가 앞 · 배지 2 · `/@taeklim/projects/prettylog` 200, 글 8개, 순서 00 → 07 · `/@taeklim/projects/cnn-from-scratch` 200 · `/@taeklim/projects/my-work` 404 · `sitemap.xml`에 새 URL 8개 · `_scripts/cloudflare/traffic-check.sh` FAIL 0 · 새 글 2개 + `/@taeklim/projects` 둘째 GET `cf-cache-status: HIT` · `prettylog` 카테고리 1행 · 출력 `deploy/projects/ps-prod-<date>.txt`.
-- [ ] **PS-3-07 (OWNER) 8쪽 시각 확인** → M3
+- [x] **PS-3-07 (OWNER) 8쪽 시각 확인** → M3 (2026-10-18 오너: mermaid 보임, 8편 ok, #126)
   - **AC** 글 8개마다 한 줄: mermaid 그림으로 보임, 썸네일 보임, 오른쪽 rail에 TOC + tree · main session이 결과 줄을 `ps-prod-<date>.txt`에 더한다.
 
 ## 열린 질문 (오너)
 
 | # | 질문 | 기본값 |
 | --- | --- | --- |
-| Q-PS1 | 연재 제목 (#124 Q1 답 없음). PS-3-02 전에 답이 필요하다 | A "Prettylog From Scratch" |
+| Q-PS1 | 연재 제목 (#124 Q1 답 없음). PS-3-02 전에 답이 필요하다 | A "Prettylog From Scratch" (확정, #126) |
 | Q-PS2 | G-PL1, G-PL2 승인과 날짜. 답은 D-row로 적고 DRAFT를 지운다 | 없음 |
 
 - PG G1 날짜는 `pg.plan.md` Q-PG2에 있다. 여기에 다시 적지 않는다.
