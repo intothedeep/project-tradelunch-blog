@@ -1,6 +1,7 @@
 # Recobell 프로젝트 연재(project series) 설계
 
-> 상태: 설계 초안 rev2 (system-architect, 2026-10-19). rev2 = 로그 병합기 §4.2.1 추가, rec-solution 글 7 → 8. 글, 코드, 그림, SQL 실행 없음. 선택은 오너가 한다.
+> 상태: 설계 rev3 (system-architect, 2026-10-20). rev2 = 로그 병합기 §4.2.1 추가, rec-solution 글 7 → 8. 글, 코드, 그림, SQL 실행 없음. 선택은 오너가 한다.
+> rev3 = 오너 답 #130 반영. 그룹 = `company` 그대로 (이름 바꾸기 SQL 없음). 연재 제목 = "Recommendation Solution Architecture". 카드 라벨 선택지 §2.2. plan 낡은 줄 = 맨 끝 "§ rev3 plan delta".
 > 위치 근거: 선례 `prettylog-series.design.md`, `projects.design.md`와 같은 루트 `*.design.md`다.
 > `pg.plan.md`, `00.tasks.md`, `decisions.plan.md`는 product-manager(pm)와 main session이 고친다. 이 문서는 고치지 않는다.
 > 원본 저장소: `~/Desktop/_job_recobell/` (읽기 전용). 이 문서의 원본 경로는 모두 그 아래 상대 경로다.
@@ -13,30 +14,46 @@
 
 - 원본: `pg.plan.md` "Mission block" 13–14행. 이 연재용 `PLAN` 절은 아직 없다.
 - 목표(goal) 초안 (오너 승인 전, pm이 plan에 옮긴다):
-  - G-RB1: 연재 글이 `projects/recobell/rec-solution/`, `projects/recobell/knn-demo/` 아래 발행된다. 메뉴 Projects 배지(badge)는 4다.
+  - G-RB1: 연재 글 11개가 `projects/company/rec-solution/`, `projects/company/knn-demo/` 아래 발행된다. 메뉴 Projects 배지(badge)는 4다. adriel 발행 뒤 5 (#130).
   - G-RB2: 모든 인프라 상자에 출처 경로가 있다. 근거 없는 상자는 "from memory (owner)" 표시가 있다.
   - G-RB3: 발행 전 원고에서 §8.3 grep 결과가 0건이다.
 - 전략 A/B/C는 이 연재에 없다. 그룹 모델(#119, S1 = A)과 공개 범위(#127)는 이미 정해졌다.
+- 그룹 모양은 #130이 정했다: `company` 구역 1개, 카드 3개 (Recobell · Rec Solution, Recobell · kNN Demo, Adriel).
 
 오너 요구 (verbatim, 2026-10-19):
 
 > time to write about recobell: [rb-rec-engine, RBLogger, rb-logic-rec, rb-rec-api] for knn - knn-data-importer, rb-knn-demo, rb-rec-kyobo-demo. based on this I would like to have a project for recobell - recommendation solution - knn-demo for 2 projects under recobell work. I would like to have system design with infrastructure and rblogger - recengine - api and management with architecture and infrastructure in aws? also I would like to have a how to same logs in s3 and how to zip them and how to search them? design and plan first?
 
+오너 답 (verbatim, 2026-10-20, #130):
+
+> I would like to have: Company - Recobell, Adriel. this is better I think
+
+> we use aws kinesis to collect stream. we use redshift to run recommendatino engine: only runs when job executing to save money
+
+> we use aws beanstalk to deploy so we can enjoy automated load balancer and ec2 scaling.
+
+> I can not remember
+
+(마지막 줄은 운영 인스턴스 종류와 대수에 대한 답이다.)
+
+> but we spend $20000 per month for infrastructure. s3 storage and redshift, servers
+
 ## 1. 결과 요약
 
 | 결정 | 권고 |
 | --- | --- |
-| 그룹 행 | 빈 `company` 행(id 14)의 title을 `recobell`로 바꾼다. priority 20 유지 (§2.1) |
+| 그룹 행 | `company` 행(id 14, priority 20) 그대로. SQL 없음 (#130, §2.1) |
+| 카드 | `company` 구역에 카드 3개: Recobell · Rec Solution, Recobell · kNN Demo, Adriel (#130). "Recobell ·" 접두사는 코드 없이 못 낸다. 선택지 §2.2 |
 | 프로젝트 | `rec-solution` (글 8), `knn-demo` (글 3). 합계 11 |
-| 연재 제목 | 기본 A "Recobell From the Logs Up" / 대안 B "Inside Recobell's Recommendation Pipeline" (§6.1) |
+| 연재 제목 | "Recommendation Solution Architecture" (오너, #130, §6.1) |
 | 독자 | 채용 담당자(recruiter) 먼저, 엔지니어(engineer) 둘째 |
 | 그림 | 글 안 mermaid 블록만 (#124). 측정 숫자가 없어서 차트(chart)는 없다 |
 | 숫자 규칙 | 코드의 설정값(config)만 쓴다. 이력서 숫자는 "owner claim"으로 표시한다 |
 | 인프라 | 상자마다 출처 경로. 코드에 없으면 "from memory (owner)" (§3.3) |
 | S3 로그 글 | 저장(gzip, 키 배치) → 병합(merge) → 검색(prefix 나열, Redshift COPY) (§4) |
-| 코드 변경 | i18n 키 2개 추가뿐. Express, 웹 코드 변경 0 (§7) |
+| 코드 변경 | 권고 A안: 0. i18n 키도 필요 없다 (`company` 키가 이미 있다). B안을 고르면 TSX 3개 + `blog.json` 2개 (§2.2, §7.2) |
 | 비밀 | 원본에 비밀이 많다. AWS 키 패턴만 약 292개 파일 (§8.1) |
-| 열린 질문 | 20개, 모두 기본값 있음 (§9). Q16–Q20은 병합기 (rev2) |
+| 열린 질문 | 20개 모두 닫힘: Q1, Q2, Q15 오너 답, Q6 일부 오너 답, 나머지 기본값 (#130, §9) |
 | 병합기 | `rblogger-merger`를 글 04로 따로 쓴다 (§4.2.1, rev2) |
 
 ```text
@@ -44,7 +61,7 @@
                                 │
                                 ├─► rec-solution 00 ─► 01 ─► 02 ─► 03 ─► 04 ─► 05 ─► 06 ─► 07
                                 └─► knn-demo     00 ─► 01 ─► 02
-비밀 제거 §8 ──► 원고 grep 0건 ──► reviewer 1회 ──► SQL §7 ──► 발행 ──► purge ──► 확인
+비밀 제거 §8 ──► 원고 grep 0건 ──► reviewer 1회 ──► 오너 보안 확인 (#128) ──► 발행 ──► purge ──► 확인
 ```
 
 ## 2. 목적과 Projects 배치
@@ -55,37 +72,44 @@
 - 엔지니어: 수집(collect) → 저장(store) → 배치(batch) → 서빙(serve) 설계 이유를 본다.
 - 선례: `my-work/prettylog`, `utrgv/cnn-from-scratch` 연재와 같은 틀이다. 그림 먼저, 키워드, 짧은 문장.
 
-바뀐 뒤 카테고리 트리 (#127):
+바뀐 뒤 카테고리 트리 (#130, rev3):
 
 ```text
 projects/                       루트 (PROJECTS_ROOT_CATEGORY_TITLE)
 ├── my-work/      priority 10   "My Work"     prettylog
-├── recobell/     priority 20   "Recobell"    ← 옛 company 행 (id 14), title만 바뀜
+├── company/      priority 20   "Company"     id 14, 그대로 (SQL 없음)
 │   ├── rec-solution/           프로젝트, 글 8개 (00–07)
-│   └── knn-demo/               프로젝트, 글 3개 (00–02)
-├── adriel/       priority 25   "Adriel"      나중. 이 설계 밖 (Q12)
+│   ├── knn-demo/               프로젝트, 글 3개 (00–02)
+│   └── <adriel project>/       나중. 이 설계 밖
 ├── gatech/       priority 30   "GT MSCS"     비어 있어 숨김
 └── utrgv/        priority 40   "UTRGV MSCS"  cnn-from-scratch
 ```
 
 | 수준 | 이 연재 | URL |
 | --- | --- | --- |
-| 그룹 | `recobell` | `/@taeklim/projects#recobell` (앵커만, 경로는 404) |
+| 그룹 | `company` | `/@taeklim/projects#company` (앵커만, 경로는 404) |
 | 프로젝트 | `rec-solution`, `knn-demo` | `/@taeklim/projects/rec-solution`, `/@taeklim/projects/knn-demo` |
 | 글 | 11개 | `/@taeklim/<slug>` |
 
 - 프로젝트 title은 그룹 사이에서도 유일하다. 오늘 `rec-solution`, `knn-demo` 행은 없다 (발행 전 SELECT로 확인, §7.1).
 - 규칙 출처: 루트 `CLAUDE.md` "Projects: categories as groups", `projects.design.md` §12.3, §12.5.
 
-### 2.1 그룹 행 결정: `company` → `recobell`
+### 2.1 그룹 행 결정: `company` 그대로 (rev3, #130)
+
+- 결정: `company` 행(id 14, priority 20)을 바꾸지 않는다. 오너가 B안 모양을 골랐다 (#130).
+- 아래 rev2 표와 이유는 기록으로 남긴다. A안(이름 바꾸기)은 #130이 버렸다. #129는 #130이 대신한다.
+- 남는 함정 하나: 발행 경로가 `projects/recobell/...`이면 blog_agent가 `recobell` 그룹 행을 새로 만든다 (아래 C의 이유와 같다). 경로는 반드시 `projects/company/...`다.
+
+~~rev2 제목: 그룹 행 결정: `company` → `recobell`~~ <!-- SUPERSEDED 2026-10-20 by #130 -->
 
 | 옵션 | 내용 | 행 변화 | 판정 |
 | --- | --- | --- | --- |
-| **A 이름 바꾸기 (권고)** | id 14의 `title`을 `company` → `recobell`로 `UPDATE`. priority 20 그대로 | 0행 추가, 0행 tombstone | **고름** |
+| A 이름 바꾸기 | id 14의 `title`을 `company` → `recobell`로 `UPDATE`. priority 20 그대로 | 0행 추가, 0행 tombstone | ~~고름~~ 버림 (#130) |
 | B 새 행 + tombstone | `recobell` 그룹 INSERT, `company` 행에 `deleted_at` | 1행 추가, 1행 tombstone | 버림 |
-| C 그대로 두기 | 새 `recobell` 그룹을 blog_agent가 발행 때 만든다 | 발행이 1행 추가 | 버림 |
+| C 새 그룹을 발행이 만든다 | 새 `recobell` 그룹을 blog_agent가 발행 때 만든다 | 발행이 1행 추가 | 버림 |
+| **D 그대로 (rev3)** | `company` 아래에 프로젝트를 발행한다 | 발행이 프로젝트 행 2개 추가 | **고름 (#130)** |
 
-A를 고른 이유:
+rev2 기록. A를 고른 이유 (지금은 유효하지 않다):
 
 - `company`는 비어 있다. 자식이 없어서 화면에서 이미 숨는다 (`projects.design.md` §12.3 표 3행).
 - 오너 순서(My Work → Company 자리 → GT → UTRGV)에서 recobell이 Company 자리 20을 그대로 쓴다.
@@ -104,10 +128,53 @@ C를 버린 이유:
 - 그러면 priority 기본값을 가진 `recobell` 행이 새로 생긴다. 순서가 오너 순서와 어긋날 수 있다.
 - 빈 `company` 행도 그대로 남는다.
 
-공통 함정:
+~~공통 함정: SQL(§7.1)은 첫 발행 전에 돈다. i18n은 `recobell`, `adriel` 키만 더한다.~~ <!-- SUPERSEDED 2026-10-20 by #130: SQL 없음, i18n 키 추가 없음 -->
 
-- SQL(§7.1)은 첫 발행 **전에** 돈다. 순서가 바뀌면 C와 같은 결과가 된다.
-- i18n은 `recobell`, `adriel` 키만 더한다. `company` 키는 지우지 않는다 (§12.5 "키 추가만"). 쓰이지 않지만 해가 없다.
+### 2.2 카드 라벨: "Recobell · Rec Solution"을 코드 없이 낼 수 있나 (rev3)
+
+무엇을 알려고 쓰나: 오너가 고른 카드 글자(#130)를 배포 없이 낼 수 있는지.
+
+결론: **낼 수 없다.** 카드 제목 칸은 URL 칸과 같은 값이다.
+
+```text
+categories.title ('rec-solution')
+   │  posts.user-projects.ts:102   pr.title AS project
+   ▼
+TProjectCard.project              project.ts:7  "categories.title = URL segment"
+   ├─► 카드 <h2>                  ProjectCardGrid.server.tsx:33   {card.project}
+   ├─► 카드 링크                  ProjectCardGrid.server.tsx:21   projectPath(username, card.project)
+   └─► 상세 조회                  posts.user-projects.ts:127      WHERE pr.title = $4
+카드의 다른 글자: "Overview: <00 글 제목>"   ProjectCardGrid.server.tsx:37
+```
+
+코드 사실:
+
+| 사실 | 근거 |
+| --- | --- |
+| 카드 제목 = `card.project` 그대로. 번역 조회 없음 | `apps/dashboard_client_web/components/projects/ProjectCardGrid.server.tsx` 32–34행 |
+| `project` = 카테고리 title = URL 칸 | `packages/types/src/project.ts` 7행, `apps/dashboard_server/src/controllers/posts/posts.user-projects.ts` 102, 127행 |
+| `categories`에 표시 이름 칸이 없다 (`title`뿐) | `packages/db/schema/tradelunch.schema.sql` 116–133행 |
+| i18n 조회는 그룹에만 있다 (`groups.<group>.short`) | `(list)/page.tsx` 37–39행, `[project]/page.tsx` 38–40행, `ProjectsTree.client.tsx` 44–46행 |
+| 상세 머리와 breadcrumb도 `ref.project`를 쓴다 | `[project]/page.tsx` 55, 60행 |
+| 그룹 `company` 키는 이미 있다 ("Company") | `apps/dashboard_client_web/messages/en/blog.json` 102행 |
+
+선택지:
+
+| 안 | 내용 | 코드 변경 | 바뀌는 파일 | URL `/@taeklim/projects/rec-solution` | 카드에 보이는 글자 |
+| --- | --- | --- | --- | --- | --- |
+| **A 데이터만 (권고)** | 프로젝트 title = `rec-solution`, `knn-demo`. 회사 이름은 00 글 제목, 썸네일 글자, 구역 제목으로 보인다 | 없음 | 0 | 그대로 | 제목 `rec-solution` · "Overview: Recommendation Solution Architecture: …" · 썸네일 "Recobell · Rec Solution" |
+| B 프로젝트 i18n 키 | `blog.projects.cards.<project>.label` 키를 찾고, 없으면 title. 그룹 방식과 같은 꼴 | 있음 (작다) | `ProjectCardGrid.server.tsx`, `[project]/page.tsx`, `ProjectsTree.client.tsx`, `messages/{en,ko}/blog.json` | 그대로 | 제목 "Recobell · Rec Solution" |
+| C 데이터 이름 바꾸기 / 새 칸 | (C1) title을 "Recobell · Rec Solution"으로. (C2) `categories.display_name` 칸 추가 | C1 없음, C2 있음 (스키마, Express, 타입, 웹) | C1 0. C2 마이그레이션 1 + Express 1 + 타입 1 + 웹 3 | C1 깨진다 (URL이 그 글자가 된다). C2 그대로 | 제목 "Recobell · Rec Solution" |
+
+판정:
+
+- C1은 버린다. 고정 URL `/@taeklim/projects/rec-solution`을 깬다.
+- C2는 버린다. 스키마 변경이다. #119가 같은 이유로 C(새 열)를 버렸다.
+- B는 PG M3 exit "프로젝트 기능 코드 커밋 0"을 넘는다. 예외는 i18n 키 커밋뿐이다 (#127, #130). B는 TSX 3개를 고친다. 그래서 오너 결정이다.
+- **권고: A.** 코드 0, 배포 0, URL 그대로. 오너가 카드 제목 글자를 꼭 원하면 B를 고른다.
+- A에서 썸네일 글자: 00 글 썸네일이 카드 그림이다 (`ProjectCardGrid.server.tsx` 25–30행). 거기에 "Recobell · Rec Solution", "Recobell · kNN Demo"를 쓴다.
+- A에서는 i18n 키 커밋도 필요 없다. 그래서 #130의 "PG M3 i18n 커밋 예외"는 쓰이지 않는다.
+- B를 고르면: 키가 없으면 title로 떨어진다. adriel 카드는 키 하나만 더한다. 블로그 사이드바 tree 글자는 바뀌지 않는다 (프로젝트 노드만).
 
 ## 3. 시스템 지도 (코드 근거)
 
@@ -137,7 +204,7 @@ C를 버린 이유:
 | C16 | 등록부를 쓰는 관리 화면 | JSON을 누가 쓰는지 코드에 없다 | **M** | 없음 (Q3) |
 | C17 | `rb-rec-engine` (1세대 배치) | 사이트마다 EC2를 띄운다. 로컬 PostgreSQL에 로그를 싣고 SQL 단계를 돌린다. 결과를 S3로 | F | `Warren/rb-rec-engine/readme.md` 2–3행, `rb-rec-engine/src/main/java/com/recobell/rec/AbstractRecEngine.java` 170–232행, `rb-rec-pgsql/releases/espoir/application.properties` 6–7, 39–49행 |
 | C18 | `rb-logic-rec` (2세대 배치) | Redshift SQL 스크립트. COPY → 계산 → UNLOAD (gz CSV) | F | `Warren/rb-logic-rec/media/0.2.5/base/02load-data.sql` 11–25행, `09unload.sql` 15–26행 |
-| C19 | dptasks 묶음(bundle) | 하루 1회 일정. 임시 Redshift + EC2 2대를 정의한다 | F | `Warren/rb-dpt-bundle/commerce-rec/rec/commerce-rec-task-bundle-kyobobook-live.json` 5–8, 24–39행 |
+| C19 | dptasks 묶음(bundle) | 하루 1회 일정. 임시 Redshift + EC2 2대를 정의한다. 왜 임시인가: 작업이 돌 때만 클러스터가 있다. 비용을 아끼려고 [M] (owner, 2026-10-20) | F (왜 = M) | `Warren/rb-dpt-bundle/commerce-rec/rec/commerce-rec-task-bundle-kyobobook-live.json` 5–8, 24–39행 |
 | C20 | `rb-rec-result-formatter` | dmp CSV → 키마다 gz JSON → 해시 묶음 zip → S3 | F | `Warren/rb-rec-result-formatter/src/main/java/com/recobell/rec/formatter/postprocessor/S3HashPostProcessor.java` 41–76행 |
 | C21 | 결과 키 규칙 | `<cuid>/<recType>/<hash>.zip`, 그 안에 `base64(id).json.gz` | F | `Warren/rb-data-models/src/main/java/com/recobell/model/rec/RecResults.java` 93–136행 |
 | C22 | `rb-rec-api` | `GET /rec/{recType}`. JSONP 응답. S3 zip에서 결과를 읽는다 | F | `Warren/rb-rec-api/src/main/java/com/recobell/rec/api/RecApiServerController.java` 46–106행, `S3HashRawRecResultGetter.java` 167–206행, `RecApiControllerAdvice.java` 89–90행 |
@@ -154,6 +221,7 @@ C를 버린 이유:
 
 - 상자 이름 끝 `[F]`, `[R]`, `[M]`은 §3 표시 규칙이다. 상자 번호는 §3.1의 C 번호다.
 - 이 그림은 rec-solution 00 글의 F-RS00a 원본이다.
+- Kinesis(C5)는 receiver와 소비자 3개 사이에 있다 (`B --> RCV --> K`, `K --> TX/CM/VAL`). 오너 확인: "we use aws kinesis to collect stream" (2026-10-20). 작가는 이 연결을 빼지 않는다.
 
 ```mermaid
 flowchart LR
@@ -221,26 +289,28 @@ flowchart LR
 ```mermaid
 flowchart TB
   subgraph R1["Region ap-northeast-1 (Tokyo) [F]"]
-    EB1["Elastic Beanstalk, Tomcat 8 Java 8<br/>receiver, rec-api [F]<br/>prod instance type ? [M]"]
+    LB1["Beanstalk load balancer [M]"]
+    EB1["Elastic Beanstalk, Tomcat 8 Java 8<br/>receiver, rec-api [F]<br/>EC2 auto scaling group<br/>instance type, count ? [M]"]
     KIN["Kinesis stream, shared by<br/>receiver, transmitter, api config [F]"]
     DDB[("DynamoDB KCL lease table [F, implied]")]
-    EC2c["Beanstalk consumers [F]<br/>transmitter, cache-manager<br/>validator host ? [M]<br/>instance type, count ? [M]"]
+    EC2c["Beanstalk consumers [F]<br/>transmitter, cache-manager<br/>validator host ?<br/>instance type, count ? [M]"]
     L["Lambda java8, 1536 MB, 300 s<br/>S3 event trigger [F]"]
     S3[("S3: logs, merge, history,<br/>results, conf, assets [F]")]
     RDSm[("RDS MySQL: cache [F]")]
     RDSp[("RDS PostgreSQL: log stats [F]")]
-    RSH[("Redshift dc2.large x1<br/>per job, temporary [F]")]
+    RSH[("Redshift dc2.large x1<br/>per job, temporary [F]<br/>only while a job runs: cost [M]")]
     EC2r["EC2 t2.nano runner<br/>EC2 r4.large formatter [F]"]
     AZ["Azkaban host on EC2 [F]"]
     EC2e["EC2 c4.8xlarge per mall run<br/>1st era [F]"]
   end
   subgraph R2["Region ap-southeast-1 (Singapore) [F]"]
-    EB2["Beanstalk receiver, rec-api [F]"]
+    LB2["Beanstalk load balancer [M]"]
+    EB2["Beanstalk receiver, rec-api [F]<br/>EC2 auto scaling group [M]"]
     KIN2["Kinesis stream [F]"]
   end
   DNS["DNS, TLS, CDN for JS ? [M]"]
-  DNS --> EB1
-  DNS --> EB2
+  DNS --> LB1 --> EB1
+  DNS --> LB2 --> EB2
   EB1 --> KIN --> EC2c
   EC2c --> DDB
   EC2c --> S3
@@ -259,7 +329,11 @@ flowchart TB
 | 리전 2개 (apne1, apse1) | F | `RBLogger/rblogger-receiver/pom.xml` 177, 205행, `Warren/rb-rec-api/pom.xml` 222, 293행 |
 | Beanstalk 플랫폼 Tomcat 8 Java 8 | F | `RBLogger/rblogger-receiver/pom.xml` 31행, `Warren/rb-rec-api/pom.xml` 48행 |
 | Beanstalk 인스턴스 t2.micro / t2.nano, SingleInstance | F, **test 프로필만** | `RBLogger/rblogger-receiver/pom.xml` 146–149행, `Warren/rb-rec-api/pom.xml` 177–180행 |
-| Beanstalk 운영 인스턴스 종류, 대수, 자동 확장(autoscaling) | **M** | 운영 프로필에 값 없음 (Q6) |
+| ~~Beanstalk 운영 인스턴스 종류, 대수, 자동 확장(autoscaling)~~ | ~~**M**~~ | ~~운영 프로필에 값 없음 (Q6)~~ <!-- SUPERSEDED 2026-10-20: 아래 두 행 --> |
+| 운영 Beanstalk = 부하 분산기(load balancer) + EC2 자동 확장(auto scaling). SingleInstance가 아니다. 이유: 자동 부하 분산과 확장 | **M** (owner, 2026-10-20) | 오너 기억. 운영 프로필에 값 없음 (Q6 일부 답) |
+| 운영 인스턴스 종류, 대수 | 모름 | 코드에 없고 오너도 기억하지 않는다 (owner, 2026-10-20). 글에 값을 짐작해 쓰지 않는다 |
+| 인프라 전체 비용 "about $20,000 per month" (S3 저장, Redshift, 서버 합계) | **M** (owner claim, 2026-10-20) | 오너 기억. 서비스별 나눔은 모른다. 나누지 않는다. 절감액도 계산하지 않는다 |
+| Redshift를 작업 때만 띄운 이유 = 비용 | **M** (owner, 2026-10-20) | 임시 클러스터 자체는 F (C19). 이유만 M |
 | rec-api gzip 응답 (Apache `mod_deflate`) | F | `Warren/rb-rec-api/src/main/ebextensions/myapp.config` 1–11행 |
 | Kinesis 생산(KPL), 소비(KCL) | F | `.../receiver/RecordSenderConfig.java` 33–48행, `.../transmitter/TransmitterApplication.java` 99–114행 |
 | 소비자도 Beanstalk로 배포 | F | `RBLogger/rblogger-transmitter/mvn-eb-create.sh`, `RBLogger/rblogger-cache-manager/mvn-eb-create.sh`, `RBLogger/rblogger-server/pom.xml` 75행 |
@@ -278,7 +352,7 @@ flowchart TB
 
 | 칸 | 1세대 (2015–2016) | 2세대 (2017–2019) |
 | --- | --- | --- |
-| 계산 엔진 | 임시 EC2 안의 로컬 PostgreSQL (datasource가 localhost) | 임시 Redshift 클러스터 1노드 |
+| 계산 엔진 | 임시 EC2 안의 로컬 PostgreSQL (datasource가 localhost) | 임시 Redshift 클러스터 1노드. 작업이 돌 때만 있다. 비용을 아끼려고 [M] (owner, 2026-10-20) |
 | 로그 입력 | S3 날짜 prefix 나열 → Java 적재기 | Redshift `COPY ... GZIP FORMAT AS JSON` + jsonpaths |
 | 로직 | Java가 SQL 파일 순서대로 실행 (`00s`–`08d`) | `ypsql-runner`가 SQL 스크립트 실행 (`--#var`, `--#foreach` 지시어) |
 | 결과 출력 | Java가 S3에 JSON 직접 쓰기 | UNLOAD gz CSV → formatter → zip |
@@ -579,12 +653,22 @@ flowchart LR
 
 ### 6.1 연재 제목
 
+- 확정 (rev3, 오너 #130): rec-solution 연재 제목 = **"Recommendation Solution Architecture"**. 회사 이름이 없다.
+- 글 제목 형식: `Recommendation Solution Architecture (n/7): <claim>`. 00 = `Recommendation Solution Architecture: <claim>`. 15단어 이하 (공백 토큰).
+- 접두 토큰: 번호 글 4개 (`(n/7):` 포함), 00 3개. 그래서 claim은 번호 글 11, 00 12토큰까지다.
+- §6.2 작업용 제목을 새 접두로 세었다. 01 = 13, 02 = 14, 03 = 14, 04 = 15, 05 = 11, 06 = 10, 07 = 10. 모두 상한 안이다.
+- rev2의 "02는 16단어" 문제(옛 접두 6토큰)는 사라진다.
+- knn-demo 형식은 그대로다: `Recobell kNN Demo (n/2): <claim>`, 00 = `Recobell kNN Demo: <claim>`.
+- knn-demo를 그대로 두는 이유: 카드 A안(§2.2)에서 회사 이름이 보일 곳은 제목과 썸네일뿐이다. "kNN Demo"만으로는 무엇의 데모인지 모른다.
+- 아래 rev2 표는 기록이다.
+
 | # | rec-solution 제목 | knn-demo 제목 | 이유 | 판정 |
 | --- | --- | --- | --- | --- |
-| A | **Recobell From the Logs Up** | Recobell kNN Demo | "From Scratch" 연재들과 짝이다. 그러나 "처음부터 만듦"이라고 말하지 않는다. 물려받은 시스템에 정직하다 (Q1). 글 순서(로그 → 서빙)와 같다 | **기본** |
-| B | Inside Recobell's Recommendation Pipeline | Recobell kNN Demo | 채용 담당자에게 가장 분명하다. 다른 연재와 틀이 다르다 | 대안 |
+| A | Recobell From the Logs Up | Recobell kNN Demo | "From Scratch" 연재들과 짝이다. 그러나 "처음부터 만듦"이라고 말하지 않는다. 물려받은 시스템에 정직하다 (Q1). 글 순서(로그 → 서빙)와 같다 | ~~기본~~ 버림 (#130) |
+| B | Inside Recobell's Recommendation Pipeline | Recobell kNN Demo | 채용 담당자에게 가장 분명하다. 다른 연재와 틀이 다르다 | 버림 (#130) |
+| **C** | **Recommendation Solution Architecture** | Recobell kNN Demo | 오너 제안 (#130) | **고름** |
 
-- 글 제목 형식: `Recobell From the Logs Up (n/7): <결과 주장>`. 00은 번호 없이 부제만.
+- ~~글 제목 형식: `Recobell From the Logs Up (n/7): <결과 주장>`. 00은 번호 없이 부제만.~~ <!-- SUPERSEDED 2026-10-20 by #130 -->
 - 제목의 숫자는 설정값만 쓴다. 측정값이 원본에 없다.
 
 ### 6.2 글 목록
@@ -593,11 +677,11 @@ flowchart LR
 - 그림은 모두 글 안 mermaid 블록 또는 Markdown 표다 (#124). PNG 차트는 없다. 측정 데이터가 없기 때문이다.
 - 그림 번호: `F-RS<NN><a|b>` (rec-solution), `F-KD<NN><a|b>` (knn-demo). 원본은 이 문서의 절이다.
 
-rec-solution (`projects/recobell/rec-solution/`):
+rec-solution (`projects/company/rec-solution/`, rev3):
 
 | # | 폴더 | 제목 (작업용, 영어) | 한 줄 목적 | 핵심 그림·표 | 원본 경로 (요약) | 길이 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 00 | `00-overview` | Recobell From the Logs Up: A Recommendation SaaS on AWS, 2015–2019 | 전체 지도와 내 역할을 1분에 본다 | F-RS00a 아키텍처 (§3.2), F-RS00b 구성 요소 표 C1–C27 축약, 연재 지도 | §3.1 표 전체 | 65줄 |
+| 00 | `00-overview` | Recommendation Solution Architecture: Recobell's SaaS on AWS, 2015–2019 | 전체 지도와 내 역할을 1분에 본다 | F-RS00a 아키텍처 (§3.2), F-RS00b 구성 요소 표 C1–C27 축약, 연재 지도 | §3.1 표 전체 | 65줄 |
 | 01 | `01-aws-infrastructure` | (1/7): Two Regions, Beanstalk in Front, Kinesis in the Middle | 어떤 AWS 서비스가 어디 있었나. 코드가 보이는 것과 기억을 나눈다 | F-RS01a 인프라 (§3.3), F-RS01b 사실/기억 표 | `RBLogger/rblogger-receiver/pom.xml`, `Warren/rb-rec-api/pom.xml`, `create-lambda.sh`, dptasks 묶음 | 55줄 |
 | 02 | `02-rblogger-collection` | (2/7): A Pixel, a Cookie, and One Kinesis Stream per Region | 이벤트가 브라우저에서 스트림까지 가는 길 | F-RS02a 수집 순서도 (sequence), F-RS02b 로그 5종 × 필수 칸 표 (C11) | `RBReceiverController.java`, `JsonHandler.java`, `basic-commerce-rules.json`, `rblpcidgen.ts` | 55줄 |
 | 03 | `03-s3-log-layout-and-search` | (3/7): Saving and Searching Event Logs on S3 by Key Layout | 키 배치, 쓰는 때, gzip, prefix 검색, 결과 zip | F-RS03a 키 배치 그림 (§4 첫 그림), F-RS03b 회전 조건 표, F-RS03c 검색 방식 S1–S6 표, F-RS03d 해시 묶음 그림 | §4.1, §4.2 첫 표, §4.3, §4.4의 경로 | 70줄 |
@@ -606,13 +690,15 @@ rec-solution (`projects/recobell/rec-solution/`):
 | 06 | `06-rec-api-serving` | (6/7): Serving Recommendations from Zipped S3 Buckets | API가 결과를 어떻게 찾아 돌려주나 | F-RS06a 요청 순서도 (API → S3 zip + MySQL 최근 항목), F-RS06b 추천 종류 접두사 표 (a, c, m, t, s, d, w, p, b, k 등) | `RecApiServerController.java`, `S3HashRawRecResultGetter.java`, `RdbCacheGetter.java`, `RecResults.java` | 60줄 |
 | 07 | `07-management-and-ops` | (7/7): One JSON File Configured Every Service | 사이트 등록부, 검사, 대시보드. 그리고 지금이라면 바꿀 것 | F-RS07a 등록부 폴링 그림, F-RS07b 검사 경로 2개 (Kinesis 소비자, S3 Lambda), F-RS07c "what I'd change" 표 | `S3SyncingSitesHolder.java`, `Site.java`, `S3LogValidationHandler.java`, `RbWarrenDashboardApplication.java` | 60줄 |
 
+- 00 제목 (rev3): 8토큰. claim의 "Recobell's"는 architect 선택이다. 오너 사실이 아니다. 카드 A안에서 회사 이름이 Overview 줄에 보이게 하려는 것이다. 오너가 빼라면 뺀다.
+
 병합기를 따로 쓰는 이유:
 
 - 오너가 병합 논리를 "important"라고 짚었다 (§4.2.1 인용).
 - 단계 17개, 성질 5개, 약점 5개다. 03에 넣으면 75줄 상한을 넘는다.
 - 03은 "어디에 어떻게 두고 찾나", 04는 "어떻게 묶나"로 질문이 다르다.
 
-knn-demo (`projects/recobell/knn-demo/`):
+knn-demo (`projects/company/knn-demo/`, rev3):
 
 | # | 폴더 | 제목 (작업용, 영어) | 한 줄 목적 | 핵심 그림·표 | 원본 경로 (요약) | 길이 |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -636,6 +722,8 @@ knn-demo (`projects/recobell/knn-demo/`):
 | KD-01 | Result · Session neighbors (p003) · Order neighbors (p015) · Price bands and recency · Scaling with MD5 shards · Sources |
 | KD-02 | Result · Keyword sources per book · TF, DF, entropy weight · Ranking rules · Demo flow · Sources |
 
+- RS-01 (rev3): "Services, fact vs memory" 절에 Beanstalk 부하 분산기 + 자동 확장 `[M]`, 월 비용 owner claim 1행을 넣는다. "Unknowns" 절에 인스턴스 종류, 대수 1줄.
+- RS-05 (rev3): 2세대 절에 "the cluster existed only while a job ran, to save cost [M]" 1줄. 출처 = 오너 2026-10-20.
 - 03과 04가 오너 요청 "how to save logs in s3, zip them, search them"을 나눠 담는다. 03 = 저장, 검색. 04 = 병합(zip).
 - 05의 2세대 그림 출처: `02load-data.sql` 11–25행, `09unload.sql` 15–26행, `S3HashPostProcessor.java` 41–76행.
 - 07의 "what I'd change" 행은 §4.1 함정 3개 + 평문 키(§8.1) + 하드코딩 상수다. 비난이 아니라 설계 교훈으로 쓴다.
@@ -652,7 +740,9 @@ knn-demo (`projects/recobell/knn-demo/`):
 | 압축률 "about 1/10" | 코드 주석 | "code comment, not measured". 제목 금지 |
 | 하루 2천만 이벤트 (20M daily events) | 이력서 (`MainPage.tsx` 92행) | 00에만. "owner claim, not in the code" 표시 (Q14) |
 | 매출 5억 달러 고객 ($500M revenue client) | 이력서 (`MainPage.tsx` 95행) | 기본은 쓰지 않는다 (Q14) |
-| 트래픽, 지연, 비용, 정확도 | 없음 | 쓰지 않는다. 07에 "never measured here" 한 줄 |
+| 인프라 월 비용 약 2만 달러 ($20,000 per month) | 오너 기억 (2026-10-20, rev3) | "about $20,000 per month (owner claim, not in the code)". 01의 Result 1줄 + F-RS01b 1행. 00에는 써도 된다. 서비스별 나눔, 절감액 계산은 쓰지 않는다 |
+| 운영 인스턴스 종류, 대수 | 없음. 오너도 기억하지 않는다 (2026-10-20) | 값 0개. 01 Unknowns에 1줄: "Production instance type and count: not in the code, not recalled." |
+| 트래픽, 지연, 비용(위 오너 주장 1개 밖), 정확도 | 없음 | 쓰지 않는다. 07에 "never measured here" 한 줄 |
 
 ### 6.4 그림, 썸네일, 파일
 
@@ -660,7 +750,8 @@ knn-demo (`projects/recobell/knn-demo/`):
 - 표: Markdown 표. 칸마다 한 항목 (`rules/writing/style.md` §2).
 - 썸네일: 글마다 `NN-<slug>.png`, 1200×630. 폴더, md 이름과 같다. 발행 조건이다.
 - 썸네일 글자: 연재 이름 · NN + 설정값 하나 (예: "30 min · 80 MB"). 측정값처럼 보이는 숫자는 쓰지 않는다.
-- 썸네일 스크립트: prettylog의 `thumbs.py` + `thumbs.csv` 틀을 복사한다 (`ps.plan.md` PS-1-03). 위치는 `posts/projects/recobell/_series/`다.
+- 썸네일 스크립트: prettylog의 `thumbs.py` + `thumbs.csv` 틀을 복사한다 (`ps.plan.md` PS-1-03). 위치는 `posts/projects/company/_series/`다 (rev3).
+- 썸네일 글자 (rev3, §2.2 A안): 00 썸네일은 카드 그림이다. 그래서 rec-solution 00 = "Recobell · Rec Solution", knn-demo 00 = "Recobell · kNN Demo"를 넣는다.
 - 실행: `OMP_NUM_THREADS=1 timeout 300 uv run python ...` (`~/.claude/CLAUDE.md` "Allowed locally"). 입력은 CSV뿐이다.
 - 본문 첫 줄: `![NN-<slug> thumbnail](NN-<slug>.png)`.
 - 글 끝: "Sources" 표. 주장 → 저장소 상대 경로. 경로에 cuid 폴더가 있으면 `base/` 경로로 바꾼다 (§8.1).
@@ -669,7 +760,7 @@ knn-demo (`projects/recobell/knn-demo/`):
 ### 6.5 폴더와 앞머리
 
 ```text
-apps/blog_agent/posts/projects/recobell/          (posts/는 gitignore)
+apps/blog_agent/posts/projects/company/           (posts/는 gitignore, rev3)
   rec-solution/00-overview/00-overview.md + 00-overview.png
   rec-solution/01-aws-infrastructure/ ...
   rec-solution/04-log-merger/04-log-merger.md + .png
@@ -679,8 +770,7 @@ apps/blog_agent/posts/projects/recobell/          (posts/는 gitignore)
   _series/thumbs.py, _series/data/thumbs.csv, _series/redaction-check.md
 ```
 
-- 카테고리 경로 = 폴더 경로: `projects` → `recobell` → `rec-solution` | `knn-demo`.
-- 앞머리는 prettylog를 복사한다: `title`, `tags`, `desc`, `date`, `priority`, `userId: 1`, `username: taeklim`, `status: 'public'`.
+- 카테고리 경로 = 폴더 경로: `projects` → `company` → `rec-solution` | `knn-demo` (rev3).- 앞머리는 prettylog를 복사한다: `title`, `tags`, `desc`, `date`, `priority`, `userId: 1`, `username: taeklim`, `status: 'public'`.
 - `priority`: NN과 같다 (00 = 0 … 07 = 7). 프로젝트 안 순서는 00 → 마지막이다.
 - 연재 지도 링크는 00에만 둔다. 모양은 `/@taeklim/<slug>`다. 나머지 글은 서로 링크하지 않는다.
 - 본문 언어: 영어 (`prettylog` 연재와 같다). 문장 규칙: `rules/writing/style.md` §2–§3.
@@ -688,73 +778,88 @@ apps/blog_agent/posts/projects/recobell/          (posts/는 gitignore)
 
 ## 7. 카테고리와 DB 변경
 
-- 스키마 변경 없음. 데이터 1행 UPDATE와 발행(INSERT)뿐이다. 그래서 MVP 사다리(`.claude/CLAUDE.md` "System build phasing")는 적용하지 않는다.
+- 스키마 변경 없음. 발행(INSERT)뿐이다. UPDATE 0 (rev3, #130). 그래서 MVP 사다리(`.claude/CLAUDE.md` "System build phasing")는 적용하지 않는다.
+- 카드 라벨 B안(§2.2)을 고르면 웹 코드 변경이 생긴다. 그래도 스키마와 API 계약(`TProjectCard`)은 그대로다.
 - 데이터 계약은 `projects.design.md` §12.3 그대로다.
 - 이 문서는 SQL을 실행하지 않는다. main session 또는 오너가 실행한다.
 
 ### 7.1 순서 (main session 또는 오너가 실행)
 
+순서 (rev3):
+
 ```text
-1 코드: i18n 키 2개 추가, 배포        빈 그룹은 숨으므로 화면 변화 없음
+1 오너 보안 확인 (#128)               폴더 11개 모두 OK
 2 사전 SELECT (읽기 전용)             아래 P1–P4. 결과를 deploy/projects/rb-pre-<date>.txt에 저장
-3 SQL U1: company → recobell          1행. 아직 자식 없음 → 계속 숨김
-4 발행 rec-solution 01 → 07, 그다음 00
-5 발행 knn-demo 01 → 02, 그다음 00     00은 링크 대상 slug가 다 생긴 뒤 (prettylog §5.2와 같은 이유)
-6 Cloudflare 전체 purge               _scripts/cloudflare/cf-purge.sh (웹 HTML + blog-api)
-7 확인 §7.3                           결과를 deploy/projects/rb-prod-<date>.txt에 저장
+3 발행 rec-solution 01 → 07, 그다음 00   경로 projects/company/rec-solution/...
+4 발행 knn-demo 01 → 02, 그다음 00     00은 링크 대상 slug가 다 생긴 뒤 (prettylog §5.2와 같은 이유)
+5 Cloudflare 전체 purge               _scripts/cloudflare/cf-purge.sh (웹 HTML + blog-api)
+6 확인 §7.3                           결과를 deploy/projects/rb-prod-<date>.txt에 저장
 ```
 
-- 3은 반드시 4 앞이다. 거꾸로 하면 blog_agent가 `recobell` 새 행을 만든다 (§2.1 C).
-- 1과 3 사이 순서는 자유다. 키가 없으면 제목이 "RECOBELL"로 보일 뿐이다 (`(list)/page.tsx` 37–39행).
+- i18n 단계와 SQL U1 단계는 없다 (#130). `company` 키와 행이 이미 있다.
+- 카드 라벨 B안을 고르면: 코드 배포를 1 앞에 둔다. 키가 없으면 카드는 title로 떨어진다. 그래서 순서는 자유다.
+- 발행 경로가 `projects/company/...`가 아니면 blog_agent가 새 그룹 행을 만든다 (§2.1 C). 발행 행의 AC로 경로를 검사한다.
+
+~~rev2 순서: 1 i18n 키 2개 → 2 사전 SELECT → 3 SQL U1 company → recobell → 4–5 발행 → 6 purge → 7 확인~~ <!-- SUPERSEDED 2026-10-20 by #130 -->
 
 사전 SELECT (말로 적음, 실행은 main session):
 
 | # | 확인 | 기대 |
 | --- | --- | --- |
 | P1 | `projects` 루트의 자식 중 `title='company'`, `deleted_at IS NULL` 행 | 1행. id는 main session 보고값(14)과 같다. priority 20 |
-| P2 | 그 행의 자식 카테고리 수, 글 수 | 0, 0 |
-| P3 | 사용자 전체에서 `title IN ('recobell','rec-solution','knn-demo')`, `deleted_at IS NULL` | 0행 |
+| P2 | 그 행의 자식 카테고리 수, 글 수 | 0, 0 (adriel 프로젝트가 먼저 발행됐으면 그 수만큼) |
+| P3 | 사용자 전체에서 `title IN ('recobell','rec-solution','knn-demo')`, `deleted_at IS NULL` | 0행. `recobell`이 있으면 잘못된 경로 발행 흔적이다 |
 | P4 | `projects` 루트 직계 자식 목록 | `my-work` 10, `company` 20, `gatech` 30, `utrgv` 40 |
 
-SQL U1 (말로 적음):
+~~SQL U1 (말로 적음): P1 행의 `title`을 `recobell`로 UPDATE, 영향 행 1, 되돌리기는 title을 `company`로.~~ <!-- SUPERSEDED 2026-10-20 by #130: U1 없음 -->
 
-- `categories`에서 P1 행 하나만 바꾼다. 조건은 id + `title='company'` + `deleted_at IS NULL`이다.
-- 바꾸는 칸: `title = 'recobell'`, `updated_at = CURRENT_TIMESTAMP`. `priority`, `parent_id`, `level`은 그대로.
-- 기대 영향 행 수 1. 다르면 롤백(rollback)하고 멈춘다.
-- 되돌리기: 자식이 0일 때만 title을 `company`로 되돌린다. 자식이 있으면 글을 `deleted_at` tombstone 처리한 뒤다. hard DELETE는 하지 않는다.
+- 발행 뒤 되돌리기: 글과 프로젝트 행에 `deleted_at` tombstone. hard DELETE는 하지 않는다. `company` 행은 건드리지 않는다.
 
 ### 7.2 코드 변경
 
-| 파일 | 변경 | 이유 |
-| --- | --- | --- |
-| `apps/dashboard_client_web/messages/en/blog.json` | `projects.groups`에 `"recobell": { "short": "Recobell" }`, `"adriel": { "short": "Adriel" }` 추가 | 구역 제목, tree 노드 표시 이름 |
-| `apps/dashboard_client_web/messages/ko/blog.json` | 같은 두 키, 같은 값 | en, ko 같음 (#119 선례) |
+rev3 (A안, 권고): **코드 변경 0. i18n 변경 0.**
 
-- 키 추가만 한다. `company` 키는 두다. diff는 추가 줄 2개씩이다.
+- 구역 제목 "Company"는 기존 키가 낸다 (`messages/en/blog.json` 102행).
 - Express (`apps/dashboard_server`): 변경 없음. 그룹은 데이터다 (`projects.design.md` §12.3 "상수 `PROJECT_GROUP_SLUGS`는 두지 않는다").
-- 웹 코드: 변경 없음. 구역, 앵커, breadcrumb, tree는 그룹 title을 그대로 쓴다.
-- 예약 slug: `recobell`은 그룹이라 `/@u/projects/recobell`은 404다. 의도대로다 (§12.2).
-- 루트 `CLAUDE.md` "Projects: categories as groups" 트리 그림은 `company`를 보인다. U1 뒤 main session이 사실 줄을 고친다.
-- `projects.design.md` §12.5 표의 `company` 행도 낡는다. 그 문서 소유자가 고친다.
+- 웹 코드: 변경 없음.
+- 예약 slug: `company`는 그룹이라 `/@u/projects/company`는 404다. 의도대로다 (§12.2).
+- 루트 `CLAUDE.md` "Projects: categories as groups" 트리 그림: `company/` 아래에 `rec-solution/`, `knn-demo/`를 더한다. 이름 바꾸기는 없다.
+- `projects.design.md` §12.5 표의 `company` 행은 낡지 않는다 (rev2 문장을 뒤집는다).
+
+B안을 오너가 고를 때만:
+
+| 파일 | 변경 |
+| --- | --- |
+| `apps/dashboard_client_web/components/projects/ProjectCardGrid.server.tsx` | 33행 `{card.project}` → 키 `cards.<project>.label`이 있으면 그 값, 없으면 title |
+| `apps/dashboard_client_web/app/(shell)/[handle]/(rail)/projects/[project]/page.tsx` | 55, 60행 같은 조회 (상세 머리, breadcrumb) |
+| `apps/dashboard_client_web/components/projects/ProjectsTree.client.tsx` | 40–49행 프로젝트 노드에도 같은 조회 |
+| `apps/dashboard_client_web/messages/{en,ko}/blog.json` | `projects.cards.rec-solution.label` = "Recobell · Rec Solution", `knn-demo` = "Recobell · kNN Demo" |
+
+- B안도 URL, Express, 타입, 스키마는 그대로다.
+- B안은 PG M3 exit "프로젝트 기능 코드 커밋 0"을 넘는다. 오너가 그 줄을 풀어야 한다.
+
+~~rev2: i18n 키 `recobell`, `adriel` 추가. U1 뒤 루트 `CLAUDE.md` 트리를 recobell로 고친다.~~ <!-- SUPERSEDED 2026-10-20 by #130 -->
 
 ### 7.3 확인
 
 | 확인 | 기대 | 방법 |
 | --- | --- | --- |
 | 메뉴 Projects 배지 | 4 (cnn, prettylog, rec-solution, knn-demo). adriel 발행 뒤 5 | 화면 |
-| `/@taeklim/projects` | `id="recobell"` 구역, 카드 2개. 순서 `id="my-work"` < `id="recobell"` < `id="utrgv"`. `id="company"` 0개 | curl + HTML 위치 비교 |
-| 구역 제목 | "Recobell" (대문자 대체가 아님) | 화면 |
+| `/@taeklim/projects` | `id="company"` 구역, 카드 2개 (adriel 뒤 3). 순서 `id="my-work"` < `id="company"` < `id="utrgv"`. `id="recobell"` 0개 (rev3) | curl + HTML 위치 비교 |
+| 구역 제목 | "Company" (대문자 대체가 아님) | 화면 |
+| 카드 글자 | A안: 제목 `rec-solution`, `knn-demo` + 00 썸네일에 "Recobell · …". B안: 제목 "Recobell · Rec Solution", "Recobell · kNN Demo" | 화면 + HTML grep |
 | `/@taeklim/projects/rec-solution` | 200, 글 8개, 순서 00 → 07 | curl + 화면 |
 | `/@taeklim/projects/knn-demo` | 200, 글 3개, 순서 00 → 02 | curl + 화면 |
-| `/@taeklim/projects/recobell` | 404 (그룹 URL 없음) | curl |
-| `/@taeklim/projects/company` | 404 | curl |
+| `/@taeklim/projects/company` | 404 (그룹 URL 없음) | curl |
 | 글 11개 `/@taeklim/<slug>` | 200, 썸네일 보임, mermaid가 그림으로 보임 | curl + 오너 화면 |
 | sitemap | 새 글 URL 11개 (prettylog §5.3과 같은 기준) | curl `sitemap.xml` |
 | 엣지 HIT | 새 글 2개 + `/@taeklim/projects`, 두 번째 GET `cf-cache-status: HIT` | curl 두 번 |
-| 같은 title | `recobell`, `rec-solution`, `knn-demo` 각각 1행 | 읽기 전용 SELECT |
+| 같은 title | `rec-solution`, `knn-demo` 각각 1행, 부모 = id 14 (`company`). `recobell` 0행 | 읽기 전용 SELECT |
 | 비밀 | 발행본 HTML에 §8.3 패턴 0건 | 운영 HTML을 받아 grep |
 
 ### 7.4 `pg.plan.md`에서 바뀌어야 할 줄 (pm이 고친다)
+
+> rev3: 아래 rev2 표는 #130으로 낡았다. 기록으로만 둔다. 현재 목록 = 맨 끝 "§ rev3 plan delta". <!-- SUPERSEDED 2026-10-20 by #130 -->
 
 | 행 | 지금 | 바뀔 내용 |
 | --- | --- | --- |
@@ -839,8 +944,10 @@ rg -n --no-heading \
   -e '\.pem\b' \
   -e '(?i)jdbc:[a-z]+://[^<]' \
   -e 'atlassian\.net|bitbucket\.org' \
-  apps/blog_agent/posts/projects/recobell/
+  apps/blog_agent/posts/projects/company/
 ```
+
+- rev3: 검사 경로가 `projects/recobell/` → `projects/company/`로 바뀌었다 (#130).
 
 - 오탐(false positive) 처리: 맞은 줄마다 reviewer가 "자리표" 또는 "값 아님"을 적는다. 설명 없는 맞음은 실패다.
 - `\b[0-9]{12}\b`는 날짜 숫자와 겹칠 수 있다. 예: `yyyyMMddHH`는 10자리라 안 겹친다.
@@ -868,6 +975,19 @@ rg -n --no-heading \
 - 모든 질문에 기본값이 있다. 답이 없으면 기본값으로 진행한다.
 - 오너 답은 main session이 D-row로 남긴다.
 
+rev3 상태 (#130, 2026-10-20):
+
+| # | 상태 |
+| --- | --- |
+| Q1 | 답: "inherited and maintained" 기본값 (오너 "good") |
+| Q2 | 답: 보조 저장소 6개를 쓴다 (오너 "yes") |
+| Q6 | 일부 답: 운영 Beanstalk = 부하 분산기 + EC2 자동 확장 [M]. 인스턴스 종류, 대수 = 모름, 오너도 기억하지 않는다. 닫힘 |
+| Q12 | 쓸 일 없음: adriel은 그룹이 아니라 `company` 아래 카드다 (#130) |
+| Q15 | 답: "Recommendation Solution Architecture" (§6.1) |
+| Q3–Q5, Q7–Q11, Q13, Q14, Q16–Q20 | 기본값 확정 |
+| Q-RB16 (plan 쪽 질문) | 쓸 일 없음: 이름 바꾸기 SQL이 없다 |
+| 추가 사실 | Kinesis 수집 확인. Redshift는 작업 때만, 비용 이유 [M]. 월 약 $20,000 owner claim [M] (§3.3, §6.3) |
+
 | # | 질문 | 기본값 |
 | --- | --- | --- |
 | Q1 | 귀속: 어느 부분을 내가 만들었고, 어느 부분을 물려받아 유지했나? 엔진 마지막 커밋 2016-03, 재직 2018-02부터 | "inherited and maintained" 틀. 00 글에 "My part" 표를 두고 오너가 행을 채운다. 오너 답 전에는 "maintained"만 쓴다 (`MainPage.tsx` 94행 표현) |
@@ -875,7 +995,7 @@ rg -n --no-heading \
 | Q3 | 관리(management): 사이트 등록부 JSON을 쓰던 관리 화면이 있었나? 검사 통계를 보는 화면은? | "from memory (owner)" 상자 하나로 둔다. 오너가 이름과 기능 한 줄을 주면 F 대신 M으로 적는다 |
 | Q4 | "Warren"은 제품 이름인가, 저장소 묶음 이름인가 | 글에 쓰지 않는다 |
 | Q5 | 1세대(Azkaban + PostgreSQL EC2)에서 2세대(dptasks + Redshift)로 언제 바뀌었나? Airflow는 언제 들어왔나 | "by 2018" 같은 연도를 쓰지 않는다. 두 시대를 순서로만 보인다. Airflow는 "later workflow manager" 한 줄 (R) |
-| Q6 | 운영 Beanstalk 인스턴스 종류, 대수, 자동 확장. Kinesis 소비자 3개가 돌던 호스트 | 그림에 "?"와 [M]. 값은 쓰지 않는다 |
+| Q6 | 운영 Beanstalk 인스턴스 종류, 대수, 자동 확장. Kinesis 소비자 3개가 돌던 호스트 | 그림에 "?"와 [M]. 값은 쓰지 않는다. rev3: 일부 답 (부하 분산기 + 자동 확장 [M], 종류·대수 모름) |
 | Q7 | DNS, TLS, 수집 JS용 CDN, VPC 구성 | 그림에 [M] 상자 하나. 서비스 이름(Route 53, CloudFront 등)을 짐작해 쓰지 않는다 |
 | Q8 | 운영에서 S3 쓰기는 Single(종류 폴더만)이었나, Dual(두 벌)이었나 | Single. 팩토리가 Single을 쓴다 (`TransmitRecordProcessorFactory.java` 43행). Dual은 "existed in code" 한 줄 |
 | Q9 | 요청의 "how to zip them"은 로그 gzip인가, 결과 zip 묶음인가 | 둘 다. 로그 gzip과 병합은 03, 04 (§4.2, §4.2.1). 결과 zip은 03 끝 (§4.4)과 06 |
@@ -884,7 +1004,7 @@ rg -n --no-heading \
 | Q12 | adriel 그룹 priority | 25 (recobell 20 뒤, gatech 30 앞). adriel 설계 때 확정 |
 | Q13 | kNN 상수(`$KNN_*`) 실제 값을 쓸까 | 쓰지 않는다. 원본에 값이 없다. 이름과 역할만 쓴다 |
 | Q14 | 이력서 숫자 "20M daily events", "$500M revenue client"를 글에 쓸까 | 20M은 00 글에만 "owner claim, not in the code"로. $500M은 쓰지 않는다 |
-| Q15 | 연재 제목 A "Recobell From the Logs Up" 또는 B "Inside Recobell's Recommendation Pipeline" | A |
+| Q15 | 연재 제목 A "Recobell From the Logs Up" 또는 B "Inside Recobell's Recommendation Pipeline" | ~~A~~ 오너 답 "Recommendation Solution Architecture" (#130) |
 | Q16 | 병합기를 만든 이유: Redshift COPY 파일 수, S3 나열 비용, 아니면 다른 것? 코드는 "merge small logs file into one file"뿐이다 | 글 04는 README 문장과 코드가 보이는 효과(경로 계산 가능, 시간당 1파일)만 쓴다. 비용 이유는 [M]으로 오너 답이 있을 때만 |
 | Q17 | 병합기 일정 (Azkaban에서 몇 분마다, 몇 시에) | 쓰지 않는다. "hourly job (window: previous hour)"까지만 (코드의 `now` 창) |
 | Q18 | 원본 조각과 병합본의 보관 기간, S3 수명 주기 규칙 | 쓰지 않는다. "source pieces were not deleted by the merger" (F)만 |
@@ -901,7 +1021,9 @@ rg -n --no-heading \
 | 귀속 과장 | 채용 담당자 신뢰 손상. 면접에서 반박된다 | Q1 기본값 "maintained". "built" 표현은 오너가 고른 행에만 |
 | 기억(M)을 사실(F)처럼 쓴다 | 틀린 인프라 그림 | 상자마다 [F]/[R]/[M] 표시를 글에도 남긴다. R10 |
 | 측정값이 없는데 숫자 제목을 원한다 | 설정값을 성과처럼 읽게 된다 | §6.3. 제목 숫자는 "(config)"를 본문 첫 줄에서 밝힌다 |
-| SQL U1 전에 발행 | `recobell` 새 행 + 빈 `company` 행. 순서 어긋남 | §7.1 3단계를 발행 행의 선행 AC로 둔다 |
+| ~~SQL U1 전에 발행~~ <!-- SUPERSEDED 2026-10-20 by #130 --> | ~~`recobell` 새 행~~ | ~~§7.1 3단계~~ |
+| 잘못된 경로로 발행 (`projects/recobell/...`) | `recobell` 그룹 행이 새로 생긴다. 구역이 둘이 된다 | 발행 AC에 경로 prefix `./posts/projects/company/` 검사. P3에 `recobell` 0행 |
+| 월 비용을 측정값처럼 쓴다 | 오너 기억을 사실처럼 읽게 된다 | "owner claim, not in the code" 이름표. 서비스별 나눔 0 |
 | 다른 그룹에 같은 title | `DISTINCT ON`이 하나만 연다 | P3 SELECT. `rec-solution`, `knn-demo`는 지금 0행 |
 | purge 누락 | 하루 동안 옛 화면, 새 글 404 캐시 | §7.1 6단계를 확인 표에 둔다 |
 | `blog.json` 동시 수정 | 병합 충돌 | 키 추가만, 한 커밋 |
@@ -912,16 +1034,122 @@ rg -n --no-heading \
 
 | # | 단위 | 크기 | 선행 | 담당 (권고) |
 | --- | --- | --- | --- | --- |
-| D1 | 오너 답 Q1–Q15 받기, D-row (그룹 행 §2.1 A 포함) | S | 없음 | main session |
-| D2 | `pg.plan.md` 줄 바꾸기 (§7.4), 연재 plan 행 작성 | S | D1 | product-manager |
-| D3 | i18n 키 2개 (§7.2) | S | D1 | developer |
+| D1 | 오너 답 Q1–Q15 받기, D-row. **끝남 (#130)** | S | 없음 | main session |
+| D2 | `pg.plan.md`, `rs.plan.md` 줄 바꾸기 ("§ rev3 plan delta") | S | D1 | product-manager |
+| D3 | ~~i18n 키 2개~~ rev3: A안이면 없음. B안이면 카드 라벨 코드 (§7.2 B 표) | 0 또는 S | 오너가 A/B 고름 | developer (B만) |
 | D4 | `_series/thumbs.py` + `thumbs.csv`, 썸네일 11장 | S | D1 (제목) | developer |
 | D5 | rec-solution 00–07 원고, 글마다 한 단위. 03, 04는 M | S × 6 + M × 2 | D1 | sonnet-writer |
 | D6 | knn-demo 00–02 원고 | S × 3 | D1 | sonnet-writer |
 | D7 | 비밀 검사 §8.3 + R1–R12 + 사실 표시 R10 + 그림 규칙. 연재 전체 1회 | M | D5, D6 | reviewer |
-| D8 | 사전 SELECT, SQL U1, 발행, purge, 확인 (§7.1, §7.3) | S | D3 배포, D7 PASS, 오너 go | main session |
-| D9 | 루트 `CLAUDE.md` 그룹 트리 사실 줄 갱신 | S | D8 | main session |
+| D8 | 사전 SELECT, 발행, purge, 확인 (§7.1, §7.3). U1 없음 (rev3) | S | D7 PASS, 오너 보안 확인 (#128). B안이면 D3 배포 | main session |
+| D9 | 루트 `CLAUDE.md` 그룹 트리: `company/` 아래 프로젝트 2줄 추가 | S | D8 | main session |
 
 - MVP 사다리는 적용하지 않는다. 새 스키마, API, 파이프라인이 없다 (§7).
 - 검토 횟수는 prettylog 선례(#124 "reviewer once before prod")를 따를지 오너가 정한다. 기본은 같다 (D7 1회).
 - 원고 작가는 원본 저장소를 열 때 §8.1 금지 목록을 받는다. 원본 실행(빌드, 테스트, 스크립트)은 금지다 (`~/.claude/CLAUDE.md` "No local execution").
+
+## § rev3 plan delta
+
+무엇을 알려고 쓰나: rev3(#130)가 낡게 만든 `rs.plan.md`, `pg.plan.md` 줄. pm이 고친다. 이 문서는 plan을 고치지 않는다.
+
+- 줄 번호는 2026-10-20 기준이다. pm은 고치기 전에 grep으로 다시 찾는다 (`rules/docs.md` §7).
+- `rs.plan.md`는 설계 rev1(글 10, rec-solution 00–06)으로 쓰였다. rev2(글 11, 병합기 04)도 아직 반영되지 않았다. 아래 표는 둘 다 담는다.
+- "A안"은 §2.2 카드 라벨 A안(코드 0)이다. 오너가 B안을 고르면 표의 "A안" 칸이 바뀐다.
+
+공통 값 (rev3):
+
+| 항목 | rev1/rev2 plan 값 | rev3 값 |
+| --- | --- | --- |
+| 그룹 | `recobell` (id 14 이름 바꾸기) | `company` id 14 그대로 |
+| 글 수 | 10 (rec-solution 7) | 11 (rec-solution 8 = 00–07, knn-demo 3) |
+| 발행 폴더 `R` | `posts/projects/recobell/` | `posts/projects/company/` |
+| 구역 id | `id="recobell"` | `id="company"`, 순서 `my-work` < `company` < `utrgv` |
+| 구역 제목 | "Recobell" | "Company" |
+| 카드 | 2 (자기 그룹 adriel 따로) | `company` 안 2, adriel 뒤 3. 배지 4, adriel 뒤 5 |
+| 연재 제목 | "Recobell From the Logs Up" (n/6) | "Recommendation Solution Architecture" (n/7) |
+| SQL | U1 1문 | 없음 |
+| i18n | `recobell`, `adriel` 키 | A안: 없음 |
+| 그림 행 | 25 + 썸네일 10 = 35 | §6.2 F 번호 27 + 썸네일 11 = 38 |
+| 글 번호 | 04 batch, 05 api, 06 mgmt | 04 merger (새), 05 batch, 06 api, 07 mgmt |
+
+`rs.plan.md` 낡은 줄:
+
+| # | 줄 | 지금 (요약) | rev3 |
+| --- | --- | --- | --- |
+| 1 | 6 상태 | 행 25, M2 0/11, 질문 17 | 행 수 다시 셈 (RS-3-02 빠짐, RS-2-04 병합기 추가, RS-1-02 A안이면 빠짐) |
+| 2 | 7 설계 | rev1, #127, #128 | rev3, #127, #128, #130 |
+| 3 | 9 `R` | `posts/projects/recobell/` | `posts/projects/company/` |
+| 4 | 10 프로젝트 폴더 | rec-solution 글 7 | 글 8 |
+| 5 | 17 G-RB1 | 글 10, 7개 00 → 06, `id="recobell"` 카드 2 | 글 11, 8개 00 → 07, `id="company"` 카드 2 (adriel 뒤 3), 배지 4 (뒤 5) |
+| 6 | 19 G-RB3 | 10폴더, 10쪽 | 11폴더, 11쪽 |
+| 7 | 20 S1 | rev1 글 10, 그룹 행 이름 바꾸기 (OK 대기) | rev3 글 11, `company` 그대로 (#130) |
+| 8 | 21 M1 exit | i18n 커밋, 행 35, 썸네일 10 | i18n 커밋 없음 (A안), 행 38, 썸네일 11. Q D-row = #130 |
+| 9 | 22 M2 exit | 글 10, RS-2-00…06, 폴더 10 | 글 11, RS-2-00…07, 폴더 11 |
+| 10 | 23 M3 exit | 10폴더, U1 영향 행 1, 10쪽 | 11폴더, U1 항목 삭제, 11쪽 |
+| 11 | 24 Gate | 글 10개 | 글 11개 |
+| 12 | 26 MVP 문장 | 1행 UPDATE와 발행 | 발행뿐 |
+| 13 | 34 구성 요소 mermaid | rev1 F 번호 (F-RS04b, F-RS05a, F-RS06a/b) | §6.2 rev2 번호로 다시 나눈다 |
+| 14 | 35 단계 mermaid | F-RS03e, F-RS04a | 같음, 다시 나눈다 (F-RS03e 없음, 병합 = F-RS04a) |
+| 15 | 36 Markdown 표 | F-RS03d, F-RS04c, F-RS05b, F-RS06c | 같음, 다시 나눈다 |
+| 16 | 37 썸네일 | 10장 | 11장 |
+| 17 | 43 RS-1-01 AC | 그룹 행 이름 바꾸기 오너 OK 필요 | #130으로 닫힘. 그 조건 삭제 |
+| 18 | 44–45 RS-1-02 | i18n `recobell`, `adriel` 키 | A안: 행 삭제(strike). B안: 카드 라벨 코드 행 (§7.2 B 표) |
+| 19 | 46–47 RS-1-03 | 썸네일 10, csv 10행, 폴더 10 | 11, 11, 11. 글자 규칙 "연재 이름 · NN + 설정값" 예외: 00 썸네일 2장은 "Recobell · Rec Solution", "Recobell · kNN Demo" (§6.4) |
+| 20 | 49 RS-1-04 | 행 35 = 25 + 10 | 행 38 = 27 + 11 |
+| 21 | 55 공통 AC 범위 | RS-2-00…06 | RS-2-00…07 |
+| 22 | 59 C3 | `<series> (n/6)`, `<series>` = Q15 답 | `Recommendation Solution Architecture (n/7): <claim>`, 00 = `...: <claim>` |
+| 23 | 84 RS-2-00 | 지도 6행 (01–06) | 7행 (01–07). 00 제목 §6.2. 월 $20,000 owner claim 선택 |
+| 24 | 86 RS-2-01 | Beanstalk 운영 값 = `[M]` + "?" | 부하 분산기 + 자동 확장 `[M]`. 종류·대수 Unknowns 1줄. 월 $20,000 owner claim (Result + F-RS01b) |
+| 25 | 88 RS-2-02 | 접두 붙이면 16단어, claim 줄임 | 새 접두로 14토큰. 조건 삭제 |
+| 26 | 89–90 RS-2-03 | 저장·압축·검색 한 글, 병합 순서도 F-RS03c, F-RS03e | 저장·검색만. F-RS03a–d (§6.2). 병합은 RS-2-04 |
+| 27 | 90 뒤 (새 행) | 없음 | RS-2-04 병합기 `04-log-merger` (§6.2 04 행, §4.2.1, Q16–Q20 기본값) |
+| 28 | 91–92 RS-2-04 batch | 04, F-RS04a/b/c | RS-2-05, F-RS05a/b/c. Redshift 작업 때만, 비용 `[M]` 1줄 |
+| 29 | 93–94 RS-2-05 api | 05, F-RS05a/b | RS-2-06, F-RS06a/b |
+| 30 | 95–96 RS-2-06 mgmt | 06, F-RS06a/b/c | RS-2-07, F-RS07a/b/c |
+| 31 | 109–110 RS-2-20 | 글 10, 썸네일 10, RS-2-00…06, 폴더 10 | 11, 11, RS-2-00…07, 11 |
+| 32 | 115 증거 파일 | `rb-u1.sql` 포함 | `rb-u1.sql` 삭제 |
+| 33 | 117–118 RS-3-00 | 10개, 10행, 10폴더 | 11, 11, 11 |
+| 34 | 120 RS-3-01 | 10폴더 OK | 11폴더 OK. P3 `recobell` 0행 = 잘못된 경로 흔적 |
+| 35 | 121–122 RS-3-02 | SQL U1 | 행 strike (#130) |
+| 36 | 123–124 RS-3-03 | 01 → 06, 경로 `recobell`, U1 선행, slug 6, `recobell` 1행 | 01 → 07, 경로 `company`, U1 선행 삭제, slug 7, `recobell` 0행 |
+| 37 | 126 RS-3-04 | 경로 `./posts/projects/recobell/knn-demo/` | `./posts/projects/company/knn-demo/` |
+| 38 | 128 RS-3-05 | rec-solution 지도 링크 6 | 7 |
+| 39 | 130 RS-3-06 | 링크 8, 모두 10개 | 링크 9, 모두 11개 |
+| 40 | 132 RS-3-07 | `id="recobell"`, "Recobell", 글 7 00 → 06, `/projects/recobell` 404, 글 10, sitemap 10, `recobell` 1행, 10쪽 | `id="company"`, "Company", 글 8 00 → 07, `/projects/company` 404만, 글 11, sitemap 11, `recobell` 0행, 11쪽, 카드 글자 행 (§7.3) |
+| 41 | 133–134 RS-3-08 | 10쪽 | 11쪽 |
+| 42 | 136 RS-3-09 | `company/` → `recobell/` | `company/` 아래 `rec-solution/`, `knn-demo/` 추가 |
+| 43 | 146 Q1 | 기본값 | 답 (오너 "good") |
+| 44 | 147 Q2 | 기본값, 막는 행 01, 03, 04, 05, 06 | 답 (오너 "yes"), 행 번호 새 번호로 |
+| 45 | 148 Q3 | 막는 행 RS-2-06 | RS-2-07 |
+| 46 | 150 Q5 | 막는 행 RS-2-04 | RS-2-05 |
+| 47 | 151 Q6 | 기본값 | 일부 답, 닫힘 (§9 rev3 상태) |
+| 48 | 154 Q9 | RS-2-03, RS-2-05 | RS-2-03, RS-2-04, RS-2-06 |
+| 49 | 157 Q12 | adriel 그룹 priority 25 | 쓸 일 없음 (adriel = `company` 안 카드) |
+| 50 | 160 Q15 | 기본 A | 답 "Recommendation Solution Architecture" |
+| 51 | 161 Q-RB16 | 이름 바꾸기 OK 필요 | 쓸 일 없음 (#130) |
+| 52 | 168 정정 | RS-02 16단어 | 해결 (rev3 §6.1) |
+| 53 | 169 정정 | §7.1에 보안 확인 없음 | 해결 (rev3 §7.1 1단계) |
+| 54 | 171 정정 | 그룹 행 D-row 없음 | 해결 (#130) |
+| 55 | 173 정정 | i18n 커밋 예외 | A안: 쓸 일 없음 |
+| 56 | 174 정정 | §12.5 `company` 행 낡음 | 뒤집힘: 낡지 않음 |
+| 57 | 16 Constraints | 측정값(트래픽, 지연, 비용, 정확도) 0개 | 비용 예외 1개: "about $20,000 per month (owner claim, not in the code)" (§6.3) |
+| 58 | 18 G-RB2 | `[M]` 상자는 §9 질문 번호 | "§9 Q번호 또는 오너 답 날짜 (2026-10-20)". 새 `[M]`: 부하 분산기, 자동 확장, Redshift 비용 이유 |
+| 59 | 49 RS-1-04 AC | `[M]` 행마다 §9 Q번호 | 58과 같다 |
+| 60 | 64 C8 | 비용 숫자 0개, `20M`은 RS-2-00에만 | `$20,000 per month` owner claim은 RS-2-01 (필수), RS-2-00 (선택). 서비스별 나눔, 절감액 0 |
+
+- 질문 표의 Q16–Q20 행이 `rs.plan.md`에 없다. rev2가 더했다. 막는 행 = RS-2-04 (새). 기본값 확정 (#130).
+
+`pg.plan.md` 낡은 줄:
+
+| # | 줄 | 지금 (요약) | rev3 |
+| --- | --- | --- | --- |
+| 61 | 16 G1 | `id="recobell"`, adriel은 자기 그룹, 카드 이름 #127 | `id="company"`. 카드 cnn, prettylog, rec-solution, knn-demo, 배지 4. adriel = `company` 안 카드, 뒤 배지 5. #130 |
+| 62 | 20 M3 exit | Recobell 구역, `id="recobell"`, 순서 `my-work` < `recobell` < `utrgv`, i18n 예외 (#127) | Company 구역, `id="company"`, 순서 `my-work` < `company` < `utrgv`. A안: i18n 예외 쓸 일 없음. B안: 오너가 "코드 커밋 0"을 풀어야 한다 |
+| 63 | 80 PG-OWN-1 AC | SQL U1, 폴더 `projects/recobell/...`, 부모 = `recobell` 그룹, i18n 예외 | U1 삭제, 폴더 `projects/company/{rec-solution,knn-demo}/<NN-slug>/`, 부모 = id 14 `company`. A안: i18n 예외 삭제 |
+| 64 | 82 PG-OWN-2 AC | 그룹 `adriel` 새 행 priority 25, `id="adriel"` 구역, 위치 `recobell` < `adriel` < `utrgv` | 폴더 `projects/company/<adriel project>/`. 새 그룹 행 0. `id="company"` 카드 3, 배지 5. `id="adriel"` 0개 |
+| 65 | 83 PG-3-01 제목 | Recobell 구역 확인 | Company 구역 확인 |
+| 66 | 84 PG-3-01 AC | `id="recobell"` 카드 2, 순서 `recobell`, `/projects/recobell` 404 | `id="company"` 카드 2, 순서 `company`, `/projects/company` 404 |
+
+- 합계: `rs.plan.md` 60행, `pg.plan.md` 6행, 모두 66행. 표 행 하나가 plan 줄 1–2개를 덮는다.
+- D-row: #130이 이 변경을 모두 덮는다. 카드 라벨 A/B 선택만 새 오너 답이 필요하다.
+- `00.plan.md`, `01.status.md`도 이 설계를 가리킨다. 이번 범위 밖이다. pm이 grep으로 확인한다.
