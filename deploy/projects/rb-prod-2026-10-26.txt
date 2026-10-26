@@ -1,0 +1,7 @@
+# rec-solution 00 prod check 2026-10-26T21:07:31Z, publish_oneshot --no-llm, cf-purge all (#132)
+post /@taeklim/recommendation-solution-architecture-recobell-s-saas-on-aws-2015-2019 200, tables=5, flowchart blocks rendered from 4 mermaid sources
+/@taeklim/projects/rec-solution 200 (1 post)
+/@taeklim/projects 200, sections: my-work < company < utrgv, recobell id 0, rec-solution card 1
+/@taeklim/projects/company 404 (group anchor only)
+DB: rec-solution parent=14, recobell rows=0
+prod HTML redaction grep (§8.3 key/host/id patterns): 0

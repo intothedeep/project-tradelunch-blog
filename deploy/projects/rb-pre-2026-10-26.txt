@@ -1,0 +1,15 @@
+# RS-3-01 pre-SELECT 2026-10-26T21:06:52Z (read-only)
+?column? | id | title | priority
+P1 | 14 | company | 20
+(1 row)
+?column? | count
+P2 children | 0
+(1 row)
+?column? | title | count
+(0 rows)
+?column? | title | priority
+P4 | my-work | 10
+P4 | company | 20
+P4 | gatech | 30
+P4 | utrgv | 40
+(4 rows)

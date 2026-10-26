@@ -3,7 +3,7 @@
 > Split from `PLAN.md` (rules/docs.md §1). The PLAN.md stub is the truth if
 > the two disagree; update both in the same edit.
 
-- 상태: PLANNED (2026-10-19, rev3 동기화 2026-10-20). 행 26개 (철회 2: RS-1-02, RS-3-02). 살아 있는 행 24: M1 1/3, M2 0/12, M3 0/9. reviewer는 RS-2-20 1회뿐 (발행 전, #124 선례). 오너 보안 확인 RS-3-00 전에는 발행이 없다 (#128). 카테고리 SQL 0 (#130). 열린 오너 질문 1개 (Q-RB17).
+- 상태: IN PROGRESS (2026-10-26). rec-solution 00 먼저 발행됨 (#132, `deploy/projects/rb-prod-2026-10-26.txt`). 행 26개 (철회 2: RS-1-02, RS-3-02). 살아 있는 행 24: M1 1/3, M2 1/12, M3 0/9. RS-1-03 썸네일 1/11, RS-1-04 `S/figures.md` 00 행만, RS-3-00 오너 확인 1/11 폴더. reviewer는 RS-2-20 1회뿐 (발행 전, #124 선례). 오너 보안 확인 RS-3-00 전에는 발행이 없다 (#128). 카테고리 SQL 0 (#130). 열린 오너 질문 1개 (Q-RB17).
 - 설계: `recobell-series.design.md` rev3 (system-architect, 2026-10-20). 오너 결정: `decisions.plan.md` #127, #128, #130, #131. 선례: `ps.plan.md` (#124–#126).
 - 설계와 #127, #128, #130, #131이 다르면 결정 행을 따른다. 다른 곳은 아래 "설계 정정 필요" 절에 적는다.
 - 줄인 이름: `R` = `apps/blog_agent/posts/projects/company/`. `S` = `R/_series/`. `SRC` = `~/Desktop/_job_recobell/` (읽기 전용).
@@ -80,7 +80,7 @@ RS-2-00…07, RS-2-10…12 모두에 적용한다. 검사 명령은 writer가 �
 
 rec-solution (`R/rec-solution/`):
 
-- [ ] **RS-2-00 (WRITER) 00 개요 (overview)** → M2
+- [x] **RS-2-00 (WRITER) 00 개요 (overview)** → M2 (2026-10-26, #132: 범위 확장 = 인프라 그림 + 월 비용 owner claim, 본문 119줄 ≤ 120. 오너 OK 뒤 먼저 발행. `deploy/projects/rb-prod-2026-10-26.txt`. AC PARTIALLY MET: 연재 지도 링크 0개, 제목만 → RS-3-06이 다시 발행해 링크를 넣는다)
   - **AC** 공통 AC · 절 순서 = 설계 §6.2 RS-00 행 · F-RS00a (설계 §3.2) + F-RS00b (C1–C27 축약 표) · "My part" 표 = RS-1-01 Q1 답의 행만. 답이 default면 표에 "maintained" 1행 · "Warren" 0회 (Q4 기본값) · `20M daily events` 옆에 `owner claim, not in the code` (Q14) · 월 비용 owner claim은 선택, 쓰면 C8 문구 그대로 (설계 §6.3 월 비용 행) · 제목 = 설계 §6.2 rec-solution 00 행 (C3 형식) · 연재 지도 표 7행 (01–07), 링크 = `/@taeklim/TBD-NN`.
 - [ ] **RS-2-01 (WRITER) 01 AWS 인프라 (infrastructure)** → M2
   - **AC** 공통 AC · 절 순서 = 설계 §6.2 RS-01 행 · F-RS01a (설계 §3.3 그림), F-RS01b 사실/기억 표 = 설계 §3.3 아래 표의 살아 있는 행 (줄 그은 행 제외) · Kinesis 생산(KPL), 소비(KCL) = `[F]` (설계 §3.3 Kinesis 행) · 운영 Beanstalk = 부하 분산기(load balancer) + EC2 자동 확장(auto scaling) `[M]`, 출처 = 오너 2026-10-20 (설계 §3.3 운영 Beanstalk 행, §6.2 RS-01 (rev3) 줄) · "Unknowns" 절에 1줄 "Production instance type and count: not in the code, not recalled." (설계 §6.3 운영 인스턴스 행). 종류, 대수 값 0개 · Result 1줄 + F-RS01b 1행에 "about $20,000 per month (owner claim, not in the code)" (설계 §6.3 월 비용 행, C8). 서비스별 나눔, 절감액 0 · 소비자 인스턴스 값, DNS, TLS, CDN, VPC = `[M]` + "?" (Q6 일부 답, Q7 기본값). Route 53, CloudFront 같은 짐작 이름 0개 · t2.micro, t2.nano 옆에 "test profile only" · Lambda 1536 MB, 300 s 옆에 `(create script)`.
@@ -129,7 +129,7 @@ knn-demo (`R/knn-demo/`):
 - [ ] **RS-3-05 (WRITER) 00 두 개의 연재 지도 링크를 실제 slug로** → M3
   - **AC** 원본 = `rb-publish-<date>.txt` · rec-solution 00의 `TBD-NN` 0개, 링크 7개 · knn-demo 00의 `TBD-NN` 0개, 링크 2개 · 링크 = `/@taeklim/<slug>`, slug가 publish 파일과 글자 단위로 같다 · `git diff --no-index` 또는 고치기 전 사본과 비교해 바뀐 줄 = 링크 줄만 · 두 폴더에 설계 §8.3 grep 다시 0건.
 - [ ] **RS-3-06 (MAIN) 00 두 개 발행** → M3
-  - **AC** RS-3-05 뒤 · rec-solution 00, knn-demo 00 각 1회 · URL 200 · 지도 링크 9개 모두 `?probe=$T` 200 · slug 2개를 publish 파일에 더한다 (모두 11개).
+  - **AC** (#132) rec-solution 00은 이미 1회 발행됨. 여기서는 링크를 넣은 판을 다시 발행한다 (slug마다 새 행, 서버가 최신을 고른다). RS-3-05 뒤 · rec-solution 00, knn-demo 00 각 1회 · URL 200 · 지도 링크 9개 모두 `?probe=$T` 200 · slug 2개를 publish 파일에 더한다 (모두 11개).
 - [ ] **RS-3-07 (MAIN) purge + 운영 확인 (설계 §7.3)** → M3
   - **AC** `_scripts/cloudflare/cf-purge.sh` 1회 · 설계 §7.3 표의 행마다 결과 1줄: `id="company"` 구역 카드 2개 (adriel 발행 뒤 3), 순서 `id="my-work"` < `id="company"` < `id="utrgv"`, `id="recobell"` 0개 · 구역 제목 글자 "Company" · 배지 4 (adriel 뒤 5) · 카드 글자 (A안, #131): 카드 제목 `rec-solution`, `knn-demo` + 00 썸네일에 "Recobell · Rec Solution", "Recobell · kNN Demo" · `/@taeklim/projects/rec-solution` 200, 글 8개, 00 → 07 · `/@taeklim/projects/knn-demo` 200, 글 3개, 00 → 02 · `/@taeklim/projects/company` 404 · 글 11개 200 · `sitemap.xml`에 새 URL 11개 · 새 글 2개 + `/@taeklim/projects` 둘째 GET `cf-cache-status: HIT` · `rec-solution`, `knn-demo` 각 1행, 부모 = id 14. `recobell` 0행 · 운영 HTML 11쪽에 설계 §8.3 패턴 grep 0건 · 출력 `deploy/projects/rb-prod-<date>.txt`.
 - [ ] **RS-3-08 (OWNER) 11쪽 시각 확인** → M3
