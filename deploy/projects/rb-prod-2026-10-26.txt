@@ -5,3 +5,8 @@ post /@taeklim/recommendation-solution-architecture-recobell-s-saas-on-aws-2015-
 /@taeklim/projects/company 404 (group anchor only)
 DB: rec-solution parent=14, recobell rows=0
 prod HTML redaction grep (§8.3 key/host/id patterns): 0
+
+# title fix (owner: "year is wrong, 2018-2019: I worked during this period")
+republished title "...Recobell's SaaS on AWS, 2018–2019" -> new slug recommendation-solution-architecture-recobell-s-saas-on-aws-2018-2019 (post 373218937451581440) 200
+old post 373215974641373184 (slug ...-2015-2019) soft-deleted (deleted_at), URL now 404; cf-purge all
+/@taeklim/projects/rec-solution 200
