@@ -10,3 +10,8 @@ prod HTML redaction grep (§8.3 key/host/id patterns): 0
 republished title "...Recobell's SaaS on AWS, 2018–2019" -> new slug recommendation-solution-architecture-recobell-s-saas-on-aws-2018-2019 (post 373218937451581440) 200
 old post 373215974641373184 (slug ...-2015-2019) soft-deleted (deleted_at), URL now 404; cf-purge all
 /@taeklim/projects/rec-solution 200
+
+# diagrams -> AWS icon PNG x2 (#134), Sources section removed (#135), republished same slug, cf-purge all
+post 200; images arch-dataflow (-1.webp), arch-infra (-2.webp), thumbnail: all 200 on blog-assets
+prod HTML: "Sources"/"flowchart" 0, redaction + source-path grep (RBLogger/, .java) 0
+/@taeklim/projects/rec-solution 200
