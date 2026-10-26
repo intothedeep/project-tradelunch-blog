@@ -15,3 +15,7 @@ old post 373215974641373184 (slug ...-2015-2019) soft-deleted (deleted_at), URL 
 post 200; images arch-dataflow (-1.webp), arch-infra (-2.webp), thumbnail: all 200 on blog-assets
 prod HTML: "Sources"/"flowchart" 0, redaction + source-path grep (RBLogger/, .java) 0
 /@taeklim/projects/rec-solution 200
+
+# CloudFront box added to arch-infra (#136), republished, cf-purge all + by URL
+post 200; 3 images 200; redaction grep 0
+OPEN: blog-assets ...-2019-2.webp edge still serves the 21:50:30 version (cf-cache-status HIT, age 856) after 2 purges; origin has 22:03:06 version (?v= MISS). cf-purge.sh does not clear blog-assets.
