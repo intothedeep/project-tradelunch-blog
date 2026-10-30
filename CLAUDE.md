@@ -119,8 +119,9 @@ projects/                 root category (title 'projects', PROJECTS_ROOT_CATEGOR
 ├── company/              group   priority 20   label "Company"     (recobell, adriel)
 ├── gatech/               group   priority 30   label "GT MSCS"
 └── utrgv/                group   priority 40   label "UTRGV MSCS"
-    └── cnn-from-scratch/ project (URL segment)
-        └── <posts>
+    ├── cnn-from-scratch/ project (URL segment)
+    │   └── <posts>
+    └── ddpm-from-scratch/ project (12 posts, 2026-10-29)
 ```
 
 | Level | Meaning | URL |

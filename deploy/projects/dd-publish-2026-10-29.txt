@@ -1,0 +1,42 @@
+# DD-3-02 publish 2026-10-30T01:47:30Z, publish_oneshot --no-llm, order 01 -> 11
+01-why-diffusion-why-unet pass=0 url=
+# retry after read-only fix 2026-10-30T01:48:36Z
+01-why-diffusion-why-unet pass=1 url=https://my.prettylog/@taeklim/diffusion-from-scratch-1
+02-noise-and-one-training-step pass=1 url=https://my.prettylog/@taeklim/diffusion-from-scratch-2
+03-inside-the-unet pass=1 url=https://my.prettylog/@taeklim/diffusion-from-scratch-3
+04-time-inside-the-unet pass=1 url=https://my.prettylog/@taeklim/diffusion-from-scratch-4
+05-attention-what-it-adds pass=1 url=https://my.prettylog/@taeklim/diffusion-from-scratch-5
+06-query-key-value-and-heads pass=1 url=https://my.prettylog/@taeklim/diffusion-from-scratch-6
+07-sampler-250-calls pass=1 url=https://my.prettylog/@taeklim/diffusion-from-scratch-7
+08-evaluation-two-errors-and-fid pass=1 url=https://my.prettylog/@taeklim/diffusion-from-scratch-8
+09-formula-flow pass=1 url=https://my.prettylog/@taeklim/diffusion-from-scratch-9
+10-experiments-starter-to-final pass=1 url=https://my.prettylog/@taeklim/diffusion-from-scratch-1
+11-engineering-the-process pass=1 url=https://my.prettylog/@taeklim/diffusion-from-scratch-1
+  id | slug | left
+  374374033052930048 | diffusion-from-scratch-1-11-why-diffusion-and-why-a-u-net | Diffusion From Scratch (1/11): Why Diffusion, and Why a U-Ne
+  374374129811329024 | diffusion-from-scratch-2-11-noise-the-step-t-and-one-training-step | Diffusion From Scratch (2/11): Noise, the Step t, and One Tr
+  374374217413562368 | diffusion-from-scratch-3-11-inside-the-u-net-down-bottom-up-and-skip | Diffusion From Scratch (3/11): Inside the U-Net, Down, Botto
+  374374299504480256 | diffusion-from-scratch-4-11-how-the-u-net-knows-the-noise-level | Diffusion From Scratch (4/11): How the U-Net Knows the Noise
+  374374385634512896 | diffusion-from-scratch-5-11-how-one-pixel-sees-all-64-through-attention | Diffusion From Scratch (5/11): How One Pixel Sees All 64 Thr
+  374374482548101120 | diffusion-from-scratch-6-11-query-key-and-value-one-weight-in-three-roles | Diffusion From Scratch (6/11): Query, Key and Value, One Wei
+  374374578090151936 | diffusion-from-scratch-7-11-250-network-calls-to-make-one-image | Diffusion From Scratch (7/11): 250 Network Calls to Make One
+  374374682549293056 | diffusion-from-scratch-8-11-noise-error-image-error-and-three-fr-chet-inception-distance-fid-scales | Diffusion From Scratch (8/11): Noise Error, Image Error and 
+  374374768972926976 | diffusion-from-scratch-9-11-the-whole-method-as-one-chain-of-equations | Diffusion From Scratch (9/11): The Whole Method as One Chain
+  374374865307701248 | diffusion-from-scratch-10-11-from-a-3-3m-starter-to-a-9-8m-u-net | Diffusion From Scratch (10/11): From a 3.3M Starter to a 9.8
+  374374949667737600 | diffusion-from-scratch-11-11-cluster-jobs-verdicts-written-first-every-run-logged | Diffusion From Scratch (11/11): Cluster Jobs, Verdicts Writt
+  (11 rows)
+  ?column? | id | title | parent
+  cat | 374374027885547520 | ddpm-from-scratch | utrgv
+  (1 row)
+200 diffusion-from-scratch-1-11-why-diffusion-and-why-a-u-net
+200 diffusion-from-scratch-2-11-noise-the-step-t-and-one-training-step
+200 diffusion-from-scratch-3-11-inside-the-u-net-down-bottom-up-and-skip
+200 diffusion-from-scratch-4-11-how-the-u-net-knows-the-noise-level
+200 diffusion-from-scratch-5-11-how-one-pixel-sees-all-64-through-attention
+200 diffusion-from-scratch-6-11-query-key-and-value-one-weight-in-three-roles
+200 diffusion-from-scratch-7-11-250-network-calls-to-make-one-image
+200 diffusion-from-scratch-8-11-noise-error-image-error-and-three-fr-chet-inception-distance-fid-scales
+200 diffusion-from-scratch-9-11-the-whole-method-as-one-chain-of-equations
+200 diffusion-from-scratch-10-11-from-a-3-3m-starter-to-a-9-8m-u-net
+200 diffusion-from-scratch-11-11-cluster-jobs-verdicts-written-first-every-run-logged
+00 diffusion-from-scratch-public-fr-chet-inception-distance-fid-30-26-6-10-under-a-10m-parameter-cap

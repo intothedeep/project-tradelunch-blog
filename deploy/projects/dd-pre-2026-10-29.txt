@@ -1,0 +1,10 @@
+# DD-3-01 pre-SELECT 2026-10-30T01:47:16Z (read-only)
+?column? | id | title | priority
+P1 | 16 | utrgv | 40
+(1 row)
+?column? | count
+P2 | 0
+(1 row)
+?column? | title
+P3 | cnn-from-scratch
+(1 row)
