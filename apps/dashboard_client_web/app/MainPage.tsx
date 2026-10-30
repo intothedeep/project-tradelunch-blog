@@ -229,9 +229,9 @@ const TerminalProfile = () => {
         {
             school: 'University of Central Missouri',
             degree: 'M.S. Computer Science, Cybersecurity & Information Assurance, Graduate Achievement Award',
-            period: '08/2026',
+            period: '05/2026',
             courses: [
-                'Graduate Assistant, 01/2026 – 08/2026',
+                'Graduate Assistant, 01/2026 – 05/2026',
                 'Algorithms',
                 'Compiler Design',
                 'AI',
