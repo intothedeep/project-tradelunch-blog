@@ -330,8 +330,24 @@ const TerminalProfile = () => {
                             </div>
 
                             <CardDescription className="mt-2">
-                                TX | tio.taek.lim@gmail.com | Github:
-                                intothedeep | in/tiotaeklim
+                                TX | tio.taek.lim@gmail.com | Github:{' '}
+                                <a
+                                    href="https://github.com/intothedeep"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:underline"
+                                >
+                                    intothedeep
+                                </a>{' '}
+                                |{' '}
+                                <a
+                                    href="https://www.linkedin.com/in/tiotaeklim/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:underline"
+                                >
+                                    in/tiotaeklim
+                                </a>
                                 {/* Warrensburg, MO | 660-238-5036 | */}
                                 {/* tio.taek.lim@gmail.com | Github: tradelunch */}
                             </CardDescription>
