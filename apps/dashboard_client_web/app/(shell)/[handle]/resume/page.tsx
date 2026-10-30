@@ -50,7 +50,7 @@ const ResumeView = () => {
 
                             <a
                                 className="bg-primary text-primary-foreground px-4 py-2 hover:opacity-80 transition-opacity"
-                                href="/resume_taek_lim_052026.pdf"
+                                href="/resume_taek_lim.pdf"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 download={
@@ -76,13 +76,13 @@ const ResumeView = () => {
                             {/* A4 Aspect Ratio Container */}
                             <div className="aspect-[1/1.414] relative border-2 border-muted">
                                 {/* <Image
-                                    src="/resume_taek_lim_052026.pdf"
+                                    src="/resume_taek_lim.pdf"
                                     alt="Taek Lim Resume"
                                     fill
                                     className="object-contain"
                                 /> */}
                                 <iframe
-                                    src="/resume_taek_lim_1226.pdf"
+                                    src="/resume_taek_lim.pdf"
                                     title="Taek Lim Resume"
                                     className="absolute inset-0"
                                     width="100%"

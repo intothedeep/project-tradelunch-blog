@@ -11,6 +11,7 @@ export const PUBLIC_PATHS: readonly string[] = [
     '/favicon/site.webmanifest',
     '/next.svg',
     '/og-image.png',
+    '/resume_taek_lim.pdf',
     '/resume_taek_lim_1226.pdf',
     '/turborepo.svg',
     '/vercel.svg',

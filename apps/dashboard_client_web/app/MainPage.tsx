@@ -20,18 +20,22 @@ const TerminalProfile = () => {
     const [progress, setProgress] = useState(0);
     const [activeSection, setActiveSection] = useState('experience');
 
+    const summaryRef = useRef(null);
     const experienceRef = useRef(null);
     const projectsRef = useRef(null);
     const contributionsRef = useRef(null);
     const skillsRef = useRef(null);
     const educationRef = useRef(null);
+    const certificationsRef = useRef(null);
 
     const sectionRefs = {
+        summary: summaryRef,
         experience: experienceRef,
+        skills: skillsRef,
         projects: projectsRef,
         contributions: contributionsRef,
-        skills: skillsRef,
         education: educationRef,
+        certifications: certificationsRef,
     };
 
     useEffect(() => {
@@ -60,55 +64,59 @@ const TerminalProfile = () => {
 
     const experiences = [
         {
-            title: 'Graduate Assistant',
-            company: 'University of Central Missouri',
-            location: 'Warrensburg, Missouri, USA',
-            period: '01/2026–Current',
-            achievements: [
-                'Built data pipelines to collect and process weather, cryptocurrency, and prediction market (Kalshi) data from external APIs, stored as time-series in ClickHouse',
-                'Deployed hybrid k3s infrastructure across cloud and local instances via Tailscale VPN',
-                'Applied machine learning and deep learning to predictive modeling, feature engineering, and statistical analysis for forecasting',
-            ],
-        },
-        {
-            title: 'Senior Software Engineer (Frontend)',
-            company: 'Adriel',
+            title: 'Software Engineer',
+            company: 'ADRIEL',
             location: 'Seoul, South Korea',
             period: '11/2021–05/2024',
             achievements: [
-                'Reduced frontend loading time by 50% - Vue2 to React/Next.js migration',
-                'Reduced report generation time by 50% - PDF export with layout algorithms',
-                'Built WYSIWYG editor - 100% customer adoption',
-                'Cross-platform React Native development',
-                'Led JavaScript & RxJS training sessions',
+                'Migrated dashboard from Vue to React with Next.js, improving frontend loading time by 50%.',
+                'Engineered an editable dashboard-snapshot system with RxJS, reducing storage by 90%.',
+                'Built a WYSIWYG text-editor widget with the Quill library, reaching 100% client adoption.',
+                'Documented frontend setup and business logic using Notion and Figma, reducing technical assistance time by 50%.',
+            ],
+        },
+        {
+            title: 'Software Developer',
+            company: 'DIV',
+            location: 'Seoul, South Korea',
+            period: '05/2021–10/2021',
+            achievements: [
+                'Integrated hotel-booking into a rent-a-car platform and migrated flight-booking to a new broker, lifting revenue by 3%.',
             ],
         },
         {
             title: 'Software Engineer',
-            company: 'Recobell',
+            company: 'BabelTop',
+            location: 'Seoul, South Korea',
+            period: '07/2019–11/2019',
+            achievements: [
+                'Developed a translator-approval process and rebuilt login, sign-up, and translator-resume features for a translation SaaS, using JavaScript, React, Redux, and Redux-Saga.',
+            ],
+        },
+        {
+            title: 'Software Engineer',
+            company: 'RECOBELL',
             location: 'Seoul, South Korea',
             period: '02/2018–07/2019',
             achievements: [
-                'Cloud recommendation system - 20M daily events',
-                'Stack: Java, Spring, PostgreSQL, AWS, Redshift',
-                'Maintained: log collector, Kinesis, recommendation engine, API',
-                'Led keyword-based book recommendation - $500M revenue client',
+                'Operated a cloud-based recommendation system using Java, Spring, MySQL, and AWS, processing 500M+ user logs monthly.',
+                'Maintained and extended data pipelines, a SQL-based recommendation engine, and APIs using AWS Kinesis, S3, and Spring.',
             ],
         },
     ];
 
     const projects = [
         {
-            name: 'Time-Series Predictive Analytics Platform',
-            tech: ['Python', 'ClickHouse', 'k3s', 'Kafka'],
-            period: '04/2026–Current',
-            desc: 'Data pipelines collecting weather, crypto, and prediction-market (Kalshi) data into ClickHouse; hybrid k3s across cloud/local via Tailscale VPN; ML/DL forecasting.',
+            name: 'Weather & Kalshi Arbitrage Pipeline',
+            tech: ['Python', 'Kafka', 'ClickHouse', 'k3s'],
+            period: '10/2026–Present',
+            desc: 'Streamed real-time weather, BTC, and Kalshi market data through Kafka into ClickHouse. Ran a hybrid k3s cluster (Cloud + on-prem via Tailscale) with a Next.js/Node monorepo. Predicted per-unit temperature and price up/down percentages to surface arbitrage on the Kalshi orderbook.',
         },
         {
-            name: 'MapReduce Infrastructure',
+            name: 'MapReduce Infrastructure Implementation',
             tech: ['C++', 'gRPC', 'protobuf'],
             period: '11/2024',
-            desc: 'Distributed MapReduce based on Dean & Ghemawat paper',
+            desc: 'Designed and implemented a simplified distributed MapReduce infrastructure based on "MapReduce: Simplified Data Processing on Large Clusters" by Jeffrey Dean and Sanjay Ghemawat.',
         },
     ];
 
@@ -140,13 +148,34 @@ const TerminalProfile = () => {
 
     const skills = {
         Languages: [
-            'JavaScript/TypeScript',
             'Java',
             'Python',
             'C/C++',
-            'Rust',
+            'TypeScript/JavaScript',
             'SQL',
-            'HTML/CSS/Sass',
+            'Rust',
+        ],
+        'Data & Streaming': [
+            'Kafka',
+            'AWS Kinesis',
+            'PostgreSQL/TimescaleDB',
+            'Supabase',
+            'MySQL',
+            'ClickHouse',
+            'Redis',
+            'AWS Redshift',
+            'Elasticsearch',
+            'MongoDB',
+        ],
+        Backend: [
+            'Spring Boot & Security',
+            'JPA',
+            'MyBatis',
+            'FastAPI',
+            'Node',
+            'REST/GraphQL',
+            'gRPC/Protobuf',
+            'JUnit',
         ],
         Frontend: [
             'React.js',
@@ -156,29 +185,28 @@ const TerminalProfile = () => {
             'TanStack',
             'Jotai',
             'RxJS',
-            'Tailwind CSS',
+            'Tailwind',
+            'CSS/Sass',
+            'HTML',
             'Storybook',
         ],
-        Backend: [
-            'FastAPI',
-            'Spring Boot & Security',
-            'Node.js',
-            'REST/GraphQL',
-            'gRPC/Protobuf',
-            'JUnit',
-            'JPA',
-            'MyBatis',
+        'Cloud/DevOps': [
+            'AWS (EC2/S3/RDS/EBS)',
+            'Azure',
+            'Vercel',
+            'Docker',
+            'k3s',
+            'Tailscale',
+            'Git',
+            'Gradle',
+            'Maven',
+            'Webpack',
+            'Jest',
+            'Prometheus',
+            'Grafana',
+            'Monorepo',
         ],
-        Database: [
-            'PostgreSQL',
-            'MySQL',
-            'ClickHouse',
-            'Redis',
-            'AWS Redshift',
-            'Elasticsearch',
-            'MongoDB',
-        ],
-        'AI / ML': [
+        ML: [
             'PyTorch',
             'TensorFlow',
             'LangChain/LangGraph',
@@ -187,24 +215,23 @@ const TerminalProfile = () => {
             'OpenAI',
             'Gemini',
         ],
-        'Cloud / DevOps': [
-            'AWS',
-            'Azure',
-            'Docker',
-            'Prometheus',
-            'Grafana',
-            'k3s',
-            'Kafka',
-        ],
-        Tools: ['Git', 'Gradle', 'Maven', 'Webpack', 'Jest', 'Monorepo'],
     };
 
     const education = [
         {
-            school: 'University of Central Missouri',
-            degree: 'M.S. Computer Science',
-            period: '01/2025 – 05/2027 (Expected)',
+            school: 'The University of Texas Rio Grande Valley',
+            degree: 'M.S. Computer Science, Graduate Select Scholarship',
+            period: '05/2027',
             courses: [
+                'Graduate Teaching Assistant for two courses: Deep Learning and AI in Python, 08/2026 – Present',
+            ],
+        },
+        {
+            school: 'University of Central Missouri',
+            degree: 'M.S. Computer Science, Cybersecurity & Information Assurance, Graduate Achievement Award',
+            period: '08/2026',
+            courses: [
+                'Graduate Assistant, 01/2026 – 08/2026',
                 'Algorithms',
                 'Compiler Design',
                 'AI',
@@ -214,11 +241,11 @@ const TerminalProfile = () => {
         {
             school: 'Georgia Institute of Technology',
             degree: 'M.S. Computer Science (Online)',
-            period: '01/2024 - 12/2026',
+            period: '01/2024 - 12/2027',
             courses: ['Operating Systems', 'Networks'],
         },
         {
-            school: 'UCLA',
+            school: 'University of California, Los Angeles',
             degree: 'B.S. Mathematics-Economics',
             period: '03/2013',
             courses: [],
@@ -226,20 +253,22 @@ const TerminalProfile = () => {
     ];
 
     const stats = [
-        { label: 'Experience', value: '5 Years', icon: '📊' },
+        { label: 'Experience', value: '5+ Years', icon: '📊' },
         { label: 'Education', value: 'M.S. CS', icon: '🎓' },
         { label: 'Languages', value: '10+', icon: '💻' },
         { label: 'Cloud', value: 'AWS', icon: '☁️' },
         { label: 'Performance', value: '50%↓', icon: '⚡' },
-        { label: 'Scale', value: '20M/day', icon: '📈' },
+        { label: 'Scale', value: '500M+/mo', icon: '📈' },
     ];
 
     const navItems = [
+        { id: 'summary', label: 'SUMMARY' },
         { id: 'experience', label: 'EXPERIENCE' },
+        { id: 'skills', label: 'SKILLS' },
         { id: 'projects', label: 'PROJECTS' },
         { id: 'contributions', label: 'OPEN_SOURCE' },
-        { id: 'skills', label: 'SKILLS' },
         { id: 'education', label: 'EDUCATION' },
+        { id: 'certifications', label: 'CERTIFICATIONS' },
     ];
 
     return (
@@ -301,8 +330,8 @@ const TerminalProfile = () => {
                             </div>
 
                             <CardDescription className="mt-2">
-                                Warrensburg, MO | tio.taek.lim@gmail.com |
-                                Github: tradelunch | in/tiotaeklim
+                                TX | tio.taek.lim@gmail.com | Github:
+                                intothedeep | in/tiotaeklim
                                 {/* Warrensburg, MO | 660-238-5036 | */}
                                 {/* tio.taek.lim@gmail.com | Github: tradelunch */}
                             </CardDescription>
@@ -351,7 +380,7 @@ const TerminalProfile = () => {
                 {/* Navigation */}
                 {!loading && (
                     <div className="sticky top-0 z-10 bg-background/95 backdrop-blur mb-10 pb-0">
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                             {navItems.map((item) => (
                                 <button
                                     key={item.id}
@@ -372,6 +401,36 @@ const TerminalProfile = () => {
                 {/* Content - All Sections Rendered */}
                 {!loading && (
                     <div className="space-y-8">
+                        {/* Summary Section */}
+                        <div
+                            ref={summaryRef}
+                            id="summary"
+                            className="scroll-mt-32"
+                        >
+                            <Card className="bg-card">
+                                <CardHeader>
+                                    <CardTitle className="text-primary">
+                                        &gt; SUMMARY.txt
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm">
+                                        End-to-end data engineer with 5+ years
+                                        turning raw data into real-time
+                                        decisions across the lifecycle:
+                                        collection, streaming ingestion,
+                                        storage, distributed processing, and ML.
+                                        Worked on a cloud recommendation
+                                        platform on AWS and a high-volume,
+                                        multi-channel ad-analytics SaaS. M.S.
+                                        Computer Science at UTRGV (May 2027).
+                                        Seeking roles building large-scale,
+                                        data-intensive systems.
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        </div>
+
                         {/* Experience Section */}
                         <div
                             ref={experienceRef}
@@ -413,6 +472,43 @@ const TerminalProfile = () => {
                                             </ul>
                                         </div>
                                     ))}
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Skills Section */}
+                        <div
+                            ref={skillsRef}
+                            id="skills"
+                            className="scroll-mt-32"
+                        >
+                            <Card className="bg-card">
+                                <CardHeader>
+                                    <CardTitle className="text-primary">
+                                        &gt; SKILLS.dat
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-6">
+                                    {Object.entries(skills).map(
+                                        ([category, items]) => (
+                                            <div key={category}>
+                                                <h3 className="text-lg font-bold text-primary mb-3">
+                                                    [{category}]
+                                                </h3>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {items.map((skill, idx) => (
+                                                        <Badge
+                                                            key={idx}
+                                                            variant="secondary"
+                                                            className="text-xs"
+                                                        >
+                                                            {skill}
+                                                        </Badge>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )
+                                    )}
                                 </CardContent>
                             </Card>
                         </div>
@@ -541,43 +637,6 @@ const TerminalProfile = () => {
                             </Card>
                         </div>
 
-                        {/* Skills Section */}
-                        <div
-                            ref={skillsRef}
-                            id="skills"
-                            className="scroll-mt-32"
-                        >
-                            <Card className="bg-card">
-                                <CardHeader>
-                                    <CardTitle className="text-primary">
-                                        &gt; SKILLS.dat
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    {Object.entries(skills).map(
-                                        ([category, items]) => (
-                                            <div key={category}>
-                                                <h3 className="text-lg font-bold text-primary mb-3">
-                                                    [{category}]
-                                                </h3>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {items.map((skill, idx) => (
-                                                        <Badge
-                                                            key={idx}
-                                                            variant="secondary"
-                                                            className="text-xs"
-                                                        >
-                                                            {skill}
-                                                        </Badge>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </div>
-
                         {/* Education Section */}
                         <div
                             ref={educationRef}
@@ -622,27 +681,38 @@ const TerminalProfile = () => {
                                             )}
                                         </div>
                                     ))}
-                                    <Card className="bg-secondary border-primary">
-                                        <CardHeader>
-                                            <CardTitle className="text-base">
-                                                🏆 ACHIEVEMENTS
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="space-y-1 text-sm">
-                                            <p>
-                                                • Global Vision Scholarship, UCM
-                                            </p>
-                                            <p>
-                                                • Graduate Student Achievement
-                                                Award, UCM $1,000
-                                            </p>
-                                            <p>• SQL Developer Certificate</p>
-                                            <p>
-                                                • CS Engineer Information
-                                                Processing License
-                                            </p>
-                                        </CardContent>
-                                    </Card>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Certifications, Licenses & Awards Section */}
+                        <div
+                            ref={certificationsRef}
+                            id="certifications"
+                            className="scroll-mt-32"
+                        >
+                            <Card className="bg-card">
+                                <CardHeader>
+                                    <CardTitle className="text-primary">
+                                        &gt; CERTIFICATIONS_LICENSES_AWARDS.txt
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-1 text-sm">
+                                    <p>
+                                        • AWS Certified AI Practitioner, 08/2026
+                                    </p>
+                                    <p>
+                                        • SQL Developer Certificate, Korea Data
+                                        Agency, 07/2023
+                                    </p>
+                                    <p>
+                                        • CS Engineer Information Processing
+                                        License, HRDK, 11/2018
+                                    </p>
+                                    <p>• Global Vision Scholarship, UCM</p>
+                                    <p>
+                                        • Graduate Achievement Award, UCM $1,000
+                                    </p>
                                 </CardContent>
                             </Card>
                         </div>
@@ -657,7 +727,7 @@ const TerminalProfile = () => {
                             READY FOR OPPORTUNITIES
                         </div>
                         <div className="text-foreground">
-                            Available: 05/2026 | Last Updated: 6/26/2026
+                            Last Updated: 10/30/2026
                         </div>
                     </CardContent>
                 </Card>

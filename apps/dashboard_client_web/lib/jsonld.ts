@@ -3,7 +3,7 @@ import { SITE_URL } from '@/env.schema';
 // TODO(seo): owner to supply X/Twitter profile URL for Person.sameAs (knowledge-graph signal)
 const SOCIAL_LINKS: string[] = [
     'https://www.linkedin.com/in/tiotaeklim/',
-    'https://github.com/tradelunch',
+    'https://github.com/intothedeep',
 ];
 
 function toAbsolute(url: string): string {

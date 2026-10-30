@@ -7,7 +7,7 @@ import Link from 'next/link';
 export const ResumeTOC = () => {
     const navItems = [
         { label: 'LINKEDIN', href: 'https://www.linkedin.com/in/tiotaeklim/' },
-        { label: 'GITHUB', href: 'https://github.com/tradelunch' },
+        { label: 'GITHUB', href: 'https://github.com/intothedeep' },
         { label: 'ALGORITHMS', href: 'https://algorithm.prettylog.com/' },
         { label: 'PORTFOLIO', href: 'https://my.prettylog.com/' },
         { label: 'EMAIL', href: 'mailto:tio.taek.lim@gmail.com' },
