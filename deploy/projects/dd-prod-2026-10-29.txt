@@ -6,7 +6,7 @@ posts 12/12 200; images per post = md figure refs + 1 thumbnail (figures 86 + th
 00 5+1 · 01 3+1 · 02 7+1 · 03 7+1 · 04 6+1 · 05 8+1 · 06 10+1 · 07 8+1 · 08 13+1 · 09 5+1 · 10 10+1 · 11 4+1
 mermaid: 02 and 11 have flowchart source in HTML (client render, same as RS)
 redaction grep (cradle, utrgv.edu, IPv4, job id, slurm-NNNNN) on 12 pages: 0
-sitemap.xml: 0 of 12 new URLs. Expected: app/sitemap.ts ISR revalidate 86400. Recheck after 2026-10-31T02:00Z.
+sitemap.xml: 0 of 12 new URLs, 38 <loc> total. Expected: app/sitemap.ts ISR revalidate 86400. Recheck after 2026-10-31T02:00Z.
 cf-cache-status on post pages: DYNAMIC (old cnn post also DYNAMIC), not a new issue
 Projects menu badge: not measured (no pre value recorded)
 INCIDENT 01:47:16Z-~01:48:25Z: pre-SELECT ran session SET default_transaction_read_only=on via the transaction pooler (POSTGRES_URL). The setting stuck on the one pooled backend (pid 1776892). All pooled writes were read-only ~70 s. First publish attempt failed (no rows written). Fixed with SET ... off through the pool, 15/15 probes off. error_log rows in window: 0.
