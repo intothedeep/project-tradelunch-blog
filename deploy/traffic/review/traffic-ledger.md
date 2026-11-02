@@ -7,6 +7,7 @@
 
 | 기록일 | 기간 (7일) | Requests total | Requests cached | Percent cached | Data served total | Data served cached | 그 주의 변경 (커밋) |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-11-02 | 2026-10-26 ~ 11-01 (UTC, GraphQL `httpRequests1dGroups`) | 651,892 | 59,513 | 9.13 % | 2.324 GB | 0.176 GB | `65c1c28`, `df73101`, `469a8c7` |
 
 ## GCP 월간 (check 11)
 

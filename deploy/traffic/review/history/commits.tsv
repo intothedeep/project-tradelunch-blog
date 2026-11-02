@@ -1,0 +1,254 @@
+2026-11-01	a21f8df	docs(status): predict-market 00 overview published, big figures (#144)
+2026-10-30	b94dc1a	docs(status): About header links deployed 469a8c7
+2026-10-30	469a8c7	feat(web): About header GitHub and LinkedIn links
+2026-10-30	155fb61	docs(status): prettylog 00 overview republished
+2026-10-30	df73101	fix(web): About UCM dates back to 05/2026 (owner)
+2026-10-30	d5ab845	docs(status): resume + About deploy 65c1c28
+2026-10-30	65c1c28	feat(web): resume PDF 2026-10, About synced to resume (sections in resume order)
+2026-10-30	e4825e6	docs(prettylog): post 05 content-only build section republished; dd-prod sitemap 38 loc recorded
+2026-10-30	667f289	docs(dd): web redeploy dffd9e1, sitemap has 12 DDPM posts (check #13 closed)
+2026-10-29	dffd9e1	docs(dd): DDPM series published, 12 posts (#137-#143)
+2026-10-26	6091dcd	docs(check): item 12 recheck blog-assets stale infra image (#136)
+2026-10-26	0f297bf	docs(rs): CloudFront in 00 infra diagram (#136), blog-assets purge gap noted
+2026-10-26	52de852	docs(rs): 00 overview AWS icon diagrams (#134), no private source paths in posts (#135)
+2026-10-26	db7e70f	docs(rs): 00 overview title year 2018–2019 (owner tenure), old slug tombstoned (#133)
+2026-10-26	2b7af14	docs(rs): rec-solution 00 overview published first (#132), RS-2-00 closed, prod evidence
+2026-10-26	a2f9bf7	docs(mp): market-predict series design rev1 (7 posts, F/R/M/P tags, Q1-Q16)
+2026-10-20	45486a2	docs(rs): sync rs/pg plans to design rev3 (11 posts, company group, card A), D-row #131
+2026-10-20	9fef48f	docs(rs): Recobell design rev3 (company group kept, title, owner facts), D-row #130
+2026-10-19	c261926	docs(rs): Recobell series design rev2 (merger deep-dive, 11 posts, Q1-Q20)
+2026-10-19	ac6ac7b	docs(rs): Recobell series plan (rs.plan.md), #127-#129, pg.plan recobell group lines
+2026-10-18	be779a0	docs(check): item 4 Supabase Log Query closed (2.817 GB, flat since 10-13)
+2026-10-18	b555cd3	docs(ps): PS-3-07 owner visual PASS, title A confirmed (#126); Phase PS 20/20
+2026-10-18	b9e35e5	docs(plan): Phase PS stub → published
+2026-10-18	501c969	docs(ps): series written, reviewed once, published (8 posts, my-work/prettylog), prod evidence; #125
+2026-10-18	0761414	docs(ps): Phase PS plan (ps.plan.md, 20 rows), #124 owner answers (one review before publish), PG G1/M3 → 4 cards
+2026-10-18	5b23750	docs(status): markdown tables + mermaid
+2026-10-18	77852bd	feat(web): styled GFM tables + client-side mermaid diagrams in MarkdownRenderer (lazy import, strict, code fallback)
+2026-10-18	bcdb9fa	docs(series): prettylog-series.design.md — 8-post 'Prettylog From Scratch' series design (#122)
+2026-10-18	6a2a79d	docs(pg): M2 gate PASS review + F1–F4 closed (#123), #122 prettylog series decision
+2026-10-18	d368270	docs(pg): #121 same-title risk accepted (owner B), owner prod check good
+2026-10-18	97ade91	docs(pg): PG MVP2 stage report; MVP1 numbers + F1 run note
+2026-10-18	0a0d222	docs(pg): PG-2-07 check + breakage, PG-2-08 same-title breakage evidence
+2026-10-18	9dde8d6	ci(cc): project group 404/200 rows (PG-2-07); docs(pg): PG-2-01..06 done, data move SQL + prod evidence, G1 by 2026-10-20
+2026-10-18	47f6ba2	docs(pg): M1 gate PASS (cycle 2/2), PG-1-01..08 closed
+2026-10-18	3999864	fix(web): treat missing project group (old API) as ungrouped; docs(pg): M1 gate cycle 1 ISSUE fixes (F1 real-data run, #120, PG-1-03/PG-3-02 AC)
+2026-10-18	ae0b718	docs(pg): PG MVP1 stage report + M1 evidence
+2026-10-18	4246056	feat(api): two-level projects SQL (PG-2-01) — group fields, group order, DISTINCT ON title, hide empty groups in cards + detail; fix(web): not-found duplicate key
+2026-10-18	ca1eaad	docs(tips): local-prod-env as HTML tips page (run first, no key typing, worktree env/@repo/types steps); md → x_
+2026-10-17	736bb46	feat(web): project groups M1 (PG-1-01..06) — group fields, i18n labels, mock switch PROJECTS_DATA_SOURCE, grouped sections + chips + breadcrumb, tree group labels
+2026-10-17	4387de4	docs: CLAUDE.md project groups convention (#119), tips/local-prod-env.md, web README cert path → ~/.config/prettylog/certs
+2026-10-17	86f2e8f	docs(pg): project groups design §12 + plan pg.plan.md (#119 owner picks: my-work, company, gatech, utrgv)
+2026-10-14	92f59aa	docs(check): recurring Cloudflare weekly + GCP monthly traffic records, ledger file
+2026-10-14	c887b19	docs(debugging): ch 15 traffic overrun — causes, before/after, estimates, gaps (evidence: traffic-debug-evidence.md)
+2026-10-14	508a6a3	feat(web): project count badge on Projects menu (rail, collapsed dot, mobile drawer/dropdown)
+2026-10-14	285c5c4	feat(web): Projects menu + page title icon = Rocket (owner pick, more clickable for recruiters)
+2026-10-14	ea14ba5	docs(readme): free tier specs per cloud service (GCP, Cloudflare, OCI, Supabase, Clerk, GitHub Actions) with sources; IPv4 ≈ $3.65
+2026-10-14	3a2ce41	docs(readme): 'A full-stack blog on free tiers: $0–3.65 / month' showcase (diagram, cost table, 1 GB VM tricks)
+2026-10-14	454f28b	docs(readme): infrastructure & architecture as diagrams (request path, Next pipeline, URL map, cache layers, deploy, monorepo, workflows); hosting table
+2026-10-14	daea9bb	docs: close today's update — Phase PJ CLOSED (backlog PJ-1-D1, PJ-OWN-1), book ch 09/10 P2 gate lesson, READMEs, P2 report gate PASS
+2026-10-14	fd2ecfd	docs(pj): close PJ-1-30 (owner TOC check), #118 normal posts keep their rail
+2026-10-14	ede3cb8	docs: #118 shared aside + top alignment deployed
+2026-10-14	3996711	fix(web): right rail top padding = main column (pt-4) so aside and body start on one line; #118 row
+2026-10-14	5224460	feat(web): project post detail shares its parent's right rail (TOC + HomeRightRail), #118
+2026-10-14	0496f5e	docs: #117 owner confirmed no more sign-up
+2026-10-14	1a6d739	chore(gcp): artifacts download folder .gh-artifacts/ (not x_, survives cleanup); PJ-1-30 AC1 closed
+2026-10-14	3ee3eca	chore: remove retired folders
+2026-10-14	6b2a09e	docs: #117 sign-ups closed (f7b2a81 deployed)
+2026-10-14	f7b2a81	feat(web): close new sign-ups (#117): /sign-up is a proxy 404, Sign up link hidden on sign-in
+2026-10-14	07e4be7	docs(pj): close PJ-2-07, 1-33, 1-34; PJ-1-30 token expired note; #116 _docs stays ignored
+2026-10-14	61ff967	docs(pj): projects.design rev3 (#80 #81 #89 #113 #115), close PJ-1-31
+2026-10-14	ca3122c	docs(pj): close PJ-1-29 (doc paths), PJ-1-35 (soft 404 gone), PJ-2-08 (robots comment)
+2026-10-14	523f621	docs: P2 gate PASS (M4), Phase CC archived (local _docs), #114 Update 2, cc.plan.md soft-retired
+2026-10-14	14e5bf5	docs(pj): #115 log gate deployed df0a482, P2 gate cycle 1 ISSUE fixed
+2026-10-14	df0a482	fix(pj): proxy log gate for /@u/logs/<logId> (soft 404 → real 404), P2 gate M-1, #115
+2026-10-14	8f35d70	docs(pj): P2 step 4 mobile menu checked by owner
+2026-10-14	1b001bf	docs(cc,pj): CC-D1 design §18.9 guards, D2 done, P2 report + traffic-check, README cc-build retired; standalone check runs on main
+2026-10-14	2cfb6bc	docs(cc): final review files, CC-D2 comments + retire cc-build.yml, CC-U2/U0a closed (#114); harness submodule bump
+2026-10-14	87f176b	docs(cc,pj): final-review fixes (report wording, book), Phase CC CLOSED rows, P2 rows closed, P2 prod route evidence
+2026-10-14	8eac7d8	fix(cc): unstable_rethrow first in every server render catch (architect R2: TagCloud, profile, comments, filters, slug page, metadata, OG, JSON-LD)
+2026-10-14	a9845cb	fix(web): lint 0 in gen-public-paths.mjs (CI red since 0a27b51)
+2026-10-14	4cf13ea	docs(pj): P2 deployed 1c035f2; close CC-QW1-2, QW2-2, U7-2, N14 (#114)
+2026-10-14	1c035f2	fix(cc): unknown non-@ paths are proxy 404 by route shape (/api/x, /tags, /favicon/x were 500); serve /favicon.ico, /icon.png (were 404)
+2026-10-14	0aa96f6	feat(pj): remove global /log feed (404), mobile menu = desktop rail (icons, tone active, square), #113
+2026-10-14	a59212a	fix(pj): /log/<anything> is a proxy 404 (no child route since P2; avoids ISR not-found 500)
+2026-10-14	c350225	feat(pj): P2 logs move to /@u/logs (old /log/@u 404, no 308, #113); sitemap uses /@u/about|resume (PJ-1-28)
+2026-10-14	12a4c64	docs(cc): Phase CC CLOSING in plan/tasks (U4 #106, U5/U6 dropped, CC-U4-2, CC-U7-2), PJ M4 open, Alpha Arena = applied (#112)
+2026-10-14	8b8dd39	docs(cc): #112 Alpha Arena = style (done); report, READMEs, book final Phase CC state + cache-layer map
+2026-10-14	588c200	docs(cc): close Phase CC (U4 kept, U5/U6 dropped) in plan, tasks, report, READMEs, book (in progress)
+2026-10-14	0a27b51	docs(cc): #111 drop U5, keep U4, close Phase CC; main merges cc-u4-o (= prod 181e6ed)
+2026-10-14	9024632	perf(cc): U5 A-B (#110) no gain 302 -> 316 ms, projects render errors, reverted to U4 181e6ed
+2026-10-14	f7bc524	docs(cc): #106-#109 (U4 in prod 181e6ed, G-a pass, rethrow fix, U6 dropped, Alpha Arena), run 29; book ch 10 cacheComponents U4/U5/U6
+2026-10-14	181e6ed	fix(cc): unstable_rethrow in server fetcher catches (cacheComponents runtime prerender aborts were logged as ERROR)
+2026-10-14	f76c1d9	perf(cc): U4 original prefetch (revert option b); signed-in prefetch skips existence gate (#106)
+2026-10-14	2ac61f0	Revert "perf(cc): U4 option b, hover-only prefetch for nav/tree links + anon browser pass in standalone check"
+2026-10-14	b7bb2fd	docs(cc): U4 A-B-A bundle (#105: primary invalid, guards pass, G-CC missed), runs 26-28, verdict memo; book ch 08 results + ch 09 lessons, checklists
+2026-10-14	56f6906	ci(cc): arms input for measure workflow (§19.3 drop arms to fit 60 min)
+2026-10-14	a05a301	docs(cc): #104 U4 recovery 2/2 (A-B-A today); ci(cc): rails input for measure workflow
+2026-10-14	a855af3	Reapply "Merge cc-u4 recover A2: unknown top-level and dotted paths 404 in proxy (no ISR render), non-owner about/resume 404"
+2026-10-14	d1a2f30	Reapply "Re-apply U4 (revert of revert 7b4a138) before merging the recover fixes"
+2026-10-14	c4501d4	feat(cc): gate signed-in RSC navigation too (#103, #98 option b)
+2026-10-14	281ce00	fix(web): square menu items in left rail; docs(cc): #103 owner answers (#98 → b, G-CC by 2026-10-14)
+2026-10-14	d4bacb9	docs(cc): M-CC1 gate review (cycle 1 ISSUE, cycle 2 PASS); diagnosis §7 A2
+2026-10-14	67bb0cd	docs(cc): end-of-run handoff line
+2026-10-14	35f5384	ci(cc): unhashed OG path row expects 404 (matches pre-U4 prod; A2 note)
+2026-10-14	8df73d5	docs(cc): #88 Update 4 (§19 A-B-A), CC-U4 AC8a
+2026-10-14	606fd26	docs(cc): §19 U4 measurement under drift (A-B-A within 60 min, validity d <= 10%, count guards), criteria U4 rev2.3
+2026-10-14	fc83b75	perf(cc): U4 option b, hover-only prefetch for nav/tree links + anon browser pass in standalone check
+2026-10-14	b944b82	docs(cc): #102 Update (drift control: U4 nav verdict confounded, G-a stands; recommend (b), owner go needed)
+2026-10-14	20c6d49	perf(cc): env recheck: signed-in W1 476 ms on current prod -> U4 nav verdict confounded by drift; G-a fail stands
+2026-10-14	f7ee8fa	perf(cc): ledger rows 20-25 (U4 attempts, U7), U7 obs: signed-in W1 500 ms without cacheComponents (environment confound for U4)
+2026-10-14	f19a612	docs(cc): cc.report.md N11 fixes + MVP2 (U4 stopped K3) + MVP3 (U7 PASS)
+2026-10-14	cf105e2	perf(cc): U7 PASS (my. load-more 12 -> 0, blog-api 12x200), guards OK
+2026-10-14	63951b3	docs: README app layout (route groups), section tones, perf measurement, cacheComponents off
+2026-10-14	559640b	docs(cc): #102 U4 K3 stop (recovery 1/2), CC-U5/U6 blocked, owner question (a)/(b)/(c)
+2026-10-14	964c9f8	perf(web): CC U7 load-more calls blog-api directly (Q11 option b)
+2026-10-14	928392b	perf(cc): U4 verdict memo (FAIL, regression on signed-in s4/s5; structural H-S, not prefetch)
+2026-10-14	cd60b70	docs(cc): U4 attempt 2 FAIL + guard fail, reverted (7b1d1c9)
+2026-10-14	7b1d1c9	Revert U4 attempt 2 (f122265 + 1c2023e): verdict FAIL and guard G-a FAIL
+2026-10-14	435dbf2	Revert "Re-apply U4 (revert of revert 7b4a138) before merging the recover fixes"
+2026-10-14	c15c79f	Revert "Merge cc-u4 recover A2: unknown top-level and dotted paths 404 in proxy (no ISR render), non-owner about/resume 404"
+2026-10-14	4ff9476	perf(cc): U4 attempt 2 runs (FAIL: auth s2-s6 329 -> 434 ms; G-a auth 50-53 >= 50)
+2026-10-14	1c2023e	Re-apply U4 (revert of revert 7b4a138) before merging the recover fixes
+2026-10-14	8f99a8e	docs(cc): recover A2 PASS (OG row expectation corrected with pre-U4 prod evidence)
+2026-10-14	3369fe8	ci(cc): non-gating og:image diagnostic
+2026-10-14	598e2e1	fix(cc): A2 dotted paths handled in proxy, generated PUBLIC_PATHS, extra standalone rows
+2026-10-14	6c55551	fix(cc): U4 proxy 404 for unknown top-level paths and non-owner about/resume (candidate A + S0)
+2026-10-14	0c406c7	ci(cc): standalone check uses HOSTNAME=localhost like prod (self-proxy loop otherwise)
+2026-10-14	ab8982e	ci(cc): standalone server 404/200 path table check (U4 recover step 1)
+2026-10-14	20a567f	docs(cc): recover step 2 plan line
+2026-10-14	a4e4c35	perf(cc): U4 recover step 1 diagnoses (architect: ISR notFound outside Suspense + TagCloud no-store -> revalidate 0 -> 500 in prod only; data: 6x500 non-@ paths, none after revert)
+2026-10-14	7923c9b	docs(cc): M-CC2 opened (#100), #101 smoke baseline, #88 Update 3; U4 attempt 1 reverted (prod 500 on unknown top-level paths)
+2026-10-14	7b4a138	Revert U4 merge (535b931): unknown top-level paths returned 500 in prod
+2026-10-14	8517aa8	perf(cc): gate M2/M3 closed: ledger rows 12-19, G-h/G-j PASS, smoke 15 + G-g + C5 + G-l D2 on 0ac938c
+2026-10-14	28e5351	docs(cc): gate M4-M7 closed (#99 U1 option B pending owner confirm; CC-U1c [x] + U1c-2; CC-U3 AC2 -> U3-2; M-CC1 cycle 1/2)
+2026-10-14	063a117	docs(cc): cc.report.md MVP1 stage reports (gate M1)
+2026-10-14	bd93787	perf(cc): U4 baseline v2 (auth s2-s6 329 ms, line 68, pass <= 261), recorded before any U4 run
+2026-10-14	c0cce9c	perf(cc): G-j server fetch counts for U2/U3 curl runs (12 per MISS set: home 3, posts 5, post 4)
+2026-10-14	efe7eed	feat(cc): U4 proxy real-404 gates (option P, cc.design.md 18)
+2026-10-14	567d34b	docs(cc): #97 U4 404 = proxy gate (P), #98 signed-in RSC nav 200 not-found (a) + owner notice; CC-U4 AC7a-h
+2026-10-14	345a400	feat(cc): U4 leaf gates (UserGate/ProjectGate/PostGate) from cc-u4-soft404 e95b975
+2026-10-14	637ed9a	docs(cc): §18 U4 real-404 gates in proxy.ts (option P)
+2026-10-14	787daed	perf(cc): browser script v2 (byte metric fallback chain, w1 rsc body save, per-run warmup, w1_miss_count)
+2026-10-14	75e95df	perf(cc): U3 runs; verdict FAIL by line (s5 post nav 317->174 ms, -45%, line 192), kept on guards; U4 baseline 343 ms
+2026-10-14	1f88209	chore(cc): declare CC_SAMPLE_* in turbo globalEnv
+2026-10-14	091903d	wip(cc): U4 sign-in/sign-up samples
+2026-10-14	ae1dba1	chore(cc): drop stray next-env.d.ts from cc-u4
+2026-10-14	c376b67	wip(cc): U4 iteration 1, cacheComponents on, samples, loading.tsx, owner-only proxy 404
+2026-10-14	44ebe22	perf(cc): U2 PASS (re-click _rsc 1 -> 0), U2 runs; U3 baseline set
+2026-10-14	4695596	docs(cc): #88 Update 2 (nav metric), CC-U3/U4 rows, QW2 verdict incomplete note
+2026-10-14	2167e7a	docs(cc): §17 rev2.2 nav metric (U3 = s5 post nav, U4 = s2-s6 sum; auth expanded), fixed before any U3 comparison run
+2026-10-14	42d518c	perf(cc): criteria.md (9 units, 13 guards; late copy of #88/#94/#96) and 00.runs.md ledger (11 runs)
+2026-10-14	6b1f324	perf(cc): U4 preview from runner-only flag-on builds (blocking routes: /tags/[tag], /log/[username]/[logId])
+2026-10-14	ec5e2ab	ci(cc): flag-on preview also drops route 'dynamic' lines in the runner
+2026-10-14	a171c6a	ci(cc): cc-build builds @repo/types first (flag-on run failed on module resolution)
+2026-10-14	37b069d	docs(cc): #96 U2 re-scope, QW1/QW2 PASS rows (+ follow-ups), 00.plan.md 381->323 (shipped stubs archived)
+2026-10-14	6a50220	perf(cc): U1 verdict memo (not judgeable; guards pass; option B)
+2026-10-14	0ac938c	perf(web): CC U3 leaf dynamic reads + preload (cacheComponents still off)
+2026-10-14	0bfb32f	docs(cc): handoff line (usage limit)
+2026-10-14	3ead60b	perf(cc): U1 browser run (3596e4c, 3 runs)
+2026-10-14	c26c69d	perf(web): CC U2 staleTimes.dynamic = 30 (cc.design §16)
+2026-10-14	3594486	feat(web): header tone 15% (owner)
+2026-10-14	71ae0c2	feat(web): header tone 30% (owner: fainter)
+2026-10-14	2b20edd	feat(web): fainter header tone (50% of the section tone; owner)
+2026-10-14	81ca95b	feat(web): top bar (desktop + mobile) takes the active section tone (owner)
+2026-10-14	3596e4c	feat(web): square Badge base (post tags, feed card tags; owner)
+2026-10-14	9484eda	feat(web): square applied-filter and filter chips (owner)
+2026-10-14	3b0201f	perf(cc): QW1 PASS (server fetches 19 -> 13), QW2 PASS (rail class cookie-independent 3/3); browser after-QW run; docs #94 #95
+2026-10-14	8ec61c7	feat(web): /@u/posts title box (posts tone, menu icon) and cards box (owner)
+2026-10-14	a40263b	feat(web): tag page title on plain gray (tags are filters, not sections)
+2026-10-14	e05cec6	perf(web): CC U1c one shared right rail per handle in [handle]/(rail)
+2026-10-14	57657a2	feat(web): square tag chips and rows in the left rail (owner)
+2026-10-14	9e2a7a4	feat(web): tag page cards wrapped in a bordered box (owner)
+2026-10-14	201800c	feat(web): yellow tone for Write; Projects tone red (owner)
+2026-10-14	4b20bd6	feat(web): /write gets the shared left rail (moved under (shell))
+2026-10-14	3d01d5a	feat(web): pastel section tones (trial) + tag page title box
+2026-10-14	df11372	perf(web): CC U1a+U1b left rail rendered once in app/(shell)
+2026-10-14	141742d	perf(cc): QW1 baseline server fetches per MISS render = 19 (home 5, posts 10, post 4), 3/3 runs, range 0
+2026-10-14	249dc63	perf(cc): rev2.1 measurement fixes + ssr_fetch counter (cc.design §14)
+2026-10-14	2b39763	perf(cc): U0b browser baseline (Actions run 38516514264, deployed 19f5e31)
+2026-10-14	61d48bc	feat(web): rule under the left-rail menu (owner request)
+2026-10-14	4889e0b	perf(cc): U0b baseline summary and verdict lines (curl arm)
+2026-10-14	db48bb3	docs(cc): U1c shared right rail (#93, Q14/Q15 owner answers)
+2026-10-14	5cbe165	perf(web): CC QW1 quick wins (Suspense comments, cache() fetchers, leaf filters, LCP)
+2026-10-14	dc9aaa0	feat(web): square boxed UI pass, header search (⌘K), saved/me left rail
+2026-10-14	8c84ec9	perf(cc): U0b baseline runs 1-3 (deployed 19f5e31; folder sha = local HEAD)
+2026-10-14	b1fcedc	feat(perf): CC browser measurement on GitHub Actions (Playwright)
+2026-10-14	b13f4ee	fix(web): CC QW2 rail width from <html data-rail>, not a server cookie read
+2026-10-14	19f5e31	docs(cc,pj): P1 gate PASS (cycle 2/2); Phase CC design, audit, plan and book
+2026-10-14	3fd88e1	feat(web,perf): CC U0a instrumentation + baseline measurement script
+2026-10-13	560f941	fix(web): unknown post, project and user return HTTP 404 (not a 200 soft 404)
+2026-10-13	8dc5dca	feat(web): /me moves to /@u/me; /@u/me and /@u/saved are owner-only 404s
+2026-10-13	adcfc06	fix(web): legacy URL 308s carry Cache-Control (proxy, not next.config)
+2026-10-13	d7228ea	feat(pj): retire project mocks; resume gets the left rail; MVP2 report
+2026-10-13	ee9a478	docs(pj): M2 deployed and measured (PJ-1-16, PJ-1-19, PJ-2-04)
+2026-10-13	9f7c5fe	docs: local HTTPS dev against the prod API (cert in ~/.config/prettylog/certs)
+2026-10-13	093eca9	chore(web): remove app/blog (owner deleted the x_ leftovers)
+2026-10-13	fd0e7a5	fix(web): per-request Jotai store; silence next-themes client script
+2026-10-13	47aa42d	feat(web): loading skeletons for routes and rails; hover prefetch on project links
+2026-10-13	9b13cb9	refactor(web): empty app/blog; shared blog components live in components/blog
+2026-10-13	4f045a0	fix(web): menu drawer uses animation longhands (React style warning)
+2026-10-13	69aacad	refactor(web): every internal link uses /@user/... builders (PJ-1-20/21)
+2026-10-13	a2e139f	feat(web): velog-style project list, home right rail, square project UI
+2026-10-13	c64fa3f	chore(traffic): sample URLs move to /@taeklim/... (PJ-1-18)
+2026-10-13	ab4c3c0	feat(pj): real project APIs and web fetchers (Phase PJ P1 MVP2)
+2026-10-13	d008cfb	docs(pj): M1 done: tasks, decisions #80-#81, MVP1 report, check.md
+2026-10-13	7f15669	feat(web): /@user URLs and Projects pages (Phase PJ P1 MVP1)
+2026-10-13	a360d8c	feat(pj): reserved post slugs and project contract types
+2026-10-13	abe78ca	docs(pj): Phase PJ design and plan (author URLs, Projects pages)
+2026-10-13	ffd9d85	feat(web): i18n keys for the Projects pages (en, ko)
+2026-10-13	daf209f	feat(web): delisted-chart 404 page with path echo and home links
+2026-10-13	5617ff4	chore(deploy): one-command GCP deploy scripts for web and api
+2026-10-13	cd28984	docs(debugging): 14.2 fixed in 11b3023 (OG webp in .generated/)
+2026-10-13	11b3023	fix(blog_agent): write OG webp to <post>/.generated, not beside the source
+2026-10-13	51efc30	fix(web): post-page tag chips and rail lists do not prefetch (#70)
+2026-10-13	8629cef	docs(debugging): chapter 14, blog_agent publish (IPv6 host, thumbnail webp)
+2026-10-13	753c2c9	fix(blog_agent): prefer pooled POSTGRES_URL; masked publish env check
+2026-10-13	5061d8c	docs(check): move dateless items 6-7 into a misc section
+2026-10-13	5ba0aff	docs(check): exact prefetch count for the book; digest pairing check
+2026-10-13	0fffd73	docs(check): prefetch recount done (owner: fewer requests)
+2026-10-13	b3b0df6	docs(check): watch for the first JSON error line after 35b3630
+2026-10-13	f11ad15	docs(logging): log views and timestamped JSON error lines (book + runbook)
+2026-10-13	35b3630	feat(web): timestamped JSON error lines and onRequestError log
+2026-10-13	0783e16	docs(book): traffic-security book; web release d2 purge and stale ETIMEDOUT log case
+2026-10-13	1423310	docs(traffic): purge token setup and purge after every web release
+2026-10-13	4011c84	docs: purge Cloudflare after every web release; option f (#70)
+2026-10-13	1c5fbba	fix(web): rail tag cloud links do not prefetch (#70 f)
+2026-10-13	34e2080	docs(traffic): infinite-scroll 429 and prefetch analysis with fixes (#70)
+2026-10-13	813f583	fix(web): cut feed Link prefetch, guard load-more, hide Log menu
+2026-10-13	2e919a8	docs: firewall and cache-key allow list stopped by owner
+2026-10-13	6a231f5	docs: check.md with dated follow-ups; read it at session start
+2026-10-13	55e4c35	docs: SSR key fix verified (all ssr=true); CF limit 50 verified
+2026-10-13	40cacb4	docs(traffic): how isomorphic clientRequest sends the origin key only on the server
+2026-10-13	7f07df7	fix(web): isomorphic clientRequest sends x-origin-key when it runs on the server
+2026-10-13	903c8dd	docs: L2-api pass, normal-use per-IP counts, decisions #68 (CF 50/10s) #69 (firewall kept)
+2026-10-13	cbe0f78	ci(load-test): L2-api set runs the api half of L2 alone
+2026-10-13	3139d00	docs(traffic): how the query-string cache bypass works and options a/b
+2026-10-13	4b4d389	docs: Phase TC rows for the 38b4c12 deploy, L1, L2-web, web rate limit
+2026-10-13	4019ecf	docs: 38b4c12 deploy verified; SSR calls via clientRequest send no origin key (fix before enforce)
+2026-10-13	e4576f4	docs(traffic): L1 pass, L2 web capacity ~2 rps (aborted at 4 rps), web rate limit verified
+2026-10-13	b44b153	fix(load-test): L2 web stages as whole numbers per 2 s (k6 rejects 0.5)
+2026-10-13	0bf37d0	fix(load-test): request count per target in the job summary
+2026-10-13	38b4c12	ci(load-test): k6 workflow with sets L1 (cache HIT) and L2 (origin MISS)
+2026-10-13	694fb5c	feat(api): per-IP rate limit backstop in log mode; client ip and ssr in request logs
+2026-10-13	8019675	docs(traffic): owner decisions #62-#67, Q&A on CORS vs curl, memory store, SSR key; step 6 web rate limit
+2026-10-13	90e70ee	docs: rate-limit design and new security fixes in the review; Phase TC rows; decisions #60 #61
+2026-10-13	42e1bf3	fix(security): gate error-logs ingest with x-origin-key; JSON 404; hide x-powered-by
+2026-10-13	aad898b	docs(traffic): rev2 rate-limit layers (edge + Express backstop) and load-test plan
+2026-10-13	d9dfefb	docs: CORS 403 verified in production; traffic steps 1-5 in status
+2026-10-13	4d137f2	fix(api): answer a disallowed CORS Origin with 403, no error_log insert
+2026-10-13	2912bca	fix(traffic-check): retry HIT checks; 🚨 only when a private answer is HIT
+2026-10-13	c3c49ff	ci(logging-review): weekly Cloudflare cache-rule check in the review issue
+2026-10-13	10dab4c	docs: web log query commands; Phase TC plan and tasks
+2026-10-13	48ae20e	ops(traffic): 5-step traffic-control runbook, cache check and VM metrics scripts
+2026-10-13	3c365fd	docs: blog-web request log live; traffic-control verification design
+2026-10-13	fa4d610	docs(logging): step-by-step VM apply for the blog-web request log
+2026-10-13	67cb0cd	docs(web): LOG_REQUESTS=false in the dev commands and local-run docs
+2026-10-13	e0b762a	docs(books): debugging casebook for the GCP move (12 cases + method)
+2026-10-13	f33a917	feat(web): one JSON request line per page request, shipped as blog-web
+2026-10-13	3a6463a	fix(gcp): run blog-web with HOSTNAME=localhost to stop the self-proxy
+2026-10-13	3d2193f	docs(gcp): use vi in the runbook
+2026-10-13	cc5aead	docs(web): run the local web against the production API, signed in
+2026-10-13	42ba55c	fix(web): show the 404 page for a missing post instead of the error page
+2026-10-13	77315eb	fix(web): show a quiet notice when the feed API is unreachable
+2026-10-13	07e83f6	chore(web): run the dev server on port 3000, same as prod
