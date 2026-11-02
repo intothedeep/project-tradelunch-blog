@@ -1,0 +1,19 @@
+# predict-market 00 prod check 2026-11-02T02:48:31Z, category projects>my-work(13)>predict-market(375476161280479232), purged
+post 200 tables=6 mermaid_or_img: fig=0 title=6
+leak_broker_ip=0 betting=0
+projects ids: id="my-work" id="company" id="utrgv"  predict-market link=2
+project page 200
+group path 404
+api cards: 
+img:  
+200 20740 https://blog-assets.prettylog.com/1/projects/my-work/predict-market/predict-market-rebuilding-a-btc-data-pipeline-3-sites-down-to-1-laptop-1/predict-market-rebuilding-a-b
+200 10376 https://blog-assets.prettylog.com/1/projects/my-work/predict-market/predict-market-rebuilding-a-btc-data-pipeline-3-sites-down-to-1-laptop/predict-market-rebuilding-a-btc
+alt:        2 mermaid_src=       4 Appendix=2 sw=       2
+note: first run's img/api lines were blank because of this check's own grep (asset key is renamed to the slug, and the api path guessed was wrong). The 2 asset lines above replace them. Project card = /projects link count 2, project page 200.
+open: mermaid render not seen in a browser; sitemap waits up to 24 h (app/sitemap.ts ISR).
+republish 2026-11-02T02:51:48Z: post 200 dotted_K_engine=2 caption=2 leak_broker_ip=0
+asset 200 20740 ...pipeline-3-sites-down-to-1-laptop-1.webp
+asset 200 10376 ...a-pipeline-3-sites-down-to-1-laptop.webp
+review republish 2026-11-02T02:55:46Z: post 200 mock_longrun=4 goal=2 coinbase=2 leak_broker_ip=0 firstphase=0
+big-figures republish 2026-11-02T03:01:18Z: new slug predict-market-rebuilding-a-btc-pipeline-from-3-sites-to-1-laptop, 6 PNG figures, 0 mermaid
+new 200 old 404 project 200 links=predict-market-rebuilding-a-btc-pipeline-from-3-sites-to-1-laptop 
