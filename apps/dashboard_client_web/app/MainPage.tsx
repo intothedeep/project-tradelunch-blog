@@ -22,6 +22,7 @@ const TerminalProfile = () => {
 
     const summaryRef = useRef(null);
     const experienceRef = useRef(null);
+    const researchRef = useRef(null);
     const projectsRef = useRef(null);
     const contributionsRef = useRef(null);
     const skillsRef = useRef(null);
@@ -31,9 +32,10 @@ const TerminalProfile = () => {
     const sectionRefs = {
         summary: summaryRef,
         experience: experienceRef,
-        skills: skillsRef,
+        research: researchRef,
         projects: projectsRef,
         contributions: contributionsRef,
+        skills: skillsRef,
         education: educationRef,
         certifications: certificationsRef,
     };
@@ -64,15 +66,14 @@ const TerminalProfile = () => {
 
     const experiences = [
         {
-            title: 'Software Engineer',
+            title: 'Senior Software Engineer',
             company: 'ADRIEL',
             location: 'Seoul, South Korea',
             period: '11/2021–05/2024',
             achievements: [
-                'Migrated dashboard from Vue to React with Next.js, improving frontend loading time by 50%.',
-                'Engineered an editable dashboard-snapshot system with RxJS, reducing storage by 90%.',
-                'Built a WYSIWYG text-editor widget with the Quill library, reaching 100% client adoption.',
-                'Documented frontend setup and business logic using Notion and Figma, reducing technical assistance time by 50%.',
+                'Cut most dashboard loads from 3s to under 1s via a React/Next.js migration, RxJS event control, and a server-aggregation API redesign.',
+                'Traced slow dashboards and wrong totals to browser-side aggregation and proposed moving aggregation and caching to the server.',
+                'Reduced client report generation time from 2 hours to 1 hour by developing a PDF export feature with layout conversion algorithms.',
             ],
         },
         {
@@ -86,11 +87,11 @@ const TerminalProfile = () => {
         },
         {
             title: 'Software Engineer',
-            company: 'BabelTop',
+            company: 'BABELTOP',
             location: 'Seoul, South Korea',
             period: '07/2019–11/2019',
             achievements: [
-                'Developed a translator-approval process and rebuilt login, sign-up, and translator-resume features for a translation SaaS, using JavaScript, React, Redux, and Redux-Saga.',
+                'Built translator-approval, login, sign-up, and resume features for a translation SaaS using React, Redux, and Redux-Saga.',
             ],
         },
         {
@@ -99,24 +100,52 @@ const TerminalProfile = () => {
             location: 'Seoul, South Korea',
             period: '02/2018–07/2019',
             achievements: [
-                'Operated a cloud-based recommendation system using Java, Spring, MySQL, and AWS, processing 500M+ user logs monthly.',
-                'Maintained and extended data pipelines, a SQL-based recommendation engine, and APIs using AWS Kinesis, S3, and Spring.',
+                'Operated a cloud-based recommendation system using Java, Spring, MySQL, and AWS, processing 600M+ user logs monthly.',
+                'Built keyword-based book recommendation APIs for Korea’s No. 1 bookstore ($500M annual revenue), handling 1M+ daily requests.',
+                'Maintained and extended data pipelines, a SQL-based recommendation engine, and APIs using AWS Kinesis, S3, and Java.',
+            ],
+        },
+    ];
+
+    const research = [
+        {
+            title: 'Graduate Research and Teaching Assistant',
+            company: 'UTRGV',
+            location: 'Edinburg, TX',
+            period: '08/2026–Present',
+            achievements: [
+                'Generating nocturnal bird flight calls from 30–130 samples using open-source audio models to support rare-species research.',
+                'As Teaching Assistant, built a PyTorch DDPM on SLURM, improving public FID from 30.26 to 6.10 under a 10M-parameter cap.',
+                'Built a PyTorch ResNet ensemble reaching 93.2% private accuracy on 100 classes under a 5M-parameter cap, across 158 training runs.',
             ],
         },
     ];
 
     const projects = [
         {
-            name: 'Weather & Kalshi Arbitrage Pipeline',
-            tech: ['Python', 'Kafka', 'ClickHouse', 'k3s'],
-            period: '10/2026–Present',
-            desc: 'Streamed real-time weather, BTC, and Kalshi market data through Kafka into ClickHouse. Ran a hybrid k3s cluster (Cloud + on-prem via Tailscale) with a Next.js/Node monorepo. Predicted per-unit temperature and price up/down percentages to surface arbitrage on the Kalshi orderbook.',
+            name: 'Weather and BTC Prediction-Market Data Pipeline',
+            tech: ['TypeScript', 'Kafka', 'ClickHouse', 'k3s'],
+            period: '04/2026–Present',
+            desc: 'Collected Kalshi, Polymarket, and 60-city weather data into ClickHouse on a Mac mini, with 39 Kafka topics and k3s on Oracle Cloud. Deduplicated rows with idempotency keys and ClickHouse ReplacingMergeTree under one Protobuf schema.',
+        },
+        {
+            name: 'Personal Blog and Portfolio',
+            tech: [
+                'Next.js',
+                'Express',
+                'Postgres',
+                'GCP',
+                'OCI',
+                'Cloudflare',
+            ],
+            period: '10/2025–Present',
+            desc: 'Built a Python publisher from an NFS-mounted home NAS to Postgres and Oracle Object Storage, with Claude-generated tags. Restored a suspended site and cut Supabase egress from 40+ GB a week to 2.47 GB in October using GCP and Oracle storage at $0. Traced 16 traffic causes and added Cloudflare caching and rate limiting: a 640-request test on cached URLs reached the VM 0 times.',
         },
         {
             name: 'MapReduce Infrastructure Implementation',
             tech: ['C++', 'gRPC', 'protobuf'],
             period: '11/2024',
-            desc: 'Designed and implemented a simplified distributed MapReduce infrastructure based on "MapReduce: Simplified Data Processing on Large Clusters" by Jeffrey Dean and Sanjay Ghemawat.',
+            desc: 'Implemented a simplified distributed MapReduce framework with asynchronous gRPC, based on the Dean and Ghemawat paper.',
         },
     ];
 
@@ -147,15 +176,8 @@ const TerminalProfile = () => {
     ];
 
     const skills = {
-        Languages: [
-            'Java',
-            'Python',
-            'C/C++',
-            'TypeScript/JavaScript',
-            'SQL',
-            'Rust',
-        ],
-        'Data & Streaming': [
+        Languages: ['Java', 'Python', 'C/C++', 'TypeScript/JavaScript', 'SQL'],
+        Data: [
             'Kafka',
             'AWS Kinesis',
             'PostgreSQL/TimescaleDB',
@@ -163,75 +185,58 @@ const TerminalProfile = () => {
             'MySQL',
             'ClickHouse',
             'Redis',
-            'AWS Redshift',
-            'Elasticsearch',
-            'MongoDB',
+            'Grafana',
         ],
+        ML: ['PyTorch', 'TensorFlow', 'pandas', 'NumPy', 'SLURM'],
         Backend: [
-            'Spring Boot & Security',
+            'Spring Boot/Security',
             'JPA',
             'MyBatis',
             'FastAPI',
+            'Express',
             'Node',
+            'Electron',
             'REST/GraphQL',
             'gRPC/Protobuf',
             'JUnit',
         ],
-        Frontend: [
-            'React.js',
-            'React Native',
-            'Next.js',
-            'Vue.js',
-            'TanStack',
-            'Jotai',
-            'RxJS',
-            'Tailwind',
-            'CSS/Sass',
-            'HTML',
-            'Storybook',
-        ],
-        'Cloud/DevOps': [
+        Cloud: [
             'AWS (EC2/S3/RDS/EBS)',
             'Azure',
+            'GCP',
+            'Oracle Cloud',
+            'Cloudflare',
             'Vercel',
+            'Clerk',
+        ],
+        DevOps: [
             'Docker',
-            'k3s',
+            'Kubernetes (k3s)',
+            'Kustomize',
+            'GitHub Actions',
+            'k6',
             'Tailscale',
             'Git',
             'Gradle',
             'Maven',
             'Webpack',
             'Jest',
-            'Prometheus',
-            'Grafana',
-            'Monorepo',
-        ],
-        ML: [
-            'PyTorch',
-            'TensorFlow',
-            'LangChain/LangGraph',
-            'Prompt Engineering',
-            'Claude',
-            'OpenAI',
-            'Gemini',
         ],
     };
 
     const education = [
         {
             school: 'The University of Texas Rio Grande Valley',
-            degree: 'M.S. Computer Science, Graduate Select Scholarship',
+            degree: 'MS Computer Science, Graduate Select Scholarship',
             period: '05/2027',
-            courses: [
-                'Graduate Teaching Assistant for two courses: Deep Learning and AI in Python, 08/2026 – Present',
-            ],
+            courses: [],
         },
         {
             school: 'University of Central Missouri',
-            degree: 'M.S. Computer Science, Cybersecurity & Information Assurance, Graduate Achievement Award',
-            period: '05/2026',
+            degree: 'MS Computer Science, Cybersecurity and Information Assurance, Graduate Student Achievement Award',
+            period: '01/2025–05/2026',
             courses: [
-                'Graduate Assistant, 01/2026 – 05/2026',
+                'Graduate Assistant, 01/2026–05/2026',
                 'Algorithms',
                 'Compiler Design',
                 'AI',
@@ -240,36 +245,63 @@ const TerminalProfile = () => {
         },
         {
             school: 'Georgia Institute of Technology',
-            degree: 'M.S. Computer Science (Online)',
+            degree: 'MS Computer Science (Online)',
             period: '01/2024 - 12/2027',
             courses: ['Operating Systems', 'Networks'],
         },
         {
             school: 'University of California, Los Angeles',
-            degree: 'B.S. Mathematics-Economics',
+            degree: 'BS Mathematics-Economics',
             period: '03/2013',
             courses: [],
         },
     ];
 
     const stats = [
-        { label: 'Experience', value: '5+ Years', icon: '📊' },
-        { label: 'Education', value: 'M.S. CS', icon: '🎓' },
-        { label: 'Languages', value: '10+', icon: '💻' },
-        { label: 'Cloud', value: 'AWS', icon: '☁️' },
-        { label: 'Performance', value: '50%↓', icon: '⚡' },
-        { label: 'Scale', value: '500M+/mo', icon: '📈' },
+        { label: 'Experience', value: '~5 Years', icon: '📊' },
+        { label: 'Education', value: 'MS CS', icon: '🎓' },
+        { label: 'Languages', value: '5+', icon: '💻' },
+        { label: 'Cloud', value: 'AWS/GCP/OCI', icon: '☁️' },
+        { label: 'Dashboard load', value: '3s→<1s', icon: '⚡' },
+        { label: 'Scale', value: '600M+/mo', icon: '📈' },
     ];
 
     const navItems = [
         { id: 'summary', label: 'SUMMARY' },
         { id: 'experience', label: 'EXPERIENCE' },
-        { id: 'skills', label: 'SKILLS' },
+        { id: 'research', label: 'RESEARCH' },
         { id: 'projects', label: 'PROJECTS' },
         { id: 'contributions', label: 'OPEN_SOURCE' },
+        { id: 'skills', label: 'SKILLS' },
         { id: 'education', label: 'EDUCATION' },
         { id: 'certifications', label: 'CERTIFICATIONS' },
     ];
+
+    const renderRoles = (roles: typeof experiences) =>
+        roles.map((role, idx) => (
+            <div
+                key={idx}
+                className="border-l-2 border-primary pl-4"
+            >
+                <h3 className="text-lg font-bold text-foreground">
+                    {role.title}
+                </h3>
+                <p className="text-sm text-foreground">
+                    {role.company} | {role.location}
+                </p>
+                <p className="text-xs text-foreground mb-3">{role.period}</p>
+                <ul className="space-y-1">
+                    {role.achievements.map((achievement, i) => (
+                        <li
+                            key={i}
+                            className="text-sm"
+                        >
+                            • {achievement}
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        ));
 
     return (
         <div className="min-h-screen bg-background text-foreground font-mono">
@@ -330,7 +362,7 @@ const TerminalProfile = () => {
                             </div>
 
                             <CardDescription className="mt-2">
-                                TX | tio.taek.lim@gmail.com | Github:{' '}
+                                TX | tio.taek.lim@gmail.com | GitHub:{' '}
                                 <a
                                     href="https://github.com/intothedeep"
                                     target="_blank"
@@ -431,17 +463,16 @@ const TerminalProfile = () => {
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-sm">
-                                        End-to-end data engineer with 5+ years
-                                        turning raw data into real-time
-                                        decisions across the lifecycle:
-                                        collection, streaming ingestion,
-                                        storage, distributed processing, and ML.
-                                        Worked on a cloud recommendation
-                                        platform on AWS and a high-volume,
-                                        multi-channel ad-analytics SaaS. M.S.
-                                        Computer Science at UTRGV (May 2027).
-                                        Seeking roles building large-scale,
-                                        data-intensive systems.
+                                        Software engineer with about 5 years
+                                        across the data lifecycle: collection,
+                                        streaming ingestion, storage, and
+                                        visualization, on a cloud recommendation
+                                        platform on AWS (600M+ logs monthly) and
+                                        a multi-channel ad-analytics SaaS. MS
+                                        Computer Science at UTRGV (05/2027),
+                                        researching generative AI and assisting
+                                        a Deep Learning course. Seeking software
+                                        and data engineering roles.
                                     </p>
                                 </CardContent>
                             </Card>
@@ -460,71 +491,25 @@ const TerminalProfile = () => {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-6">
-                                    {experiences.map((exp, idx) => (
-                                        <div
-                                            key={idx}
-                                            className="border-l-2 border-primary pl-4"
-                                        >
-                                            <h3 className="text-lg font-bold text-foreground">
-                                                {exp.title}
-                                            </h3>
-                                            <p className="text-sm text-foreground">
-                                                {exp.company} | {exp.location}
-                                            </p>
-                                            <p className="text-xs text-foreground mb-3">
-                                                {exp.period}
-                                            </p>
-                                            <ul className="space-y-1">
-                                                {exp.achievements.map(
-                                                    (achievement, i) => (
-                                                        <li
-                                                            key={i}
-                                                            className="text-sm"
-                                                        >
-                                                            • {achievement}
-                                                        </li>
-                                                    )
-                                                )}
-                                            </ul>
-                                        </div>
-                                    ))}
+                                    {renderRoles(experiences)}
                                 </CardContent>
                             </Card>
                         </div>
 
-                        {/* Skills Section */}
+                        {/* Research and Teaching Section */}
                         <div
-                            ref={skillsRef}
-                            id="skills"
+                            ref={researchRef}
+                            id="research"
                             className="scroll-mt-32"
                         >
                             <Card className="bg-card">
                                 <CardHeader>
                                     <CardTitle className="text-primary">
-                                        &gt; SKILLS.dat
+                                        &gt; RESEARCH_AND_TEACHING.log
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-6">
-                                    {Object.entries(skills).map(
-                                        ([category, items]) => (
-                                            <div key={category}>
-                                                <h3 className="text-lg font-bold text-primary mb-3">
-                                                    [{category}]
-                                                </h3>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {items.map((skill, idx) => (
-                                                        <Badge
-                                                            key={idx}
-                                                            variant="secondary"
-                                                            className="text-xs"
-                                                        >
-                                                            {skill}
-                                                        </Badge>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )
-                                    )}
+                                    {renderRoles(research)}
                                 </CardContent>
                             </Card>
                         </div>
@@ -653,6 +638,43 @@ const TerminalProfile = () => {
                             </Card>
                         </div>
 
+                        {/* Skills Section */}
+                        <div
+                            ref={skillsRef}
+                            id="skills"
+                            className="scroll-mt-32"
+                        >
+                            <Card className="bg-card">
+                                <CardHeader>
+                                    <CardTitle className="text-primary">
+                                        &gt; SKILLS.dat
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-6">
+                                    {Object.entries(skills).map(
+                                        ([category, items]) => (
+                                            <div key={category}>
+                                                <h3 className="text-lg font-bold text-primary mb-3">
+                                                    [{category}]
+                                                </h3>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {items.map((skill, idx) => (
+                                                        <Badge
+                                                            key={idx}
+                                                            variant="secondary"
+                                                            className="text-xs"
+                                                        >
+                                                            {skill}
+                                                        </Badge>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+
                         {/* Education Section */}
                         <div
                             ref={educationRef}
@@ -727,7 +749,8 @@ const TerminalProfile = () => {
                                     </p>
                                     <p>• Global Vision Scholarship, UCM</p>
                                     <p>
-                                        • Graduate Achievement Award, UCM $1,000
+                                        • Graduate Student Achievement Award,
+                                        UCM $1,000
                                     </p>
                                 </CardContent>
                             </Card>
@@ -743,7 +766,7 @@ const TerminalProfile = () => {
                             READY FOR OPPORTUNITIES
                         </div>
                         <div className="text-foreground">
-                            Last Updated: 10/30/2026
+                            Last Updated: 11/03/2026
                         </div>
                     </CardContent>
                 </Card>
