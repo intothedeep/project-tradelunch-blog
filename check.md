@@ -31,6 +31,8 @@ Claude 세션을 시작하면 이 파일을 먼저 본다. 날짜가 지난 항�
 | 12 | [ ] Recobell 00 인프라 그림에 CloudFront 상자가 보이는지 확인 (#136) | 다음 세션 (2026-10-27 이후) | `blog-assets.` Worker 캐시가 예전 그림을 낸다. zone purge가 닿지 않는다 (2026-10-26, `deploy/projects/rb-prod-2026-10-26.txt`) | `curl -sI <...-2018-2019-2.webp> \| grep -i last-modified` 가 22:03:06 이후면 해결. 계속 21:50:30이면 Worker 캐시 방식 확인 필요 |
 | 13 | [x] DDPM 연재 12편이 sitemap에 들어갔는지 확인 (2026-10-30 웹 재배포 dffd9e1 뒤 12/12, loc 50) | 2026-10-31 02:00 UTC 이후 | 발행 직후 sitemap에 0개였다. `app/sitemap.ts` ISR 24시간 때문이다 (`deploy/projects/dd-prod-2026-10-29.txt`) | `curl -s https://my.prettylog.com/sitemap.xml \| grep -c diffusion-from-scratch` 가 12면 해결 |
 | 14 | [ ] 봇 차단 하루 결과 재기: `/@taeklim/posts` 일별 요청, blog-api 캐시 상태, Supabase egress (`deploy/traffic/review/07-alibaba-bot.md` §6.1) | 2026-11-19 (UTC 하루가 끝난 뒤) | WAF 규칙 3개와 API 캐시(`3bb35f0`)를 11-18 22:30 UTC쯤 넣었다. 첫 15분만 쟀다 | Claude에게 "봇 차단 하루 결과" 요청. Cloudflare GraphQL로 11-19 하루를 재서 07 문서와 블로그 글 08에 넣는다. Supabase 대시보드 → Usage → Egress 값을 붙여 준다 |
+| 15 | [ ] `/@taeklim/posts` HTML MISS 지켜보기 | 다음 트래픽 급증 때 (`check.md` 10 주간 기록과 같이) | 로그인 화면 때문에 HTML이 `private, no-store`다. 설계 값이라 정상 독자만 오면 문제없는 양이다 (`07-alibaba-bot.md` "아직 바뀌지 않은 두 줄") | Cloudflare GraphQL로 `/@taeklim/posts` 일별 요청을 본다. 하루 2,000을 넘으면 Claude에게 알린다 |
+| 16 | [ ] `/users/taeklim` 피드 MISS: 필터 query 정규화 (M) | 설계 필요, 급하지 않음 | 필터 query가 캐시 키에 그대로 들어간다. 다른 클라우드의 봇이 태그 1개 URL로 오면 WAF 규칙 3에 안 걸리고 Supabase까지 간다 (`07-alibaba-bot.md` §9.2 4번, `01-reduce-traffic.md` M) | Claude에게 "필터 query 정규화 설계" 요청. 끝나면 같은 필터의 다른 순서가 같은 캐시 키로 HIT가 된다 |
 
 ## 있으면 좋음 (급하지 않음, 오너 2026-10-13)
 
