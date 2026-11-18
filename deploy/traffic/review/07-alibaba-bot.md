@@ -35,6 +35,91 @@ Supabase: 페이지 1회 ≈ SQL 5~6개, 응답 약 50 KB
 - 조치가 끊는 곳: WAF는 맨 위 화살표를 끊는다. API 캐시는 BYPASS 네 줄을 HIT로 바꾼다 (§5, §6).
 - VM IP는 적지 않는다. 공개 저장소에서 오리진 IP가 드러나면 Cloudflare를 건너뛰고 VM을 칠 수 있다.
 
+## 수정 전후 흐름 (2026-11-18)
+
+### 전 (11-18 22:15 UTC 이전)
+
+```text
+SG 봇 (알리바바 ASN 45102, Chrome UA를 매번 바꿈)
+  │  하루 ~22,000회, robots.txt 무시
+  ▼
+my.prettylog.com/@taeklim/posts   MISS (HTML private, no-store)
+  │  통과: 차단 규칙 없음
+  │  Next SSR 서버 (GCP VM, UA "node")가 7번 호출
+  ▼
+blog-api.prettylog.com
+  ├─ /profile ×2          BYPASS  ← Cache-Control 없음
+  ├─ /tags                BYPASS  ← Cache-Control 없음
+  ├─ /categories 38 KB    BYPASS  ← Cache-Control 없음
+  ├─ /users/taeklim/tags  BYPASS  ← Cache-Control 없음
+  ├─ /users/taeklim 11 KB MISS    ← 필터 query가 매번 달라짐
+  └─ /projects            HIT
+  ▼
+Supabase: 페이지 1회 ≈ SQL 5~6개, 약 50 KB
+  ▼
+과부하 → SSR timeout → error_log INSERT (7월부터 정리 안 됨, 176 MB)
+```
+
+### 후 (11-18 22:30 UTC 이후)
+
+```text
+SG 봇
+  │
+  ▼
+Cloudflare WAF (새로 추가, §6)
+  ├─ 1. ASN 45102                → Block       ✂ 여기서 끝
+  ├─ 2. 필터 URL + 알려진 크롤러   → Block       ✂ 여기서 끝
+  └─ 3. 필터 URL에 태그 여러 개    → Challenge   ✂ 여기서 끝 (사람은 통과)
+  │
+  │  여기까지 온 요청만 (정상 독자)
+  ▼
+my.prettylog.com/@taeklim/posts   MISS (그대로, §9.2 4번)
+  │  Next SSR 서버 (GCP VM)가 7번 호출
+  ▼
+blog-api.prettylog.com
+  ├─ /profile ×2          HIT  ✔  s-maxage=86400 추가 (3bb35f0)
+  ├─ /tags                HIT  ✔  〃
+  ├─ /categories 38 KB    HIT  ✔  〃
+  ├─ /users/taeklim/tags  HIT  ✔  〃
+  ├─ /users/taeklim 11 KB MISS    ← 필터 조합마다 다름 (그대로, §9.2 4번)
+  └─ /projects            HIT
+  ▼
+Supabase: 페이지 1회 ≈ SQL 1개 (피드만)
+  ▼
+error_log: 7일치만 남김, 22 MB (자동 정리는 아직, §9.2 2번)
+```
+
+### 숫자로 본 차이
+
+15분 구간 (UTC). 출처: `cf-after-posts-15min.json`, `cf-after-api-15min.json`.
+
+| 지표 | 22:15 (전) | 22:30 (후) |
+| --- | --- | --- |
+| 봇 페이지 200 (SSR까지 감) | 212 | 52 |
+| 봇 페이지 403 (엣지에서 끝) | 0 | 107 |
+| blog-api BYPASS (Supabase까지 감) | 1,032 | 0 |
+| blog-api HIT | 265 | 328 |
+
+DB 크기. 출처: 정리 전후 `pg_total_relation_size`, `pg_database_size` 조회 (§9.1).
+
+| 지표 | 전 | 후 |
+| --- | --- | --- |
+| `error_log` 크기 | 176 MB | 22 MB |
+| DB 전체 크기 | 190 MB | 35 MB |
+
+- 22:30 구간은 22:40:43 UTC까지만 잰 부분 값이다. 규칙이 들어가기 전 요청이 섞여 있다.
+- 하루 단위 결과는 11-20에 잰다 (`check.md` 14).
+
+### 아직 바뀌지 않은 두 줄
+
+| 줄 | 왜 남았나 | 남은 일 |
+| --- | --- | --- |
+| `/@taeklim/posts` HTML MISS | 로그인 화면 때문에 `private, no-store`가 설계 값이다 | 정상 독자만 오면 문제없는 양이다 |
+| `/users/taeklim` 피드 MISS | 필터 query가 캐시 키에 그대로 들어간다 | §9.2 4번 필터 query 정규화 |
+
+- 다음 봇이 다른 클라우드에서 태그 1개 URL로 오면 다시 Supabase까지 갈 수 있다.
+- 그때도 API 4곳은 HIT다. 페이지 1회당 SQL이 5~6개에서 1개로 줄었다.
+
 ## 1. 왜 조사했나
 
 - Supabase가 무료 플랜 egress 초과를 알렸다.
