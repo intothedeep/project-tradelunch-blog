@@ -16,6 +16,7 @@ import { pool } from '../../database';
 import { optionalAuth } from '../../middlewares/optionalAuth';
 import { ETreeNodeType, TTreeNode } from '@repo/types';
 import { sendOk, sendError } from '../../helpers/response';
+import { setPostReadCache } from './posts.cache';
 
 export function registerUserCategoriesRoutes(router: Router): void {
     // routes/posts.routes.ts
@@ -177,6 +178,8 @@ export function registerUserCategoriesRoutes(router: Router): void {
                     [username, viewerId]
                 );
 
+                // Anonymous tree is viewer-agnostic; owner gets private, no-store.
+                setPostReadCache(req, res);
                 sendOk(res, { categories });
             } catch (error) {
                 req.log.error({ err: error }, 'API Error fetching categories');

@@ -12,6 +12,7 @@ import { Router, Request } from 'express';
 import { pool } from '../../database';
 import { clampTagLimit, listUserPopularTags } from '../../helpers/popularTags';
 import { getUserProfile } from '../../helpers/userProfile';
+import { setPostReadCache } from './posts.cache';
 
 export function registerUserMetaRoutes(router: Router): void {
     /**
@@ -32,6 +33,7 @@ export function registerUserMetaRoutes(router: Router): void {
                 const { username } = req.params;
                 const limit = clampTagLimit(req.query.limit);
                 const tags = await listUserPopularTags(pool, username, limit);
+                setPostReadCache(req, res);
                 res.json({ success: true, data: tags });
             } catch (error) {
                 req.log.error({ err: error }, 'API Error fetching user popular tags');
@@ -63,6 +65,8 @@ export function registerUserMetaRoutes(router: Router): void {
                         .status(404)
                         .json({ success: false, message: 'User not found' });
                 }
+                // Only the 200 is cached; a 404 must not stick for 24h.
+                setPostReadCache(req, res);
                 res.json({ success: true, data: profile });
             } catch (error) {
                 req.log.error({ err: error }, 'API Error fetching user profile');

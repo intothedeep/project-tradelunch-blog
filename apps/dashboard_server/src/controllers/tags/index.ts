@@ -4,6 +4,7 @@
 import { Router, Request } from 'express';
 import { pool } from '../../database';
 import { clampTagLimit, listPopularTags } from '../../helpers/popularTags';
+import { setPostReadCache } from '../posts/posts.cache';
 
 export const router = Router();
 
@@ -20,6 +21,8 @@ router.get('', async (req: Request<{}, {}, {}, { limit?: string }>, res) => {
     try {
         const limit = clampTagLimit(req.query.limit);
         const tags = await listPopularTags(pool, limit);
+        // Edge-cacheable: every /@u/posts render fetches this (bot fan-out, 2026-11-18).
+        setPostReadCache(req, res);
         res.json({ success: true, data: tags });
     } catch (error) {
         req.log.error({ err: error }, 'API Error fetching popular tags');
