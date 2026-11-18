@@ -1,4 +1,6 @@
 # error_log cleanup, 2026-11-18 (main session)
+before: output not saved (the line below is transcribed from the session terminal, not a saved query output)
+queries used: select pg_size_pretty(pg_total_relation_size('error_log')), pg_size_pretty(pg_database_size(current_database()));
 before (queried ~22:45 UTC, before DELETE): error_log 176 MB, database 190 MB, rows 245,647 (211,802 older than 7 days)
 action: DELETE FROM error_log WHERE created_at < now() - interval '7 days' -> DELETE 211802; VACUUM FULL error_log
 after (query below):
