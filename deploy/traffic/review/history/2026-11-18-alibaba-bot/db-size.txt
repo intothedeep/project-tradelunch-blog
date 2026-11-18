@@ -1,0 +1,7 @@
+# error_log cleanup, 2026-11-18 (main session)
+before (queried ~22:45 UTC, before DELETE): error_log 176 MB, database 190 MB, rows 245,647 (211,802 older than 7 days)
+action: DELETE FROM error_log WHERE created_at < now() - interval '7 days' -> DELETE 211802; VACUUM FULL error_log
+after (query below):
+queried_at | rows | oldest | error_log_size | db_size
+2026-11-18 22:55:04.277907+00 | 33845 | 2026-11-12 | 22 MB | 35 MB
+(1 row)
