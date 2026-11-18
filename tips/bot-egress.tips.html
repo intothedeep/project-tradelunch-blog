@@ -517,10 +517,29 @@ limit 20;</code></pre></div>
     <li>이 값은 API 응답 크기로 계산한 추정이다. DB 바이트를 잰 값이 아니다.</li>
   </ul>
 
+  <div class="label">예상 효과 (추정, 2026-11-18)</div>
+  <p><b>Supabase 부하와 egress는 하루 기준 95 % 넘게 준다. VM egress는 공격 전 수준으로 돌아간다.</b> 확정 값은 11-20에 잰다.</p>
+  <table>
+    <thead><tr><th class="w">항목 (하루)</th><th class="w">전 (봇 기간)</th><th class="w">후 (예상)</th></tr></thead>
+    <tbody>
+      <tr><td class="w">봇 페이지가 SSR까지 간 수</td><td class="w">약 2만</td><td class="w">약 2천 이하 (11-08 실측 1,943)</td></tr>
+      <tr><td class="w">Supabase SQL 호출</td><td class="w">약 10만 ~ 12만</td><td class="w">약 2천 이하</td></tr>
+      <tr><td class="w">Supabase egress</td><td class="w">약 1 GB (월 약 30 GB)</td><td class="w">수십 MB (월 1 GB 아래, 한도 5 GB)</td></tr>
+      <tr><td class="w">VM에서 나간 데이터</td><td class="w">약 0.9 ~ 1.3 GB</td><td class="w">약 0.1 GB</td></tr>
+      <tr><td class="w"><code>error_log</code> 쓰기</td><td class="w">많은 날 16,568행</td><td class="w">수백 행 이하</td></tr>
+      <tr><td class="w">DB 크기 (실측)</td><td class="w">190 MB</td><td class="w">35 MB</td></tr>
+    </tbody>
+  </table>
+  <ul>
+    <li>실측은 DB 크기뿐이다. 나머지는 저장된 숫자로 계산한 추정이다.</li>
+    <li>이번 달에 이미 쓴 egress는 되돌릴 수 없다. 효과는 11-18부터 쌓인다.</li>
+    <li>GCP 무료 egress는 월 1 GB다. 공격 전 수준도 한 달이면 약 3 GB일 수 있다.</li>
+  </ul>
+
   <div class="label">통과 기준</div>
   <ul>
     <li>Cloudflare Security, Events에서 두 규칙의 차단 수를 본다.</li>
-    <li>다음 날 <code>/@taeklim/posts</code> 요청이 1천에서 2천으로 돌아오면 통과다.</li>
+    <li>다음 날 <code>/@taeklim/posts</code>의 <b>200 응답</b>이 하루 2,000 이하면 통과다. Challenge로 끝난 403은 세지 않는다.</li>
   </ul>
   <p class="muted">더 볼 곳: Cloud Logging의 blog-web 요청 로그. 전체 URL이 30일 남는다.</p>
 </section>

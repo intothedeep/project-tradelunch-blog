@@ -120,6 +120,34 @@ DB 크기. 출처: 정리 전후 `pg_total_relation_size`, `pg_database_size` �
 - 다음 봇이 다른 클라우드에서 태그 1개 URL로 오면 다시 Supabase까지 갈 수 있다.
 - 그때도 API 4곳은 HIT다. 페이지 1회당 SQL이 5~6개에서 1개로 줄었다.
 
+### 예상 효과 (2026-11-18, 추정)
+
+**추정: Supabase 부하와 egress는 하루 기준 95 % 넘게 준다. GCP VM egress는 공격 전 수준으로 돌아간다.** 확정 값은 11-20에 잰다 (`check.md` 14).
+
+```text
+전: 봇 페이지 하루 ~20,000 × (SQL 5~6개, 약 50 KB) → Supabase
+후: 봇은 엣지에서 끝 (규칙 1: 알리바바 ASN 전부 Block)
+    정상 독자 페이지 × (SQL 0~1개) → Supabase
+```
+
+| 항목 | 전 (봇 기간, 하루) | 후 (예상, 하루) | 근거 |
+| --- | --- | --- | --- |
+| `/@taeklim/posts`가 SSR까지 간 수 | 약 2만 | 약 2천 이하 | 11-08(공격 전) 1,943회 (`cf-posts-page-daily.json`) |
+| Supabase SQL 호출 | 약 10만 ~ 12만 | 약 2천 이하 | 페이지당 5~6개 → 0~1개 |
+| Supabase egress | 약 1 GB (추정) | 수십 MB (추정) | 페이지당 약 50 KB 중 약 40 KB를 이제 캐시가 응답 |
+| 월로 환산한 Supabase egress | 약 30 GB | 1 GB 아래 | 무료 한도 5 GB |
+| Cloudflare가 보낸 데이터 | 1.0 ~ 1.5 GB | 0.1 ~ 0.2 GB | 11-01 ~ 11-02 실측 97 ~ 101 MiB (`cf-zone-daily.json`) |
+| 그중 VM에서 나간 몫 (캐시 비율 약 12 %) | 약 0.9 ~ 1.3 GB | 약 0.1 GB | 캐시 안 된 응답만 VM에서 나간다 |
+| `error_log` 쓰기 | 많은 날 16,568행 | 수백 행 이하 | 11-14 ~ 11-18 실측 111 ~ 1,001행 (`error-log.txt`, §9.1) |
+| DB 크기 | 190 MB | 35 MB | 실측 (무료 한도 500 MB) |
+
+- 실측은 DB 크기와 `error_log` 행 수뿐이다. 나머지는 저장된 숫자로 계산한 추정이다.
+- 1 GB와 50 KB는 API 응답 크기로 계산했다. DB 바이트를 잰 값이 아니다.
+- 이번 달에 이미 쓴 Supabase, GCP egress는 되돌릴 수 없다. 효과는 11-18부터 쌓인다.
+- GCP 무료 egress는 월 1 GB다. 공격 전 수준(하루 약 0.1 GB)도 한 달이면 약 3 GB가 될 수 있다. 12월 초 청구서로 본다 (`check.md` 11).
+- 다음 봇이 다른 클라우드에서 오면 규칙 1에 안 걸린다. 그래도 API 4곳은 캐시가 응답한다. 피해는 페이지당 SQL 1개 수준이다 (`check.md` 15, 16).
+- 확인: 11-20에 하루치를 잰다. Supabase Usage, Egress의 11-19 막대가 크게 떨어지면 추정이 맞다.
+
 ## 1. 왜 조사했나
 
 - Supabase가 무료 플랜 egress 초과를 알렸다.
@@ -288,7 +316,7 @@ DB 크기. 출처: 정리 전후 `pg_total_relation_size`, `pg_database_size` �
 - 규칙 2의 사람은 Challenge를 한 번 통과하면 계속 본다. 검색 엔진(`cf.client.bot`)은 빠진다.
 - `blog-api.`에는 걸지 않는다. SSR VM이 부르기 때문이다.
 - Bot Fight Mode는 켜지 않는다. SSR의 `node` 요청까지 막을 수 있다.
-- 확인: Security → Events에서 두 규칙의 차단 수를 본다. 다음 날 `/@taeklim/posts` 요청이 1 ~ 2천으로 돌아오면 통과.
+- 확인: Security → Events에서 두 규칙의 차단 수를 본다. 다음 날 `/@taeklim/posts`의 **200 응답**이 하루 2,000 이하면 통과. 전체 요청 수는 쓰지 않는다. Challenge로 끝난 403도 전체 수에 들어가기 때문이다 (설계 §9.6 V2).
 
 운영 중인 순서 (오너 대시보드, 2026-11-18, Custom rules 3/5):
 
