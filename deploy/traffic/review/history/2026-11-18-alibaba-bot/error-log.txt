@@ -1,0 +1,26 @@
+stats_reset
+2026-10-13 01:02:12.868817+00
+(1 row)
+wk | count | posts_q
+2026-07-06 | 18 | 0
+2026-07-13 | 35 | 0
+2026-10-12 | 154 | 10
+2026-10-19 | 58341 | 56880
+2026-10-26 | 119302 | 118602
+2026-11-02 | 25827 | 25725
+2026-11-09 | 40721 | 40589
+2026-11-16 | 1249 | 1184
+(8 rows)
+source | msg | count
+ssr | The operation was aborted due to timeout | 31555
+ssr | fetch failed | 5588
+ssr | Failed to fetch user profile: taeklim | 4682
+ssr | terminated | 55
+ssr | Invalid revalidate configuration provided: 0 < 1 | 16
+ssr | Failed to fetch a post: diffusion-from-scratch-public-fr-chet-inceptio | 10
+ssr | Failed to fetch a post: diffusion-from-scratch-10-11-from-a-3-3m-start | 5
+ssr | Failed to fetch a post: diffusion-from-scratch-7-11-250-network-calls- | 4
+(8 rows)
+distinct_paths
+13605
+(1 row)

@@ -30,6 +30,7 @@ Claude 세션을 시작하면 이 파일을 먼저 본다. 날짜가 지난 항�
 | 7 | [ ] prefetch 요청 수를 정확히 세기 → 책 9장 "배포 뒤 확인"(`sec:pf-verify`)에 넣기 | 시간 날 때 (선택) | 10-14 오너 확인은 "줄었다"뿐이고 개수가 없다. 10-13 기준은 79개 | 로그인 안 한 창 → Network 필터 `_rsc` → 빠르게 스크롤 한 번. 요청 수를 Claude에게 알린다. 글 상세(CNN 4편)도 로그인 한 창과 안 한 창에서 열자마자 `_rsc` 수를 센다 (태그·최근 본 글·저장 태그 prefetch 끈 뒤) |
 | 12 | [ ] Recobell 00 인프라 그림에 CloudFront 상자가 보이는지 확인 (#136) | 다음 세션 (2026-10-27 이후) | `blog-assets.` Worker 캐시가 예전 그림을 낸다. zone purge가 닿지 않는다 (2026-10-26, `deploy/projects/rb-prod-2026-10-26.txt`) | `curl -sI <...-2018-2019-2.webp> \| grep -i last-modified` 가 22:03:06 이후면 해결. 계속 21:50:30이면 Worker 캐시 방식 확인 필요 |
 | 13 | [x] DDPM 연재 12편이 sitemap에 들어갔는지 확인 (2026-10-30 웹 재배포 dffd9e1 뒤 12/12, loc 50) | 2026-10-31 02:00 UTC 이후 | 발행 직후 sitemap에 0개였다. `app/sitemap.ts` ISR 24시간 때문이다 (`deploy/projects/dd-prod-2026-10-29.txt`) | `curl -s https://my.prettylog.com/sitemap.xml \| grep -c diffusion-from-scratch` 가 12면 해결 |
+| 14 | [ ] 봇 차단 하루 결과 재기: `/@taeklim/posts` 일별 요청, blog-api 캐시 상태, Supabase egress (`deploy/traffic/review/07-alibaba-bot.md` §6.1) | 2026-11-19 (UTC 하루가 끝난 뒤) | WAF 규칙 3개와 API 캐시(`3bb35f0`)를 11-18 22:30 UTC쯤 넣었다. 첫 15분만 쟀다 | Claude에게 "봇 차단 하루 결과" 요청. Cloudflare GraphQL로 11-19 하루를 재서 07 문서와 블로그 글 08에 넣는다. Supabase 대시보드 → Usage → Egress 값을 붙여 준다 |
 
 ## 있으면 좋음 (급하지 않음, 오너 2026-10-13)
 

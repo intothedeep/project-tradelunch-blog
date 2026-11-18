@@ -1,0 +1,40 @@
+#1 role=postgres calls=274208 mean=1.60ms total=438s rows=8226240 rows/call=30.0 prop=27.2%  adv=null
+    SELECT pt.tag_title AS tag, COUNT(DISTINCT p.slug)::int AS count FROM post_tags pt JOIN posts p ON p.id = pt.post_id JOIN users u ON p.user_id = u.id AND u.deleted_at IS NULL WHERE pt.deleted_at IS NULL AND p.deleted_at IS NULL AND p.status = $2 GROUP BY pt.ta
+#2 role=postgres calls=257356 mean=1.55ms total=398s rows=3109746 rows/call=12.1 prop=24.8%  adv=null
+    SELECT pt.tag_title AS tag, COUNT(DISTINCT p.slug)::int AS count FROM post_tags pt JOIN posts p ON p.id = pt.post_id JOIN users u ON p.user_id = u.id AND u.username = $1 AND u.deleted_at IS NULL WHERE pt.deleted_at IS NULL AND p.deleted_at IS NULL AND p.status
+#3 role=postgres calls=266189 mean=1.04ms total=277s rows=18153518 rows/call=68.2 prop=17.2% CONTENT adv=null
+    WITH RECURSIVE category_tree AS ( -- 루트 카테고리 SELECT c.id, c.parent_id, c.group_id, c.level, c.priority, c.title, LPAD(c.priority::text, $3, $4) || $5 || LPAD(c.seq::text, $6, $7) AS path FROM categories c JOIN users u ON c.user_id = u.id WHERE c.parent_id IS N
+#4 role=postgres calls=249045 mean=0.78ms total=194s rows=1242827 rows/call=5.0 prop=12.1% CONTENT adv=null
+    WITH RECURSIVE cat_path AS ( SELECT id, parent_id, ARRAY[title::text] AS path FROM categories WHERE (parent_id IS NULL OR parent_id = id) AND deleted_at IS NULL UNION ALL SELECT c.id, c.parent_id, cp.path || c.title::text FROM categories c JOIN cat_path cp ON 
+#5 role=postgres calls=600058 mean=0.21ms total=124s rows=599907 rows/call=1.0 prop=7.7%  adv=null
+    SELECT u.username, u.display_name AS "displayName", u.avatar_url AS "avatarUrl", (SELECT COUNT(DISTINCT p.slug)::int FROM posts p WHERE p.user_id = u.id AND p.deleted_at IS NULL AND p.status = $2) AS "postCount" FROM users u WHERE u.username = $1 AND u.deleted
+#6 role=pgbouncer calls=84943 mean=0.52ms total=44s rows=84941 rows/call=1.0 prop=2.7%  adv=null
+    SELECT * FROM pgbouncer.get_auth($1)
+#7 role=postgres calls=245594 mean=0.17ms total=41s rows=245594 rows/call=1.0 prop=2.6%  adv=null
+    INSERT INTO error_log (digest, message, stack, path, user_agent, source) VALUES ($1, $2, $3, $4, $5, $6)
+#8 role=pgbouncer calls=2056 mean=18.13ms total=37s rows=458488 rows/call=223.0 prop=2.3%  adv=null
+    SELECT t.oid, t.typname, t.typsend, t.typreceive, t.typoutput, t.typinput, coalesce(d.typelem, t.typelem), coalesce(r.rngsubtype, $1), ARRAY ( SELECT a.atttypid FROM pg_attribute AS a WHERE a.attrelid = t.typrelid AND a.attnum > $2 AND NOT a.attisdropped ORDER
+#9 role=postgres calls=31 mean=499.84ms total=15s rows=2418 rows/call=78.0 prop=1.0%  adv=null
+    SELECT e.name, n.nspname AS schema, e.default_version, x.extversion AS installed_version, e.comment, ev.schema AS default_version_schema FROM pg_available_extensions e LEFT JOIN pg_extension x ON e.name = x.extname LEFT JOIN pg_namespace n ON x.extnamespace = 
+#10 role=authenticator calls=21 mean=712.51ms total=15s rows=25116 rows/call=1196.0 prop=0.9%  adv=null
+    SELECT name FROM pg_timezone_names
+#11 role=supabase_admin calls=38 mean=223.64ms total=8s rows=38 rows/call=1.0 prop=0.5%  adv=null
+    SELECT case when pg_is_in_recovery() then $2 else (pg_walfile_name_offset(lsn)).file_name end, lsn::text, pg_is_in_recovery() FROM pg_backup_start($1, $3) lsn
+#12 role=postgres calls=2119 mean=1.90ms total=4s rows=1824 rows/call=0.9 prop=0.3%  adv=null
+    SELECT p.*, u.username, u.display_name, u.avatar_url, f.stored_uri, p.created_at as date, ARRAY_AGG(pt.tag_title) FILTER (WHERE pt.tag_title IS NOT NULL) AS tags, (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.id )::int AS "likeCount", EXISTS ( SELEC
+#13 role=postgres calls=2919 mean=1.31ms total=4s rows=6591 rows/call=2.3 prop=0.2% CONTENT adv=null
+    WITH RECURSIVE cat_path AS ( SELECT id, parent_id, ARRAY[title::text] AS path FROM categories WHERE (parent_id IS NULL OR parent_id = id) AND deleted_at IS NULL UNION ALL SELECT c.id, c.parent_id, cp.path || c.title::text FROM categories c JOIN cat_path cp ON 
+#14 role=postgres calls=1431 mean=1.46ms total=2s rows=13251 rows/call=9.3 prop=0.1% CONTENT adv=null
+    WITH RECURSIVE cat_path AS ( SELECT id, parent_id, ARRAY[title::text] AS path FROM categories WHERE (parent_id IS NULL OR parent_id = id) AND deleted_at IS NULL UNION ALL SELECT c.id, c.parent_id, cp.path || c.title::text FROM categories c JOIN cat_path cp ON 
+#15 role=supabase_admin calls=38 mean=54.23ms total=2s rows=38 rows/call=1.0 prop=0.1%  adv=null
+    SELECT labelfile, spcmapfile, lsn FROM pg_backup_stop($1)
+#16 role=supabase_admin calls=10622 mean=0.11ms total=1s rows=0 rows/call=0.0 prop=0.1%  adv=null
+    SHOW transaction_read_only
+#17 role=authenticator calls=21 mean=52.53ms total=1s rows=21 rows/call=1.0 prop=0.1%  adv=null
+    WITH -- Recursively get the base types of domains base_types AS ( WITH RECURSIVE recurse AS ( SELECT oid, typbasetype, typnamespace AS base_namespace, COALESCE(NULLIF(typbasetype, $3), oid) AS base_type FROM pg_type UNION SELECT t.oid, b.typbasetype, b.typname
+#18 role=supabase_admin calls=38 mean=22.81ms total=1s rows=0 rows/call=0.0 prop=0.1%  adv=null
+    do $$ declare tbl record; seq_name text; new_seq_name text; archive_table_name text; begin -- No tables should be owned by the extension. -- We want them to be included in logical backups for tbl in select c.relname as table_name from pg_class c join pg_depend
+#19 role=postgres calls=2089 mean=0.39ms total=1s rows=160 rows/call=0.1 prop=0.1%  adv=null
+    SELECT c.id FROM comments c WHERE c.post_id = $1 AND c.parent_id IS NULL AND c.id < $2 AND ( c.deleted_at IS NULL OR EXISTS ( SELECT $4 FROM comments d WHERE d.post_id = $1 AND d.path[$5] = c.id AND d.deleted_at IS NULL ) ) ORDER BY c.id DESC LIMIT $3
+#20 role=authenticator calls=22 mean=32.80ms total=1s rows=1242 rows/call=56.5 prop=0.0%  adv=null
+    WITH -- Recursively get the base types of domains base_types AS ( WITH RECURSIVE recurse AS ( SELECT oid, typbasetype, typnamespace AS base_namespace, COALESCE(NULLIF(typbasetype, $2), oid) AS base_type FROM pg_type UNION SELECT t.oid, b.typbasetype, b.typname

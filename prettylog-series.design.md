@@ -236,3 +236,231 @@ apps/blog_agent/posts/projects/my-work/prettylog/      (posts/ 는 gitignore. �
 | Q2 | 연재 제목 | A "Prettylog From Scratch". SST는 개요 한 줄과 Sources 표로 넣는다 |
 | Q3 | 그림 데이터와 스크립트(`_series/`)를 git에 남길까 | 남기지 않는다. `posts/`는 gitignore이고 `cnn`도 저장소 밖에 두었다 |
 | Q4 | 다이어그램 PNG 도구 | matplotlib 상자 그림. mermaid-cli는 오너가 로컬 run을 허락할 때만 |
+
+## 9. 후속 글 08: 알리바바 봇과 egress 초과 (system-architect, 2026-11-18)
+
+> 상태: 설계 초안. 글, CSV, 그림 없음. §1–§8은 고치지 않는다.
+> 그림 방식은 `ps.plan.md`(#124)를 따른다: 다이어그램 = 글 안 mermaid, 데이터 차트만 PNG. §4.1의 "mermaid를 못 그린다"는 낡았다 (`ps.plan.md` "설계 정정 필요").
+> 사실 원본: `deploy/traffic/review/07-alibaba-bot.md`(핵심 흐름 13–36행), 원자료 `deploy/traffic/review/history/2026-11-18-alibaba-bot/`, `tips/bot-egress.tips.html`.
+
+### 9.0 미션 블록 (인용, `ps.plan.md` 13–15행)
+
+> - Mission: 채용 담당자가 프로젝트 결과를 한눈에 보게 한다. (오너 승인 2026-10-13, #79)
+> - Vision: 방문자가 `/@u/...` 한 체계에서 글, 프로젝트, 소개를 로그인 없이 읽는다. 옛 URL은 모두 새 URL로 연결된다. (오너 승인 2026-10-13, #79)
+> - Constraints (줄임. 원문은 `ps.plan.md:15`): 글은 영어 · 숫자는 모두 저장된 파일에서 · `posts/`와 `S`는 커밋하지 않음 · 증거는 `deploy/projects/ps-*.txt` · 다이어그램 = mermaid, 차트만 matplotlib PNG · 로컬 실행 입력 = `S/data/*.csv`만, 한 코어, 300 s · 발행, 운영 SQL, purge, 운영 curl = main session 또는 오너만 · 발행 순서 · 테스트 러너 금지.
+
+- 이 글이 미션에 맞는 이유: 운영 사고를 찾고 막은 과정은 채용 담당자가 보는 "운영 능력"의 결과다.
+- 미션 블록 밖 일: G-PL1 measure("글 8개, 00 → 07")와 S1("글 8개")은 9번째 글을 덮지 않는다. 오너 승인용 초안은 §9.8에 둔다.
+
+### 9.1 결과 요약
+
+| 결정 | 고름 |
+| --- | --- |
+| 자리 | 후속 글(follow-up) 하나. 폴더 `08-bot-egress/`, `priority` 8. 기존 글 8개는 손대지 않는다 |
+| 제목 | `Prettylog From Scratch (Follow-up): <N> Feed Page Requests in 9 Days, All Past the Cache` |
+| N | `fig_08_daily_requests.csv`의 `/@taeklim/posts` 열, 11-09 ~ 11-17(9일, 모두 온전한 날) 합. 스크립트가 센다. 봇과 사람을 나누지 않은 전체 요청이다 |
+| 순서 | Results → 핵심 흐름(mermaid) → Problem → How it was checked → Fixes → Not measured → Sources |
+| 그림 | mermaid 2개, 차트 PNG 4장, 썸네일 1장 |
+| 발행 | 한 번만. 두 조치 뒤 첫 온전한 하루(11-19 UTC)를 11-20에 모은 뒤 |
+| 사전 판정선 | V1 캐시: 4경로 요청 중 오리진 도달 비율 ≤ 10 %. V2 WAF: SSR 피드 호출 하루 ≤ 2,000 (§9.6) |
+
+```text
+11-18 22:30 WAF 규칙 2, 1 (오너) + 22:35 캐시 배포 (3bb35f0)
+   ─► 15분 첫 값 저장됨 (cf-after-*-15min.json)
+   ─► 11-19 UTC 하루 = V1, V2 창 ─► 11-20 main 수집
+   ─► CSV + 그림 ─► 글 작성 ─► reviewer 1회 ─► 글 발행 (한 번)
+```
+
+### 9.2 자리: 연재 안 어디에 두나
+
+근거 (slug는 제목에서 만든다):
+
+- `publish_oneshot.py` 경로는 `article_info`를 넘기지 않는다. 그래서 slug = `generate_slug_from_title(title)`다 (`apps/blog_agent/agents/extracting_agent.py:170-173`, `schema.py:354-373`).
+- 운영 slug에 `1-7` … `7-7`이 들어 있다 (`00-overview.md:87-93`).
+- `upsert_post`는 매번 새 행을 INSERT한다. 서버는 slug마다 마지막 판을 고른다 (`db/repositories/post.py:192-226`).
+- 그래서 제목을 바꾸면 새 slug의 새 글이 생긴다. 옛 slug 글은 살아 있고, 옛 URL → 새 URL 연결은 없다.
+
+| 안 | 내용 | 판정 |
+| --- | --- | --- |
+| A | **후속 글 `(Follow-up)`, 폴더 08, priority 8** | **고름**. 기존 URL 8개 그대로. 프로젝트 쪽에서 맨 뒤에 보인다 |
+| B | `(8/8)`로 내고 01–07을 `(k/8)`로 다시 냄 | 버림. 새 slug 7개 + 옛 글 7개가 공개로 남는다. 숨기려면 tombstone 7행. 옛 URL 연결이 끊겨 Vision에 어긋난다 |
+| C | 연재 밖 단독 글(다른 카테고리) | 버림. 프로젝트 페이지에서 안 보인다. 채용 담당자가 놓친다 |
+| D | 07 디버깅 타임라인에 T11로 덧붙임 | 버림. 07 다시 발행 = 같은 slug 새 행, 새 id. 좋아요와 댓글이 어느 id에 붙는지 확인 안 됨 |
+| E | 00 개요의 연재 지도에 08 행 추가 | 버림 (지금). 00 다시 발행이 필요하다 (D와 같은 위험). 프로젝트 페이지가 이미 08을 보인다 |
+
+- 공통 AC C3(제목 형식)과 C11(링크 없음)은 08용으로 고친다 (§9.7 P8-08).
+- 다시 발행(republish)은 피한다. 새 id가 생기기 때문이다. 그래서 발행은 한 번이다 (§9.6).
+
+### 9.3 제목, slug, 앞머리
+
+| # | 제목 후보 | 판정 |
+| --- | --- | --- |
+| T1 | **Prettylog From Scratch (Follow-up): `<N>` Feed Page Requests in 9 Days, All Past the Cache** | **고름**. N은 실측 합(봇과 사람을 나누지 않음). 피드 HTML은 `private, no-store`라 모든 요청이 캐시를 지난다 (`07-alibaba-bot.md:19`). 15단어 |
+| T1′ | (Follow-up): `<N>` Bot Page Requests in 9 Days Skipped the Cache | 버림. 봇과 사람을 나눈 저장 파일이 없다. 11-08 하루 1,943은 봇 전 값이다 |
+| T2 | (Follow-up): 4 Uncached API Routes Turned One Bot Into 600,058 Database Calls | 버림. 600,058은 10-13 이후 누적이다. 평소 방문도 섞였다 |
+| T3 | (Follow-up): How an Alibaba Cloud Bot Burned Through Free Supabase Egress | 버림. 숫자가 없다. 회사 이름을 제목에 둔다. egress GB는 저장 파일이 없다 |
+| T4 | (Follow-up): One Bot, 7 API Calls per Page, Free Egress Gone | 버림. 7은 페이지당 호출 구조값이다. 사건 크기를 보이지 못한다 |
+
+- 제목 숫자 N은 손으로 쓰지 않는다. P8-05 스크립트 합을 그대로 쓴다.
+- 11-18은 부분 날(조회 시각까지)이라 N에서 뺀다. 그래서 "9 Days"다.
+- slug: 제목에서 생긴다. 쉼표는 `-`가 된다 (예: `219,372` → `219-372`). 발행 전에 slug를 `ps-08-publish-<date>.txt`에 적는다.
+- `meta_title`은 70자에서 잘린다 (`uploading_agent.py:439`). 기존 07도 같다. 받아들인다.
+
+앞머리 (cnn 형식, `ps.plan.md` C2):
+
+| 키 | 값 |
+| --- | --- |
+| `title` | T1 |
+| `tags` | `postmortem`, `cloudflare`, `waf`, `caching`, `supabase`, `bot-traffic`, `egress`, `observability` |
+| `desc` | 한 문장: bot, cache bypass, two fixes. 170자 이하 (`meta_description` 한도) |
+| `date` | 발행 날짜 |
+| `priority` | 8 |
+| `userId`, `username`, `status` | `1`, `taeklim`, `'public'` |
+
+### 9.4 글 구성 (오너 순서: 문제 → 확인 → 조치, 핵심 흐름이 맨 앞)
+
+| # | 절 | 담는 것 | 그림 | 출처 |
+| --- | --- | --- | --- | --- |
+| 0 | 썸네일 + 질문 한 줄 | "Question: who used up the free database egress, how was it found, and what stopped it?" | TH08 | |
+| 1 | `## Results` | 3줄: 봇 출처(ASN 45102), N 요청, 두 조치(11-18 22:30 ~ 22:35 함께 배포)의 V1, V2 판정. 15분 첫 값은 보조 | 없음 | `fig_08_verdicts.csv` |
+| 2 | `## The core flow` | 오너의 핵심 흐름 그대로. 봇 → 피드 MISS → SSR 7회 호출 → BYPASS 4경로 → Supabase | M08a | `07-alibaba-bot.md:15-31`, `cf-24h-api.json` |
+| 3 | `## Problem` | 일별 요청, 10-22 시작(추정 표시), 11-09부터 하루 2만 안팎. 캐시를 피한 이유 2개. IP당 하루 10–20회라 한도 70 / 10 s에 안 걸림 | F08a | `cf-zone-daily.json`, `cf-posts-page-daily.json`, `cf-24h-ip.json`, `apis/buildFeedQuery.ts:29-32` |
+| 4 | `## How it was checked` | 다섯 단계 a–e. 느린 쿼리가 아니라 호출 수. timeout은 원인이 아니라 결과 | M08b, F08c, F08d | `supabase-query-summary.txt`, `error-log.txt`, tips Step 2 |
+| 5 | `## Fixes` | 표 3행: WAF / API 캐시 4경로 / 필터 query 정규화. 행마다 끊는 곳, 상태, 전, 후 | F08b | `3bb35f0`, `07-alibaba-bot.md:167-206` |
+| 6 | `## What we never measured` | Supabase egress GB, GCP egress GB, ASN과 query string(무료 플랜) | 없음 | §9.6 |
+| 7 | `## Sources` | 공통 AC C7 | | |
+
+- 길이: 본문 60–70줄. 산문은 그림 하나에 1–2줄 (owner: 차트 + 키워드 + 숫자).
+- 10-22 시작은 `/@taeklim/posts` 열이 없는 기간이다 (11-08부터). 존 요청과 `error_log` 주별로 추정했다. 글에 "inferred"로 쓴다.
+- 봇 IP: 글에는 ASN과 `/16` 대역(47.79, 47.82)만 쓴다. 전체 IP는 쓰지 않는다.
+- VM IP는 어디에도 쓰지 않는다 (`07-alibaba-bot.md:36`).
+- WAF 규칙 2의 식(expression)은 글에 싣지 않는다. 다음 봇에게 피하는 법을 알려 준다. 글에는 "multi-tag filter URLs from unverified bots get a challenge" 한 줄만 쓴다.
+- WAF 규칙 1(ASN 45102 Block)은 식을 실어도 된다. 피할 방법이 ASN을 바꾸는 것뿐이다.
+- 바이트 크기(38 KB, 11 KB, 약 50 KB)와 추정 11 GB는 원자료 파일이 없다. 글에 쓰지 않는다. 쓰려면 P8-02b를 먼저 한다.
+- blog-api 합계 157,153은 저장 파일로 다시 나오지 않는다. 두 JSON은 상위 20 그룹뿐이다 (host 합과 api 합이 서로 다르다). 글은 경로별 행만 쓴다. 합이 필요하면 CSV에서 세고 "top 20 groups"를 붙인다.
+
+### 9.5 그림
+
+#### mermaid (글 안, `S/data/F08*.mmd`에 원문)
+
+| F | 종류 | 보이는 것 | 출처 |
+| --- | --- | --- | --- |
+| M08a | `flowchart TD` | 봇(SG, ASN 45102) → `my.` 피드 MISS (`private, no-store`, 무작위 필터) → SSR 7회 → 6경로와 캐시 상태 → Supabase 쿼리 5–6개 → 과부하 → timeout → `error_log` INSERT | `07-alibaba-bot.md:15-34`, `cf-24h-api.json` |
+| M08b | `flowchart LR` | a Supabase calls → b Cloudflare 일별 → b' 24시간 host/path/IP → c `curl -D -` 헤더 → d `error_log` 집계 → e `whois` ASN | `tips/bot-egress.tips.html` Step 2, `07-alibaba-bot.md:220-224` |
+
+- M08a는 바이트 라벨 없이 옮긴다 (§9.4). 경로 이름과 캐시 상태는 그대로다.
+- 조치가 끊는 곳은 M08a에 그리지 않는다. F08b와 Fixes 표가 보인다.
+
+#### 데이터 차트 (`S/fig_08.py`, CSV는 저장 JSON/TXT에서 스크립트로 뽑는다)
+
+| F | 파일 | 보이는 것 | CSV (열) | 원자료 |
+| --- | --- | --- | --- | --- |
+| F08a | `fig_08_daily_requests.png` | 패널 2개, x축 공유. 위: 존 일별 요청(캐시분 구분). 아래: `/@taeklim/posts` 일별. 11-18 부분 날은 빗금. 세로선 하나: 11-18 22:30 ~ 22:35 (WAF + 캐시). 아래 패널의 뒤 날은 200만 센다 (V2와 같은 정의) | `fig_08_daily_requests.csv` (date, zone_requests, zone_cached, posts_page_requests, status, source) | `cf-zone-daily.json`, `cf-posts-page-daily.json`, 뒤 수집 파일 (§9.6) |
+| F08b | `fig_08_api_cache.png` | 패널 2개. 왼쪽: 15분 구간 21:00 ~ 22:30, 피드 200/403 + blog-api bypass/miss/hit (조치 순간). 오른쪽: 6경로 × 전(11-17 12:00 ~ 11-18 12:00) / 후(11-19 하루), HIT 대 오리진 도달 (§9.6 정의), `none`은 따로 | `fig_08_api_cache.csv` (window, path, cache_status, edge_status, count, status, source) | `cf-after-posts-15min.json`, `cf-after-api-15min.json`, `cf-24h-api.json`, 뒤 수집 파일 |
+| F08c | `fig_08_supabase_calls.png` | 쿼리 6개(#1–#5, #7)의 호출 수. 제목에 "cumulative since stats reset 2026-10-13 01:02 UTC" | `fig_08_supabase_calls.csv` (rank, query_label, calls, mean_ms, source) | `supabase-query-summary.txt:1-14`, `error-log.txt:1-2` |
+| F08d | `fig_08_error_log.png` | 주별 `error_log` 행, 그중 `/@taeklim/posts?…`. 11-16 주는 부분 주 | `fig_08_error_log.csv` (week, rows, posts_rows, status, source) | `error-log.txt:4-12` |
+
+- 캡션: 두 문장, 둘째는 "Why:" (`rules/figures.md` §3). 끝에 `Data: _series/data/<csv>`.
+- "후" 값이 아직 없으면 그 막대는 빈 막대 + `not measured` (F03c와 같은 방식).
+- F08b "전" 행은 반환된 상위 20 그룹뿐이다. 캡션에 "top 20 groups"를 쓴다. "후" 수집은 `limit` 100 이상, host = `blog-api.prettylog.com` 필터로 한다.
+- F08c는 평소 방문이 섞인 누적값이다. "전 하루" 값이 아니다. 전후 비교에 쓰지 않는다.
+
+#### 썸네일
+
+| F | 파일 | 숫자 | 글자 | 출처 |
+| --- | --- | --- | --- | --- |
+| TH08 | `08-bot-egress/08-bot-egress.png` | N (제목과 같은 값) | "feed page requests in 9 days, past the cache" | `cf-posts-page-daily.json` |
+
+- `thumbs.py`의 위치 격자는 4 × 2 = 8칸이다 (`thumbs.py:26-34`). NN = 08이면 칸 밖으로 나간다.
+- 고침: 08은 위 글자를 "Prettylog From Scratch · Follow-up"으로 쓴다. 8칸은 모두 회색, 채운 칸 없음.
+- `thumbs.py`는 지정한 NN만 그린다. 기존 썸네일 8장의 바이트는 바뀌지 않는다 (P8-06 AC).
+
+### 9.6 "후" 측정: 무엇을, 언제
+
+사실 갱신 (coordinator, 2026-11-18): WAF 규칙 2는 22:30 UTC쯤, 규칙 1은 그 직후 배포됐다. 캐시 배포(22:35)와 같은 15분 구간이다. 그래서 두 조치는 같은 날부터 함께 돈다.
+
+이미 있는 첫 "후" 값 (15분 단위, 부분 구간):
+
+| 15분 구간 (UTC, 11-18) | `/@taeklim/posts` 200 | 403 | blog-api bypass | miss | hit |
+| --- | --- | --- | --- | --- | --- |
+| 21:00 ~ 22:15 (6구간) | 구간마다 177 ~ 249 | 0 | 구간마다 887 ~ 1,254 | 179 ~ 252 | 179 ~ 265 |
+| 22:30 (부분) | 52 | 107 | 0 | 55 | 328 |
+
+- 출처: `history/2026-11-18-alibaba-bot/cf-after-posts-15min.json`, `cf-after-api-15min.json`. 위 범위는 이 두 JSON에서 읽었다. 글은 CSV 값만 쓴다.
+- 주의: `07-alibaba-bot.md` §6.1 표는 JSON과 몇 칸 다르다. 403은 JSON 107, md 106. 22:00 bypass는 JSON 1,254, md 1,253. 22:15 bypass는 JSON 1,032, md 1,034. 글과 CSV는 JSON을 쓴다. md 고침은 main session 몫이다.
+- 엣지 분석은 Challenge로 끝난 요청도 센다 (403 107). 그래서 "`/@taeklim/posts` 전체 요청"은 WAF 효과를 재지 못한다. `07-alibaba-bot.md:206`의 통과 기준도 같은 문제가 있다. 아래 V2는 200 응답만 센다.
+- api 15분 JSON은 경로 차원이 없다. blog-api 호스트 전체다.
+
+판정선 (`rules/measurement.md` §1). 이 절을 쓴 시각에 하루 "후" 값은 아직 없다. 데이터를 본 뒤 고치지 않는다.
+
+| ID | 조치 | 주 지표 | 전 | 판정선 (통과) | 실패 | 창(window) | 가장 이른 수집 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| V1 | API 캐시 (`3bb35f0`) | 4경로(`/tags`, `/posts/users/taeklim/{tags,profile,categories}`) 요청 중 오리진 도달 비율. 오리진 도달 = `bypass`, `miss`, `expired`, `dynamic` | `cf-24h-api.json` 같은 4경로, 같은 정의 (스크립트가 셈) | ≤ 10 % | > 50 % | 11-19 00:00 ~ 11-20 00:00 UTC | 11-20 |
+| V2 | WAF 규칙 2개 | `/@taeklim/posts` 중 `edgeResponseStatus` = 200, 하루 | 11-08 이후 일별 전체 요청 (전에는 403 = 0, 15분 JSON 21:00 ~ 22:15) | ≤ 2,000 | > 11-09 ~ 11-17 중 가장 작은 날의 50 % (스크립트가 CSV에서 정한다) | 11-19 00:00 ~ 11-20 00:00 UTC | 11-20 |
+
+- V1이 비율인 이유: 봇 양이 줄어도 비율은 바뀌지 않는다. 그래서 WAF와 같은 날이어도 캐시 효과만 읽힌다.
+- V1 최소 표본: 창 안 4경로 요청 ≥ 1,000. 못 미치면 `not comparable`. WAF가 SSR 호출 자체를 줄여 이럴 수 있다.
+- `none` 상태는 오리진 도달로 세지 않는다. 뜻을 확인하지 못했다. CSV에 따로 적는다.
+- 사이 값: `partial`. V1이면 캐시 헤더를 다시 보는 행, V2면 규칙 식을 다시 보는 행을 연다.
+- 두 조치의 "절대 수 감소"(SSR 피드 호출, Supabase 호출)는 둘이 섞인다. 글에 "both fixes combined"로 쓴다. 따로 나누지 않는다.
+- 잡음은 재실행으로 재지 않는다. 구조 변경의 하루 측정이다. 글에 "one day, one window"로 쓴다.
+- 보조 V2b: blog-api `/posts/users/taeklim` (SSR 피드 호출) 하루 수. 전 = `cf-24h-api.json` 21,955 행. 봇 페이지 하나가 SSR 피드 호출 하나를 만든다 (`07-alibaba-bot.md:20-27`).
+- 저장 위치: `deploy/traffic/review/history/2026-11-20-after/`. 같은 GraphQL 쿼리(tips Step 2 b)에 `edgeResponseStatus` 차원을 더한다.
+- 판정 결과는 `S/data/fig_08_verdicts.csv` 한 파일 (id, metric, before, after, ratio, verdict, source). 글은 이 파일에서만 숫자를 읽는다.
+- Cloudflare 무료 플랜 보존 기간이 짧다. 11-19 하루치는 11-20에 바로 수집한다.
+
+보조 숫자 (있으면 쓰고, 없으면 `not measured`):
+
+| 값 | 얻는 법 | 가장 이른 날 |
+| --- | --- | --- |
+| WAF 규칙별 차단 수 | 토큰이 `firewallEventsAdaptiveGroups`를 못 읽는다. 오너가 Security → Events 화면을 저장 (`…/2026-11-20-after/waf-events.*`) | 11-20 |
+| `error_log` 주별 | 같은 SELECT (`error-log.txt` 형식), 읽기 전용 | 11-23 (11-16 주 끝) |
+| Supabase 쿼리 호출 하루 수 | 시각을 적은 스냅숏 2개, 24시간 간격. 차이가 하루 값 | 첫 스냅숏 + 1일 |
+| Supabase egress GB | 오너가 Usage 화면을 저장 | 오너 저장 뒤. 없으면 `not measured` |
+| GCP egress GB | `check.md` 11 (매달 초, 지난달) | 12-01 이후. 글에는 `not measured` |
+
+발행 규칙 (결정):
+
+- 글은 한 번 낸다. V1, V2 하루 값(11-19 UTC)을 11-20에 모은 뒤 쓴다.
+- 11-20 수집이 실패하면(보존, 토큰) 15분 값만으로 쓴다. 하루 칸은 `not measured`로 둔다.
+- 버린 안: 지금 바로 냄 (15분 부분 구간 하나뿐) / 한 주 기다림 (보존 기간을 넘길 위험, 얻는 것 적음) / 먼저 내고 뒤에 다시 냄 (새 id, §9.2 D).
+
+### 9.7 단계 (pm이 행으로 바꾼다. 담당은 권고)
+
+| # | 단계 | 담당 | 선행 | AC |
+| --- | --- | --- | --- | --- |
+| P8-00 | 결정 기록 | pm | 없음 | `decisions.plan.md`에 행: 자리 A, 제목 T1, 발행 규칙, V1/V2 판정선. 수집(P8-02) 전에 쓴다 |
+| P8-01 | 증거 커밋 | main/오너 | 없음 | `git ls-files`에 `07-alibaba-bot.md`, `history/2026-11-18-alibaba-bot/` 9개(`cf-after-*-15min.json` 포함), `tips/bot-egress.tips.html`. 지금은 untracked다 |
+| P8-02 | V1, V2 하루 수집 | main | P8-00, 11-20 | `history/2026-11-20-after/`에: `cf-24h-api.json`(11-19 00:00 ~ 24:00 UTC, host = `blog-api.prettylog.com`, 차원 path + cacheStatus, limit ≥ 100), `cf-posts-page-daily.json`(차원 date + `edgeResponseStatus`, 11-19 행 필수, 앞 날은 보존되는 만큼), `cf-zone-daily.json`(11-19 행 필수). `clientIP` 차원 없음. 쿼리 원문은 `query.txt`에 |
+| P8-02b | (선택) 응답 크기 | main | 없음 | 6경로 `curl -s -o /dev/null -w '%{size_download}'` 결과를 `…/2026-11-18-alibaba-bot/api-sizes.txt`에. 있으면 M08a에 KB 라벨을 다시 단다 |
+| P8-03 | WAF Events 저장 | 오너 | 11-20 | `history/2026-11-20-after/waf-events.*` (규칙별 차단, Challenge 수). 없으면 글의 그 칸은 `not measured` |
+| P8-04 | CSV 5개 + 판정 | developer | P8-02, O7 | `S/data/`에 §9.5 CSV 4개 + `fig_08_verdicts.csv`. 값을 모으는 방법은 O7이 정한다 (스크립트 또는 손 + `grep` 대조). 모든 행 `source` 칸. N, V1 전후 비율, V2 값과 실패선(가장 작은 날의 50 %)을 `S/figures.md` "Checks"에 명령과 함께. 11-18과 22:30 구간은 `status` = `partial`. 고의 파손: CSV 한 행의 `source`를 비우면 `fig_08.py` exit ≠ 0, 되돌림. 실행 = 저장 파일만, `OMP_NUM_THREADS=1 timeout 300 uv run …` |
+| P8-05 | `fig_08.py` + PNG 4장 | developer | P8-04 | PS-1-02 AC와 같다 (읽기 `S/data/*.csv`만, 범례 축 위, source 빈칸이면 exit ≠ 0). `not measured` 막대가 비어 있다. 기존 PNG 20장의 `shasum`이 전후로 같다 |
+| P8-06 | 썸네일 08 | developer | P8-04 | `thumbs.csv`에 08 행. `08-bot-egress.png` 1200 × 630. 위 글자 "· Follow-up". 기존 썸네일 8장 `shasum` 불변 |
+| P8-07 | `figures.md` 행 | developer | P8-05, P8-06 | 행 7개 추가 (PNG 4, mermaid 2, 썸네일 1). `M08a.mmd`, `M08b.mmd`가 `S/data/`에. `P` 아래 표에 없는 PNG 0개 |
+| P8-08 | 글 08 작성 | sonnet-writer | P8-07 | 공통 AC C1, C2, C4–C7, C9, C12 그대로. C3 → 제목 = T1 형식, N = "Checks" 값. C8 → §6 문구 + "Supabase egress GB", "GCP egress GB"는 `not measured`. 추정 11 GB 0회. C10 → 본문 ≤ 80줄. C11 → 다른 연재 글 링크 0개. 절 순서 = §9.4. WAF 규칙 2 식 0회. 전체 IP 0회. Results 숫자 = `fig_08_verdicts.csv` |
+| P8-09 | reviewer 1회 | reviewer | P8-08 | `ps.plan.md` PS-2-08과 같은 검사, 글 1개. 결과 `ps-08.review.md`. cycle 0/2 |
+| P8-10 | 발행 | main | P8-09 PASS (지적 고침) | 발행 전 SELECT: 새 slug 행 0개. `publish_oneshot.py --no-llm …/08-bot-egress/08-bot-egress.md` 1회. URL `?probe=$T` 200. slug를 `deploy/projects/ps-08-publish-<date>.txt`에 |
+| P8-11 | purge + 운영 확인 | main + 오너 | P8-10 | `cf-purge.sh` 1회. `/@taeklim/projects/prettylog` 200, 글 9개, 순서 00 → 08. 기존 8개 slug 200 그대로. `traffic-check.sh` FAIL 0. 새 글 둘째 GET HIT. sitemap에 새 URL 1개. 오너 시각 확인: mermaid 2개가 그림. 출력 `deploy/projects/ps-08-prod-<date>.txt` |
+
+- MVP 사다리는 적용하지 않는다. 새 스키마, API, 파이프라인이 없다 (§7과 같다).
+- 크기: P8-04 M, P8-08 M, 나머지 S.
+
+### 9.8 오너에게 넘길 초안 줄 (결정하지 않음)
+
+- G-PL1 measure 초안: "글 8개, 순서 00 → 07" → "글 9개, 순서 00 → 08" (P8-11 통과 기준).
+- S1b 초안 → G-PL1, G-PL2: "후속 글 08을 `07-alibaba-bot.md`와 저장 JSON으로 쓴다. 자리 A (§9.2)".
+- M4 초안 → S1b: exit = P8-00 … P8-11 닫힘, `ps-08-prod-<date>.txt`에 결과 줄, reviewer 1회 PASS. cycle 0/2, recovery 0/2.
+
+### 9.9 열린 선택 (기본값으로 진행한다)
+
+| # | 선택 | 기본값 | 누가 |
+| --- | --- | --- | --- |
+| O1 | (닫힘) WAF 시점. 오너가 11-18 22:30 UTC에 넣었다. V1은 비율 지표라 섞이지 않는다 (§9.6) | 없음 | 오너, 끝남 |
+| O2 | Supabase Usage 화면(egress GB)을 저장하나 | 저장하면 실측으로 쓴다. 안 하면 `not measured` | 오너 |
+| O3 | P8-02b 응답 크기를 재나 | 안 잰다. M08a는 바이트 라벨 없이 | main/오너 |
+| O4 | WAF 규칙 2 식을 글에 싣나 | 안 싣는다. 한 줄 설명만 | pm + architect 결정. 오너가 바꿀 수 있다 |
+| O5 | 00 개요 지도에 08 행 | 안 넣는다 (다시 발행 위험, §9.2 E) | pm + architect 결정 |
+| O6 | G-PL1, S1b, M4 초안 승인 (§9.8) | 승인 전에도 P8-00 … P8-09는 진행한다. 발행(P8-10)만 승인 뒤 | 오너 |
+| O7 | `ps.plan.md` Constraints "로컬 입력 = `S/data/*.csv`만"은 JSON 원자료를 읽는 스크립트를 막는다 | (a) 오너가 "`S/data/raw/`의 증거 사본(`cmp` 동일)"까지 넓힌다 → `extract_08.py`. (b) 답이 없으면 PS-1-01처럼 developer가 Read로 손으로 모은 CSV + 행마다 `source` + "Checks"에 `grep` 대조. 실행 없음. 기본값: (b)로 진행, (a)가 오면 스크립트로 바꾼다 | 오너 (Constraint 변경) |
+| O8 | `07-alibaba-bot.md` §6.1 표의 세 칸이 JSON과 다르다 (§9.6). md를 고치나 | 고친다. 글은 어느 쪽이든 JSON을 쓴다 | main session |

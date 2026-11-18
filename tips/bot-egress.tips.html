@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>봇이 만든 egress 초과 추적하기</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans+KR:wght@400;500&display=swap">
+<style>
+/* html-theme light tokens (rules/answering.md §3). Light theme only. */
+:root {
+    --radius: 0;
+
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.55 0 0);
+    --rule: oklch(0.9 0 0);
+    --ring: oklch(0.45 0 0);
+
+    --signal-instruction: #d40000;
+    --signal-plan: #0432ff;
+    --signal-flag-fill: #fff3a0;
+    --signal-flag-line: #e6d24a;
+    --signal-dead-fill: #e4e4e2;
+    --signal-dead-ink: oklch(0.53 0.01 260);
+
+    --font: "IBM Plex Mono", "IBM Plex Sans KR", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; border-radius: var(--radius); }
+body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font);
+    font-feature-settings: "cv11", "ss01";
+    font-size: 14px;
+    line-height: 1.6;
+    padding-inline: 16px;
+    padding-block: 32px 64px;
+}
+.wrap { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+h1 { font-size: 24px; line-height: 1.3; font-weight: 700; margin: 0; text-wrap: balance; }
+h2 { font-size: 17px; font-weight: 500; margin: 0; text-wrap: balance; }
+p { margin: 0; max-width: 72ch; }
+.muted { color: var(--muted-foreground); }
+.label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted-foreground); }
+.panel { background: var(--card); color: var(--card-foreground); border: 1px solid var(--border); padding: 16px; }
+.scroll-x { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 10px; border-bottom: 1px solid var(--rule); text-align: right; white-space: nowrap; }
+th { font-weight: 500; color: var(--muted-foreground); }
+th:first-child, td:first-child { text-align: left; }
+.flag { background: var(--signal-flag-fill); box-shadow: inset 2px 0 0 var(--signal-flag-line); }
+.instruction { color: var(--signal-instruction); }
+.plan { color: var(--signal-plan); }
+.dead { background: var(--signal-dead-fill); color: var(--signal-dead-ink); }
+button { font: inherit; padding: 4px 12px; border: 1px solid var(--border); background: var(--card); color: var(--foreground); cursor: pointer; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+svg text { fill: var(--muted-foreground); font-family: var(--font); font-size: 11px; }
+.step { display: flex; flex-direction: column; gap: 14px; }
+.step.hero { border-width: 2px; }
+.eyebrow { font-size: 11px; letter-spacing: .08em; color: var(--muted-foreground); }
+.stepno { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted-foreground); }
+.toc { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 0; margin: 0; list-style: none; }
+.toc a { color: var(--foreground); }
+td.w, th.w { white-space: normal; text-align: left; vertical-align: top; }
+.codewrap { position: relative; }
+pre { margin: 0; padding: 12px 14px; background: var(--muted); border: 1px solid var(--rule); overflow-x: auto; font: inherit; font-size: 13px; line-height: 1.5; }
+code { font: inherit; background: var(--muted); padding: 0 4px; }
+pre code { background: none; padding: 0; }
+.copy { position: absolute; top: 6px; right: 6px; font-size: 11px; padding: 2px 8px; }
+ul { margin: 0; padding-left: 20px; }
+td ul { padding-left: 16px; }
+li + li { margin-top: 4px; }
+.caution { border-left: 4px solid var(--signal-instruction); }
+.caption { font-size: 12px; color: var(--muted-foreground); max-width: 80ch; }
+svg { max-width: 100%; height: auto; }
+svg .box { fill: var(--card); stroke: var(--border); stroke-width: 1.2; }
+svg .boxhi { fill: var(--signal-flag-fill); stroke: var(--signal-flag-line); stroke-width: 1.5; }
+svg .arrow { stroke: var(--border); stroke-width: 1.4; fill: none; }
+svg .bar { fill: var(--primary); }
+svg .barpart { fill: var(--signal-dead-fill); stroke: var(--border); stroke-width: 1; }
+svg .base { stroke: var(--border); stroke-width: 1.2; }
+svg .t { fill: var(--foreground); font-size: 12px; }
+svg .tb { fill: var(--foreground); font-size: 12px; font-weight: 700; }
+.tc { text-anchor: middle; }
+svg .cut { fill: var(--signal-instruction); font-size: 12px; font-weight: 700; }
+svg .cutline { stroke: var(--signal-instruction); stroke-width: 3; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:12px">
+  <div class="eyebrow">TIPS · 운영 · 비용과 트래픽</div>
+  <h1>봇이 만든 egress 초과 추적하기</h1>
+  <p>무료 한도 초과 알림을 받고, 원인을 찾고, 줄이는 순서다. 문제, 확인, 조치 순서로 4단계다. 2단계의 명령은 다음에도 그대로 쓴다.</p>
+  <ol class="toc">
+    <li><a href="#problem">1. 문제</a></li>
+    <li><a href="#check">2. 확인</a></li>
+    <li><a href="#fix">3. 조치</a></li>
+    <li><a href="#gcp">4. GCP egress 읽는 법</a></li>
+  </ol>
+</header>
+
+<section id="problem" class="panel step hero">
+  <div class="stepno">Step 1 of 4</div>
+  <h2>1. 문제: 봇 하나가 캐시를 피했다</h2>
+  <p><b>결론: 봇 하나가 무작위 필터 URL로 캐시를 피했다. 그래서 요청마다 Supabase까지 갔다.</b></p>
+  <p>알려는 것: 무료 한도를 넘긴 <a href="#term-egress">egress(서비스 밖으로 나가는 데이터 양)</a>를 누가 만들었나.</p>
+  <div class="label">핵심 흐름: 봇 한 번이 Supabase까지 가는 길</div>
+  <div class="scroll-x">
+  <svg viewBox="0 0 760 552" role="img" aria-label="봇에서 my. MISS, Next SSR 7번 호출, blog-api 여섯 갈래, Supabase로 가는 핵심 흐름도" width="760">
+    <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--border)"/></marker></defs>
+
+    <rect class="box" x="20" y="10" width="420" height="44"/>
+    <text class="tb" x="34" y="29">SG 봇 (47.79.x, 47.82.x)</text>
+    <text class="t" x="34" y="46">Chrome UA를 매번 바꿈</text>
+    <path class="arrow" d="M230 54 V84" marker-end="url(#ah)"/>
+    <text class="t" x="244" y="74">하루 ~22,000회</text>
+
+    <rect class="box" x="20" y="86" width="420" height="44"/>
+    <text class="tb" x="34" y="105">my.prettylog.com/@taeklim/posts</text>
+    <text class="t" x="34" y="122">cf-cache-status: MISS (HTML private, no-store)</text>
+    <path class="arrow" d="M230 130 V160" marker-end="url(#ah)"/>
+
+    <rect class="boxhi" x="20" y="162" width="420" height="44"/>
+    <text class="tb" x="34" y="181">Next SSR 서버 (GCP VM, UA node)</text>
+    <text class="t" x="34" y="198">페이지 1회에 7번 호출</text>
+    <path class="arrow" d="M230 206 V236" marker-end="url(#ah)"/>
+
+    <rect class="box" x="20" y="238" width="420" height="34"/>
+    <text class="tb" x="34" y="260">blog-api.prettylog.com</text>
+    <path class="arrow" d="M230 272 V282" marker-end="url(#ah)"/>
+
+    <rect class="boxhi" x="20" y="284" width="720" height="28"/>
+    <text class="tb" x="34" y="302">/profile ×2</text><text class="tb" x="270" y="302">BYPASS</text><text class="t" x="350" y="302">Cache-Control 없음</text>
+    <rect class="boxhi" x="20" y="316" width="720" height="28"/>
+    <text class="tb" x="34" y="334">/tags</text><text class="tb" x="270" y="334">BYPASS</text><text class="t" x="350" y="334">Cache-Control 없음</text>
+    <rect class="boxhi" x="20" y="348" width="720" height="28"/>
+    <text class="tb" x="34" y="366">/categories 38 KB</text><text class="tb" x="270" y="366">BYPASS</text><text class="t" x="350" y="366">Cache-Control 없음 (가장 큼)</text>
+    <rect class="boxhi" x="20" y="380" width="720" height="28"/>
+    <text class="tb" x="34" y="398">/users/taeklim/tags</text><text class="tb" x="270" y="398">BYPASS</text><text class="t" x="350" y="398">Cache-Control 없음</text>
+    <rect class="box" x="20" y="412" width="720" height="28"/>
+    <text class="tb" x="34" y="430">/users/taeklim 11 KB</text><text class="tb" x="270" y="430">MISS</text><text class="t" x="350" y="430">s-maxage는 있는데 매번 MISS</text>
+    <rect class="box" x="20" y="444" width="720" height="28"/>
+    <text class="tb" x="34" y="462">/projects</text><text class="tb" x="270" y="462">HIT</text><text class="t" x="350" y="462">유일하게 캐시됨</text>
+
+    <path class="arrow" d="M230 472 V500" marker-end="url(#ah)"/>
+    <rect class="boxhi" x="20" y="502" width="420" height="44"/>
+    <text class="tb" x="34" y="521">Supabase</text>
+    <text class="t" x="34" y="538">페이지 1회 ≈ SQL 5~6개, 응답 약 50 KB</text>
+  </svg>
+  </div>
+  <p class="caption">봇 요청 하나가 SSR을 거쳐 API 7번이 되고, 그중 BYPASS 네 갈래가 Supabase까지 간다. 노란 줄이 캐시를 못 쓰는 곳이다. 왜: 캐시가 막지 못하면 요청 하나가 SQL 5~6개가 된다. 출처: <code>history/2026-11-18-alibaba-bot</code></p>
+  <ul>
+    <li>피드(<code>/users/taeklim</code>)가 매번 MISS인 이유: 봇이 <code>?categories=…&amp;tags=…</code>를 무작위로 바꾼다. <code>apis/buildFeedQuery.ts</code>가 그 값을 피드 API 주소로 넘긴다.</li>
+    <li>흐름의 끝: 과부하, SSR fetch timeout, <code>error_log</code> INSERT 순서로 이어진다.</li>
+  </ul>
+
+
+  <table>
+    <thead><tr><th class="w">항목</th><th class="w">값</th></tr></thead>
+    <tbody>
+      <tr><td class="w">초과한 것</td><td class="w">Supabase 무료 egress 5 GB. GCP VM egress도 늘었다</td></tr>
+      <tr><td class="w">범인</td><td class="w">알리바바 클라우드(Alibaba Cloud) 대역. <a href="#term-asn">자율 시스템 번호(autonomous system number, ASN)</a> 45102, 국가 SG</td></tr>
+      <tr><td class="w">대상 주소</td><td class="w"><code>my.prettylog.com/@taeklim/posts?categories=…&amp;tags=…</code></td></tr>
+      <tr><td class="w">시작</td><td class="w">2026-10-22. 11-09부터 하루 약 2만 회</td></tr>
+    </tbody>
+  </table>
+
+
+  <div class="label">왜 캐시가 안 먹었나</div>
+  <ul>
+    <li>캐시(cache)는 주소가 같을 때만 답을 재사용한다. 봇은 주소를 매번 바꿨다. 그래서 <a href="#term-cache">MISS</a>가 났다.</li>
+    <li>SSR이 부르는 API 4곳은 <code>Cache-Control</code> 헤더가 없었다. 그래서 <a href="#term-cache">BYPASS</a>가 났다. Cloudflare가 아예 캐시하지 않았다.</li>
+    <li>4곳: <code>/tags</code>, <code>/users/:u/tags</code>, <code>/users/:u/profile</code>, <code>/users/:u/categories</code>.</li>
+  </ul>
+
+  <div class="label">하루 요청 수: /@taeklim/posts</div>
+  <div class="scroll-x">
+  <svg viewBox="0 0 760 260" role="img" aria-label="11월 8일부터 18일까지 하루 /@taeklim/posts 요청 수 막대 차트" width="760">
+    <text class="t" x="20" y="16">요청 수 (회/일, UTC)</text>
+    <line class="base" x1="30" y1="210" x2="740" y2="210"/>
+
+    <rect class="bar" x="40" y="201" width="40" height="9"/>
+    <text class="t tc" x="60" y="195">1,943</text>
+    <text class="t tc" x="60" y="228">11-08</text>
+
+    <rect class="bar" x="102" y="60" width="40" height="150"/>
+    <text class="t tc" x="122" y="54">34,023</text>
+    <text class="t tc" x="122" y="228">11-09</text>
+
+    <rect class="bar" x="164" y="86" width="40" height="124"/>
+    <text class="t tc" x="184" y="80">28,150</text>
+    <text class="t tc" x="184" y="228">11-10</text>
+
+    <rect class="bar" x="226" y="120" width="40" height="90"/>
+    <text class="t tc" x="246" y="114">20,392</text>
+    <text class="t tc" x="246" y="228">11-11</text>
+
+    <rect class="bar" x="288" y="125" width="40" height="85"/>
+    <text class="t tc" x="308" y="119">19,305</text>
+    <text class="t tc" x="308" y="228">11-12</text>
+
+    <rect class="bar" x="350" y="84" width="40" height="126"/>
+    <text class="t tc" x="370" y="78">28,561</text>
+    <text class="t tc" x="370" y="228">11-13</text>
+
+    <rect class="bar" x="412" y="126" width="40" height="84"/>
+    <text class="t tc" x="432" y="120">19,018</text>
+    <text class="t tc" x="432" y="228">11-14</text>
+
+    <rect class="bar" x="474" y="71" width="40" height="139"/>
+    <text class="t tc" x="494" y="65">31,439</text>
+    <text class="t tc" x="494" y="228">11-15</text>
+
+    <rect class="bar" x="536" y="130" width="40" height="80"/>
+    <text class="t tc" x="556" y="124">18,107</text>
+    <text class="t tc" x="556" y="228">11-16</text>
+
+    <rect class="bar" x="598" y="120" width="40" height="90"/>
+    <text class="t tc" x="618" y="114">20,377</text>
+    <text class="t tc" x="618" y="228">11-17</text>
+
+    <rect class="barpart" x="660" y="164" width="40" height="46"/>
+    <text class="t tc" x="680" y="158">10,529</text>
+    <text class="t tc" x="680" y="228">11-18*</text>
+
+    <text class="t" x="20" y="252">* 11-18은 조회 시각까지의 부분 값 (회색 막대)</text>
+  </svg>
+  </div>
+  <p class="caption">11-08은 1,943회, 11-09부터는 매일 약 2만에서 3만 회다. 왜: 사람 독자로는 설명되지 않는 갑작스러운 점프라서 봇을 의심했다. 출처: <code>history/2026-11-18-alibaba-bot</code> (<code>cf-posts-page-daily.json</code>)</p>
+
+  <table>
+    <thead><tr><th class="w">측정</th><th>11-08</th><th>11-13</th></tr></thead>
+    <tbody>
+      <tr><td class="w">존 전체 하루 요청</td><td>22,644</td><td>250,664</td></tr>
+    </tbody>
+  </table>
+  <ul>
+    <li>존 캐시 비율은 약 12 %다. 요청 대부분이 오리진(GCP VM)까지 간다.</li>
+    <li>11-09부터 11-18까지 <code>/@taeklim/posts</code> 합계는 약 230,000회다.</li>
+  </ul>
+</section>
+
+<section id="check" class="panel step">
+  <div class="stepno">Step 2 of 4</div>
+  <h2>2. 확인: 이렇게 찾았다 (다음에도 똑같이 한다)</h2>
+  <p>알려는 것: 느린 쿼리가 아니라 호출 수를 보는 법, 그리고 누가 부르는지 좁히는 순서. 5가지를 위에서 아래로 한다.</p>
+
+  <table>
+    <thead><tr><th>#</th><th class="w">무엇을 보나</th><th class="w">알려 주는 것</th></tr></thead>
+    <tbody>
+      <tr><td>a</td><td class="w">Supabase Query Performance 내보내기</td><td class="w">어떤 쿼리가 몇 번 불렸나</td></tr>
+      <tr><td>b</td><td class="w">Cloudflare GraphQL API</td><td class="w">어떤 호스트와 경로가 몇 번, 캐시 상태는</td></tr>
+      <tr><td>c</td><td class="w"><code>curl -D -</code></td><td class="w">그 경로가 캐시되나</td></tr>
+      <tr><td>d</td><td class="w"><code>error_log</code> 집계</td><td class="w">어떤 주소가 실패하나</td></tr>
+      <tr><td>e</td><td class="w"><code>whois</code> 조회</td><td class="w">그 IP는 누구 것인가</td></tr>
+    </tbody>
+  </table>
+
+  <div class="label">a. Supabase: 호출 수(calls)로 정렬한다</div>
+  <ul>
+    <li>Supabase 대시보드의 Query Performance 표를 내보낸다. 느린 쿼리가 아니라 <b>calls</b> 열을 본다.</li>
+    <li>이유: 평균 시간이 짧아도 호출이 수십만 번이면 전송량이 쌓인다.</li>
+  </ul>
+  <table>
+    <thead><tr><th class="w">쿼리</th><th>호출</th><th>평균 (ms)</th></tr></thead>
+    <tbody>
+      <tr><td class="w">프로필 카드</td><td>600,058</td><td>0.21</td></tr>
+      <tr><td class="w">전체 인기 태그 (<code>/tags</code>)</td><td>274,208</td><td>1.60</td></tr>
+      <tr><td class="w">카테고리 트리</td><td>266,189</td><td>1.04</td></tr>
+      <tr><td class="w">작가 인기 태그</td><td>257,356</td><td>1.55</td></tr>
+      <tr><td class="w">작가 피드</td><td>249,045</td><td>0.78</td></tr>
+      <tr><td class="w"><code>error_log</code> INSERT</td><td>245,594</td><td>0.17</td></tr>
+    </tbody>
+  </table>
+  <p>읽는 법: 느린 쿼리는 없다. 문제는 호출 수다. 카테고리 트리는 본문(<code>p.content</code>)을 <a href="#term-cte">공통 테이블 식(common table expression, CTE)</a> 안에서만 읽고 마지막 SELECT에서는 뺀다. 그래서 본문 전송은 원인이 아니다.</p>
+
+  <div class="label">b. Cloudflare GraphQL API: curl과 jq로 묻는다</div>
+  <p>토큰과 존 ID는 환경 변수로 읽는다. 파일에 쓰지 않는다. 아래 값은 자리표시다.</p>
+  <div class="codewrap"><button class="copy" type="button">복사</button><pre><code># 하루 단위 요청 수 (httpRequests1dGroups)
+curl -s https://api.cloudflare.com/client/v4/graphql \
+  -H "Authorization: Bearer $CF_API_TOKEN" -H "Content-Type: application/json" \
+  --data '{"query":"{ viewer { zones(filter:{zoneTag:\"'"$CF_ZONE_ID"'\"}) {
+    httpRequests1dGroups(limit:40, filter:{date_geq:\"2026-10-15\"}) {
+      dimensions { date } sum { requests cachedRequests bytes } } } } }"}' \
+  | jq '.data.viewer.zones[0].httpRequests1dGroups[]'
+
+# 호스트, 경로, 캐시 상태별 (httpRequestsAdaptiveGroups)
+#   같은 방식으로 묻고 dimensions에 아래 값을 고른다
+#   clientRequestHTTPHost  clientRequestPath  cacheStatus  userAgent  clientIP</code></pre></div>
+  <ul>
+    <li><code>httpRequests1dGroups</code>는 날마다의 요청 수와 캐시된 요청 수를 준다. 그래서 언제 튀었나가 보인다.</li>
+    <li><code>httpRequestsAdaptiveGroups</code>는 호스트, 경로, 캐시 상태, UA, IP로 쪼갠다. 그래서 누가 무엇을 부르나가 보인다.</li>
+    <li>무료 플랜의 한계: ASN과 query string은 읽을 수 없다. 그리고 경로별 일별 기록은 보존 기간이 짧아 11-08부터만 있었다.</li>
+  </ul>
+  <table>
+    <thead><tr><th class="w">24시간 (11-17 12:00 ~ 11-18 12:00 UTC)의 blog-api 경로</th><th>요청</th><th>캐시</th></tr></thead>
+    <tbody>
+      <tr><td class="w"><code>/posts/users/taeklim/profile</code></td><td>43,979</td><td>BYPASS</td></tr>
+      <tr><td class="w"><code>/posts/users/taeklim/projects</code></td><td>23,082</td><td>HIT</td></tr>
+      <tr><td class="w"><code>/tags</code></td><td>22,275</td><td>BYPASS</td></tr>
+      <tr><td class="w"><code>/posts/users/taeklim/categories</code></td><td>22,261</td><td>BYPASS</td></tr>
+      <tr><td class="w"><code>/posts/users/taeklim/tags</code></td><td>21,985</td><td>BYPASS</td></tr>
+      <tr><td class="w"><code>/posts/users/taeklim</code></td><td>21,955</td><td>MISS</td></tr>
+    </tbody>
+  </table>
+  <p>읽는 법: 6개 경로 중 4개가 BYPASS다. 요청 157,153건은 모두 VM 한 곳(SSR, UA <code>node</code>)에서 왔다. 즉 봇이 직접 API를 부르지 않는다. 봇이 페이지를 열면 SSR이 API를 7번 부른다.</p>
+
+  <div class="label">c. curl -D -: 응답 헤더로 캐시를 확인한다</div>
+  <div class="codewrap"><button class="copy" type="button">복사</button><pre><code>curl -s -o /dev/null -D - https://blog-api.prettylog.com/v1/api/tags \
+  | grep -iE '^HTTP|cf-cache-status|cache-control'</code></pre></div>
+  <table>
+    <thead><tr><th class="w">보이는 것</th><th class="w">뜻</th></tr></thead>
+    <tbody>
+      <tr><td class="w"><code>cf-cache-status: BYPASS</code>, <code>cache-control</code> 줄 없음</td><td class="w">서버가 캐시해도 된다고 말하지 않았다. 고칠 곳은 코드다</td></tr>
+      <tr><td class="w"><code>cf-cache-status: MISS</code></td><td class="w">캐시 가능하지만 이 주소는 처음이다</td></tr>
+      <tr><td class="w"><code>cf-cache-status: HIT</code></td><td class="w">Cloudflare가 답했다. 서버와 DB는 쉬었다</td></tr>
+    </tbody>
+  </table>
+
+  <div class="label">d. error_log: 주소별, 메시지별로 센다</div>
+  <div class="codewrap"><button class="copy" type="button">복사</button><pre><code>select path, message, count(*) as n
+from error_log
+group by path, message
+order by n desc
+limit 20;</code></pre></div>
+  <table>
+    <thead><tr><th class="w">주 (월요일)</th><th>행</th><th>그중 <code>/@taeklim/posts?…</code></th></tr></thead>
+    <tbody>
+      <tr><td class="w">10-12</td><td>154</td><td>10</td></tr>
+      <tr><td class="w">10-19</td><td>58,341</td><td>56,880</td></tr>
+      <tr><td class="w">10-26</td><td>119,302</td><td>118,602</td></tr>
+      <tr><td class="w">11-02</td><td>25,827</td><td>25,725</td></tr>
+      <tr><td class="w">11-09</td><td>40,721</td><td>40,589</td></tr>
+    </tbody>
+  </table>
+  <ul>
+    <li>11-09 이후 메시지: timeout 31,555, <code>fetch failed</code> 5,588, 프로필 실패 4,682.</li>
+    <li>11-09 이후 서로 다른 path는 13,605개다. 봇이 주소를 매번 바꾼다는 증거다.</li>
+    <li>읽는 법: timeout은 <b>결과</b>이고 원인이 아니다. 봇이 서버를 밀어서 SSR의 Express 호출이 timeout 났다.</li>
+    <li>에러 기록도 DB 쓰기다. 공격 중에는 부하를 더 한다.</li>
+  </ul>
+
+  <div class="label">e. whois: IP의 주인을 찾는다</div>
+  <div class="codewrap"><button class="copy" type="button">복사</button><pre><code>whois -h whois.cymru.com " -v &lt;ip&gt;"</code></pre></div>
+  <ul>
+    <li>Cloudflare 무료 플랜은 ASN을 주지 않는다. 그래서 상위 IP를 <code>whois</code>로 따로 조회한다.</li>
+    <li>상위 IP 2개를 조회해서 알리바바 클라우드(ASN 45102)로 확인했다.</li>
+    <li>상위 200개 IP는 합쳐서 2,495회다. 대역은 47.82, 47.79, 47.237, 8.219이고 모두 알리바바다.</li>
+    <li>IP당 하루 약 10에서 20회뿐이다. 그래서 IP당 요청 수 제한으로는 못 잡는다.</li>
+  </ul>
+</section>
+
+<section id="fix" class="panel step">
+  <div class="stepno">Step 3 of 4</div>
+  <h2>3. 조치: 막고, 캐시하고, 줄인다</h2>
+  <p>알려는 것: 조치마다 Supabase egress와 GCP VM egress를 어떻게 줄이나. 상태는 2026-11-18 기준이다.</p>
+  <div class="label">조치가 흐름을 끊는 곳</div>
+  <div class="scroll-x">
+  <svg viewBox="0 0 760 552" role="img" aria-label="같은 흐름에서 WAF가 맨 위 화살표를 끊고, API 캐시가 BYPASS 네 줄을 HIT로 바꾸는 위치" width="760">
+    <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--border)"/></marker></defs>
+
+    <rect class="box" x="20" y="10" width="420" height="44"/>
+    <text class="tb" x="34" y="29">SG 봇 (47.79.x, 47.82.x)</text>
+    <text class="t" x="34" y="46">Chrome UA를 매번 바꿈</text>
+    <path class="arrow" d="M230 54 V62"/><path class="arrow" d="M230 78 V84" marker-end="url(#ah2)"/>
+    <line class="cutline" x1="150" y1="64" x2="310" y2="76"/><text class="cut" x="330" y="70">WAF 규칙 1, 2가 여기를 끊는다</text>
+
+    <rect class="box" x="20" y="86" width="420" height="44"/>
+    <text class="tb" x="34" y="105">my.prettylog.com/@taeklim/posts</text>
+    <text class="t" x="34" y="122">cf-cache-status: MISS (HTML private, no-store)</text>
+    <path class="arrow" d="M230 130 V160" marker-end="url(#ah2)"/>
+
+    <rect class="boxhi" x="20" y="162" width="420" height="44"/>
+    <text class="tb" x="34" y="181">Next SSR 서버 (GCP VM, UA node)</text>
+    <text class="t" x="34" y="198">페이지 1회에 7번 호출</text>
+    <path class="arrow" d="M230 206 V236" marker-end="url(#ah2)"/>
+
+    <rect class="box" x="20" y="238" width="420" height="34"/>
+    <text class="tb" x="34" y="260">blog-api.prettylog.com</text>
+    <path class="arrow" d="M230 272 V282" marker-end="url(#ah2)"/>
+
+    <rect class="boxhi" x="20" y="284" width="720" height="28"/>
+    <text class="tb" x="34" y="302">/profile ×2</text><text class="tb" x="270" y="302">BYPASS</text><text class="t" x="350" y="302">Cache-Control 없음</text>
+    <rect class="boxhi" x="20" y="316" width="720" height="28"/>
+    <text class="tb" x="34" y="334">/tags</text><text class="tb" x="270" y="334">BYPASS</text><text class="t" x="350" y="334">Cache-Control 없음</text>
+    <rect class="boxhi" x="20" y="348" width="720" height="28"/>
+    <text class="tb" x="34" y="366">/categories 38 KB</text><text class="tb" x="270" y="366">BYPASS</text><text class="t" x="350" y="366">Cache-Control 없음 (가장 큼)</text>
+    <rect class="boxhi" x="20" y="380" width="720" height="28"/>
+    <text class="tb" x="34" y="398">/users/taeklim/tags</text><text class="tb" x="270" y="398">BYPASS</text><text class="t" x="350" y="398">Cache-Control 없음</text>
+    <rect class="box" x="20" y="412" width="720" height="28"/>
+    <text class="tb" x="34" y="430">/users/taeklim 11 KB</text><text class="tb" x="270" y="430">MISS</text><text class="t" x="350" y="430">항목 M 정규화: 설계 대기</text>
+    <rect class="box" x="20" y="444" width="720" height="28"/>
+    <text class="tb" x="34" y="462">/projects</text><text class="tb" x="270" y="462">HIT</text><text class="t" x="350" y="462">유일하게 캐시됨</text>
+
+    <path class="arrow" d="M230 472 V500" marker-end="url(#ah2)"/>
+    <rect class="boxhi" x="20" y="502" width="420" height="44"/>
+    <text class="tb" x="34" y="521">Supabase</text>
+    <text class="t" x="34" y="538">HIT가 된 줄은 여기까지 오지 않는다</text>
+  </svg>
+  </div>
+  <p class="caption">같은 흐름에서 빨간 글씨가 조치가 닿는 곳이다. WAF는 맨 위 화살표를 끊고, API 캐시는 BYPASS 네 줄을 HIT로 바꾼다. 왜: 위쪽을 끊으면 아래 모든 호출이 사라지고, 캐시는 남는 호출의 SQL을 없앤다. 출처: <code>history/2026-11-18-alibaba-bot</code></p>
+
+
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>#</th><th class="w">조치</th><th class="w">Supabase egress를 줄이는 길</th><th class="w">GCP VM egress를 줄이는 길</th><th class="w">상태</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td class="w"><a href="#term-waf">웹 방화벽(web application firewall, WAF)</a> 규칙 1: ASN 45102 차단</td>
+        <td class="w"><ul><li>봇이 SSR에 닿지 못한다.</li><li>그래서 Express 7회 호출과 SQL이 생기지 않는다.</li></ul></td>
+        <td class="w"><ul><li>VM이 봇 페이지를 만들지 않는다.</li><li>그 페이지의 API 응답도 터널로 나가지 않는다.</li></ul></td>
+        <td class="w">배포 완료 (오너, 2026-11-18). 첫 15분(22:30 구간): 봇 페이지 107건이 403</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td class="w">WAF 규칙 2: 필터 조합 요청에 Managed Challenge</td>
+        <td class="w"><ul><li>봇이 다른 클라우드로 옮겨도 같은 길이 막힌다.</li></ul></td>
+        <td class="w"><ul><li>규칙 1과 같다.</li></ul></td>
+        <td class="w">배포 완료 (오너, 2026-11-18 22:30 UTC쯤). 태그 2개 요청은 403, 태그 1개는 200</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td class="w">API 4곳에 <code>setPostReadCache</code> 추가</td>
+        <td class="w"><ul><li>Cloudflare가 HIT로 답한다.</li><li>Express와 Supabase 호출이 생기지 않는다.</li></ul></td>
+        <td class="w"><ul><li>VM에서 터널로 나가는 응답 바이트가 없다.</li></ul></td>
+        <td class="w">배포 완료 (<code>3bb35f0</code>, 2026-11-18). 4곳 모두 HIT 확인</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td class="w">필터 query 정규화 (항목 M)</td>
+        <td class="w"><ul><li>같은 필터의 다른 순서가 같은 캐시를 쓴다.</li></ul></td>
+        <td class="w"><ul><li>같은 필터의 응답을 VM이 다시 보내지 않는다.</li></ul></td>
+        <td class="w">설계 대기. 1번이 먼저 막는다</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td class="w">월 기록 (<code>check.md</code> 11)</td>
+        <td class="w"><ul><li>줄이지 않는다. 재는 일이다.</li></ul></td>
+        <td class="w"><ul><li>줄이지 않는다. 11월 청구에서 전후를 GB로 본다.</li></ul></td>
+        <td class="w">예정</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="label">WAF 규칙 (Cloudflare, Security, WAF, Custom rules)</div>
+  <table>
+    <thead><tr><th>순서</th><th class="w">이름</th><th class="w">동작</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td class="w"><code>block alibaba cloud</code></td><td class="w">Block</td></tr>
+      <tr><td>2</td><td class="w"><code>challenge filter combos</code></td><td class="w">Managed Challenge</td></tr>
+    </tbody>
+  </table>
+  <p>규칙 1 식(expression):</p>
+  <div class="codewrap"><button class="copy" type="button">복사</button><pre><code>(ip.src.asnum in {45102})</code></pre></div>
+  <p>규칙 2 식:</p>
+  <div class="codewrap"><button class="copy" type="button">복사</button><pre><code>(http.host eq "my.prettylog.com"
+ and starts_with(http.request.uri.path, "/@")
+ and http.request.uri.query contains "tags="
+ and http.request.uri.query contains "%2C"
+ and not cf.client.bot)</code></pre></div>
+  <ul>
+    <li>규칙 1: 알리바바 클라우드는 데이터센터다. 실제 독자가 거의 없다. 지금 봇을 바로 끊는다.</li>
+    <li>규칙 2: 태그를 여러 개 고른 요청만 걸린다 (<code>%2C</code>는 쉼표). 검색 엔진(<code>cf.client.bot</code>)은 빠진다. 사람은 Challenge를 한 번 통과하면 계속 본다.</li>
+    <li><code>blog-api.</code>에는 걸지 않는다. SSR VM이 부르기 때문이다.</li>
+    <li>Bot Fight Mode는 켜지 않는다. SSR의 <code>node</code> 요청까지 막을 수 있다.</li>
+  </ul>
+
+  <div class="label">setPostReadCache가 붙은 곳</div>
+  <ul>
+    <li>익명 요청은 <code>public, s-maxage=86400</code>. 로그인 요청은 <code>private, no-store</code>.</li>
+    <li><code>GET /tags</code></li>
+    <li><code>GET /users/:u/tags</code></li>
+    <li><code>GET /users/:u/profile</code> (200만)</li>
+    <li><code>GET /users/:u/categories</code></li>
+    <li>배포 뒤 바로 HIT가 된다. 글을 발행하면 지금처럼 <code>cf-purge.sh</code>로 api도 비운다.</li>
+  </ul>
+</section>
+
+<section id="gcp" class="panel step">
+  <div class="stepno">Step 4 of 4</div>
+  <h2>4. GCP egress 읽는 법과 통과 기준</h2>
+  <p>알려는 것: VM에서 나가는 바이트는 어떤 응답인가. 그래서 어느 조치가 얼마나 도우나.</p>
+
+  <ul>
+    <li>VM에서 나가는 바이트는 Cloudflare가 캐시로 답하지 못한 응답이다.</li>
+    <li>캐시로 답하면 요청은 VM에 오지 않는다. 그래서 VM이 보내는 바이트가 없다.</li>
+    <li>SSR이 <code>blog-api.</code>를 공개 주소로 부른다. 그래서 API 응답은 터널(tunnel)로 한 번 더 나간다.</li>
+    <li>봇 페이지 하나는 HTML 응답과 API 응답 여러 개를 VM에서 내보낸다.</li>
+  </ul>
+
+  <table>
+    <thead><tr><th>순서</th><th class="w">방법</th><th class="w">줄어드는 것</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td class="w">WAF 규칙</td><td class="w">봇 페이지와 그 API 호출 전부</td></tr>
+      <tr><td>2</td><td class="w">API 4곳 캐시</td><td class="w">페이지당 API 응답 약 40 KB 중 대부분</td></tr>
+      <tr><td>3</td><td class="w">필터 query 정규화 (M 설계)</td><td class="w">같은 필터의 다른 순서가 같은 캐시를 쓴다</td></tr>
+      <tr><td>4</td><td class="w">월 기록 (<code>check.md</code> 11)</td><td class="w">11월 청구에서 전후를 GB로 본다</td></tr>
+    </tbody>
+  </table>
+
+  <div class="label caution" style="padding-left:8px">추정과 실측을 구분한다</div>
+  <ul>
+    <li>Supabase egress 추정: 230,000회 × 약 50 KB ≈ 11 GB.</li>
+    <li>이 값은 API 응답 크기로 계산한 추정이다. DB 바이트를 잰 값이 아니다.</li>
+  </ul>
+
+  <div class="label">통과 기준</div>
+  <ul>
+    <li>Cloudflare Security, Events에서 두 규칙의 차단 수를 본다.</li>
+    <li>다음 날 <code>/@taeklim/posts</code> 요청이 1천에서 2천으로 돌아오면 통과다.</li>
+  </ul>
+  <p class="muted">더 볼 곳: Cloud Logging의 blog-web 요청 로그. 전체 URL이 30일 남는다.</p>
+</section>
+
+<section id="terms" class="panel step">
+  <h2>용어 부록</h2>
+  <ul>
+    <li id="term-egress">egress: 서비스 밖으로 나가는 데이터 양. 무료 한도를 넘으면 과금된다.</li>
+    <li id="term-cache">캐시(cache)의 상태 HIT, MISS, BYPASS: Cloudflare가 저장본으로 답하면 HIT, 저장본이 없으면 MISS, 서버가 허락하지 않아 아예 저장하지 않으면 BYPASS.</li>
+    <li id="term-asn">자율 시스템 번호(autonomous system number, ASN): 인터넷에서 한 회사의 IP 묶음에 붙은 번호.</li>
+    <li id="term-waf">웹 방화벽(web application firewall, WAF): 요청 조건으로 막거나 시험하는 Cloudflare 규칙.</li>
+    <li id="term-ssr">서버 렌더링(server-side rendering, SSR): Next 서버가 HTML을 만드는 단계.</li>
+    <li id="term-cte">공통 테이블 식(common table expression, CTE): SQL의 <code>WITH</code> 블록.</li>
+  </ul>
+</section>
+
+</div>
+<script>
+document.querySelectorAll('.copy').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var t = b.parentElement.querySelector('code').innerText;
+    navigator.clipboard.writeText(t).then(function () { b.textContent = '복사됨'; setTimeout(function () { b.textContent = '복사'; }, 1200); });
+  });
+});
+</script>
+</body>
+</html>

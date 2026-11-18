@@ -11,6 +11,7 @@
 | [`04-observability.md`](./04-observability.md) | 관찰과 알림 | A 요청 로그, E 알림, F 점검 도구, I egress 보류, J Supabase Log Query |
 | [`05-secrets.md`](./05-secrets.md) | 비밀 값과 개인 정보 | IP, 계정 ID, 토큰 |
 | [`06-prefetch.md`](./06-prefetch.md) | 무한 스크롤 429와 미리 받기 | O prefetch 줄이기, load-more 실패 처리 |
+| [`07-alibaba-bot.md`](./07-alibaba-bot.md) | 봇과 Supabase egress 초과 (2026-11-18) | Cloudflare 일별 보고, 원인, WAF 정책, API 캐시 4곳, GCP egress |
 
 실행 방법: [`../README.md`](../README.md). 설계: [`traffic.design.md`](../../../traffic.design.md).
 
@@ -32,6 +33,7 @@
 | L | 공개 error-logs 쓰기 막기 | 완료, 운영 확인 (`38b4c12`) |
 | J | Supabase Log Query 사용량 | 관찰 중 |
 | O | 무한 스크롤 429와 prefetch 줄이기 (`06-prefetch.md`) | 배포: 아니오. 코드 수정 완료, 커밋 전 (#70) |
+| P | 알리바바 봇, Supabase egress 초과 (`07-alibaba-bot.md`) | API 캐시 배포 완료 (`3bb35f0`, 4곳 HIT 확인), WAF 규칙은 오너 대시보드 작업 |
 
 검토할 것: G의 커밋과 배포, H의 설계(받으면 이 문서에 붙인다).
 
